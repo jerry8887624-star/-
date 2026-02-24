@@ -1,8 +1,25 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { FetchResult, ResearchMethod, MatrixAnalysis, Paper } from "../types";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// API Key & Client Management
+let currentApiKey: string | null = null;
+let ai: GoogleGenAI | null = null;
+
+export const setApiKey = (key: string) => {
+  currentApiKey = key;
+  ai = new GoogleGenAI({ apiKey: key });
+};
+
+export const getApiKey = (): string | null => currentApiKey;
+
+export const hasApiKey = (): boolean => !!currentApiKey && !!ai;
+
+const getClient = (): GoogleGenAI => {
+  if (!ai) {
+    throw new Error("API Key 尚未設定。請先輸入你的 Gemini API Key。");
+  }
+  return ai;
+};
 
 const SYSTEM_INSTRUCTION = `
 You are a distinguished Professor and Thesis Advisor at a top-tier university (like MIT, Stanford, or NTU). 
@@ -23,19 +40,20 @@ RULES:
 `;
 
 export const fetchPapers = async (topic: string, existingTitles: string[] = []): Promise<FetchResult> => {
+  const client = getClient();
   try {
     const isLoadMore = existingTitles.length > 0;
-    
+
     let prompt = `Please conduct a rigorous literature review on the topic: "${topic}".`;
-    
+
     if (isLoadMore) {
       prompt += `\n\nI have already reviewed the following papers, DO NOT include them again: ${JSON.stringify(existingTitles.slice(-20))}. \nProvide 10 NEW and DISTINCT papers that expand the scope or dig deeper into specific sub-topics.`;
     } else {
       prompt += `\nProvide 10-12 key foundational and recent papers.`;
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const response = await client.models.generateContent({
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -123,12 +141,11 @@ export const fetchPapers = async (topic: string, existingTitles: string[] = []):
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
-    
+
     const data = JSON.parse(text);
-    
+
     const processedPapers = data.papers.map((item: any) => ({
       ...item,
-      // Ensure methodologyType matches our Enum
       methodologyType: Object.values(ResearchMethod).includes(item.methodologyType) 
         ? item.methodologyType 
         : ResearchMethod.Other
@@ -146,9 +163,8 @@ export const fetchPapers = async (topic: string, existingTitles: string[] = []):
 };
 
 export const analyzeSelectedPapers = async (papers: Paper[]): Promise<MatrixAnalysis> => {
+  const client = getClient();
   try {
-    // Prepare a concise version of papers to save tokens and focus the model
-    // We pass the English version to the model for consistent processing, but the model will output Chinese as requested.
     const concisePapers = papers.map(p => ({
       title: p.titleEn,
       author: p.authors[0],
@@ -160,7 +176,7 @@ export const analyzeSelectedPapers = async (papers: Paper[]): Promise<MatrixAnal
 
     const prompt = `
       You are an expert Academic Editor performing a meta-synthesis on a selected set of papers.
-      
+
       The user has selected ${papers.length} specific papers for a "Synthesis Matrix".
       Your goal is to compare, contrast, and synthesize these specific papers to help the user write their Thesis Chapter 2.
 
@@ -174,8 +190,8 @@ export const analyzeSelectedPapers = async (papers: Paper[]): Promise<MatrixAnal
       5. **Synthesis Paragraph**: Write a cohesive, academic paragraph synthesizing these works (citation format: Author, Year).
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    const response = await client.models.generateContent({
+      model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -195,7 +211,7 @@ export const analyzeSelectedPapers = async (papers: Paper[]): Promise<MatrixAnal
 
     const text = response.text;
     if (!text) throw new Error("No response from AI analysis");
-    
+
     return JSON.parse(text) as MatrixAnalysis;
 
   } catch (error) {
