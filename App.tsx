@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { fetchPapers } from './services/geminiService';
+import { fetchPapers, setApiKey, hasApiKey } from './services/geminiService';
 import { Paper, SortOption, ResearchSynthesis, ResearchMethod } from './types';
 import PaperCard from './components/PaperCard';
 import FilterSidebar from './components/FilterSidebar';
@@ -10,6 +10,8 @@ import { Search, Sparkles, Zap, Download, Loader2, PlusCircle, FileSpreadsheet, 
 const STORAGE_KEY = 'research_accelerator_v1';
 
 const App: React.FC = () => {
+  const [apiKeyInput, setApiKeyInput] = React.useState('');
+  const [isApiKeySet, setIsApiKeySet] = React.useState(false);
   const [query, setQuery] = useState('');
   const [papers, setPapers] = useState<Paper[]>([]);
   const [synthesis, setSynthesis] = useState<ResearchSynthesis | null>(null);
