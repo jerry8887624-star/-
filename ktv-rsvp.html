@@ -1,0 +1,389 @@
+<title>景美好樂迪報名</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: ticket-stub event header, then a two-column sheet (form + tally | roster) that stacks on phones */
+:root {
+  --bg: #f3f4f9;
+  --surface: #ffffff;
+  --ink: #1c2040;
+  --muted: #5d6286;
+  --line: #dcdfee;
+  --accent: #c8295f;
+  --accent-soft: #fbe6ee;
+  --yes: #1f8a5b;
+  --yes-soft: #e1f3ea;
+  --maybe: #a86a00;
+  --maybe-soft: #fbf0d9;
+  --no: #6b6f8c;
+  --no-soft: #ebecf3;
+  --font-display: "LXGW WenKai TC", "Noto Serif TC", "PingFang TC", serif;
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12142a; --surface: #1b1e3a; --ink: #eceefb; --muted: #a3a8cc; --line: #2e3258;
+    --accent: #ff6f9c; --accent-soft: #3a1f33;
+    --yes: #5fd3a0; --yes-soft: #17352b; --maybe: #f0b44a; --maybe-soft: #3a2f17; --no: #a3a8cc; --no-soft: #262a4a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12142a; --surface: #1b1e3a; --ink: #eceefb; --muted: #a3a8cc; --line: #2e3258;
+  --accent: #ff6f9c; --accent-soft: #3a1f33;
+  --yes: #5fd3a0; --yes-soft: #17352b; --maybe: #f0b44a; --maybe-soft: #3a2f17; --no: #a3a8cc; --no-soft: #262a4a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 20px; }
+h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+/* ticket */
+.ticket { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; display: grid; grid-template-columns: 1fr auto; overflow: hidden; }
+.ticket-main { padding: 20px 22px; min-width: 0; display: grid; gap: 10px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; color: var(--accent); font-weight: 700; }
+.ticket h1 { font-size: clamp(26px, 5vw, 36px); line-height: 1.2; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 14px; }
+.facts b { color: var(--ink); font-weight: 500; }
+.stub { border-left: 2px dashed var(--line); padding: 20px 22px; display: grid; align-content: center; justify-items: center; gap: 2px; background: var(--accent-soft); min-width: 130px; }
+.stub .big { font-size: 34px; font-weight: 700; color: var(--accent); line-height: 1; }
+.stub small { color: var(--muted); font-size: 12px; }
+@media (max-width: 560px) { .ticket { grid-template-columns: 1fr; } .stub { border-left: 0; border-top: 2px dashed var(--line); grid-auto-flow: column; justify-content: start; gap: 10px; align-items: baseline; } }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+.col { display: grid; gap: 20px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: grid; gap: 14px; min-width: 0; }
+.panel h2 { font-size: 20px; }
+.hint { color: var(--muted); font-size: 13px; margin: 0; }
+
+/* form */
+form { display: grid; gap: 12px; }
+label { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+input[type=text] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%; }
+input[type=text]:focus-visible, button:focus-visible, .seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.seg label { display: block; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: block; text-align: center; padding: 9px 4px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); cursor: pointer; font-size: 14px; }
+.seg input:checked + span { border-color: currentColor; font-weight: 700; }
+.seg .s-yes input:checked + span { color: var(--yes); background: var(--yes-soft); }
+.seg .s-maybe input:checked + span { color: var(--maybe); background: var(--maybe-soft); }
+.seg .s-no input:checked + span { color: var(--no); background: var(--no-soft); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+button { font: inherit; cursor: pointer; border-radius: 8px; padding: 9px 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+button:disabled { opacity: .55; cursor: default; }
+.status { font-size: 13px; min-height: 1.4em; margin: 0; color: var(--muted); }
+.status.err { color: var(--accent); }
+
+/* tally */
+.counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.count { border-radius: 10px; padding: 10px 12px; display: grid; gap: 0; }
+.count .n { font-size: 26px; font-weight: 700; line-height: 1.1; }
+.count small { font-size: 12px; }
+.c-yes { background: var(--yes-soft); color: var(--yes); }
+.c-maybe { background: var(--maybe-soft); color: var(--maybe); }
+.c-no { background: var(--no-soft); color: var(--no); }
+.cap { display: grid; gap: 6px; }
+.cap-bar { height: 10px; border-radius: 99px; background: var(--no-soft); overflow: hidden; display: flex; }
+.cap-bar i { display: block; height: 100%; }
+.cap-bar .b-yes { background: var(--yes); }
+.cap-bar .b-maybe { background: var(--maybe); opacity: .55; }
+.cap-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); gap: 8px; flex-wrap: wrap; }
+.cap-row.warn { color: var(--accent); font-weight: 700; }
+
+.bill { width: 100%; border-collapse: collapse; font-size: 14px; }
+.bill td { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.bill td:last-child { text-align: right; font-family: var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 12px; }
+.bill .sub { color: var(--muted); font-size: 12px; }
+.bill tr.total td { font-weight: 700; border-bottom: 2px solid var(--ink); }
+.bill tr.left td { color: var(--yes); font-weight: 700; border-bottom: 0; }
+.bill tr.left.neg td { color: var(--accent); }
+
+/* roster */
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters button { padding: 5px 12px; font-size: 13px; border-radius: 99px; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+ul.roster { list-style: none; margin: 0; padding: 0; display: grid; }
+.roster li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.roster li:last-child { border-bottom: 0; }
+.pill { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+.p-yes { background: var(--yes-soft); color: var(--yes); }
+.p-maybe { background: var(--maybe-soft); color: var(--maybe); }
+.p-no { background: var(--no-soft); color: var(--no); }
+.who { min-width: 0; }
+.who b { font-weight: 500; }
+.who div { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.row-actions { display: flex; gap: 4px; }
+.row-actions button { padding: 4px 9px; font-size: 12px; }
+.row-actions button.danger { color: var(--accent); border-color: var(--accent); }
+.empty { color: var(--muted); font-size: 14px; padding: 18px 0; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
+.copybox { display: grid; gap: 8px; }
+.copybox pre { margin: 0; white-space: pre-wrap; font-family: var(--font-body); font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; max-height: 220px; overflow: auto; }
+@media (prefers-reduced-motion: no-preference) { .cap-bar i { transition: width .3s ease; } }
+</style>
+
+<div class="wrap">
+  <section class="ticket" aria-label="活動資訊">
+    <div class="ticket-main">
+      <div class="eyebrow">組上加菜金・唱歌聚餐</div>
+      <h1>景美好樂迪・小VIP包廂</h1>
+      <div class="facts">
+        <span>日期 <b>10/22（四）</b></span>
+        <span>時間 <b>19:00–22:00</b>（唱3小時）</span>
+        <span>地點 <b>羅斯福路六段403號</b>（捷運景美站1號出口）</span>
+        <span>電話 <b>02-2934-8000</b></span>
+        <span>可帶外食・威力卡服務費打九折</span>
+      </div>
+    </div>
+    <div class="stub">
+      <small>包廂上限</small>
+      <span class="big num">18</span>
+      <small>人（15–18人）</small>
+    </div>
+  </section>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-labelledby="f-title">
+        <h2 id="f-title">填寫出席</h2>
+        <p class="hint" id="f-hint">輸入姓名並選擇是否參加。同一個名字再送出一次就會更新。</p>
+        <form id="f" novalidate>
+          <label for="f-name">姓名
+            <input type="text" id="f-name" maxlength="20" autocomplete="name" placeholder="例如：王小明" required>
+          </label>
+          <div class="seg" role="radiogroup" aria-label="是否參加">
+            <label class="s-yes"><input type="radio" name="status" id="f-yes" value="yes" checked><span>參加</span></label>
+            <label class="s-maybe"><input type="radio" name="status" id="f-maybe" value="maybe"><span>未定</span></label>
+            <label class="s-no"><input type="radio" name="status" id="f-no" value="no"><span>不參加</span></label>
+          </div>
+          <label for="f-diet">飲食限制（選填）
+            <input type="text" id="f-diet" maxlength="40" placeholder="例如：不吃牛、素食">
+          </label>
+          <label for="f-note">備註（選填）
+            <input type="text" id="f-note" maxlength="60" placeholder="例如：會晚到 30 分鐘">
+          </label>
+          <div class="actions">
+            <button type="submit" class="primary" id="f-submit">送出</button>
+            <button type="button" id="f-reset" hidden>取消編輯</button>
+          </div>
+          <p class="status" id="f-status" role="status"></p>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="t-title">
+        <h2 id="t-title">人數與費用</h2>
+        <div class="counts">
+          <div class="count c-yes"><span class="n num" id="n-yes">0</span><small>參加</small></div>
+          <div class="count c-maybe"><span class="n num" id="n-maybe">0</span><small>未定</small></div>
+          <div class="count c-no"><span class="n num" id="n-no">0</span><small>不參加</small></div>
+        </div>
+        <div class="cap">
+          <div class="cap-bar" aria-hidden="true"><i class="b-yes" id="bar-yes" style="width:0%"></i><i class="b-maybe" id="bar-maybe" style="width:0%"></i></div>
+          <div class="cap-row" id="cap-row"><span id="cap-text">參加 0 / 18 人</span><span id="cap-left">還有 18 個位子</span></div>
+        </div>
+        <table class="bill">
+          <tbody>
+            <tr><td>包廂費<div class="sub">1440元 × 3小時</div></td><td>4320元</td></tr>
+            <tr><td>低消<div class="sub" id="b-min-sub">100元 × 0人</div></td><td id="b-min">0元</td></tr>
+            <tr><td>服務費<div class="sub" id="b-svc-sub">一成 0元，威力卡打九折</div></td><td id="b-svc">0元</td></tr>
+            <tr class="total"><td>KTV 總計</td><td id="b-total">4320元</td></tr>
+            <tr class="left" id="b-left-row"><td>預算1萬元剩餘<div class="sub">可以拿來買外食</div></td><td id="b-left">5680元</td></tr>
+          </tbody>
+        </table>
+        <p class="hint">依「參加」人數自動計算。低消可以在館內點餐或飲料。</p>
+      </section>
+    </div>
+
+    <section class="panel" aria-labelledby="r-title">
+      <h2 id="r-title">名單</h2>
+      <div class="filters" role="group" aria-label="篩選">
+        <button type="button" data-filter="all" aria-pressed="true">全部</button>
+        <button type="button" data-filter="yes" aria-pressed="false">參加</button>
+        <button type="button" data-filter="maybe" aria-pressed="false">未定</button>
+        <button type="button" data-filter="no" aria-pressed="false">不參加</button>
+      </div>
+      <ul class="roster" id="roster"></ul>
+      <div class="empty" id="empty">還沒有人填寫。在左邊輸入姓名、選擇是否參加，送出後就會出現在這裡。</div>
+      <div class="copybox">
+        <div class="actions"><button type="button" id="copy">複製名單文字</button></div>
+        <pre id="copy-text" aria-label="名單文字"></pre>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var CAP = 18, ROOM = 4320, MIN = 100, BUDGET = 10000;
+  var LABEL = { yes: "參加", maybe: "未定", no: "不參加" };
+  var ORDER = { yes: 0, maybe: 1, no: 2 };
+  var $ = function (id) { return document.getElementById(id); };
+  var rows = [], filter = "all", editingId = null, armedDelete = null, db = null, canWrite = true;
+
+  function fmt(n) { return n.toLocaleString("zh-TW") + "元"; }
+  function bill(n) {
+    var base = ROOM + MIN * n;
+    var svcRaw = Math.round(base * 0.1);
+    var svc = Math.round(base * 0.1 * 0.9);
+    return { min: MIN * n, svcRaw: svcRaw, svc: svc, total: base + svc };
+  }
+  function setStatus(msg, err) { var s = $("f-status"); s.textContent = msg; s.className = "status" + (err ? " err" : ""); }
+
+  function render() {
+    var c = { yes: 0, maybe: 0, no: 0 };
+    rows.forEach(function (r) { if (c[r.status] != null) c[r.status]++; });
+    $("n-yes").textContent = c.yes; $("n-maybe").textContent = c.maybe; $("n-no").textContent = c.no;
+    $("bar-yes").style.width = Math.min(100, c.yes / CAP * 100) + "%";
+    $("bar-maybe").style.width = Math.max(0, Math.min(100 - c.yes / CAP * 100, c.maybe / CAP * 100)) + "%";
+    $("cap-text").textContent = "參加 " + c.yes + " / " + CAP + " 人" + (c.maybe ? "（另有 " + c.maybe + " 人未定）" : "");
+    var over = c.yes > CAP;
+    $("cap-left").textContent = over ? "超過上限 " + (c.yes - CAP) + " 人" : "還有 " + (CAP - c.yes) + " 個位子";
+    $("cap-row").className = "cap-row" + (over ? " warn" : "");
+
+    var b = bill(c.yes);
+    $("b-min-sub").textContent = "100元 × " + c.yes + "人";
+    $("b-min").textContent = fmt(b.min);
+    $("b-svc-sub").textContent = "一成 " + fmt(b.svcRaw) + "，威力卡打九折";
+    $("b-svc").textContent = fmt(b.svc);
+    $("b-total").textContent = fmt(b.total);
+    var left = BUDGET - b.total;
+    $("b-left").textContent = fmt(left);
+    $("b-left-row").className = "left" + (left < 0 ? " neg" : "");
+
+    var list = rows.slice().sort(function (a, z) { return (ORDER[a.status] - ORDER[z.status]) || a.name.localeCompare(z.name, "zh-Hant"); });
+    var shown = list.filter(function (r) { return filter === "all" || r.status === filter; });
+    var ul = $("roster"); ul.textContent = "";
+    shown.forEach(function (r) {
+      var li = document.createElement("li");
+      var pill = document.createElement("span"); pill.className = "pill p-" + r.status; pill.textContent = LABEL[r.status] || r.status;
+      var who = document.createElement("div"); who.className = "who";
+      var nm = document.createElement("b"); nm.textContent = r.name; who.appendChild(nm);
+      var extra = [r.diet && "飲食：" + r.diet, r.note].filter(Boolean).join("・");
+      if (extra) { var d = document.createElement("div"); d.textContent = extra; who.appendChild(d); }
+      li.appendChild(pill); li.appendChild(who);
+      var act = document.createElement("div"); act.className = "row-actions";
+      if (canWrite && db) {
+        var e = document.createElement("button"); e.type = "button"; e.textContent = "編輯";
+        e.addEventListener("click", function () { startEdit(r); });
+        var del = document.createElement("button"); del.type = "button";
+        var armed = armedDelete === r.id;
+        del.textContent = armed ? "確定刪除？" : "刪除"; if (armed) del.className = "danger";
+        del.addEventListener("click", function () { onDelete(r); });
+        act.appendChild(e); act.appendChild(del);
+      }
+      li.appendChild(act);
+      ul.appendChild(li);
+    });
+    $("empty").hidden = shown.length > 0;
+    if (!shown.length && rows.length) $("empty").textContent = "這個分類目前沒有人。";
+
+    var lines = ["【好樂迪景美店 10/22（四）19:00 出席統計】", "參加 " + c.yes + " 人／未定 " + c.maybe + " 人／不參加 " + c.no + " 人", ""];
+    ["yes", "maybe", "no"].forEach(function (s) {
+      var names = list.filter(function (r) { return r.status === s; }).map(function (r) { return r.name + (r.diet ? "（" + r.diet + "）" : ""); });
+      if (names.length) lines.push(LABEL[s] + "：" + names.join("、"));
+    });
+    lines.push("", "KTV 總計約 " + fmt(b.total) + "，預算1萬元剩 " + fmt(left));
+    $("copy-text").textContent = lines.join("\n");
+  }
+
+  function startEdit(r) {
+    editingId = r.id;
+    $("f-name").value = r.name; $("f-diet").value = r.diet || ""; $("f-note").value = r.note || "";
+    var radio = $("f-" + r.status); if (radio) radio.checked = true;
+    $("f-submit").textContent = "更新"; $("f-reset").hidden = false;
+    setStatus("正在編輯「" + r.name + "」");
+    $("f-name").focus();
+  }
+  function resetForm() {
+    editingId = null; $("f").reset(); $("f-yes").checked = true;
+    $("f-submit").textContent = "送出"; $("f-reset").hidden = true;
+  }
+
+  async function onSubmit(ev) {
+    ev.preventDefault();
+    if (!db) { setStatus("目前無法儲存，請確認已登入後重新整理頁面。", true); return; }
+    var name = $("f-name").value.trim();
+    if (!name) { setStatus("請輸入姓名。", true); $("f-name").focus(); return; }
+    var status = (document.querySelector('input[name="status"]:checked') || {}).value || "yes";
+    var body = { name: name, status: status, diet: $("f-diet").value.trim(), note: $("f-note").value.trim(), updatedAt: new Date().toISOString() };
+    var id = editingId;
+    if (!id) {
+      var same = rows.find(function (r) { return r.name === name; });
+      if (same) id = same.id;
+    }
+    $("f-submit").disabled = true;
+    try {
+      var col = db.collection("rsvp");
+      await (id ? col.doc(id) : col.doc()).set(body);
+      setStatus("已儲存：" + name + "（" + LABEL[status] + "）");
+      resetForm();
+    } catch (e) {
+      if (e && e.code === "invalid_argument") { canWrite = false; applyWriteState(); setStatus("你目前只有查看權限，無法填寫。請找建立者把你設為可參與。", true); }
+      else if (e && e.code === "quota_exceeded") setStatus("名單已滿，無法再新增。", true);
+      else setStatus("儲存失敗，請稍後再試一次。", true);
+    } finally { $("f-submit").disabled = false; }
+  }
+
+  async function onDelete(r) {
+    if (armedDelete !== r.id) { armedDelete = r.id; render(); return; }
+    armedDelete = null;
+    try { await db.collection("rsvp").doc(r.id).delete(); setStatus("已刪除：" + r.name); if (editingId === r.id) resetForm(); }
+    catch (e) { setStatus("刪除失敗，請稍後再試一次。", true); render(); }
+  }
+
+  function applyWriteState() {
+    var off = !canWrite || !db;
+    Array.prototype.forEach.call($("f").elements, function (el) { el.disabled = off; });
+    if (!db) $("f-hint").textContent = "請登入 claude.ai 後開啟這個頁面，才能填寫和查看名單。";
+    else if (!canWrite) $("f-hint").textContent = "你目前只能查看名單。需要填寫的話，請找建立者把你設為可參與。";
+    render();
+  }
+
+  $("f").addEventListener("submit", onSubmit);
+  $("f-reset").addEventListener("click", function () { resetForm(); setStatus(""); });
+  Array.prototype.forEach.call(document.querySelectorAll(".filters button"), function (btn) {
+    btn.addEventListener("click", function () {
+      filter = btn.getAttribute("data-filter");
+      Array.prototype.forEach.call(document.querySelectorAll(".filters button"), function (b) { b.setAttribute("aria-pressed", String(b === btn)); });
+      render();
+    });
+  });
+  $("copy").addEventListener("click", function () {
+    var text = $("copy-text").textContent;
+    var done = function () { $("copy").textContent = "已複製"; setTimeout(function () { $("copy").textContent = "複製名單文字"; }, 1500); };
+    var fallback = function () { var r = document.createRange(); r.selectNodeContents($("copy-text")); var s = getSelection(); s.removeAllRanges(); s.addRange(r); $("copy").textContent = "已選取，請按複製"; };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  });
+
+  render();
+
+  (async function init() {
+    if (!window.claude || !window.claude.use) { applyWriteState(); return; }
+    db = await window.claude.use("db");
+    var user = await window.claude.use("user");
+    if (user && user.can) {
+      try { var w = await user.can("data.write"); if (w === false) canWrite = false; } catch (e) {}
+    }
+    if (!db) { applyWriteState(); return; }
+    applyWriteState();
+    db.collection("rsvp").onSnapshot(function (snap) {
+      rows = snap.docs.map(function (d) {
+        var x = d.data() || {};
+        return { id: d.id, name: String(x.name || "").slice(0, 20), status: ORDER[x.status] != null ? x.status : "maybe", diet: String(x.diet || "").slice(0, 40), note: String(x.note || "").slice(0, 60) };
+      }).filter(function (r) { return r.name; });
+      render();
+    }, function () { setStatus("名單連線中斷，請重新整理頁面。", true); });
+  })();
+})();
+</script>
