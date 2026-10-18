@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 美工素材庫
 
-# Run and deploy your AI Studio app
+Jerry 的設計素材與工作檔案庫。依「用途 → 專案 → 類型」分層，找檔案時從上往下一層層點進去即可。
 
-This contains everything you need to run your app locally.
+## 資料夾結構
 
-View your app in AI Studio: https://ai.studio/apps/drive/1cefTtrzf3Joz4rCLv1KNG_cTySiZ6AW5
+```
+素材/                         美工、動畫素材（依專案分）
+  倚天屠龍記/                  寫實黏土公仔風格角色系列
+    角色三視圖/                 7 位角色的高清三視圖 PNG
+    影片/                       角色三視圖介紹影片 MP4
+    動畫參考圖/                 張無忌童年／成年的正面（9:16）與臉部參考圖
+    分鏡腳本/                   張無忌光明頂直式分鏡腳本
+文件/                         非美工的文件資料（依主題分）
+  國軍遺族權益/                 因病亡故遺族權益申辦相關 PDF（4 份）
+app/                          「文獻回顧加速器」網頁程式（React + Vite），
+                              推送到 main 後自動部署到 GitHub Pages
+```
 
-## Run Locally
+## 新增檔案的規則
 
-**Prerequisites:**  Node.js
+- **新專案**：在 `素材/` 底下開一個以專案命名的資料夾，例如 `素材/某某品牌/`。
+- **專案內分類**：依檔案類型分子資料夾，沿用上面的名稱（`角色三視圖`、`影片`、`動畫參考圖`、`分鏡腳本`），其他常見的可用 `插圖`、`圖示`、`字型`、`背景`、`參考資料`。
+- **檔名**：用中文描述內容，必要時加上版本或比例，例如 `張無忌_成年.png`、`成年_正面_9x16.jpg`。避免空白，用 `_` 分隔。
+- **文件類**（PDF、Word 等非美工檔）放 `文件/<主題>/`。
+- `app/` 只放網頁程式，不要把素材放進去。
 
+## 網頁程式
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+「文獻回顧加速器」的說明與本機執行方式見 [app/README.md](app/README.md)。
