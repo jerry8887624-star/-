@@ -8,7 +8,7 @@ Rules for implementing Figma designs (via the Figma MCP server) in this codebase
 - Generated from Google AI Studio; AI calls go to Gemini (`@google/genai`, model `gemini-2.5-flash`) in `services/geminiService.ts`.
 - UI language is Traditional Chinese with an English toggle (`showEnglish`).
 - No router, no state library, no tests, no Storybook, no lint config.
-- `output/` and the root `*.pdf` files are unrelated content (character art, videos, documents) — not part of the app.
+- The app lives in `app/`; run npm commands from there. `素材/` (art assets) and `文件/` (PDF documents) at the repo root are unrelated content — not part of the app.
 
 ```
 index.html              Tailwind CDN + theme tokens, Google Fonts, global CSS, importmap
