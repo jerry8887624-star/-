@@ -133,10 +133,10 @@ ul.roster { list-style: none; margin: 0; padding: 0; display: grid; }
   <section class="ticket" aria-label="活動資訊">
     <div class="ticket-main">
       <div class="eyebrow">慰勞大家・一起唱歌</div>
-      <h1>辛苦了！10/22 景美好樂迪見</h1>
+      <h1>辛苦了！10/29 景美好樂迪見</h1>
       <p class="letter">這段時間任務一件接一件，大家都扛得很辛苦，組長都看在眼裡。這次特別安排一個晚上，請大家放下手邊的工作，一起唱歌、吃點東西，好好慰勞自己。平常各忙各的，這次就好好聚一聚、聊一聊吧！</p>
       <div class="facts">
-        <span>日期 <b>10/22（四）</b></span>
+        <span>日期 <b>10/29（四）</b></span>
         <span>時間 <b>19:00–22:00</b></span>
         <span>地點 <b>好樂迪景美店</b>（羅斯福路六段403號，捷運景美站1號出口旁）</span>
         <span>吃的喝的組長都準備好了，人到就好</span>
@@ -270,7 +270,7 @@ ul.roster { list-style: none; margin: 0; padding: 0; display: grid; }
     if (!shown.length && rows.length) $("empty").textContent = "這個分類目前沒有人。";
 
     if (isOwner) {
-      var lines = ["【10/22（四）19:00 好樂迪景美店 出席統計】", "會到 " + c.yes + " 人／還不確定 " + c.maybe + " 人／這次不行 " + c.no + " 人", ""];
+      var lines = ["【10/29（四）19:00 好樂迪景美店 出席統計】", "會到 " + c.yes + " 人／還不確定 " + c.maybe + " 人／這次不行 " + c.no + " 人", ""];
       ["yes", "maybe", "no"].forEach(function (s) {
         var names = list.filter(function (r) { return r.status === s; }).map(function (r) { return r.name; });
         if (names.length) lines.push(LABEL[s] + "：" + names.join("、"));
@@ -312,7 +312,7 @@ ul.roster { list-style: none; margin: 0; padding: 0; display: grid; }
     try {
       var col = db.collection("rsvp");
       await (id ? col.doc(id) : col.doc()).set(body);
-      setStatus(status === "yes" ? "收到！" + name + "，10/22 見 🎤" : status === "maybe" ? "收到，" + name + "，確定了再回來改就好。" : "收到，" + name + "，下次再一起！");
+      setStatus(status === "yes" ? "收到！" + name + "，10/29 見 🎤" : status === "maybe" ? "收到，" + name + "，確定了再回來改就好。" : "收到，" + name + "，下次再一起！");
       resetForm();
     } catch (e) {
       if (e && e.code === "invalid_argument") { canWrite = false; applyWriteState(); setStatus("你目前只能看，不能填。請跟發連結給你的人說一聲。", true); }
