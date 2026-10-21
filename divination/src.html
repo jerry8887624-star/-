@@ -46,8 +46,14 @@
 </div>
 <div class="toast" id="toast" hidden></div>
 
-<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/iztro@2.6.1/dist/iztro.min.js"></script>
+<script>
+window.__gxErr=[];
+addEventListener('error',function(e){var m=(e.message||(e.target&&e.target.src?'無法載入 '+e.target.src:'未知錯誤'));window.__gxErr.push(m);var b=document.getElementById('boot');if(b){b.innerHTML='<b>頁面載入發生問題</b><br><span style="font-size:13px">'+String(m).replace(/</g,'&lt;')+'</span><br><span style="font-size:13px">請截圖這個畫面，或改用 Safari／Chrome 開啟後重新整理。</span>'}},true);
+</script>
+<script src="vendor/lunar.js"></script>
+<script>window.Solar||document.write('<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"><\/script>')</script>
+<script src="vendor/iztro.min.js"></script>
+<script>window.iztro||document.write('<script src="https://cdn.jsdelivr.net/npm/iztro@2.6.1/dist/iztro.min.js"><\/script>')</script>
 <script>/*KX_DATA*/</script>
 <script>/*CONTENT*/</script>
 <script>/*TAROT_DATA*/</script>
@@ -773,49 +779,137 @@ function tarotDaily(d=new Date()){const h=hash(`${d.toDateString()}|tarot|${P.su
 
 /* ---------- 求籤・擲筊 ---------- */
 const QD=window.QIAN_DATA;
-const GUANGONG=`<svg viewBox="0 0 220 260" class="deity" role="img" aria-label="關聖帝君神像">
+const GUANGONG=`<svg viewBox="0 -6 244 306" class="deity" role="img" aria-label="關聖帝君神像">
 <defs>
- <radialGradient id="halo" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F6D48A" stop-opacity=".95"/><stop offset=".55" stop-color="#E8B04E" stop-opacity=".45"/><stop offset="1" stop-color="#E8B04E" stop-opacity="0"/></radialGradient>
- <linearGradient id="robe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2F7A55"/><stop offset="1" stop-color="#1C4D35"/></linearGradient>
- <linearGradient id="face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D8483A"/><stop offset="1" stop-color="#A92D23"/></linearGradient>
- <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7DC94"/><stop offset="1" stop-color="#C08A2E"/></linearGradient>
- <linearGradient id="blade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E9EEF2"/><stop offset="1" stop-color="#9AA6B2"/></linearGradient>
+ <radialGradient id="gg-aura" cx="50%" cy="38%" r="55%"><stop offset="0" stop-color="#FFE7A8" stop-opacity=".95"/><stop offset=".45" stop-color="#E9B451" stop-opacity=".5"/><stop offset="1" stop-color="#C98A2B" stop-opacity="0"/></radialGradient>
+ <linearGradient id="gg-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF1BF"/><stop offset=".45" stop-color="#E7B45A"/><stop offset="1" stop-color="#9C6A1E"/></linearGradient>
+ <linearGradient id="gg-goldv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9DE98"/><stop offset="1" stop-color="#A8731F"/></linearGradient>
+ <linearGradient id="gg-robe" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3C8E66"/><stop offset=".55" stop-color="#256C4B"/><stop offset="1" stop-color="#154330"/></linearGradient>
+ <linearGradient id="gg-robe2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E7A56"/><stop offset="1" stop-color="#174A34"/></linearGradient>
+ <radialGradient id="gg-face" cx="45%" cy="35%" r="70%"><stop offset="0" stop-color="#E8604C"/><stop offset=".6" stop-color="#C23A2C"/><stop offset="1" stop-color="#8E2219"/></radialGradient>
+ <linearGradient id="gg-beard" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1E1E1E"/><stop offset="1" stop-color="#0A0A0A"/></linearGradient>
+ <linearGradient id="gg-throne" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6E1A12"/><stop offset="1" stop-color="#3A0B07"/></linearGradient>
+ <linearGradient id="gg-blade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#F4F7FA"/><stop offset=".6" stop-color="#C3CCD5"/><stop offset="1" stop-color="#7E8A96"/></linearGradient>
+ <linearGradient id="gg-pole" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8A5428"/><stop offset=".5" stop-color="#B5773C"/><stop offset="1" stop-color="#6A3C18"/></linearGradient>
 </defs>
-<circle cx="104" cy="92" r="78" fill="url(#halo)" class="halo"/>
+
+<!-- 背光 -->
+<circle cx="120" cy="112" r="104" fill="url(#gg-aura)" class="halo"/>
+<g class="rays" stroke="#F3CF7E" stroke-opacity=".38" stroke-width=".8">
+ <line x1="120" y1="22" x2="120" y2="44"/><line x1="120" y1="180" x2="120" y2="202"/><line x1="30" y1="112" x2="52" y2="112"/><line x1="188" y1="112" x2="210" y2="112"/>
+ <line x1="56" y1="48" x2="72" y2="64"/><line x1="168" y1="160" x2="184" y2="176"/><line x1="184" y1="48" x2="168" y2="64"/><line x1="72" y1="160" x2="56" y2="176"/>
+ <line x1="85" y1="29" x2="93" y2="49"/><line x1="155" y1="29" x2="147" y2="49"/><line x1="37" y1="77" x2="57" y2="85"/><line x1="203" y1="77" x2="183" y2="85"/>
+ <line x1="37" y1="147" x2="57" y2="139"/><line x1="203" y1="147" x2="183" y2="139"/>
+</g>
+<circle cx="120" cy="112" r="70" fill="none" stroke="#F3CF7E" stroke-opacity=".45" stroke-width="1"/>
+<circle cx="120" cy="112" r="76" fill="none" stroke="#F3CF7E" stroke-opacity=".25" stroke-width=".6" stroke-dasharray="2 4"/>
+
+<!-- 寶座椅背 -->
+<path d="M44 300 L44 176 C44 150 60 138 80 136 L160 136 C180 138 196 150 196 176 L196 300 Z" fill="url(#gg-throne)" stroke="url(#gg-gold)" stroke-width="3"/>
+<path d="M54 300 L54 180 C54 160 66 150 82 148 L158 148 C174 150 186 160 186 180 L186 300" fill="none" stroke="#E7B45A" stroke-opacity=".5" stroke-width="1"/>
+<circle cx="52" cy="176" r="6" fill="url(#gg-gold)"/><circle cx="188" cy="176" r="6" fill="url(#gg-gold)"/>
+
 <!-- 青龍偃月刀 -->
-<rect x="181" y="50" width="5" height="210" rx="2" fill="#6B3E1F"/>
-<path d="M186 54 C204 40 214 18 206 6 C200 24 190 32 181 36 L181 68 C188 66 192 60 186 54 Z" fill="url(#blade)" stroke="#5E6873" stroke-width="1"/>
-<path d="M181 68 C174 72 170 80 172 90 C176 82 180 78 186 76 Z" fill="#C0392B"/>
-<circle cx="183.5" cy="70" r="4" fill="url(#gold)"/>
-<!-- 身袍 -->
-<path d="M42 260 C40 200 52 160 78 146 L130 146 C156 160 168 200 166 260 Z" fill="url(#robe)"/>
-<path d="M78 146 L104 196 L130 146" fill="#B8322A"/>
-<path d="M78 146 L104 196 L130 146" fill="none" stroke="url(#gold)" stroke-width="4" stroke-linejoin="round"/>
-<path d="M56 178 C66 172 78 172 86 180 M152 178 C142 172 130 172 122 180" stroke="url(#gold)" stroke-width="3" fill="none" stroke-linecap="round"/>
-<circle cx="70" cy="214" r="9" fill="none" stroke="url(#gold)" stroke-width="2.5"/><circle cx="138" cy="214" r="9" fill="none" stroke="url(#gold)" stroke-width="2.5"/>
-<path d="M60 240 C80 232 128 232 148 240" stroke="url(#gold)" stroke-width="3" fill="none"/>
+<g>
+ <rect x="208" y="44" width="6" height="256" rx="3" fill="url(#gg-pole)"/>
+ <rect x="206.5" y="118" width="9" height="4" rx="1" fill="url(#gg-gold)"/><rect x="206.5" y="196" width="9" height="4" rx="1" fill="url(#gg-gold)"/>
+ <path d="M214 50 C232 36 240 12 230 -2 C226 16 216 26 208 30 L208 60 Z" fill="url(#gg-blade)" stroke="#56616C" stroke-width="1"/>
+ <path d="M212 48 C226 36 232 18 228 6" fill="none" stroke="#FFFFFF" stroke-opacity=".7" stroke-width="1"/>
+ <path d="M208 30 C204 26 200 26 198 30 C202 30 205 33 208 36 Z" fill="url(#gg-blade)" stroke="#56616C" stroke-width=".8"/>
+ <path d="M204 58 C204 50 218 50 218 58 C218 66 213 70 211 70 C209 70 204 66 204 58 Z" fill="url(#gg-gold)"/>
+ <path d="M206 56 C209 54 213 54 216 56 M206 62 C209 64 213 64 216 62" stroke="#7A4E12" stroke-width="1" fill="none"/>
+ <path d="M208 70 C200 76 196 90 199 104 C203 92 207 84 214 80 Z" fill="#C0392B"/><path d="M211 72 C206 84 205 96 207 108" stroke="#E25B4A" stroke-width="1.2" fill="none"/>
+</g>
+
+<!-- 袍身 -->
+<path d="M30 300 C30 246 44 212 74 196 L166 196 C196 212 210 246 210 300 Z" fill="url(#gg-robe)"/>
+<path d="M60 300 C62 268 66 246 74 230 M180 300 C178 268 174 246 166 230 M96 300 C96 286 98 276 102 270 M144 300 C144 286 142 276 138 270" stroke="#123A29" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>
+<!-- 衣袖雲紋 -->
+<g fill="none" stroke="url(#gg-gold)" stroke-width="1.6" stroke-linecap="round" opacity=".9">
+ <path d="M46 268 C50 260 60 260 60 268 C60 274 52 274 52 268"/><path d="M58 284 C62 276 72 276 72 284 C72 290 64 290 64 284"/>
+ <path d="M194 268 C190 260 180 260 180 268 C180 274 188 274 188 268"/><path d="M182 284 C178 276 168 276 168 284 C168 290 176 290 176 284"/>
+</g>
+<!-- 胸前圓補 -->
+<circle cx="120" cy="246" r="22" fill="#1D5A3F" stroke="url(#gg-gold)" stroke-width="2.5"/>
+<g fill="none" stroke="url(#gg-gold)" stroke-width="1.5" stroke-linecap="round">
+ <path d="M106 252 C110 240 122 236 130 242 C136 247 132 256 124 254 C118 252 120 246 125 247"/>
+ <path d="M110 238 C114 234 118 234 120 236"/><path d="M128 258 C132 260 134 258 134 255"/>
+</g>
+<!-- 玉帶 -->
+<rect x="62" y="270" width="116" height="12" rx="3" fill="url(#gg-goldv)"/>
+<g fill="#2E8A62" stroke="#0F3A26" stroke-width=".6"><rect x="72" y="272" width="10" height="8" rx="1.5"/><rect x="90" y="272" width="10" height="8" rx="1.5"/><rect x="113" y="271.5" width="14" height="9" rx="2"/><rect x="140" y="272" width="10" height="8" rx="1.5"/><rect x="158" y="272" width="10" height="8" rx="1.5"/></g>
+<!-- 肩甲 獸首 -->
+<g>
+ <path d="M44 214 C48 196 64 188 84 190 C82 206 72 220 52 228 Z" fill="url(#gg-gold)" stroke="#7A4E12" stroke-width="1"/>
+ <path d="M52 220 C58 214 66 210 76 208 M56 212 C62 206 70 202 80 200" stroke="#9C6A1E" stroke-width="1" fill="none"/>
+ <path d="M196 214 C192 196 176 188 156 190 C158 206 168 220 188 228 Z" fill="url(#gg-gold)" stroke="#7A4E12" stroke-width="1"/>
+ <path d="M188 220 C182 214 174 210 164 208 M184 212 C178 206 170 202 160 200" stroke="#9C6A1E" stroke-width="1" fill="none"/>
+ <circle cx="66" cy="205" r="6.5" fill="#B53327" stroke="url(#gg-gold)" stroke-width="2"/><circle cx="64.6" cy="203.6" r="1.6" fill="#FF9E8E"/>
+ <circle cx="174" cy="205" r="6.5" fill="#B53327" stroke="url(#gg-gold)" stroke-width="2"/><circle cx="172.6" cy="203.6" r="1.6" fill="#FF9E8E"/>
+</g>
+<!-- 圓領與內襯 -->
+<path d="M92 192 C100 210 140 210 148 192 L140 186 L100 186 Z" fill="#B53327"/>
+<path d="M86 190 C94 214 146 214 154 190" fill="none" stroke="url(#gg-gold)" stroke-width="5" stroke-linecap="round"/>
 <!-- 頸 -->
-<rect x="94" y="126" width="20" height="22" fill="#A92D23"/>
+<path d="M108 168 L132 168 L134 190 L106 190 Z" fill="#A72D22"/>
+
 <!-- 臉 -->
-<ellipse cx="104" cy="96" rx="27" ry="32" fill="url(#face)"/>
-<ellipse cx="77" cy="98" rx="4" ry="8" fill="#A92D23"/><ellipse cx="131" cy="98" rx="4" ry="8" fill="#A92D23"/>
-<!-- 蠶眉 -->
-<path d="M82 84 C88 76 96 78 100 84" stroke="#1A1A1A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
-<path d="M126 84 C120 76 112 78 108 84" stroke="#1A1A1A" stroke-width="4.5" fill="none" stroke-linecap="round"/>
-<!-- 丹鳳眼 -->
-<path d="M86 92 C90 89 96 89 99 92 C95 93 90 93 86 92 Z" fill="#1A1A1A"/>
-<path d="M122 92 C118 89 112 89 109 92 C113 93 118 93 122 92 Z" fill="#1A1A1A"/>
-<path d="M104 94 L101 108 L107 108" stroke="#8E2219" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-<!-- 美髯 -->
-<path d="M84 110 C86 124 92 132 104 134 C116 132 122 124 124 110 C126 140 122 176 104 214 C86 176 82 140 84 110 Z" fill="#141414"/>
-<path d="M90 114 C96 110 112 110 118 114" stroke="#141414" stroke-width="5" fill="none" stroke-linecap="round"/>
-<path d="M98 140 C100 170 102 190 104 210 M110 140 C108 170 106 190 104 210" stroke="#2E2E2E" stroke-width="1" fill="none"/>
+<path d="M90 82 C90 64 102 56 120 56 C138 56 150 64 150 82 L150 114 C150 140 138 160 120 162 C102 160 90 140 90 114 Z" fill="url(#gg-face)"/>
+<path d="M88 104 C82 102 80 110 82 118 C84 128 86 134 90 134 Z" fill="#B23427"/><path d="M152 104 C158 102 160 110 158 118 C156 128 154 134 150 134 Z" fill="#B23427"/>
+
+<path d="M106 76 C112 72 128 72 134 76" stroke="#8E2219" stroke-width="1" fill="none" opacity=".6"/>
+<!-- 臥蠶眉（斜飛入鬢） -->
+<path d="M118 100 C111 95 102 91 91 84 C93 90 98 94 104 96 C109 98 114 100 118 103 Z" fill="#141414"/>
+<path d="M122 100 C129 95 138 91 149 84 C147 90 142 94 136 96 C131 98 126 100 122 103 Z" fill="#141414"/>
+<path d="M119 95 L119 101 M121 95 L121 101" stroke="#8E2219" stroke-width=".9" opacity=".8"/>
+<!-- 丹鳳眼（眼尾上挑） -->
+<path d="M116 110 C111 112 104 111 97 104 C104 104 111 105 116 110 Z" fill="#141414"/>
+<path d="M124 110 C129 112 136 111 143 104 C136 104 129 105 124 110 Z" fill="#141414"/>
+<path d="M110 107.6 L112.6 108.4" stroke="#FFFFFF" stroke-width=".9" stroke-linecap="round" opacity=".85"/>
+<path d="M130 107.6 L127.4 108.4" stroke="#FFFFFF" stroke-width=".9" stroke-linecap="round" opacity=".85"/>
+<path d="M115 113 C109 115 103 113 99 109 M125 113 C131 115 137 113 141 109" stroke="#8E2219" stroke-width=".9" fill="none" opacity=".7"/>
+<!-- 鼻 -->
+<path d="M120 105 C120 112 119 118 117 123 C116 126 118 128 120 128 C122 128 124 126 123 123 C121 118 120 112 120 105 Z" fill="#B5352A"/>
+<path d="M121 107 L121.2 119" stroke="#F07A64" stroke-width="1.1" opacity=".55"/>
+<path d="M115 125 C116 127 117 127.5 118 127 M125 125 C124 127 123 127.5 122 127" stroke="#7E1C14" stroke-width="1" fill="none" stroke-linecap="round"/>
+<path d="M108 120 C110 128 112 132 115 134 M132 120 C130 128 128 132 125 134" stroke="#8E2219" stroke-width=".9" fill="none" opacity=".55"/>
+<!-- 鬢髮與美髯 -->
+<path d="M90 112 C88 134 92 156 100 178 C96 160 96 142 98 128 Z" fill="url(#gg-beard)"/>
+<path d="M150 112 C152 134 148 156 140 178 C144 160 144 142 142 128 Z" fill="url(#gg-beard)"/>
+<path d="M98 134 C96 158 100 184 106 206 C111 228 116 250 120 270 C124 250 129 228 134 206 C140 184 144 158 142 134 C134 136 127 136.5 120 136.5 C113 136.5 106 136 98 134 Z" fill="url(#gg-beard)"/>
+<path d="M104 160 C106 190 112 220 118 250 M112 158 C114 190 117 222 120 258 M128 158 C126 190 123 222 120 258 M136 160 C134 190 128 220 122 250" stroke="#3A3A3A" stroke-width=".8" fill="none" opacity=".9"/>
+<path d="M120 152 C118 160 118 168 120 176" stroke="#444" stroke-width=".8" fill="none"/>
+<!-- 八字鬚 -->
+<path d="M120 130 C113 129 106 131 99 136 C94 140 91 146 90 152 C96 146 103 142 111 140 C115 139 118 139 120 139 C122 139 125 139 129 140 C137 142 144 146 150 152 C149 146 146 140 141 136 C134 131 127 129 120 130 Z" fill="#141414"/>
 <!-- 帝冠 -->
-<path d="M74 72 C74 46 88 34 104 34 C120 34 134 46 134 72 C124 66 84 66 74 72 Z" fill="#2F7A55"/>
-<path d="M74 72 C84 66 124 66 134 72" stroke="url(#gold)" stroke-width="4" fill="none"/>
-<path d="M86 50 L104 30 L122 50" stroke="url(#gold)" stroke-width="3" fill="none" stroke-linejoin="round"/>
-<circle cx="104" cy="52" r="6" fill="#C0392B" stroke="url(#gold)" stroke-width="2"/>
-<path d="M74 70 C62 76 56 92 58 112 M134 70 C146 76 152 92 150 112" stroke="#2F7A55" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path d="M88 86 C88 62 102 48 120 48 C138 48 152 62 152 86 C140 80 100 80 88 86 Z" fill="#1F5A40"/>
+<path d="M88 86 C100 80 140 80 152 86" stroke="url(#gg-gold)" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M96 70 C104 62 112 60 120 60 C128 60 136 62 144 70" stroke="url(#gg-gold)" stroke-width="2" fill="none"/>
+<path d="M104 80 L110 64 L120 72 L130 64 L136 80" fill="url(#gg-gold)" opacity=".95"/>
+<circle cx="120" cy="74" r="5" fill="#C0392B" stroke="url(#gg-gold)" stroke-width="1.6"/><circle cx="119" cy="73" r="1.4" fill="#FFB3A6"/>
+<circle cx="104" cy="78" r="2" fill="#2E8A62"/><circle cx="136" cy="78" r="2" fill="#2E8A62"/>
+<rect x="114" y="38" width="12" height="12" rx="2" fill="url(#gg-gold)"/>
+<!-- 冕板與旒 -->
+<path d="M74 40 L166 40 L158 30 L82 30 Z" fill="#14161F" stroke="url(#gg-gold)" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M82 30 L158 30" stroke="#E7B45A" stroke-width=".8" opacity=".6"/>
+<g class="liu">
+ <g stroke="#C9973F" stroke-width=".6">
+  <line x1="80" y1="40" x2="80" y2="58"/><line x1="88" y1="40" x2="88" y2="58"/><line x1="96" y1="40" x2="96" y2="56"/><line x1="144" y1="40" x2="144" y2="56"/><line x1="152" y1="40" x2="152" y2="58"/><line x1="160" y1="40" x2="160" y2="58"/>
+ </g>
+ <g>
+  <circle cx="80" cy="45" r="1.7" fill="#2E8A62"/><circle cx="80" cy="50" r="1.7" fill="#C0392B"/><circle cx="80" cy="55" r="1.7" fill="#F2C76B"/>
+  <circle cx="88" cy="45" r="1.7" fill="#C0392B"/><circle cx="88" cy="50" r="1.7" fill="#F2C76B"/><circle cx="88" cy="55" r="1.7" fill="#2E8A62"/>
+  <circle cx="96" cy="45" r="1.7" fill="#F2C76B"/><circle cx="96" cy="50" r="1.7" fill="#2E8A62"/><circle cx="96" cy="55" r="1.7" fill="#C0392B"/>
+  <circle cx="144" cy="45" r="1.7" fill="#F2C76B"/><circle cx="144" cy="50" r="1.7" fill="#2E8A62"/><circle cx="144" cy="55" r="1.7" fill="#C0392B"/>
+  <circle cx="152" cy="45" r="1.7" fill="#C0392B"/><circle cx="152" cy="50" r="1.7" fill="#F2C76B"/><circle cx="152" cy="55" r="1.7" fill="#2E8A62"/>
+  <circle cx="160" cy="45" r="1.7" fill="#2E8A62"/><circle cx="160" cy="50" r="1.7" fill="#C0392B"/><circle cx="160" cy="55" r="1.7" fill="#F2C76B"/>
+ </g>
+</g>
+<!-- 冠纓 -->
+<path d="M76 40 C70 70 70 110 76 150" stroke="#B8322A" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<path d="M164 40 C170 70 170 110 164 150" stroke="#B8322A" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<circle cx="76" cy="152" r="3" fill="url(#gg-gold)"/><circle cx="164" cy="152" r="3" fill="url(#gg-gold)"/>
+<path d="M74 154 L72 166 M76 155 L76 168 M78 154 L80 166 M162 154 L160 166 M164 155 L164 168 M166 154 L168 166" stroke="#B8322A" stroke-width="1.2" stroke-linecap="round"/>
 </svg>`;
 const SHRINE=`<div class="shrine" aria-hidden="false">
   <div class="plaque">關聖帝君</div>
@@ -1041,10 +1135,12 @@ document.addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedT
 
 /* ---------- 啟動 ---------- */
 function boot(){
-  if(!window.Solar||!window.iztro){$('#boot').textContent='命理曆法元件載入失敗，請檢查網路後重新整理。';return}
+  if(!window.Solar||!window.iztro){$('#boot').innerHTML='<b>命理曆法元件載入失敗</b><br><span style="font-size:13px">'+(window.__gxErr.join('；')||'程式庫未載入')+'<br>請確認網路後重新整理，或改用 Safari／Chrome 開啟。</span>';return}
+  try{
   try{derive()}catch(err){console.error(err);P=SAMPLE;derive()}
-  $('#boot').remove();updateHeader();
+  $('#boot').hidden=true;updateHeader();
   const h=(location.hash||'').slice(1);go(VIEWS.includes(h)?h:store.get('gx_tab','overview'),false);
+  }catch(err){$('#boot').hidden=false;$('#boot').innerHTML='<b>頁面啟動失敗</b><br><span style="font-size:13px">'+esc(err&&err.message||err)+'</span>';throw err}
 }
 boot();
 
