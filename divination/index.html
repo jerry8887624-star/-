@@ -431,6 +431,12 @@ svg text{font-family:var(--f-ui)}
 .smoke{position:absolute;bottom:44px;left:26px;width:10px;height:40px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.28),transparent 70%);filter:blur(3px);animation:smoke 5s ease-out infinite;opacity:0}
 .smoke.s2{left:20px;animation-delay:1.6s}.smoke.s3{left:32px;animation-delay:3.2s}
 @keyframes smoke{0%{transform:translateY(0) scale(.6);opacity:0}20%{opacity:.8}100%{transform:translateY(-110px) translateX(14px) scale(2.2);opacity:0}}
+.shrine.photo{padding:0;display:block;background:#1A0A08;overflow:hidden;aspect-ratio:1/1;max-width:100%}
+.shrine.photo img{display:block;width:100%;height:100%;object-fit:cover;animation:kb 24s ease-in-out infinite alternate;transform-origin:50% 45%}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.06)}}
+.shrine.photo .smoke{bottom:16%;left:47%}
+.shrine.photo .smoke.s2{left:44%}.shrine.photo .smoke.s3{left:51%}
+.shrine.photo .glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(40% 30% at 50% 42%,rgba(255,190,90,.18),transparent 70%);animation:halo 5s ease-in-out infinite}
 .shrine-cap{text-align:center;color:#E9C98A;font-size:12.5px;letter-spacing:.3em;padding:10px 0 12px;background:#2A0E08;font-family:var(--f-serif)}
 .steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;counter-reset:s}
 .steps li{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);position:relative}
@@ -1729,7 +1735,7 @@ const GUANGONG=`<svg viewBox="0 -6 244 306" class="deity" role="img" aria-label=
 <circle cx="76" cy="152" r="3" fill="url(#gg-gold)"/><circle cx="164" cy="152" r="3" fill="url(#gg-gold)"/>
 <path d="M74 154 L72 166 M76 155 L76 168 M78 154 L80 166 M162 154 L160 166 M164 155 L164 168 M166 154 L168 166" stroke="#B8322A" stroke-width="1.2" stroke-linecap="round"/>
 </svg>`;
-const SHRINE=`<div class="shrine" aria-hidden="false">
+const SHRINE_ART=`<div class="shrine">
   <div class="plaque">關聖帝君</div>
   <div class="niche">${GUANGONG}</div>
   <div class="altar">
@@ -1738,6 +1744,8 @@ const SHRINE=`<div class="shrine" aria-hidden="false">
     <div class="candle r"><i class="flame"></i></div>
   </div>
 </div>`;
+window.__gxShrine=SHRINE_ART;
+const SHRINE=`<div class="shrine photo"><img src="img/guangong.jpg" alt="關聖帝君神龕：恩主公居中端坐，紅臉美髯，左右陪祀，兩側楹聯「在漢室江山忠義高名傳萬古，中天日月烝嘗祀典享千秋」" width="900" height="900" decoding="async" onerror="this.parentNode.outerHTML=window.__gxShrine"><span class="smoke s1"></span><span class="smoke s2"></span><span class="smoke s3"></span><span class="glow"></span></div>`;
 // 筊杯：flat=true 為平面朝上
 function bweiSVG(flat,flip){return `<svg viewBox="0 0 80 44" class="bwei${flip?' fl':''}" aria-hidden="true"><path d="M4 40 C4 14 26 4 46 6 C64 8 76 20 76 40 Z" fill="${flat?'#E7B08A':'#C0392B'}" stroke="#7A1E16" stroke-width="2"/>${flat?'<path d="M14 36 C18 22 34 14 50 15" stroke="#B9774F" stroke-width="2" fill="none"/>':'<path d="M18 30 C24 18 40 12 54 14" stroke="#E9806F" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>'}</svg>`}
 const JIAO={sheng:['聖筊','一平一凸','神明應允，表示同意或可以進行。'],xiao:['笑筊','兩面皆平','神明笑而不答：問題可能不夠清楚，或答案你心裡早已明白。請把問題說得更具體再問。'],yin:['陰筊','兩面皆凸','神明不同意，或時機未到。可以稍後再問，或換個方式請示。']};
