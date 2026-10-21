@@ -410,6 +410,12 @@ svg text{font-family:var(--f-ui)}
 .smoke{position:absolute;bottom:44px;left:26px;width:10px;height:40px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.28),transparent 70%);filter:blur(3px);animation:smoke 5s ease-out infinite;opacity:0}
 .smoke.s2{left:20px;animation-delay:1.6s}.smoke.s3{left:32px;animation-delay:3.2s}
 @keyframes smoke{0%{transform:translateY(0) scale(.6);opacity:0}20%{opacity:.8}100%{transform:translateY(-110px) translateX(14px) scale(2.2);opacity:0}}
+.shrine.photo{padding:0;display:block;background:#1A0A08;overflow:hidden;aspect-ratio:1/1;max-width:100%}
+.shrine.photo img{display:block;width:100%;height:100%;object-fit:cover;animation:kb 24s ease-in-out infinite alternate;transform-origin:50% 45%}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.06)}}
+.shrine.photo .smoke{bottom:16%;left:47%}
+.shrine.photo .smoke.s2{left:44%}.shrine.photo .smoke.s3{left:51%}
+.shrine.photo .glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(40% 30% at 50% 42%,rgba(255,190,90,.18),transparent 70%);animation:halo 5s ease-in-out infinite}
 .shrine-cap{text-align:center;color:#E9C98A;font-size:12.5px;letter-spacing:.3em;padding:10px 0 12px;background:#2A0E08;font-family:var(--f-serif)}
 .steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;counter-reset:s}
 .steps li{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:var(--muted);position:relative}
