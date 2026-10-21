@@ -390,11 +390,15 @@ svg text{font-family:var(--f-ui)}
 .shrine-card{padding:0;overflow:hidden;background:#1A0A08}
 .shrine{position:relative;padding:18px 16px 0;background:radial-gradient(90% 70% at 50% 30%,#5A1A12 0%,#2A0C08 60%,#160604 100%);display:flex;flex-direction:column;align-items:center}
 .plaque{font-family:var(--f-serif);font-weight:700;font-size:17px;letter-spacing:.5em;padding:6px 6px 6px 14px;color:#F3D389;background:linear-gradient(#3B0E0A,#250705);border-radius:6px;box-shadow:inset 0 0 0 1.5px #C9973F,0 4px 12px rgba(0,0,0,.4)}
-.niche{width:min(250px,72%);margin-top:6px;position:relative}
+.niche{width:min(300px,86%);margin-top:6px;position:relative}
 .deity{display:block;width:100%;height:auto;filter:drop-shadow(0 12px 18px rgba(0,0,0,.5))}
-.deity .halo{animation:halo 5s ease-in-out infinite;transform-origin:104px 92px}
+.deity .halo{animation:halo 5s ease-in-out infinite;transform-origin:120px 112px}
+.deity .rays{animation:spin 90s linear infinite;transform-origin:120px 112px}
+.deity .liu{animation:sway 4s ease-in-out infinite;transform-origin:120px 40px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sway{0%,100%{transform:rotate(-.6deg)}50%{transform:rotate(.6deg)}}
 @keyframes halo{50%{opacity:.75;transform:scale(1.04)}}
-.altar{width:100%;height:58px;margin-top:-8px;background:linear-gradient(#6B2A14,#3E160A);border-top:3px solid #C9973F;display:flex;align-items:flex-end;justify-content:space-between;padding:0 22% 10px;position:relative}
+.altar{width:100%;height:58px;margin-top:-26px;z-index:1;background:linear-gradient(#6B2A14,#3E160A);border-top:3px solid #C9973F;display:flex;align-items:flex-end;justify-content:space-between;padding:0 22% 10px;position:relative}
 .candle{width:10px;height:32px;background:linear-gradient(90deg,#B2261C,#E04A3A,#B2261C);border-radius:2px;position:relative}
 .flame{position:absolute;left:50%;top:-16px;width:9px;height:15px;margin-left:-4.5px;border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;background:radial-gradient(circle at 50% 70%,#FFF6C8,#FFC54D 45%,rgba(255,120,40,.2) 75%);box-shadow:0 0 14px 4px rgba(255,190,80,.45);animation:flick 1.6s ease-in-out infinite;transform-origin:50% 90%}
 .candle.r .flame{animation-delay:-.7s}

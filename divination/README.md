@@ -25,6 +25,6 @@ python3 divination/build.py      # 由 src.html + css/ + data/ 產生 index.html
 - `data/content.js`：81 數理、星曜、十神、五行開運、取名字庫、各頁說明
 - `data/kangxi.js`：康熙筆畫表（由 Unicode Unihan `kRSKangXi` 產生）
 
-曆法與紫微排盤使用 [lunar-javascript](https://github.com/6tail/lunar-javascript) 與 [iztro](https://github.com/SylarLong/iztro)，由 jsDelivr 載入。資料只存在使用者自己的瀏覽器。
+曆法與紫微排盤使用 [lunar-javascript](https://github.com/6tail/lunar-javascript) 與 [iztro](https://github.com/SylarLong/iztro)，已放在 `vendor/`（MIT 授權，附授權檔），jsDelivr 只作為備援。資料只存在使用者自己的瀏覽器。
 
 推到 `main` 後，GitHub Actions 會把本資料夾部署到 GitHub Pages 的 `/divination/`。
