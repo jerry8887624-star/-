@@ -7,7 +7,7 @@
 /*APP_CSS*/
 </style>
 
-<script>try{var fs=JSON.parse(localStorage.getItem('gx_fs')||'null');if(fs){if(fs.z>1)document.documentElement.style.zoom=fs.z;if(fs.b)document.documentElement.classList.add('boldtext')}}catch(e){}</script>
+<script>try{var fs=JSON.parse(localStorage.getItem('gx_fs')||'null');if(fs){if(fs.z>1)document.documentElement.style.zoom=fs.z;if(fs.b)document.documentElement.classList.add('boldtext')}var w=innerWidth/((fs&&fs.z)||1);document.documentElement.classList.toggle('vw400',w<=400);document.documentElement.classList.toggle('narrow',w<340)}catch(e){}</script>
 <div id="splash" aria-hidden="true">
   <div class="sp-sky"><i class="sp-stars s1"></i><i class="sp-stars s2"></i><i class="sp-stars s3"></i><i class="sp-neb"></i></div>
   <div class="sp-stage">
@@ -365,7 +365,7 @@ function dailyCard(){
   return `<section class="card daily stack" id="daily" aria-label="每日運勢">
     <div class="row between"><div><div class="eyebrow">每日運勢 · ${esc(P.sur+P.given)}</div><h2 class="h2">${date.getMonth()+1}月${date.getDate()}日 週${WEEK[date.getDay()]}</h2><div class="small muted">農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())} · ${F.gz}日 · ${F.ss}當值</div></div>
       <div class="dial-wrap">${dial(F.total)}<div class="dial-num"><b class="num" data-count="${F.total}">${F.total}</b><span>${F.word}</span></div></div></div>
-    <div class="days" role="group" aria-label="選擇日期">${strip}</div>
+    <div class="days" data-fit="290" role="group" aria-label="選擇日期">${strip}</div>
     <p class="lead">${F.sum}</p>
     <div class="areas">${F.areas.map(a=>`<div class="area"><span class="an">${a.n}</span><span class="ab"><i style="--w:${a.s/5*100}%"></i></span><span class="av num">${Math.round(a.s*20)}</span></div>`).join('')}</div>
     <p class="small">${F.note}</p>
@@ -500,7 +500,7 @@ function renderZiwei(){
   $('#v-ziwei').innerHTML=`
   <div class="row between"><div class="eyebrow">${A.fiveElementsClass} · 命主${A.soul} · 身主${A.body}</div>
     <div class="seg" role="group" aria-label="流年疊盤" style="min-width:150px"><button type="button" data-zy="0" aria-pressed="${!zwYearOn}">本命</button><button type="button" data-zy="1" aria-pressed="${zwYearOn}">疊${lnYear}</button></div></div>
-  <div class="board-wrap"><div class="board">${cells}
+  <div class="board-wrap"><div class="board" data-fit="340">${cells}
     <div class="center"><div class="nm">${esc(P.sur+P.given)}</div><div>${P.gender==='男'?'陽':'陰'}${P.gender} · ${A.zodiac} · ${A.sign}</div><div>${S2T(A.lunarDate)}</div><div>${A.chineseDate}</div><div>${A.fiveElementsClass} · 命主${A.soul} · 身主${A.body}</div>
     ${zwYearOn?`<div class="small" style="margin-top:4px"><b>${lnYear} ${Y.heavenlyStem}${Y.earthlyBranch}年</b><br>${Y.mutagen.map((s,i)=>`${s}<i class="mu ${'祿權科忌'[i]}">${'祿權科忌'[i]}</i>`).join(' ')}</div>`:''}</div>
   </div></div>
@@ -668,7 +668,7 @@ function renderName(){
     const renE=N.e[1], match=D.xi.includes(renE)?'good':D.ji.includes(renE)?'bad':'mid';
     body=`
     <div class="card stack">
-      <div class="row" style="gap:16px;flex-wrap:nowrap">
+      <div class="row nmhead" style="gap:16px;flex-wrap:nowrap">
         <div class="ring"><svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="40" fill="none" stroke="var(--line)" stroke-width="8"/><circle cx="48" cy="48" r="40" fill="none" stroke="${N.score>=80?'var(--good)':N.score>=60?'var(--mid)':'var(--bad)'}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(C*ringPct).toFixed(1)} ${C.toFixed(1)}"/></svg><b>${N.score}</b></div>
         <div class="stack" style="gap:4px;min-width:0"><div class="eyebrow">五格剖象 · 康熙筆畫</div><h3 class="h3">${esc(sur+given)}　${N.score>=80?'名字有助運勢':N.score>=60?'中上，可再加強':'建議參考改名或用字號'}</h3><p class="small muted">人格 30%、總格 30%、地格 20%、外格 10%、三才 10%。</p></div>
       </div>
@@ -876,7 +876,7 @@ function renderTarot(){
   <div class="hscroll" id="spreads" role="group" aria-label="選擇牌陣">${TD.spreads.map(s=>`<button type="button" class="spread${s.k===tSpread?' on':''}" data-spread="${s.k}" aria-pressed="${s.k===tSpread}"><b>${s.n}</b><span>${s.pos.length} 張 · ${s.d}</span></button>`).join('')}</div>
   <div class="card stack table" id="ttable">
     <div class="row between"><div><div class="eyebrow">${d.n}</div><h3 class="h3">${!tDeck?'先靜心洗牌':done?(tFlipped?'牌已翻開':'點牌或一次翻開'):`憑直覺選 ${need-tPicked.length} 張`}</h3></div><span class="small muted num">${tPicked.length}/${need}</span></div>
-    <div class="spreadbox ${tSpread}">${d.pos.map((p,k)=>slotHtml(k,d,p)).join('')}</div>
+    <div class="spreadbox ${tSpread}"${tSpread==='celtic'?' data-fit="272"':''}>${d.pos.map((p,k)=>slotHtml(k,d,p)).join('')}</div>
     ${!tDeck?`<p class="ritual">深呼吸，心裡默想你的問題，按下洗牌。洗好後從牌堆中憑感覺抽牌，不必想太多。</p><button type="button" class="btn primary block" id="tShuffle">洗牌</button>`
       :!done?`<p class="ritual" style="text-align:center">左右滑動牌堆，被哪張吸引就點哪張</p><div class="deck" id="deck">${tDeck.map((c,k)=>tPicked.some(p=>p.k===k)?'':`<button type="button" class="dc" data-dk="${k}" aria-label="抽這張" style="--k:${k}">${CARD_BACK}</button>`).join('')}</div><div class="grid2"><button type="button" class="btn" id="tAuto">幫我抽</button><button type="button" class="btn" id="tReshuffle">重新洗牌</button></div>`
       :`<div class="grid2">${tFlipped?'':`<button type="button" class="btn primary" id="tFlip">全部翻開</button>`}<button type="button" class="btn${tFlipped?' block':''}" id="tReshuffle" ${tFlipped?'style="grid-column:1 / -1"':''}>再抽一次</button></div>`}
@@ -1248,7 +1248,16 @@ function render(v){({overview:renderOverview,tarot:renderTarot,qian:renderQian,z
 /* ---------- 文字大小 ---------- */
 const FS_STEPS=[[1,'標準'],[1.15,'大'],[1.3,'特大'],[1.45,'超大']];
 function fsGet(){return store.get('gx_fs',{z:1,b:false})}
-function fsApply(o){const r=document.documentElement;r.style.zoom=o.z>1?o.z:'';r.classList.toggle('boldtext',!!o.b);store.set('gx_fs',o)}
+function fsApply(o){const r=document.documentElement;r.style.zoom=o.z>1?o.z:'';r.classList.toggle('boldtext',!!o.b);store.set('gx_fs',o);fitAll()}
+/* 放大字級時：依「實際可用寬度」切換窄版排版，並把密集的盤面（紫微、凱爾特十字、日期列）縮到剛好放得下，避免出格或要左右捲動 */
+function fitAll(){
+  const r=document.documentElement, z=parseFloat(r.style.zoom)||1, w=innerWidth/z;
+  r.classList.toggle('vw400',w<=400);r.classList.toggle('narrow',w<340);
+  document.querySelectorAll('[data-fit]').forEach(el=>{el.style.zoom='';const cw=el.parentElement.clientWidth;if(!cw)return;const m=+el.dataset.fit;if(cw<m)el.style.zoom=(cw/m).toFixed(3)});
+}
+let fitRaf=0;const fitSoon=()=>{cancelAnimationFrame(fitRaf);fitRaf=requestAnimationFrame(fitAll)};
+new MutationObserver(fitSoon).observe(document.body,{childList:true,subtree:true});
+addEventListener('resize',fitSoon);
 function fsSheetBody(){const o=fsGet();return `<div class="card stack">
     <div class="fs-preview"><span class="eyebrow">預覽</span><b>今天整體平穩，財運最好。</b><p>子時 23–01　宜：祭祀、會親友</p></div>
     <div class="f"><span>文字大小</span><div class="seg fs-seg" role="group" aria-label="文字大小">${FS_STEPS.map(([z,n])=>`<button type="button" data-fs="${z}" aria-pressed="${o.z===z}">${n}</button>`).join('')}</div></div>
