@@ -47,13 +47,15 @@
     <div class="sp-sub">心有靈犀 ・ 一點通</div>
   </div>
   <i class="sp-flash"></i>
+  <div class="sp-load" aria-hidden="true"><i></i><span>正在排盤…</span></div>
   <div class="sp-skip">輕觸略過</div>
 </div>
 <script>
 (function(){var s=document.getElementById('splash');try{if(sessionStorage.getItem('gx_sp')){s.remove();return}sessionStorage.setItem('gx_sp','1')}catch(e){}
 if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){s.classList.add('still')}
 else{var box=document.getElementById('spParts'),h='';for(var i=0;i<36;i++){var a=Math.random()*Math.PI*2,d=55+Math.random()*45,t=i/36*Math.PI*2-Math.PI/2;h+='<i style="--sx:'+(Math.cos(a)*d).toFixed(1)+'vmax;--sy:'+(Math.sin(a)*d).toFixed(1)+'vmax;--ex:'+(Math.cos(t)*.3223).toFixed(4)+';--ey:'+(Math.sin(t)*.3223).toFixed(4)+';--d:'+(.05+Math.random()*.4).toFixed(2)+'s;--z:'+(2+Math.random()*3).toFixed(1)+'px"></i>'}box.innerHTML=h}
-document.documentElement.classList.add('splashing');
+document.documentElement.classList.add('splashing');window.__spT0=performance.now();
+setTimeout(function(){if(!window.__gxBooted&&document.getElementById('splash'))s.classList.add('waiting')},3500);
 /* 保險：開場動畫絕不會卡住——點一下即可略過；10 秒後若程式仍未啟動，自動收起並提示重新載入 */
 var t0=Date.now();s.addEventListener('click',function(){if(Date.now()-t0>1200&&!window.__gxBooted&&window.__gxBail)window.__gxBail('仍在載入中…')});
 setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('載入時間比平常久')},10000);})();
@@ -122,7 +124,7 @@ addEventListener('error',function(e){var t=e.target;if(t&&t!==window&&t.tagName&
   if(!window.__gxBooted)setTimeout(function(){if(!window.__gxBooted)window.__gxBail('頁面載入發生問題')},1500)},true);
 addEventListener('unhandledrejection',function(e){window.__gxErr.push('Promise: '+(e.reason&&e.reason.message||e.reason))});
 </script>
-<script src="vendor/lunar.js"></script>
+<script src="vendor/lunar.min.js"></script>
 <script>window.Solar||document.write('<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"><\/script>')</script>
 <script src="vendor/iztro.min.js"></script>
 <script>window.iztro||document.write('<script src="https://cdn.jsdelivr.net/npm/iztro@2.6.1/dist/iztro.min.js"><\/script>')</script>
@@ -1534,8 +1536,8 @@ document.addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedT
 let spReady=false,booted=false;
 function hideSplash(force){
   const sp=$('#splash');if(!sp||sp.classList.contains('out'))return;
-  const left=force?0:Math.max(0,(sp.classList.contains('still')?900:4200)-performance.now());
-  setTimeout(()=>{sp.classList.add('out');document.documentElement.classList.remove('splashing');if(booted)setTimeout(maybeWelcome,550);setTimeout(()=>sp.remove(),1300)},left);
+  const left=force?0:Math.max(0,(window.__spT0||0)+(sp.classList.contains('still')?700:3500)-performance.now());
+  setTimeout(()=>{sp.classList.add('out');document.documentElement.classList.remove('splashing');if(booted)setTimeout(maybeWelcome,550);setTimeout(()=>sp.remove(),800)},left);
 }
 document.addEventListener('pointerdown',e=>{if(e.target.closest('#splash')&&spReady)hideSplash(true)},true);
 
