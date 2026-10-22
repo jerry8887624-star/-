@@ -28,10 +28,14 @@
         </g>
         <g class="sp-eye">
           <path class="sp-lid" d="M262 512 C352 382 432 340 512 340 C592 340 672 382 762 512 C672 642 592 684 512 684 C432 684 352 642 262 512 Z" fill="#0A0F22" stroke="url(#sp-gold)" stroke-width="26" stroke-linejoin="round" pathLength="100"/>
-          <g class="sp-iris"><circle cx="512" cy="512" r="112" fill="url(#sp-iris)"/>
-          <path d="M512 432 L530 494 L592 512 L530 530 L512 592 L494 530 L432 512 L494 494 Z" fill="#0D1329"/>
-          <path class="sp-core" d="M512 470 L520 504 L554 512 L520 520 L512 554 L504 520 L470 512 L504 504 Z" fill="#F7DFA0"/>
-          <circle cx="474" cy="472" r="16" fill="#FFF8E6" opacity=".9"/></g>
+          <clipPath id="sp-clip"><path d="M262 512 C352 382 432 340 512 340 C592 340 672 382 762 512 C672 642 592 684 512 684 C432 684 352 642 262 512 Z"/></clipPath>
+          <g clip-path="url(#sp-clip)"><g class="sp-iris"><g class="sp-look">
+            <circle cx="512" cy="512" r="112" fill="url(#sp-iris)"/>
+            <circle class="sp-fiber" cx="512" cy="512" r="92" fill="none" stroke="#9A6A18" stroke-opacity=".45" stroke-width="3" stroke-dasharray="2 9"/>
+            <g class="sp-pupil"><path d="M512 432 L530 494 L592 512 L530 530 L512 592 L494 530 L432 512 L494 494 Z" fill="#0D1329"/>
+            <path class="sp-core" d="M512 470 L520 504 L554 512 L520 520 L512 554 L504 520 L470 512 L504 504 Z" fill="#F7DFA0"/></g>
+          </g></g></g>
+          <circle class="sp-glint" cx="476" cy="470" r="17" fill="#FFF8E6"/><circle class="sp-glint g2" cx="552" cy="560" r="7" fill="#FFF8E6"/>
         </g>
         <path class="sp-star" d="M772 236 L782 270 L816 280 L782 290 L772 324 L762 290 L728 280 L762 270 Z" fill="url(#sp-gold)"/>
       </svg>
@@ -48,7 +52,7 @@
 <script>
 (function(){var s=document.getElementById('splash');try{if(sessionStorage.getItem('gx_sp')){s.remove();return}sessionStorage.setItem('gx_sp','1')}catch(e){}
 if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){s.classList.add('still')}
-else{var box=document.getElementById('spParts'),h='';for(var i=0;i<36;i++){var a=Math.random()*Math.PI*2,d=55+Math.random()*45,t=i/36*Math.PI*2-Math.PI/2;h+='<i style="--sx:'+(Math.cos(a)*d).toFixed(1)+'vmax;--sy:'+(Math.sin(a)*d).toFixed(1)+'vmax;--ex:'+(Math.cos(t)*.3223).toFixed(4)+';--ey:'+(Math.sin(t)*.3223).toFixed(4)+';--d:'+(.45+Math.random()*.55).toFixed(2)+'s;--z:'+(2+Math.random()*3).toFixed(1)+'px"></i>'}box.innerHTML=h}
+else{var box=document.getElementById('spParts'),h='';for(var i=0;i<36;i++){var a=Math.random()*Math.PI*2,d=55+Math.random()*45,t=i/36*Math.PI*2-Math.PI/2;h+='<i style="--sx:'+(Math.cos(a)*d).toFixed(1)+'vmax;--sy:'+(Math.sin(a)*d).toFixed(1)+'vmax;--ex:'+(Math.cos(t)*.3223).toFixed(4)+';--ey:'+(Math.sin(t)*.3223).toFixed(4)+';--d:'+(.05+Math.random()*.4).toFixed(2)+'s;--z:'+(2+Math.random()*3).toFixed(1)+'px"></i>'}box.innerHTML=h}
 document.documentElement.classList.add('splashing');
 /* 保險：開場動畫絕不會卡住——點一下即可略過；10 秒後若程式仍未啟動，自動收起並提示重新載入 */
 var t0=Date.now();s.addEventListener('click',function(){if(Date.now()-t0>1200&&!window.__gxBooted&&window.__gxBail)window.__gxBail('仍在載入中…')});
@@ -436,7 +440,7 @@ function renderOverview(){
   </div>
   <div class="card stack">
     <div class="row between"><div><div class="eyebrow">${cy} ${ygz}年 · 虛歲 ${ys.age}</div><h3 class="h3">今年流年：${ys.ss}年</h3></div>${meter(ys.score,true)}</div>
-    <p>${YEARSS[ys.ss]}${ys.tai?`<b class="bad-t">今年${ys.tai}</b>，凡事多留餘地。`:''}</p>
+    <p>${YEARSS[ys.ss]}${ys.tai?`<b class="bad-t">今年犯太歲</b>（${ys.tai.detail}），凡事多留餘地。`:''}</p>
     ${ys.zw?`<p class="small muted">紫微流年命宮落在本命${ys.zw.palace}，今年焦點是${FOCUS[ys.zw.palace]}。</p>`:''}
     <button class="btn sm" data-go="liunian" style="align-self:flex-start">看十年流年與流月</button>
   </div>
@@ -549,12 +553,23 @@ function renderZiwei(){
 
 /* ---------- 視圖：流年 ---------- */
 function yearGZ(y){return GAN[((y-4)%10+10)%10]+ZHI[((y-4)%12+12)%12]}
+/* 犯太歲：生年地支與流年地支的關係，依民俗分為值（本命年）、沖、刑、害、破五種，統稱「犯太歲」 */
+const PAIR=(a,b,list)=>list.some(([x,y])=>(x===a&&y===b)||(x===b&&y===a));
+function taiSui(bz,yz){
+  const Z=ZHI,k=[];
+  if(bz===yz)k.push(['值','本命年'+([4,6,9,11].includes(bz)?`，${Z[bz]}${Z[bz]}自刑`:'')]);
+  if(Math.abs(bz-yz)===6)k.push(['沖',`${Z[yz]}${Z[bz]}相沖`]);
+  if(bz!==yz&&PAIR(bz,yz,[[0,3],[2,5],[5,8],[8,2],[1,10],[10,7],[7,1]]))k.push(['刑',`${Z[yz]}${Z[bz]}相刑`]);
+  if(PAIR(bz,yz,[[0,7],[1,6],[2,5],[3,4],[8,11],[9,10]]))k.push(['害',`${Z[yz]}${Z[bz]}相害`]);
+  if(PAIR(bz,yz,[[0,9],[6,3],[2,11],[8,5],[4,1],[10,7]]))k.push(['破',`${Z[yz]}${Z[bz]}相破`]);
+  if(!k.length)return null;
+  return {kinds:k.map(x=>x[0]),detail:k.map(x=>`${x[0]}太歲・${x[1]}`).join('；'),short:k.map(x=>x[0]+'太歲').join('、')};
+}
 function yearInfo(y){
   const gz=yearGZ(y), ss=shishen(D.dm,gz[0]);
   const bz=ZHI.indexOf(D.birthZ), yz=ZHI.indexOf(gz[1]);
-  const HAI={0:7,7:0,1:6,6:1,2:5,5:2,3:4,4:3,8:11,11:8,9:10,10:9};
-  const tai=bz===yz?'值太歲（本命年）':Math.abs(bz-yz)===6?'沖太歲':HAI[bz]===yz?'害太歲':'';
-  let score=gzScore(gz)-(tai.startsWith('值')||tai==='沖太歲'?1:tai?.5:0);
+  const tai=taiSui(bz,yz);
+  let score=gzScore(gz)-(tai?Math.max(...tai.kinds.map(k=>({值:1,沖:1,刑:.5,害:.5,破:.3})[k])):0);
   let zw=null;
   if(D.astro){try{const Y=D.astro.horoscope(new Date(y,6,1)).yearly;const yi=Y.palaceNames.indexOf('命宮');
     const where=Y.mutagen.map(s=>D.astro.palaces.findIndex(p=>[...p.majorStars,...p.minorStars].some(x=>x.name===s)));
@@ -579,7 +594,7 @@ function renderLiunian(){
   const grid=[1,3,5].map(s=>`<line x1="${pad}" x2="${W-4}" y1="${yv(s)}" y2="${yv(s)}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${pad-5}" y="${yv(s)+3.5}" text-anchor="end" font-size="9.5" fill="var(--muted)">${s}</text>`).join('');
   const best=[...months].sort((a,b)=>b.s-a.s).slice(0,2), worst=[...months].sort((a,b)=>a.s-b.s).slice(0,2);
   const [cls,word]=lv(I.score);
-  const TAI_FIX={'值太歲（本命年）':'本命年心情與環境易起伏，宜穩不宜大變；可多行善、安太歲，穿戴喜用色增加安定感。','沖太歲':'沖太歲主變動，搬家、換工作、出國等「主動求變」反而能順勢化解；重大投資與擔保要謹慎。','害太歲':'害太歲易有小人與誤會，人際上多一分防備，文件契約要仔細看。'};
+  const TAI_FIX={值:'值太歲（本命年）心情與環境易起伏，宜穩不宜大變；可多行善、安太歲，穿戴喜用色增加安定感。',沖:'沖太歲主變動，搬家、換工作、出國等「主動求變」反而能順勢化解；重大投資與擔保要謹慎。',刑:'刑太歲易有口舌、是非與官非，說話做事守規矩，注意交通與身體小傷。',害:'害太歲易有小人與誤會，人際上多一分防備，文件契約要仔細看。',破:'破太歲主計畫易生波折、錢財小破耗，凡事預留緩衝，重要約定多確認。'};
   $('#v-liunian').innerHTML=`${sampleBanner()}
   <div class="years" role="group" aria-label="選擇年份">${years.map(x=>`<button type="button" class="yr" data-yr="${x.y}" aria-pressed="${x.y===lnYear}"><div class="y num">${x.y}${x.y===cy?' 今':''}</div><div class="g">${x.gz}</div>${meter(x.score)}</button>`).join('')}</div>
   <div class="card stack">
@@ -587,13 +602,13 @@ function renderLiunian(){
     <p>${YEARSS[I.ss]}</p>
     <dl class="kv">
       <dt>流年天干</dt><dd>${I.gz[0]}${elTag(gWx(I.gz[0]))} ${D.xi.includes(gWx(I.gz[0]))?'<span class="good-t">為喜用，助力明顯</span>':D.ji.includes(gWx(I.gz[0]))?'<span class="bad-t">為忌神，阻力較多</span>':'平'}</dd>
-      <dt>流年地支</dt><dd>${I.gz[1]}${elTag(zWx(I.gz[1]))} ${I.tai?`<span class="bad-t">${I.tai}</span>`:'與年命無沖'}</dd>
+      <dt>流年地支</dt><dd>${I.gz[1]}${elTag(zWx(I.gz[1]))} ${I.tai?`<span class="bad-t">犯太歲</span>（${I.tai.detail}）`:'與生肖無沖刑害破，未犯太歲'}</dd>
       ${dyHere?`<dt>所行大運</dt><dd>${dyHere.getGanZhi()}（${dyHere.getStartYear()}–${dyHere.getEndYear()}）${shishen(D.dm,dyHere.getGanZhi()[0])}運</dd>`:''}
       ${I.zw?`<dt>紫微流年</dt><dd>流年命宮入本命<b>${I.zw.palace}</b>：焦點在${FOCUS[I.zw.palace]}</dd><dt>流年四化</dt><dd class="small">${I.zw.mut.map((s,i)=>`${s}<i class="mu ${'祿權科忌'[i]}">${'祿權科忌'[i]}</i>入${I.zw.where[i]}`).join('、')}</dd>`:''}
     </dl>
     <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">今年宜</span><div class="chips">${GC.YEAR_DO[I.ss].map(x=>`<span class="pill good">${x}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">今年忌</span><div class="chips">${GC.YEAR_DONT[I.ss].map(x=>`<span class="pill bad">${x}</span>`).join('')}</div></div></div>
     <p class="small"><b>${I.ss}</b>　${GC.SS_TXT[I.ss]}</p>
-    ${I.tai?`<p class="small"><b class="bad-t">${I.tai}</b>　${TAI_FIX[I.tai]}</p>`:''}
+    ${I.tai?`<p class="small"><b class="bad-t">犯太歲・${I.tai.short}</b>　${I.tai.kinds.map(k=>TAI_FIX[k]).join('')}</p>`:''}
     <div class="reader"><div class="seal" aria-hidden="true">運</div><p>${I.score>=4?'這是可以積極布局的一年，順勢往前推。':I.score>=3?'整體平穩，有起有落，抓住好的月份出手。':'這一年宜守，先顧好健康、財務與人際，把衝刺留給後面的年份。'}${I.zw&&I.zw.where[3]!=='—'?`化忌入${I.zw.where[3]}，${FOCUS[I.zw.where[3]]||'該領域'}要多花心思。`:''}${I.tai?'犯太歲之年，重大變動前多想一步。':''}</p></div>
   </div>
   <div class="card stack">
@@ -1516,7 +1531,7 @@ document.addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedT
 let spReady=false,booted=false;
 function hideSplash(force){
   const sp=$('#splash');if(!sp||sp.classList.contains('out'))return;
-  const left=force?0:Math.max(0,(sp.classList.contains('still')?900:7000)-performance.now());
+  const left=force?0:Math.max(0,(sp.classList.contains('still')?900:4200)-performance.now());
   setTimeout(()=>{sp.classList.add('out');document.documentElement.classList.remove('splashing');if(booted)setTimeout(maybeWelcome,550);setTimeout(()=>sp.remove(),1300)},left);
 }
 document.addEventListener('pointerdown',e=>{if(e.target.closest('#splash')&&spReady)hideSplash(true)},true);
