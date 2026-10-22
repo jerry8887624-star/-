@@ -1205,6 +1205,10 @@ function qianResult(n,cat,q){
 
 /* ---------- 揭曉與詳解面板 ---------- */
 async function jiaoReveal(r,ctx){
+  // 先讓筊杯在頁面上落定、看清楚結果，再彈出結果視窗
+  $$('#qAsk,#qConfirm,#jToss,#qNext1,#qNext3,#qRedraw').forEach(b=>{b.disabled=true});$('.jstage')?.classList.add('reveal-wait');
+  $('#jiao')?.scrollIntoView({block:'center',behavior:reduceMotion()?'auto':'smooth'});
+  await new Promise(r=>setTimeout(r,reduceMotion()?900:1400));$('.jstage')?.classList.remove('reveal-wait');
   const J=JIAO[r.r], tone=r.r==='sheng'?'good':r.r==='xiao'?'mid':'bad', art=`<div class="jiao done">${bweiSVG(r.a,false)}${bweiSVG(r.b,true)}</div>`;
   let o={tone,art,kicker:J[1],big:J[0],body:J[2],actions:[]};
   if(ctx==='ask'){o.actions=r.r==='sheng'?[{text:'前往抽籤',primary:true,value:'qNext1'},{text:'稍後',value:null}]:[{text:'再擲一次',primary:true,value:'qAsk'},{text:'關閉',value:null}];if(r.r==='sheng')o.body='恩主公應允，可以抽籤了。'}
@@ -1213,7 +1217,7 @@ async function jiaoReveal(r,ctx){
     else if(r.r==='sheng'){o.body=`已連續 ${qStreak} 個聖筊，還需要 ${need-qStreak} 個。`;o.actions=[{text:'再擲一次',primary:true,value:'qConfirm'}]}
     else{o.body='這支籤不是給你的，請重新抽籤。';o.actions=[{text:'重新抽籤',primary:true,value:'qRedraw'},{text:'關閉',value:null}]}}
   if(ctx==='jiao'){o.actions=[{text:'再擲一次',primary:true,value:'jToss'},{text:'完成',value:null}];if(r.r==='sheng'&&jTally.sheng>=3){o.kicker=`已得 ${jTally.sheng} 個聖筊`}}
-  const v=await reveal(o);tossBusy=false;if(v)setTimeout(()=>$('#'+v)?.click(),60);
+  const v=await reveal(o);tossBusy=false;$$('#qAsk,#qConfirm,#jToss,#qNext1,#qNext3,#qRedraw').forEach(b=>{b.disabled=false});if(v)setTimeout(()=>$('#'+v)?.click(),60);
 }
 function cardSheet(i,rev,pos,cat){
   const c={...tcard(i),R:rev}, lz=cat&&cat!=='綜合'?lensOf(c,cat):null;
@@ -1334,7 +1338,7 @@ function closeSheet(){const f=$('#pForm');f.style.transform='';$('#sheetBack').h
 dragToClose($('#pForm .grab'),$('#pForm'),()=>{closeSheet()});
 const wait=ms=>new Promise(r=>setTimeout(r,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
 let tossBusy=false;
-async function animToss(){$$('#qAsk,#qConfirm,#jToss').forEach(b=>{b.disabled=true;b.textContent='擲筊中…'});const j=$('#jiao');if(j){j.classList.remove('done');j.classList.add('tossing')}buzz();await wait(900)}
+async function animToss(){$$('#qAsk,#qConfirm,#jToss').forEach(b=>{b.disabled=true;b.textContent='擲筊中…'});const j=$('#jiao');if(j){j.scrollIntoView({block:'center',behavior:reduceMotion()?'auto':'smooth'});j.classList.remove('done');j.classList.add('tossing')}buzz();await wait(1700)}
 
 /* ---------- 事件 ---------- */
 document.addEventListener('click',async e=>{
