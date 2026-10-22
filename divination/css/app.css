@@ -767,3 +767,4 @@ html{scroll-padding-top:calc(64px + env(safe-area-inset-top,0px));scroll-padding
 .tbl.bz td.small{white-space:nowrap;line-height:1.6}
 .tbl.bz .hg{display:block}
 .tbl.bz tr:first-child th{text-align:center}
+.linkbtn{border:0;background:none;padding:0;color:var(--tint);font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
