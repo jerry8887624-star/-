@@ -2019,7 +2019,7 @@ function tarotReadingHtml(R){
     <p class="small muted">${c.en} · ${c.major?`大阿爾克那 ${c.num}`:`${c.S.zh}（${c.S.el}）· ${RANK_THEME[c.r]}`}</p>
     <p class="small"><b>${c.R?c.kwR:c.kwU}</b></p>
     <p>${c.R?c.rev:c.up}</p>
-    ${lz?`<p class="small lens"><b>就${esc(cat)}而言</b>　${lz}</p>`:c.major?`<p class="small muted">感情：${c.love}　工作：${c.work}</p>`:`<p class="small muted">${TD.ranks[c.r]}落在${c.S.dom}的領域。</p>`}
+    ${lz?`<p class="small lens"><b>就${esc(cat)}而言</b>　${lz}</p>`:c.major?`<p class="small muted"><b>感情</b>　${c.love}<br><b>工作</b>　${c.work}</p>`:`<p class="small muted">${TD.ranks[c.r]}落在${c.S.dom}的領域。</p>`}
   </div></div>`}).join('');
   const tips=[
     ['趨吉',key.major?key.adv:`${keyLens||`把力氣放在${key.S.dom}上`}${key.R?'先修正方向再前進。':''}`],
