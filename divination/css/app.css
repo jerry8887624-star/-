@@ -566,3 +566,37 @@ body.modal-open{overflow:hidden}
 .sheet-card{display:grid;grid-template-columns:110px 1fr;gap:16px;align-items:start}
 .sheet-card .mini{width:110px}
 @media (prefers-reduced-motion:reduce){.layer .panel,.layer .scrim{transition:none!important}.spark,.rv-glow{display:none}.hud svg{stroke-dashoffset:0}}
+
+/* ---------- 開場動畫：固定夜空金色，不隨主題變化 ---------- */
+html.splashing,html.splashing body{overflow:hidden}
+#splash{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:radial-gradient(80% 60% at 50% 42%,#1C2650 0%,#0D1329 55%,#05070F 100%);color:#F6E7C8;cursor:pointer;transition:opacity .6s cubic-bezier(.22,1,.36,1),visibility .6s}
+#splash::before{content:"";position:absolute;inset:0;background-image:radial-gradient(1.5px 1.5px at 12% 18%,rgba(255,240,200,.7),transparent),radial-gradient(1px 1px at 82% 12%,rgba(255,240,200,.6),transparent),radial-gradient(1.2px 1.2px at 70% 78%,rgba(255,240,200,.5),transparent),radial-gradient(1px 1px at 22% 72%,rgba(255,240,200,.55),transparent),radial-gradient(1.4px 1.4px at 90% 52%,rgba(255,240,200,.5),transparent),radial-gradient(1px 1px at 40% 8%,rgba(255,240,200,.5),transparent),radial-gradient(1px 1px at 8% 48%,rgba(255,240,200,.45),transparent),radial-gradient(1.2px 1.2px at 58% 92%,rgba(255,240,200,.4),transparent);animation:sp-twinkle 3s ease-in-out infinite alternate;pointer-events:none}
+@keyframes sp-twinkle{from{opacity:.35}to{opacity:1}}
+.sp-stage{display:flex;flex-direction:column;align-items:center;gap:10px;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .5s}
+.sp-logo{width:min(46vw,200px);height:auto;overflow:visible}
+.sp-halo{opacity:0;transform-origin:512px 512px;animation:sp-fade 1.2s .9s ease forwards,sp-breathe 3s 2.1s ease-in-out infinite}
+@keyframes sp-breathe{50%{transform:scale(1.08);opacity:.75}}
+.sp-ring{stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:512px 512px;animation:sp-draw 1s .1s cubic-bezier(.65,0,.35,1) forwards}
+.sp-dash{opacity:0;transform-origin:512px 512px;animation:sp-fade .8s .8s ease forwards,sp-spin 40s linear infinite}
+@keyframes sp-spin{to{transform:rotate(360deg)}}
+.sp-ticks line{opacity:0;animation:sp-fade .25s calc(.45s + var(--i) * 55ms) ease forwards}
+.sp-lid{stroke-dasharray:100;stroke-dashoffset:100;fill-opacity:0;animation:sp-draw .9s .7s cubic-bezier(.65,0,.35,1) forwards,sp-fill .5s 1.4s ease forwards}
+@keyframes sp-draw{to{stroke-dashoffset:0}}
+@keyframes sp-fill{to{fill-opacity:1}}
+.sp-eye{transform-origin:512px 512px;animation:sp-blink .5s 1.25s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes sp-blink{0%{transform:scaleY(.12)}100%{transform:none}}
+.sp-iris{opacity:0;transform-origin:512px 512px;transform:scale(.3);animation:sp-pop .7s 1.45s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes sp-pop{to{opacity:1;transform:none}}
+.sp-core{transform-origin:512px 512px;animation:sp-spin 8s 2s linear infinite}
+.sp-star{opacity:0;transform-origin:772px 280px;transform:scale(0) rotate(-90deg);animation:sp-star .7s 1.7s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes sp-star{to{opacity:1;transform:none}}
+@keyframes sp-fade{to{opacity:1}}
+.sp-title{display:flex;gap:.3em;font-family:"Noto Serif TC","Songti TC",serif;font-size:clamp(34px,10vw,46px);font-weight:700;letter-spacing:.06em;margin-top:6px}
+.sp-title span{opacity:0;transform:translateY(14px);filter:blur(6px);background:linear-gradient(135deg,#FFF0C2,#E9BE62 55%,#B9842A);-webkit-background-clip:text;background-clip:text;color:transparent;animation:sp-rise .8s calc(1.55s + var(--i) * .14s) cubic-bezier(.22,1,.36,1) forwards}
+@keyframes sp-rise{to{opacity:1;transform:none;filter:none}}
+.sp-sub{font-size:14px;letter-spacing:.42em;color:#CDB78C;opacity:0;animation:sp-fade 1s 2.1s ease forwards;padding-left:.42em}
+.sp-skip{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom,0px));font-size:12px;letter-spacing:.2em;color:rgba(205,183,140,.55);opacity:0;animation:sp-fade 1s 1.2s ease forwards}
+#splash.out{opacity:0;visibility:hidden;pointer-events:none}
+#splash.out .sp-stage{transform:scale(1.18);opacity:0}
+#splash.still *{animation:none!important;opacity:1!important;transform:none!important;filter:none!important;stroke-dashoffset:0!important;fill-opacity:1!important}
+#splash.still .sp-iris,#splash.still .sp-star{opacity:1}

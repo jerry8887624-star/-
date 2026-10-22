@@ -33,8 +33,18 @@ page = f'''<!doctype html>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="觀象閣">
 <meta property="og:title" content="觀象閣">
-<meta property="og:description" content="每日運勢 × 塔羅 × 求籤 × 紫微 × 流年 × 姓名 × 奇門">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231c1c1e'/%3E%3Ctext x='32' y='45' font-size='38' text-anchor='middle' fill='%23e2ba68' font-family='serif'%3E%E8%A7%80%3C/text%3E%3C/svg%3E">
+<meta property="og:description" content="知天時・趨吉凶｜每日運勢、塔羅、求籤擲筊、紫微流年、姓名改名、奇門方位">
+<link rel="icon" type="image/svg+xml" href="icons/logo.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jerry8887624-star.github.io/-/divination/">
+<meta property="og:image" content="https://jerry8887624-star.github.io/-/divination/icons/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <style>:root{{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}}body{{margin:0}}img{{max-width:100%}}[hidden]{{display:none!important}}</style>
 {head}
 </head>
