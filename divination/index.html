@@ -739,6 +739,7 @@ img.tface{display:block;width:100%;height:100%;object-fit:cover;background:#F4EE
 .jiao.tossing .bw i{opacity:0}
 .rv-art .bw i{background:rgba(255,255,255,.14);color:#F6E7C8}
 .sl .cn{display:block;color:var(--ink);font-weight:600;font-size:12.5px;margin-top:1px}
+html.narrow .rv-art .jiao{gap:12px}html.narrow .rv-art .bwei{width:56px}html.narrow .jiao{gap:14px}
 </style>
 </head>
 <body>
@@ -2018,7 +2019,7 @@ function tarotReadingHtml(R){
     <p class="small muted">${c.en} · ${c.major?`大阿爾克那 ${c.num}`:`${c.S.zh}（${c.S.el}）· ${RANK_THEME[c.r]}`}</p>
     <p class="small"><b>${c.R?c.kwR:c.kwU}</b></p>
     <p>${c.R?c.rev:c.up}</p>
-    ${lz?`<p class="small lens"><b>就${esc(cat)}而言</b>　${lz}</p>`:c.major?`<p class="small muted">感情：${c.love}　工作：${c.work}</p>`:`<p class="small muted">${TD.ranks[c.r]}落在${c.S.dom}的領域。</p>`}
+    ${lz?`<p class="small lens"><b>就${esc(cat)}而言</b>　${lz}</p>`:c.major?`<p class="small muted"><b>感情</b>　${c.love}<br><b>工作</b>　${c.work}</p>`:`<p class="small muted">${TD.ranks[c.r]}落在${c.S.dom}的領域。</p>`}
   </div></div>`}).join('');
   const tips=[
     ['趨吉',key.major?key.adv:`${keyLens||`把力氣放在${key.S.dom}上`}${key.R?'先修正方向再前進。':''}`],
