@@ -713,3 +713,17 @@ html.narrow .rv-art .jiao{gap:12px}html.narrow .rv-art .bwei{width:56px}html.nar
 @keyframes capin{from{opacity:0;transform:scale(.6)}}
 .jstage .jres{animation:capin .5s .35s var(--spring) both}
 .jstage.reveal-wait .jres b{text-shadow:0 0 18px color-mix(in srgb,var(--tint) 45%,transparent)}
+
+/* ── 擲筊：逐格動畫 ── */
+.bw{position:relative}
+.jiao.flying{position:relative;z-index:3}
+.jiao.flying .bw i{visibility:hidden}
+.jbody{display:block;transform-origin:50% 62%;will-change:transform}
+.jbody .bwei{filter:none}
+.jshadow{position:absolute;left:50%;top:38px;width:66px;height:12px;margin-left:-33px;border-radius:50%;background:radial-gradient(closest-side,rgba(40,10,5,.45),rgba(40,10,5,0));pointer-events:none;will-change:transform,opacity}
+.jripple{position:absolute;left:50%;top:44px;width:84px;height:18px;margin-left:-42px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--tint) 55%,transparent);pointer-events:none;animation:jrip .65s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes jrip{from{transform:scale(.4);opacity:.9}to{transform:scale(1.35);opacity:0}}
+.jiao.settled .bwei,.jiao.settled .bwei.fl{animation:none}
+.jiao.settled .bw i{animation:capin .45s var(--spring) both}
+.jstage .jres{animation:capin .5s .15s var(--spring) both}
+.view.calm>*{animation:none}
