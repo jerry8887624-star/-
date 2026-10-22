@@ -464,13 +464,13 @@ svg text{font-family:var(--f-ui)}
 .jiao{display:flex;gap:22px;justify-content:center;min-height:92px;align-items:flex-end}
 .bwei{width:76px;height:auto;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
 .bwei.fl{transform:scaleX(-1)}
-.jiao.tossing .bwei{animation:toss .9s var(--ease) both}
+.jiao.tossing .bwei{animation:toss 1.7s cubic-bezier(.3,.6,.4,1) both}
 .jiao.tossing .bwei.fl{animation-name:toss2}
-@keyframes toss{0%{transform:translateY(0) rotate(0)}45%{transform:translateY(-90px) rotate(-260deg)}100%{transform:translateY(0) rotate(-720deg)}}
-@keyframes toss2{0%{transform:scaleX(-1) translateY(0) rotate(0)}45%{transform:scaleX(-1) translateY(-80px) rotate(300deg)}100%{transform:scaleX(-1) translateY(0) rotate(720deg)}}
-.jiao.done .bwei{animation:land .4s var(--spring)}
+@keyframes toss{0%{transform:translateY(0) rotate(0)}12%{transform:translateY(8px) rotate(10deg)}40%{transform:translateY(-130px) rotate(-420deg)}66%{transform:translateY(0) rotate(-900deg)}76%{transform:translateY(-22px) rotate(-1000deg)}86%{transform:translateY(0) rotate(-1060deg)}93%{transform:translateY(-6px) rotate(-1075deg)}100%{transform:translateY(0) rotate(-1080deg)}}
+@keyframes toss2{0%{transform:scaleX(-1) translateY(0) rotate(0)}12%{transform:scaleX(-1) translateY(8px) rotate(-10deg)}42%{transform:scaleX(-1) translateY(-115px) rotate(460deg)}68%{transform:scaleX(-1) translateY(0) rotate(950deg)}78%{transform:scaleX(-1) translateY(-18px) rotate(1030deg)}88%{transform:scaleX(-1) translateY(0) rotate(1070deg)}94%{transform:scaleX(-1) translateY(-5px) rotate(1078deg)}100%{transform:scaleX(-1) translateY(0) rotate(1080deg)}}
+.jiao.done .bwei{animation:land .5s var(--spring)}
 @keyframes land{from{transform:translateY(-10px)}}
-.jiao.done .bwei.fl{animation:land2 .4s var(--spring)}
+.jiao.done .bwei.fl{animation:land2 .5s var(--spring)}
 @keyframes land2{from{transform:scaleX(-1) translateY(-10px)}}
 .jres{display:flex;align-items:baseline;gap:10px}
 .jres b{font-family:var(--f-serif);font-size:26px;font-weight:700}
@@ -709,3 +709,7 @@ img.tface{display:block;width:100%;height:100%;object-fit:cover;background:#F4EE
 .rv-art .bw i{background:rgba(255,255,255,.14);color:#F6E7C8}
 .sl .cn{display:block;color:var(--ink);font-weight:600;font-size:12.5px;margin-top:1px}
 html.narrow .rv-art .jiao{gap:12px}html.narrow .rv-art .bwei{width:56px}html.narrow .jiao{gap:14px}
+.jiao.done .bw i{animation:capin .45s .25s var(--spring) both}
+@keyframes capin{from{opacity:0;transform:scale(.6)}}
+.jstage .jres{animation:capin .5s .35s var(--spring) both}
+.jstage.reveal-wait .jres b{text-shadow:0 0 18px color-mix(in srgb,var(--tint) 45%,transparent)}
