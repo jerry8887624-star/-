@@ -1,6 +1,6 @@
 /* Layout: iOS 式單欄（最寬 600px）。大標題隨捲動收合成導覽列，底部半透明分頁列；內容以圓角分組卡片承載。 */
 :root{
-  --bg:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --fill:rgba(118,118,128,.12);
+  --bg:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --fill:rgba(118,118,128,.12); --seg-on:#FFFFFF; --field:#F2F2F7; --field-line:rgba(60,60,67,.18);
   --ink:#1C1C1E; --muted:#6C6C70; --line:#E5E5EA;
   --tint:#9A7124; --tint-ink:#FFFFFF; --tint-soft:rgba(154,113,36,.12);
   --navy:#141B33;
@@ -17,13 +17,13 @@
   --surface:var(--card); --surface-2:var(--card2); --paper:var(--bg); --seal:var(--tint); --seal-ink:var(--tint-ink); --brass:var(--tint);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--ink:#F5F5F7;--muted:#98989F;--line:#38383A;
+  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--seg-on:#636366;--field:#2C2C2E;--field-line:rgba(235,235,245,.16);--ink:#F5F5F7;--muted:#98989F;--line:#38383A;
   --tint:#E2BA68;--tint-ink:#1C1C1E;--tint-soft:rgba(226,186,104,.16);--navy:#0E1428;
   --good:#30D158;--mid:#FF9F0A;--bad:#FF453A;
   --wood:#4CC07F;--fire:#FF6B52;--earth:#E0B040;--metal:#A1A1AA;--water:#5AA2E8;
   --lu:#30D158;--quan:#FF6B52;--ke:#5AA2E8;--ji:#BF7AF0;--shadow:none;color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--ink:#F5F5F7;--muted:#98989F;--line:#38383A;
+  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--seg-on:#636366;--field:#2C2C2E;--field-line:rgba(235,235,245,.16);--ink:#F5F5F7;--muted:#98989F;--line:#38383A;
   --tint:#E2BA68;--tint-ink:#1C1C1E;--tint-soft:rgba(226,186,104,.16);--navy:#0E1428;
   --good:#30D158;--mid:#FF9F0A;--bad:#FF453A;
   --wood:#4CC07F;--fire:#FF6B52;--earth:#E0B040;--metal:#A1A1AA;--water:#5AA2E8;
@@ -101,7 +101,7 @@ h4{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;flex-w
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
 .seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:7px 6px;cursor:pointer;font-size:14px;font-weight:500;transition:background .25s var(--ease),box-shadow .25s}
-.seg button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04);font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--seg-on);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04);font-weight:600}
 .pill{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;padding:2px 9px;border-radius:999px;line-height:1.6;white-space:nowrap}
 .pill.good{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
 .pill.mid{color:var(--mid);background:color-mix(in srgb,var(--mid) 14%,transparent)}
@@ -768,3 +768,8 @@ html{scroll-padding-top:calc(64px + env(safe-area-inset-top,0px));scroll-padding
 .tbl.bz .hg{display:block}
 .tbl.bz tr:first-child th{text-align:center}
 .linkbtn{border:0;background:none;padding:0;color:var(--tint);font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+
+/* 輸入框：在卡片上要看得出位置（淺色、深色都用比卡片深一階的底色＋細框線） */
+.card .f input,.card .f select,.card .f textarea,.sheet .card .f input,.sheet .card .f select,.sheet .card .f textarea{background:var(--field);box-shadow:inset 0 0 0 1px var(--field-line)}
+.f input:focus,.f select:focus,.f textarea:focus{box-shadow:inset 0 0 0 1px transparent}
+.f input::placeholder,.f textarea::placeholder{color:var(--muted)}
