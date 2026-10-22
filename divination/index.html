@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="觀象閣：每日運勢、塔羅占卜、求籤擲筊、紫微斗數、八字流年、姓名學改名與奇門遁甲。">
+<meta name="description" content="靈犀：每日運勢、塔羅占卜、求籤擲筊、紫微斗數、八字流年、姓名學改名與奇門遁甲。">
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="觀象閣">
-<meta property="og:title" content="觀象閣">
-<meta property="og:description" content="知天時・趨吉凶｜每日運勢、塔羅、求籤擲筊、紫微流年、姓名改名、奇門方位">
+<meta name="apple-mobile-web-app-title" content="靈犀">
+<meta property="og:title" content="靈犀 LINGXI｜心有靈犀・一點通">
+<meta property="og:description" content="心有靈犀・一點通｜每日運勢、塔羅、求籤擲筊、紫微流年、姓名改名、奇門方位">
 <link rel="icon" type="image/svg+xml" href="icons/logo.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -23,7 +23,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>觀象閣</title>
+<title>靈犀 LINGXI</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -598,77 +598,108 @@ body.modal-open{overflow:hidden}
 .sheet-card .mini{width:110px}
 @media (prefers-reduced-motion:reduce){.layer .panel,.layer .scrim{transition:none!important}.spark,.rv-glow{display:none}.hud svg{stroke-dashoffset:0}}
 
-/* ---------- 開場動畫：固定夜空金色，不隨主題變化 ---------- */
+/* ---------- 開場動畫：約 6.6 秒的五幕開場，固定夜空金色，不隨主題變化 ---------- */
 html.splashing,html.splashing body{overflow:hidden}
-#splash{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:radial-gradient(80% 60% at 50% 42%,#1C2650 0%,#0D1329 55%,#05070F 100%);color:#F6E7C8;cursor:pointer;transition:opacity .6s cubic-bezier(.22,1,.36,1),visibility .6s}
-#splash::before{content:"";position:absolute;inset:0;background-image:radial-gradient(1.5px 1.5px at 12% 18%,rgba(255,240,200,.7),transparent),radial-gradient(1px 1px at 82% 12%,rgba(255,240,200,.6),transparent),radial-gradient(1.2px 1.2px at 70% 78%,rgba(255,240,200,.5),transparent),radial-gradient(1px 1px at 22% 72%,rgba(255,240,200,.55),transparent),radial-gradient(1.4px 1.4px at 90% 52%,rgba(255,240,200,.5),transparent),radial-gradient(1px 1px at 40% 8%,rgba(255,240,200,.5),transparent),radial-gradient(1px 1px at 8% 48%,rgba(255,240,200,.45),transparent),radial-gradient(1.2px 1.2px at 58% 92%,rgba(255,240,200,.4),transparent);animation:sp-twinkle 3s ease-in-out infinite alternate;pointer-events:none}
+#splash{--logo:min(60vw,250px);position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#04060D;color:#F6E7C8;cursor:pointer;transition:opacity .9s cubic-bezier(.65,0,.35,1) .25s,visibility 1.2s}
+.sp-sky{position:absolute;inset:-10%;opacity:0;animation:sp-in 1.6s ease forwards}
+.sp-neb{position:absolute;inset:0;background:radial-gradient(45% 35% at 50% 42%,rgba(46,62,130,.55),transparent 70%),radial-gradient(30% 25% at 70% 70%,rgba(120,70,30,.22),transparent 70%),radial-gradient(35% 30% at 25% 25%,rgba(40,90,140,.25),transparent 70%);animation:sp-neb 9s ease-in-out infinite alternate}
+@keyframes sp-neb{to{transform:scale(1.12) rotate(4deg)}}
+.sp-stars{position:absolute;inset:0;background-repeat:repeat}
+.sp-stars.s1{background-image:radial-gradient(1px 1px at 20px 30px,#FFF6DD,transparent),radial-gradient(1px 1px at 140px 90px,#FFF6DD,transparent),radial-gradient(1.2px 1.2px at 80px 160px,#FFF6DD,transparent),radial-gradient(1px 1px at 200px 210px,#FFF6DD,transparent);background-size:240px 240px;opacity:.55;animation:sp-drift 14s linear infinite}
+.sp-stars.s2{background-image:radial-gradient(1.4px 1.4px at 60px 40px,#FFE9B8,transparent),radial-gradient(1.6px 1.6px at 250px 180px,#FFE9B8,transparent),radial-gradient(1.2px 1.2px at 160px 300px,#FFE9B8,transparent);background-size:340px 340px;opacity:.8;animation:sp-drift 9s linear infinite,sp-twinkle 2.6s ease-in-out infinite alternate}
+.sp-stars.s3{background-image:radial-gradient(2px 2px at 120px 80px,#FFF2CC,transparent),radial-gradient(2.2px 2.2px at 380px 420px,#FFF2CC,transparent);background-size:520px 520px;animation:sp-drift 6s linear infinite,sp-twinkle 1.8s ease-in-out infinite alternate;filter:drop-shadow(0 0 3px rgba(255,220,150,.9))}
+@keyframes sp-drift{to{background-position:0 -240px}}
 @keyframes sp-twinkle{from{opacity:.35}to{opacity:1}}
-.sp-stage{display:flex;flex-direction:column;align-items:center;gap:10px;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .5s}
-.sp-logo{width:min(46vw,200px);height:auto;overflow:visible}
-.sp-halo{opacity:0;transform-origin:512px 512px;animation:sp-fade 1.2s .9s ease forwards,sp-breathe 3s 2.1s ease-in-out infinite}
-@keyframes sp-breathe{50%{transform:scale(1.08);opacity:.75}}
-.sp-ring{stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:512px 512px;animation:sp-draw 1s .1s cubic-bezier(.65,0,.35,1) forwards}
-.sp-dash{opacity:0;transform-origin:512px 512px;animation:sp-fade .8s .8s ease forwards,sp-spin 40s linear infinite}
+@keyframes sp-in{to{opacity:1}}
+.sp-stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;animation:sp-push 7s cubic-bezier(.33,0,.2,1) forwards}
+@keyframes sp-push{from{transform:scale(.9)}to{transform:scale(1.02)}}
+.sp-mark{position:relative;width:var(--logo);height:var(--logo);transition:transform 1.1s cubic-bezier(.7,0,.84,0),opacity .8s .3s}
+.sp-logo{width:100%;height:100%;overflow:visible;display:block}
+.sp-parts i{position:absolute;left:50%;top:50%;width:var(--z);height:var(--z);margin:calc(var(--z) / -2);border-radius:50%;background:#FFE7A8;box-shadow:0 0 10px 3px rgba(243,207,126,.85);opacity:0;animation:sp-gather 1.5s cubic-bezier(.22,1,.36,1) var(--d) forwards}
+@keyframes sp-gather{0%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(.4)}20%{opacity:1}80%{opacity:1;transform:translate(calc(var(--ex) * var(--logo)),calc(var(--ey) * var(--logo))) scale(1)}100%{opacity:0;transform:translate(calc(var(--ex) * var(--logo)),calc(var(--ey) * var(--logo))) scale(1.8)}}
+.sp-halo{opacity:0;transform-origin:512px 512px;animation:sp-in 1.4s 2.6s ease forwards,sp-breathe 3.2s 4s ease-in-out infinite}
+@keyframes sp-breathe{50%{transform:scale(1.1);opacity:.7}}
+.sp-ring{stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:512px 512px;animation:sp-draw 1.2s 1.5s cubic-bezier(.65,0,.35,1) forwards}
+.sp-dash{opacity:0;transform-origin:512px 512px;animation:sp-in 1s 2.6s ease forwards,sp-spin 50s linear infinite}
 @keyframes sp-spin{to{transform:rotate(360deg)}}
-.sp-ticks line{opacity:0;animation:sp-fade .25s calc(.45s + var(--i) * 55ms) ease forwards}
-.sp-lid{stroke-dasharray:100;stroke-dashoffset:100;fill-opacity:0;animation:sp-draw .9s .7s cubic-bezier(.65,0,.35,1) forwards,sp-fill .5s 1.4s ease forwards}
+.sp-ticks line{opacity:0;animation:sp-tick .45s calc(2.2s + var(--i) * 70ms) ease forwards}
+@keyframes sp-tick{0%{opacity:0}50%{opacity:1;filter:drop-shadow(0 0 12px #FFE7A8)}100%{opacity:1}}
+.sp-lid{stroke-dasharray:100;stroke-dashoffset:100;fill-opacity:0;animation:sp-draw 1s 2.7s cubic-bezier(.65,0,.35,1) forwards,sp-fill .6s 3.5s ease forwards}
 @keyframes sp-draw{to{stroke-dashoffset:0}}
 @keyframes sp-fill{to{fill-opacity:1}}
-.sp-eye{transform-origin:512px 512px;animation:sp-blink .5s 1.25s cubic-bezier(.34,1.56,.64,1) both}
-@keyframes sp-blink{0%{transform:scaleY(.12)}100%{transform:none}}
-.sp-iris{opacity:0;transform-origin:512px 512px;transform:scale(.3);animation:sp-pop .7s 1.45s cubic-bezier(.34,1.56,.64,1) forwards}
+.sp-eye{transform-origin:512px 512px;animation:sp-blink .7s 3.3s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes sp-blink{0%{transform:scaleY(.08)}100%{transform:none}}
+.sp-iris{opacity:0;transform-origin:512px 512px;transform:scale(.2);animation:sp-pop .9s 3.6s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes sp-pop{to{opacity:1;transform:none}}
-.sp-core{transform-origin:512px 512px;animation:sp-spin 8s 2s linear infinite}
-.sp-star{opacity:0;transform-origin:772px 280px;transform:scale(0) rotate(-90deg);animation:sp-star .7s 1.7s cubic-bezier(.34,1.56,.64,1) forwards}
+.sp-core{transform-origin:512px 512px;animation:sp-spin 10s 4.2s linear infinite}
+.sp-star{opacity:0;transform-origin:772px 280px;transform:scale(0) rotate(-120deg);animation:sp-star .9s 4s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes sp-star{to{opacity:1;transform:none}}
-@keyframes sp-fade{to{opacity:1}}
-.sp-title{display:flex;gap:.3em;font-family:"Noto Serif TC","Songti TC",serif;font-size:clamp(34px,10vw,46px);font-weight:700;letter-spacing:.06em;margin-top:6px}
-.sp-title span{opacity:0;transform:translateY(14px);filter:blur(6px);background:linear-gradient(135deg,#FFF0C2,#E9BE62 55%,#B9842A);-webkit-background-clip:text;background-clip:text;color:transparent;animation:sp-rise .8s calc(1.55s + var(--i) * .14s) cubic-bezier(.22,1,.36,1) forwards}
+.sp-shine{position:absolute;inset:6%;border-radius:50%;overflow:hidden;pointer-events:none;mix-blend-mode:screen}
+.sp-shine::after{content:"";position:absolute;top:-20%;bottom:-20%;width:38%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,240,200,.55),transparent);transform:skewX(-18deg);animation:sp-sweep 1.1s 4.3s cubic-bezier(.65,0,.35,1) forwards}
+@keyframes sp-sweep{to{left:130%}}
+.sp-title{position:relative;display:flex;gap:.18em;font-family:"Noto Serif TC","Songti TC",serif;font-size:clamp(46px,14vw,64px);font-weight:700;letter-spacing:.08em;margin-top:10px;overflow:hidden;padding:0 .1em}
+.sp-title span{opacity:0;transform:translateY(18px) scale(.96);filter:blur(10px);background:linear-gradient(160deg,#FFF3CF,#E9BE62 50%,#B9842A);-webkit-background-clip:text;background-clip:text;color:transparent;animation:sp-rise 1.1s calc(4.1s + var(--i) * .28s) cubic-bezier(.22,1,.36,1) forwards}
 @keyframes sp-rise{to{opacity:1;transform:none;filter:none}}
-.sp-sub{font-size:14px;letter-spacing:.42em;color:#CDB78C;opacity:0;animation:sp-fade 1s 2.1s ease forwards;padding-left:.42em}
-.sp-skip{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom,0px));font-size:12px;letter-spacing:.2em;color:rgba(205,183,140,.55);opacity:0;animation:sp-fade 1s 1.2s ease forwards}
+.sp-tshine{position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,245,215,.75),transparent);mix-blend-mode:overlay;transform:skewX(-18deg);animation:sp-sweep 1s 5.3s cubic-bezier(.65,0,.35,1) forwards}
+.sp-en{font-family:Georgia,"Times New Roman",serif;font-size:13px;letter-spacing:.9em;padding-left:.9em;color:#D9BE85;opacity:0;animation:sp-spread 1.4s 4.8s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes sp-spread{from{opacity:0;letter-spacing:.2em;padding-left:.2em}to{opacity:1;letter-spacing:.9em;padding-left:.9em}}
+.sp-sub{margin-top:14px;font-size:14.5px;letter-spacing:.45em;padding-left:.45em;color:#CDB78C;opacity:0;transform:translateY(6px);animation:sp-rise 1.2s 5.3s ease forwards}
+.sp-flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 42%,rgba(255,236,190,.95),rgba(243,207,126,.35) 30%,transparent 60%);opacity:0}
+.sp-skip{position:absolute;bottom:calc(30px + env(safe-area-inset-bottom,0px));font-size:12px;letter-spacing:.25em;color:rgba(205,183,140,.5);opacity:0;animation:sp-in 1s 1.4s ease forwards}
+/* 收場：鏡頭推進眼眸，金光一閃後進入 App */
 #splash.out{opacity:0;visibility:hidden;pointer-events:none}
-#splash.out .sp-stage{transform:scale(1.18);opacity:0}
+#splash.out .sp-mark{transform:scale(7);opacity:0}
+#splash.out .sp-title,#splash.out .sp-en,#splash.out .sp-sub,#splash.out .sp-skip{opacity:0!important;transition:opacity .4s;animation:none}
+#splash.out .sp-flash{animation:sp-flash 1.1s ease forwards}
+@keyframes sp-flash{0%{opacity:0}45%{opacity:1}100%{opacity:0}}
 #splash.still *{animation:none!important;opacity:1!important;transform:none!important;filter:none!important;stroke-dashoffset:0!important;fill-opacity:1!important}
-#splash.still .sp-iris,#splash.still .sp-star{opacity:1}
+#splash.still .sp-parts,#splash.still .sp-flash,#splash.still .sp-shine,#splash.still .sp-tshine{display:none}
 </style>
 </head>
 <body>
 
 
 <div id="splash" aria-hidden="true">
+  <div class="sp-sky"><i class="sp-stars s1"></i><i class="sp-stars s2"></i><i class="sp-stars s3"></i><i class="sp-neb"></i></div>
   <div class="sp-stage">
-    <svg class="sp-logo" viewBox="0 0 1024 1024">
-      <defs>
-        <linearGradient id="sp-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF0C2"/><stop offset=".45" stop-color="#E9BE62"/><stop offset="1" stop-color="#A9761F"/></linearGradient>
-        <radialGradient id="sp-iris" cx="45%" cy="40%" r="65%"><stop offset="0" stop-color="#FFF3CC"/><stop offset=".5" stop-color="#E7B95A"/><stop offset="1" stop-color="#9A6A18"/></radialGradient>
-        <radialGradient id="sp-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F3CF7E" stop-opacity=".45"/><stop offset="1" stop-color="#F3CF7E" stop-opacity="0"/></radialGradient>
-      </defs>
-      <circle class="sp-halo" cx="512" cy="512" r="420" fill="url(#sp-glow)"/>
-      <circle class="sp-ring" cx="512" cy="512" r="330" fill="none" stroke="url(#sp-gold)" stroke-width="10" pathLength="100"/>
-      <circle class="sp-dash" cx="512" cy="512" r="300" fill="none" stroke="#E9BE62" stroke-opacity=".35" stroke-width="3" stroke-dasharray="4 14"/>
-      <g class="sp-ticks" stroke="url(#sp-gold)" stroke-linecap="round">
-        <line style="--i:0" x1="512" y1="160" x2="512" y2="200" stroke-width="10"/><line style="--i:1" x1="688" y1="207" x2="676" y2="228" stroke-width="6"/><line style="--i:2" x1="817" y1="336" x2="796" y2="348" stroke-width="6"/><line style="--i:3" x1="824" y1="512" x2="864" y2="512" stroke-width="10"/>
-        <line style="--i:4" x1="817" y1="688" x2="796" y2="676" stroke-width="6"/><line style="--i:5" x1="688" y1="817" x2="676" y2="796" stroke-width="6"/><line style="--i:6" x1="512" y1="824" x2="512" y2="864" stroke-width="10"/><line style="--i:7" x1="336" y1="817" x2="348" y2="796" stroke-width="6"/>
-        <line style="--i:8" x1="207" y1="688" x2="228" y2="676" stroke-width="6"/><line style="--i:9" x1="160" y1="512" x2="200" y2="512" stroke-width="10"/><line style="--i:10" x1="207" y1="336" x2="228" y2="348" stroke-width="6"/><line style="--i:11" x1="336" y1="207" x2="348" y2="228" stroke-width="6"/>
-      </g>
-      <g class="sp-eye">
-        <path class="sp-lid" d="M262 512 C352 382 432 340 512 340 C592 340 672 382 762 512 C672 642 592 684 512 684 C432 684 352 642 262 512 Z" fill="#0A0F22" stroke="url(#sp-gold)" stroke-width="26" stroke-linejoin="round" pathLength="100"/>
-        <g class="sp-iris"><circle cx="512" cy="512" r="112" fill="url(#sp-iris)"/>
-        <path d="M512 432 L530 494 L592 512 L530 530 L512 592 L494 530 L432 512 L494 494 Z" fill="#0D1329"/>
-        <path class="sp-core" d="M512 470 L520 504 L554 512 L520 520 L512 554 L504 520 L470 512 L504 504 Z" fill="#F7DFA0"/>
-        <circle cx="474" cy="472" r="16" fill="#FFF8E6" opacity=".9"/></g>
-      </g>
-      <path class="sp-star" d="M772 236 L782 270 L816 280 L782 290 L772 324 L762 290 L728 280 L762 270 Z" fill="url(#sp-gold)"/>
-    </svg>
-    <div class="sp-title"><span style="--i:0">觀</span><span style="--i:1">象</span><span style="--i:2">閣</span></div>
-    <div class="sp-sub">知天時 ・ 趨吉凶</div>
+    <div class="sp-mark" id="spMark">
+      <svg class="sp-logo" viewBox="0 0 1024 1024">
+        <defs>
+          <linearGradient id="sp-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF0C2"/><stop offset=".45" stop-color="#E9BE62"/><stop offset="1" stop-color="#A9761F"/></linearGradient>
+          <radialGradient id="sp-iris" cx="45%" cy="40%" r="65%"><stop offset="0" stop-color="#FFF3CC"/><stop offset=".5" stop-color="#E7B95A"/><stop offset="1" stop-color="#9A6A18"/></radialGradient>
+          <radialGradient id="sp-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F3CF7E" stop-opacity=".5"/><stop offset="1" stop-color="#F3CF7E" stop-opacity="0"/></radialGradient>
+        </defs>
+        <circle class="sp-halo" cx="512" cy="512" r="440" fill="url(#sp-glow)"/>
+        <circle class="sp-ring" cx="512" cy="512" r="330" fill="none" stroke="url(#sp-gold)" stroke-width="10" pathLength="100"/>
+        <circle class="sp-dash" cx="512" cy="512" r="300" fill="none" stroke="#E9BE62" stroke-opacity=".4" stroke-width="3" stroke-dasharray="4 14"/>
+        <g class="sp-ticks" stroke="url(#sp-gold)" stroke-linecap="round">
+          <line style="--i:0" x1="512" y1="160" x2="512" y2="200" stroke-width="10"/><line style="--i:1" x1="688" y1="207" x2="676" y2="228" stroke-width="6"/><line style="--i:2" x1="817" y1="336" x2="796" y2="348" stroke-width="6"/><line style="--i:3" x1="824" y1="512" x2="864" y2="512" stroke-width="10"/>
+          <line style="--i:4" x1="817" y1="688" x2="796" y2="676" stroke-width="6"/><line style="--i:5" x1="688" y1="817" x2="676" y2="796" stroke-width="6"/><line style="--i:6" x1="512" y1="824" x2="512" y2="864" stroke-width="10"/><line style="--i:7" x1="336" y1="817" x2="348" y2="796" stroke-width="6"/>
+          <line style="--i:8" x1="207" y1="688" x2="228" y2="676" stroke-width="6"/><line style="--i:9" x1="160" y1="512" x2="200" y2="512" stroke-width="10"/><line style="--i:10" x1="207" y1="336" x2="228" y2="348" stroke-width="6"/><line style="--i:11" x1="336" y1="207" x2="348" y2="228" stroke-width="6"/>
+        </g>
+        <g class="sp-eye">
+          <path class="sp-lid" d="M262 512 C352 382 432 340 512 340 C592 340 672 382 762 512 C672 642 592 684 512 684 C432 684 352 642 262 512 Z" fill="#0A0F22" stroke="url(#sp-gold)" stroke-width="26" stroke-linejoin="round" pathLength="100"/>
+          <g class="sp-iris"><circle cx="512" cy="512" r="112" fill="url(#sp-iris)"/>
+          <path d="M512 432 L530 494 L592 512 L530 530 L512 592 L494 530 L432 512 L494 494 Z" fill="#0D1329"/>
+          <path class="sp-core" d="M512 470 L520 504 L554 512 L520 520 L512 554 L504 520 L470 512 L504 504 Z" fill="#F7DFA0"/>
+          <circle cx="474" cy="472" r="16" fill="#FFF8E6" opacity=".9"/></g>
+        </g>
+        <path class="sp-star" d="M772 236 L782 270 L816 280 L782 290 L772 324 L762 290 L728 280 L762 270 Z" fill="url(#sp-gold)"/>
+      </svg>
+      <i class="sp-shine"></i>
+      <div class="sp-parts" id="spParts"></div>
+    </div>
+    <div class="sp-title"><span style="--i:0">靈</span><span style="--i:1">犀</span><i class="sp-tshine"></i></div>
+    <div class="sp-en">LINGXI</div>
+    <div class="sp-sub">心有靈犀 ・ 一點通</div>
   </div>
+  <i class="sp-flash"></i>
   <div class="sp-skip">輕觸略過</div>
 </div>
 <script>
 (function(){var s=document.getElementById('splash');try{if(sessionStorage.getItem('gx_sp')){s.remove();return}sessionStorage.setItem('gx_sp','1')}catch(e){}
-if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)s.classList.add('still');
+if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){s.classList.add('still')}
+else{var box=document.getElementById('spParts'),h='';for(var i=0;i<36;i++){var a=Math.random()*Math.PI*2,d=55+Math.random()*45,t=i/36*Math.PI*2-Math.PI/2;h+='<i style="--sx:'+(Math.cos(a)*d).toFixed(1)+'vmax;--sy:'+(Math.sin(a)*d).toFixed(1)+'vmax;--ex:'+(Math.cos(t)*.3223).toFixed(4)+';--ey:'+(Math.sin(t)*.3223).toFixed(4)+';--d:'+(.45+Math.random()*.55).toFixed(2)+'s;--z:'+(2+Math.random()*3).toFixed(1)+'px"></i>'}box.innerHTML=h}
 document.documentElement.classList.add('splashing');})();
 </script>
 
@@ -722,7 +753,7 @@ addEventListener('error',function(e){var m=(e.message||(e.target&&e.target.src?'
 <script src="vendor/iztro.min.js"></script>
 <script>window.iztro||document.write('<script src="https://cdn.jsdelivr.net/npm/iztro@2.6.1/dist/iztro.min.js"><\/script>')</script>
 <script>window.KX_RAW="1:一乙|2:丁乂乃乜了二人儿入几凵刀刁力匕匚卜厂又|3:万丈三上下丌丫丸久乇么乞也亍于亡兀凡刃勺千卄叉口囗土士夕大女子孑孓寸小尢尸屮山川工己已巳巾干廾弋弓彳才兀|4:不与丏丐丑中丮丰丹之予云互亓井亢什仁仂仃仄仆仇仈仉今介仍允元內公兮冇冗冘凶分切刈勻勼勾勿化匹卅升午卞卬厄厹及友反四圠壬夃天太夫夬夭孔尐少尤尹尺屯巴巿幻廿弔引心戈戶手支文斗斤方日曰月木欠止歹殳毋毌比毛氏气水火爪父爻爿片牙牛犬王瓦禸|5:且丕世丘丙丱主丼乍乎乏五仔仕他仗付仙仚仜仝仞仟仡代令以仨仩兄冉冊冬凸凹出刉刊刌功加包匆北匜匝卉半占卡卮卯去古句另叨叩只叫召叭叮可台叱史右叵司叻叼囚圢圣外夗央夯失奴奶孕宁它宄尒尕尻尼屳屴左巧巨市布帄平幼庀庂弁弗弘必戉戊扎斥旡旦未末本札朮正母氐民氕氶永犮玄玉玊瓜甘生用甩田由甲申疋白皮皿目矛矢石示禾穴立|6:丞丟乒乓乩亙交亥亦仰仱仲仳仴仵件价任份仿伀企伂伄伅伈伉伊伋伍伎伏伐休伒伓伔伕优伙伝伢伬充兆兇先光全六共再冰冱刎刐刑划刓刖列劣劦匈匟匠匡匢卌卍印危厊吁吃各吆吇合吉吊吋同名后吏吐向吒囝回囟因囡在圩圪圬圭圮圯地圳圴夙多夷夸夼奷奸她奻奼好奾奿妀妁如妃妄妅孖字存宅宇守安寺尖尥屹屺屻屼屾州巟帆年幵庄异式弚弛彴忉戌戍戎扐扑扒打扔收攷旨早旬旭旮旯曲曳有朱朳朴朵朸朹机朻朼朽朾朿次此死氖氘氻氾氿汀汁求汃汆灰灱牝牞牟犯犰甪百癿穵竹米糸缶网羊羽老考而耒耳聿肉臣自至臼舌舛舟艮色艸虍虫血行衣襾西|7:七串些亨伭伯估伳伴伶伸伺伻似伽伾伿佁佃但佇佈佉佌位低住佐佑佒体佔何佖佗佘余佚佛作佝佞佟你佡佢佣佤佧克兌免兵冏冶冷冹刜初刞刡判別刨利刪助努劫劬劭劮匉匣卣卲即卵厎厏吘吙君吜吝吞吟吠吤吥否吧吨吩吪含听吭吮吰吱吳吵吶吷吸吹吻吼吽吾呀呁呂呃呅呆呇呈告呎呏呔囤囥囧囪囫囮困圻圾址坁坅均坉坊坋坌坍坎坏坐坑坒壯夆夾奀妊妎妏妐妒妓妖妗妘妙妝妞妠妡妢妣妤妥妦妧妨孚孛孜孝宋完宎宏宒尨尪尬尾尿局屁岆岈岉岊岋岌岏岐岑岒岓岔岕巠巡巫帊希帎庇庈庉床庋庌庍序延廷弄弅弝弟形彤彶彷彸役忌忍忏忐忑忒忔忕忖志忘忙成我戒戺托扙扚扛扜扞扠扡扢扣扤扥扦攸改攻旰旱旲旳旴旵更杅杆杇杈杉杋杌杍李杏材村杓杕杖杗杙杚杜杝杞束杠极步每毐氙氚汊汋汌汍汎汏汐汒汔汕汗汙汛汜汝汞江池污灴灶灸灺灼災牠牡牢牣犴犵玎甫甬男甸甹町疔疕皁皂盯矣礽禿秀私究系羋耴肊良見角言谷豆豕豸貝赤走足身車辛辰邑酉釆里|8:並丳乖乳事亞亟享京佩佪佫佬佮佯佰佳佴併佶佷佸佹佺佻佼佽佾使侀侁侂侃侄侅來侇侈侉例侍侏侐侑侒侔侕侖侗侘侚供侜依侞兒兔兕兩八其具典冞冼冽冾函刮到刱刲刳刵制刷券刺刻剁劻劼劾匊匋匼卑卒卓協卦卷卸卹厒厔叔取受呠呡呢呣呤呥呦呧周呫呬呯呰呱呲味呴呵呶呷呸呺呻呼命呾呿咀咁咂咄咆咇咈咋和咍咎咐咑咒咕咖咘咚囷囹固坡坢坤坦坨坩坪坫坭坯坰坱坲坳坴坵坶坷坻坼坽垀垂垃夌夜奄奅奇奈奉妮妯妱妲妳妴妵妶妹妺妻妼妽妾姀姁姃姅姆姇姈姊始姌姍姎姏姐姑姒姓委姖孟孢季孤孥宓宕宗官宙定宛宜尚屄居屆屇屈岝岟岠岡岢岣岤岥岦岧岨岩岪岫岬岭岮岯岰岱岳岵岶岷岸帑帔帕帖帗帘帙帚帛并幸底庖店庚庛府弢弣弤弦弧弨弩彔彼彽彾彿往征徂忝忞忠忡忣忤忥忨忪快忭忮忯忱忳忴念忷忸忺忻忽忿怀戔戕或戽戾房所扭扮扯扰扱扲扳扴扶扷批扺扻扼扽找承技抁抃抄抆抇抈抉把抌抎抏抑抒抓抔投抖抗折攽放政斧斨斻於旺旻旼旽昀昂昃昄昅昆昇昈昉昊昋昌昍明昏昐昑昒易昔昕曶朋服杪杬杭杯杰東杲杳杴杵杶杷杸杹杺杻杼杽松板枃构枅枆枇枉枋枌枍枎析枑枒枓枔枕林枘枙枚果枝枟欣欥武歧歾歿殀毒毞氓氛氝汥汦汧汨汩汪汫汭汯汰汱汲汳汴汶汸決汻汽汾沀沁沂沃沄沅沆沇沈沉沊沋沌沍沎沏沐沒沓沔沕沖沘沙沚沛沜沝炂炃炄炅炆炊炎炑炒炓炔炕炖炘炙炚爬爭爸版牧物牪牬犺犽犿狀狁狂狃狄狅狆玒玓玔玕玖玗瓝瓨瓩甽甾甿畀疌疘疙疚疝的皯盂盰盱盲盳直盵知矷矸矹矺矻矼矽社礿祀祁祂秅秈秉穸穹空穻竺竻籵糽糾羌耵肋肌肏臥臾舍舠艼艽艾艿芀虎虭虮虯虰虱豖軋采金長門阜隹雨青非|9:九亭亮侮侯侲侳侵侶侷侹侺侻便俀俁係促俄俅俇俉俊俋俍俎俏俐俑俓俔俖俗俘俙俚俛俜保俞俟俠信俬兗兙冑冒冠剃剄剆則剉削剋剌前剎勀勁勂勃勇勉匍匽南卻卼厖厗厘厙厚叛咠咡咢咥咦咧咨咩咪咫咬咭咮咯咰咱咳咶咷咸咺咻咼咽咾咿哀品哂哃哄哅哆哇哈哉哎哏哖哞囿型垌垏垓垔垕垗垘垙垚垛垝垞垟垠垢垣垤垥垮垵壴复奎奏奐契奓奔奕妍姘姚姛姜姝姞姠姡姣姤姥姦姨姩姪姭姮姱姲姳姴姵姶姷姺姻姼姽姾姿娀威娃孩客宣室宥宦宨封屋屌屍屎屏岍峆峇峈峉峊峋峌峎峏峐峒峓峔峖峗峘峙峚峛峞峟巷巹帝帟帠帡帢帣帤帥幽庠庢庣庤庥度建弇弈弭弮彖彥待徆徇很徉徊律後怉怊怋怌怍怎怏怐怑怒怓怔怕怖怗怙怚怛怜思怞怠怡怢怤急怦性怨怩怪怫怬怭怮怯怲怳怴怵怷怹扁扂扃抨抩抪披抬抭抮抯抰抱抳抴抵抶抸抹抻押抽抾抿拂拄拆拇拈拉拊拋拌拍拎拏拐拑拒拓拔拖拗拘拙拚招拜敁敃故斪斫施斿既昜昝星映昡昢昤春昦昧昨昫昭昮是昱昲昳昴昵昶昹昺曷朏朐枮枯枰枲枳枴枵架枷枸枹枺枻柀柁柂柃柄柅柆柈柉柊柋柌柍柎柏某柑柒染柔柘柙柚柛柜柝柞柟柢柣柤查柦柧柩柪柫柬柭柮柯柰柱柲柳柴柵柶柷柸柺柼柿欨歪殂殃殄殆段殶毖毗毘毠氟氠氡沫沬沭沮沰沱河沴沶沷沸油沺治沼沽沾沿泀況泂泃泄泅泆泇泉泊泌泍泏泐泑泒泓泔法泖泗泙泛泜泝泞泠泡波泣泥泧注泩泫泬泭泮泯泰泱泲泳泵泹炟炡炤炩炫炬炭炮炯炰炱炳炴炵炷炸為炾爰牁牉牊牮牯牰牲牳牴狉狊狋狌狎狐狑狒狔狖狗狘狙狚狜玅玝玟玠玡玢玤玥玦玨玩玫玬玭瓬瓮甚甭甮畇畈畋界畎畏疢疣疤疥疧疪疫疺癸癹皆皇皈盃盄盅盆盈盷相盹盺盻盼盾省眃眄眅眇眈眉眊看矜矧矨砂砃砅砆砉砌砍砎砏砐砑砒砓祄祅祆祇祈祉祊祋祌禹禺秋种秎秏科秒秕秖穾穿窀突竑竽竿笀笁籸籹籺籽籿粀粁紀紁紂紃約紅紆紇紈紉缸罔罕羍美羑羾羿耍耎耏耐耑耔耶耷肐肒肓肕肖肘肙肚肛肜肝致臿舡舢芃芄芅芊芋芍芎芏芐芑芒芓芔虐虳虴虷虹虺虻虼衁衍衎衧表衩衪衫要觓觔訂訃訄訇計貞負赲赳赴趴軌軍酊酋重釓釔閂面革韋韭音頁風飛食首香骨鬼|10:乘亳修俯俱俳俴俵俶俷俸俺俾倀倅倆倇倉個倌倍倎倏們倒倓倔倕倖倗倘候倚倛倜倞借倠倡倢倣倥倦倧倨倩倪倫倬倭倯倰倱倳倵倷值党兛兼冓冔冢冤冥凄凅准凈凊凋凌凍凎剒剔剕剖剚剛剜剝剞剟剡剢勍匎匪十厜厝厞原叟哠員哢哤哥哦哧哨哩哪哫哭哮哱哲哳哷哸哺哻哼哽哿唁唃唄唅唆唇唈唉唊唋唌唎唏唐唑唒唔唗唚唦唧圁圂圃圄垶垸垹垺垼垽垿埁埂埃埆埇埋埌城埏埐埒埔埕夎夏奊套奘奚姬娉娊娌娏娑娓娕娖娗娘娙娛娜娞娟娠娣娥娩娭娮娳孫孬宧宬宭宮宰害宴宵家宸容尃射屐屑屔展屖屘峨峪峬峭峮峰峱峴島峷峸峹峻峽峿崀崁差帨帩師席座庨庪庫庬庭庮弰弱弳彧徐徑徒恀恁恂恃恄恅恆恇恉恌恍恐恓恔恕恘恙恚恛恝恞恟恢恣恤恥恦恧恨恩恪恫恬恭恮息恰恲戙扆扇拫括拭拮拯拰拱拲拳拴拵拶拷拸拹拺拻拼拽拾拿挀持挂挃指挈按挋挌挍挎挏挐挑挓挔挕挖敆效敉敊料旁旂旃旄旅旆晁時晃晅晇晉晊晌晏晑晒書朊朒朓朔朕栒栓栔栖栗栘栚栜栝栟栠校栥栦栨栩株栫栭栮栯栱栲栳栴栵核根栺栻格栽桀桁桂桃桄桅框案桉桋桌桍桎桏桐桑桓桔欬欭欯欱歭殈殉殊殷毢毣毤毦毧毨氣氤氥氦氧氨泚洀洁洃洄洇洈洉洊洋洌洎洏洐洑洒洗洘洙洚洛洝洞洟洠洢津洧洨洩洪洫洬洭洮洯洰洱洲洳洴洵洶洷洸洹洺活洼洽派洿浀流浂烅烆烇烈烊烋烍烎烏烑烒烓烔烗烘烙烚烜烝烞烠烡烢烤爹牂牶牷牸特狟狠狡狣狤狦狨狩狪狫玆玲玳玴玵玶玷玸玹玻玼玾玿珀珂珃珅珆珇珈珊珋珌珍瓞瓟瓴瓵甡畔留畚畛畜畝畟疰疲疳疵疶疸疹疻疼疽疾疿痀痁痂痄病症皉皊皋皰盉益盍盎眐眑眒眓眕眙眚眛眝真眠眢眣眥眧眨眩矩砝砟砠砡砢砣砥砦砧砨砩砪砫砬砭砮砯砰砱砲砳破砵砷砸祏祐祑祒祓祔祕祖祗祚祛祜祝神祟祠祡秘秜秝秞租秠秣秤秦秧秩秪秫秬秭秮窄窅窆窇窈窉窊窋窌竘站笅笆笈笉笊笎笏笐笑笒笓粄粅粈粉粊粌粍粑紊紋紌納紎紏紐紑紒紓純紕紖紗紘紙級紛紜紝紞紟素紡索缹缺罘羒羔羖翀翁翂翃翅耄者耆耕耖耗耘耙耹耽耾耿肂股肢肣肥肩肪肫肭肮肯肱育肴肵肸肺臬臭舀舁舐舥舨航舫般舯芘芙芚芛芝芞芟芠芡芢芣芤芥芧芨芩芫芬芭芮芯芰花芳芴芵芶芷芸芹芺芻芼芽芾苀苂苃虒虓虔蚅蚆蚇蚊蚋蚌蚍蚎蚐蚑蚓蚔蚕蚖蚗蚘蚙蚚蚜蚝蚞蚡蚢蚣蚤蚥蚧蚨蚩蚪衃衄衭衯衰衱衲衴衵衶衷衹衼衽衾衿袀袁袂袃訊訌討訏訐訑訒訓訕訖託記豇豈豗豹豺豻財貢貣貤赶起赸趵趶趷躬軏軑軒軓軔辱辿迂迄迅迆迉邔邕邗邘邙邛酌配酎酏酐酒釕釗釘釙釚釜針釢閃阞隻隼馬高髟鬥鬯鬲|11:乾乿偀偁偃偅偆假偈偉偊偋偌偍偎偏偑偓偕偗做偛停偝偞偟偠偡偢偣偤健偨偩偪偫偭偮偯偰偲偳側偵偶偷偺偽兜兝兞冕凐凰剪剫剬剭剮副勒勓動勖勗勘務匏匐匙匭匾匿區卿參唪唬唭售唯唰唱唲唳唴唵唶唷唸唹唻唼唾啀啁啃啄啅商啈啊啋啍啎問啐啑啒啕啖啗啜啞啟啡啢啣啤啥啦啪啵啶啷圇圈圉圊國埜域埠埡埢埣埤埥埧埩埬埭埮埰埱埲埳埴埵埶執埸培基埻埼埽堀堁堂堄堅堆堇堈堉堊堋堌堍堎堐堔夠奜娵娶娷娸娹娼娾婀婁婂婃婄婆婇婈婉婊婌婍婐婑婒婓婕婖婗婘婚婛婜婝婞婟婠婢婤婥婦婧婩婪婬婭婰孮孰宿寀寁寂寄寅密寇將專尉屙屜屝崆崇崋崌崍崎崏崑崒崔崖崗崙崚崛崝崞崟崠崢崣崤崥崦崧崨崩崮崰巢帳帴帶帷常庰庱庲庳庴庵庶康庸庹張弶強弸彗彩彪彫彬徖得徘徙徛徜從徟徠御恿悀悁悃悄悅悆悇悈悉悊悌悍悎悐悒悔悕悖悗悚悛悜悝悟悠悢患您戚戛扈挨挩挪挫挬挭振挲挳挴挶挸挹挺挻挼挽挾捀捁捂捃捄捅捆捇捈捉捊捋捌捍捎捏捐捑捔捕捖捗捘捙捚敏救敓敔敕敖敗敘教斌斛斜斬旋旌旍旎族晙晚晛晜晝晞晟晡晢晤晥晦晨曹曼朗朘望桫桭桮桯桱桲桴桵桶桷桸桹桻桼桽桾桿梀梁梂梃梅梆梇梉梊梋梌梏梐梑梒梓梔梖梗梛梜條梟梠梡梢梣梤梧梨梩梪梫梬梭梮梯械梱梲梳梴梵欲欳欴欶欷欸殌殍殎殏殑殺毫毬氪氫洍洖浘浙浚浞浟浠浡浢浣浤浥浦浧浨浩浪浬浭浮浯浰浴浵浶海浸浹浺浻浼浽浾浿涀涂涃涄涅涆涇消涉涊涋涌涍涎涐涑涒涓涔涕涗涘烯烰烳烴烶烷烸烹烺烻烼烽烿焀焂焄焆焉焊焋焌焍焎焐焓焗爽牻牼牽牾牿犁狳狴狶狷狸狹狺狻狼狽狾狿猀猁率玈珒珓珔珖珗珘珙珚珛珜珝珞珠珣珥珧珨珩珪珫班珮瓠瓶瓷甜產畢畣畤略畦痊痋痌痍痎痏痐痑痒痔痕皎皏盒盓盔眭眯眱眲眳眴眵眶眷眸眹眺眻眼眽眾研硃硅硈硉硊硌硍硎硐硒祣祤祥祧票祩祪祫祭离秶秷秸秺移窏窐窒窔窕竟章笘笙笚笛笝笞笠笢笣笤笥符笨笪笫第笭笮笯笰笱笲笳笴笵笸笻粒粔粕粖粗粘粣紨紩紫紬紮累細紱紲紳紵紶紸紹紺紻紼紽紾紿絀絁終絃組絅絆絇絊缽罛罜罝罞罟罠罡羕羚羛羜羝羞翇翉翊翋翌翍翎翏翐翑習耇耛耜耞耟聃聆聇聈聊胂胃胄胅胇胈胉胊背胍胎胏胐胑胔胕胖胗胘胙胚胛胜胝胞胠胡胣胤胥胦舂舑舲舳舴舵舶舷舸船舺艴苑苒苓苔苕苖苗苙苛苜苞苟苠苡苣苤若苦苧苨苪苫苬苭苯苰英苲苳苴苵苶苹苺苻苾茀茁茂范茄茅茆茇茈茉茌茍處虖虙蚯蚰蚱蚳蚴蚵蚶蚷蚸蚹蚺蚻蚼蚽蚾蚿蛀蛁蛂蛃蛄蛅蛆蛇蛈蛉蛋蛌衒術袈袉袋袌袍袎袑袒袓袕袖袗袘袙袚袛袞袟袡袢袤袧袨袪被袬覂規覓視觕觖觙訛訝訞訟訢訣訥訧訪訬設訰許谹谻豉豚豜豝豽貥貧貨販貪貫責赦赹赻赽趹趺趾趿跁跂軗軘軛軜軝軞軟軠軡迋迍迎近迒迓返迕迖迗邞邟邠邡邢那邥邦邧邪酓酕酖酗酘酚野釣釤釦釧釨釩釪釫釬釭釮釱釳釴釵釷釸釹閆閈閉阠阡阢阣阤隿雀雩雪靪頂頃頄飢飣馗魚鳥鹵鹿麥麻|12:傀傂傃傅傇傋傌傍傎傑傒傔傕傖傘備傚傛傜傝傞傢傣兟凔凱剩割剴創勛勝勞匑匒博厤厥厧啻啼啽啾啿喀喁喂喃善喇喈喉喊喋喌喎喏喑喒喓喔喕喘喙喚喜喝喟喡喢喣喤喥喦喧喨喪喫喬喭單喱喲喳喵喻圌圍堙堛堜堝堞堠堡堣堤堥堧堨堩堪堬堭堮堯堰報堲堳場堵堶堷堸堹堻堽堿塈壹壺奠奡奢婷婸婺婻婼婽婿媃媄媊媋媌媎媏媒媓媔媕媗媚媛媜媝媞媟媢媥媦媧媩媬媮媯孱孲寊寋富寍寎寐寑寒寓寔寪尊尋尌尰就屠崱崲崳崴崵崶崷崸崹崺崼崽崿嵀嵁嵂嵃嵅嵇嵉嵋嵌嵎嵐嵑嵒嵕嵙巽帽帾幀幁幃幄幅幾庾廁廂廊弼彘彭徥徦徨復循徫悰悱悲悴悵悶悷悸悹悺悻悼悽悾悿惀惁惃惄情惆惇惈惉惊惋惌惍惎惏惑惓惔惕惘惙惚惛惜惝惟惠惡惢惤惦戟扉扊捥捧捨捩捫捭据捯捰捱捲捵捶捷捸捺捻捼捽掀掁掂掃掄掅掇授掉掊掌掍掎掏掐掑排掔掖掗掘掙掛掜掝掞掟掠採探掣掤接控推掩措掫掬掭掮掯掰掱掽攲敜敝敞敢散敤敥敦敧敨敪斐斑斝斮斯旐晪晬普景晰晱晲晴晶晷晸晹智晻晼晾暀暑曾替最朁朝期棄棆棇棈棉棋棌棍棎棐棑棒棓棔棕棖棗棘棚棜棝棞棟棠棡棣棤棦棧棨棩棪棫棬森棯棰棱棲棳棴棵棶棷棸棹棺棻棼棽椄椅椆椇椈椊椋椌植椎椏椐椑椒椓椔椕椗椥椪欹欺欻欼欽款欿殔殕殖殗殘殙殼殽毯毰毲毳氬氮氯氰涪涫涬涮涯液涳涴涵涷涸涺涻涼涽涾涿淀淂淄淅淆淇淈淉淊淋淌淍淏淐淑淒淓淔淕淖淗淘淙淚淛淜淝淞淟淠淡淢淣淤淥淦淨淩淪淫淬淭淮淯淰深淲淳淴淵淶混淹淺添淼淽渀清渚湴焙焚焛焜焞焟焠無焢焣焥焦焨焮焯焰焱焲然焺煮牋牌牚犀犄犅犆犈犉犋猇猈猊猋猌猏猑猒猓猖猗猘猙猛猜猝猞珴珵珶珸珺珼珽現珿琀琁球琄琅理琇琈琉琊琋琌琍瓻甥甦甯番畫畬畯異疏痗痘痙痚痛痝痞痟痠痡痢痣痤痦痧登發皒皓皕皖皴盚盛盜睄睅睆睇睊睋睌睍睎睏矞矬短硜硝硞硠硢硤硥硨硩硪硫硬硭确硯硰硱祰祲祳祴稀稂稃稄稅稈稊程稌稍窖窗窘窙竣竤童竦笄筀筄筅筆筇筈等筊筋筌筍筎筏筐筑筒答策筘粞粟粡粢粥粨絎絏結絑絒絓絔絕絖絘絜絞絟絡絢絣給絧絨絩絪絫絭絮絯絰統絲絳缾缿罣羠羡羢翔翕翗耋聏聐聑聒胭胯胰胱胲胳胴胵胸胹胺胻胼能胾脀脁脂脅脆脈脊臦臮臷臸舄舒舜舼舽舿茖茗茙茛茜茞茠茢茤茥茦茧茨茩茪茫茬茭茯茱茲茳茴茵茶茷茸茹茺茻茼茿荀荁荂荃荄荅荇荈草荊荋荌荍荎荏荐荑荒荔荖虛虜蛐蛑蛓蛔蛖蛗蛘蛙蛚蛛蛜蛝蛞蛟蛢蛣蛤蛦蛨蛩蛪蛫蛬蛭衈衕衖街袱袲袶袷袸袹袺袼袽袾裀裁裂裉覃覕覗覘觚觛觝訴訶訹診註証訾訿詀詁詄詅詆詈詊詌詍詎詏詐詑詒詔評詖詗詘詙詛詞詠豟象貀貁貂貯貰貲貳貴貵貶買貸貹貺費貼貽貾貿賀賁赧趀趁趄超趉越跅跆跇跈跋跌跍跎跏跐跑跓跕跖跗跘跙跚跛跜距軥軦軧軨軩軫軬軮軯軱軴軵軶軷軸軹軺軻軼辜迠迡迢迣迤迥迦迨迪迫迭迮述邯邰邱邲邳邴邵邶邸酟酠酡酢酣酤酥釉量釽釿鈀鈁鈂鈃鈄鈅鈆鈇鈉鈊鈌鈍鈏鈐鈑鈒鈔鈕鈖鈗鈙鈚鈜鈞鈣鈤鈥鈦鈧镺開閌閍閎閏閐閑閒間閔阨阪阬阭阮阯阰阱防雁雂雃雄雅集雇雈雯雰雱雲靬靮靰韌項順頇須颩飥飧馭馮鳦黃黍黑黹鼎|13:亂亃亄亶催傭傮傯傰傱傲傳傴債傶傷傸傺傻傽傾傿僁僂僄僅僆僇僈僉僊僋兡凗剷剸剺剻剼剽募勢勣勤勦匯喍喿嗀嗂嗃嗄嗅嗆嗇嗈嗉嗊嗋嗌嗍嗎嗏嗐嗑嗒嗓嗔嗕嗖嗙嗚嗛嗜嗝嗟嗡嗢嗣嗤嗥嗦嗧嗨嗩嗯嗲園圓圔塉塊塋塌塍塎塏塑塒塓塔塕塗塘塙塚塛塝塞塢塣塤塥塨填塭塯塱壼奧媐媰媱媲媳媴媵媶媷媸媹媺媻媼媽媾媿嫀嫁嫂嫄嫆嫇嫈嫉嫊嫋嫌嫍孳寖寘寙尟尳嵊嵞嵢嵣嵥嵧嵨嵩嵫嵬嵯嵱嵲巰幊幋幌幍幎幏幹廅廆廇廈廉廋廌弒彀彙徬徭微徯惰惱惲想惴惵惶惷惸惹惺惻惼惾惿愀愁愃愄愅愆愈愉愊愋愍愎意愐愒愓愔愕愖愘愚愛愜愝感愣慨戠戡戢戣戤戥掾揀揂揃揄揆揇揈揉揊揋揌揍揎描提插揓揕揖揗揘揙揚換揜揝揟揠握揣揤揥揧揨揩揪揫揭揮揯揰揱揲揳援揵揶揹搜敬敯斒斞斟新旒旓暄暆暇暈暉暊暋暌暍暐暔暕暖暗暘暙會朠朡椯椰椲椳椴椵椷椸椹椻椼椽椿楀楁楂楄楅楈楉楊楋楌楎楏楑楒楓楔楖楗楘楙楚楛楜楝楞楟楠楢楣楥楦楨楩楪楫楬業楮楯楰楱楴極楶楷楸楹楺楻概榃榆榔歁歂歃歅歆歇歈歲殛殿毀毓毷毸毹毻毼毽渃渙減渜渝渟渠渡渢渣渤渥渦渧渨渫測渭渮港渰渱渲渳渴渵渶游渹渺渻渼渽渾渿湀湁湃湄湅湆湇湉湊湋湍湎湑湒湓湔湕湖湘湚湛湜湝湞湟湠湡湢湣湤湥湦湧湨湩湫湮湯湱湲湳湷湸湹溈溉煁煂煃煄煆煇煉煋煌煍煎煐煒煓煔煖煘煙煚煜煝煞煟煠煡煢煣煤煥煦照煨煩煪煬煰煲煸爺牏牒犌犍犎犐犑猢猣猥猦猧猩猭猰猱猲猳猴猵猶猷琖琚琛琝琠琡琢琣琤琥琦琨琩琪琫琬琭琮琯琰琱琲琳琴琵琶琺瓡瓽瓾瓿甀甝當畷畸畹痭痯痰痱痲痳痴痵痶痷痸痹痺痻痼痽痾痿瘀瘁瘃皙皵盝盞盟睒睔睕睖睙睚睛睜睞睟睠睡睢督睥睦睧睨睩睪睫睬睭矠矮硹硻硼硿碀碃碄碅碆碇碉碌碎碏碑碓碔碕碖碗碘碙碚碰祹祺祼祽祿禁禂禽稐稑稒稓稔稕稗稘稙稚稛稜稞稟稠稢窞窟窠窢窣竫筠筡筣筤筥筦筧筩筭筮筰筱筲筳筴筵筶筷筸節粯粱粲粳粴粵絛絹絺絻絼絽絿綀綁綃綄綅綆綈綌綍綎綏綑綒經綔綖罥罦群羥羦羧羨義翛翜耡聖聘肄肅肆脕脖脘脙脛脝脞脟脡脢脣脤脥脧脩脫脬脭脯脰臹舅舝艀艂艄艅艇艉荳荴荵荶荷荸荺荻荼荽荾荿莁莃莆莇莈莉莊莋莌莍莎莏莐莒莓莔莕莖莗莘莙莚莛莝莞莠莢莣莤莥莦莧莨莩莪莫莮莯莰虞號蛵蛶蛷蛸蛹蛺蛻蛾蜀蜁蜂蜃蜄蜅蜆蜇蜈蜉蜊蜋蜌蜍蜎蜑蜒蜓蝆衙裊裋裌裍裎裐裒裔裕裖裗裘裙裚裛補裝裞裟裡覅覛覜觜觟觠觡觢解觤觥触詡詢詣試詨詩詫詬詭詮詰話該詳詴詵詶詷詹詺詻詼詿誁誂誃誄誅誆誇谼豊豋豢豤豥豦貄貅貆貉貊賂賃賄賅資賈賊賌赨赩趌趍趎趏趐趑趒趓趔趼跟跠跡跢跣跤跦跧跨跩跪跫跬跮路跰跱跲跳跴跺躲軾軿輀輁輂較輅輆輇輈載輊輋辟農迴迵迶迷迺迻迼追迾迿退送适逃逄逅逆邽邾邿郁郃郅郇郈郊郋郎酨酩酪酬酮酯鈭鈮鈰鈱鈲鈳鈴鈶鈷鈸鈹鈺鈽鈾鈿鉀鉅鉆鉈鉉鉊鉋鉌鉍鉎鉏鉐鉑鉒鉓鉔鉖鉗鉚鉛鉞鉠鉡鉣鉤鉥鉦鉧鉬鉭鉯鉰鉲镻閘閛閜閞閟阹阺阻阼阽阿陀陂陃附雉雊雋雌雍雎雵零雷雸雹雺電雽靖靲靳靴靶靷靸頊頌頍頎頏預頑頒頓颬飩飪飫飭飯飲馯馰馱馲馳馴馵骫骭髡魛鳧鳩鳪鳭麀麂黽鼓鼠嗀|14:僎像僑僓僔僕僖僗僚僛僝僠僣僤僥僦僧僨僩僪僬僭僮僯僰僱僳兢凘凳劀劁劂劃劄勩勫匰匱厬厭嗶嗷嗹嗺嗼嗽嗾嗿嘀嘁嘂嘄嘆嘈嘉嘌嘍嘎嘏嘐嘒嘓嘔嘕嘖嘗嘛嘜嘝嘧噓圖團塴塵塶塹塺塻塼塽塾塿墀墁墂境墅墆墇墈墉墊墋墎墏墐墑墓墔墘壽壾夢夤夥奩奪奫嫕嫖嫗嫘嫙嫚嫛嫜嫝嫞嫟嫠嫡嫢嫣嫥嫦嫨嫩嫪嫫嫬嫭嫮孵孷寞察寠寡寢寣寤寥實寧寨對屢屣嵷嵹嵺嵼嵽嵾嵿嶀嶁嶂嶄嶆嶇嶈嶉嶊嶍幓幔幕幗幘幙幛廄廎廑廒廓廔廕廖廗廘彃彄彯彰徲愧愨愩愫愬愮愯愲愴愶愷愻愾愿慀慁慄慅慆慇慈慉慊態慌慍慎慏戧戩截戫搆搉搊搋搌損搎搏搐搒搓搔搕搖搗搘搚搛搞搟搠搡搢搣搤搥搦搧搨搪搫搬搭搮搯搰搳搴搵搶搷搹搽搾搿摀摁摃敲敳斠斡斲旖旗暝暟暠暡暢暨朄朅朢榍榎榐榑榓榕榖榗榙榚榛榜榞榠榡榣榤榥榦榧榨榩榪榫榬榭榮榯榰榱榳榴榵榶榷榹榻榼榽榾榿槁槂槃槄槆槉槊構槌槍槎槏槐槓槔槙歉歊歋歌歍歶殞殟殠毃毄毾氳溍溎溏源溒溓溔準溗溘溙溛溜溝溞溟溠溡溢溣溤溥溦溧溪溫溮溯溰溱溲溳溴溶溷溹溺溼溽溾溿滀滁滂滃滄滅滆滇滈滉滊滋滍滎滏滐滑滒滓滔滕滖滘滜漓煻煽熀熁熂熄熅熆熇熉熊熏熐熒熔熗熙爾牄牓犒犓犕犖犗猺猻猼猾猿獀獂獃獄獅獉獊琿瑀瑁瑂瑄瑆瑊瑋瑍瑎瑏瑐瑑瑒瑔瑕瑗瑙瑚瑛瑜瑞瑟甂甃甄畽疐疑瘈瘉瘊瘋瘌瘍瘏瘐瘑瘓瘔瘕瘖皸盡監睮睯睹睼睽睾睿瞀瞁瞂瞃瞄瞅硾碞碟碠碡碢碣碤碥碧碨碩碪碫碬碭碲碳碴禈禊禋禍禎福禐禒禓禔禕禖禗禘稦稨稫種稯稰稱窨窩窪窫窬竭端箂箄箅箇箈箊箋箌箍箎箏箐箑箔箕箖算箘箙箛箜箝箠管箤粹粺粻粼粽精粿綜綝綞綟綠綡綢綣綦綧綩綪綬維綮綯綰綱網綴綵綷綸綹綺綻綼綽綾綿緀緁緂緄緅緆緇緉緊緋緌緎緒罧罨罩罪罫罬罭置署翞翟翠翡翢翣耤聚聜聝聞肇脹脺脽脾腃腄腆腇腊腋腌腍腎腏腐腑腒腓腔腕臧臺與舔舕舞艋艵荓莽莿菀菁菂菃菄菅菆菇菈菉菊菋菌菎菏菑菔菕菖菗菘菙菛菜菝菞菟菠菡菢菣菤菥菧菨菩菪菫菬菮華菰菱菲菳菴菵菶菸菹菺菻菼菽菾菿萁萃萄萆萇萉萊萋萌萍萎萏萐萑萒萓萛萣著虡蜘蜙蜚蜛蜜蜞蜠蜡蜢蜣蜤蜥蜦蜧蜨蜩蜪蜬蜭蜮蜰蜱蜲蜳蜴蜵蜷蜸蜺蜻蜼蜾蜿蝀蝁蝂蝃裧裨裫裬裮裯裰裱裲裳裴裶裷裸裹裺裻裼製裾褁褂覝覞覟覡觨觩觫誋誌認誏誑誒誓誕誖誘誙誚語誠誡誣誤誥誦誧誨說誫谽豨豩豪貌貍賏賑賒賓賕賗赫趕趖趙跼跽跾跿踀踂踃踄踅踆踇踉踊踍輍輎輐輑輒輓輔輕辣逋逌逍透逐逑途逕逖逗這通逛逜逝逞速造逡逢連逤郔郕郖郗郘郙郚郛郜郝郟郠郡郢郣郤郥酲酳酴酵酷酸酹酺鉶鉸鉹鉺鉻鉽鉾鉿銀銂銃銅銆銇銈銊銋銌銍銎銑銓銔銕銖銗銘銙銚銛銜銝銠銡銢銣銤銥銦銧銨銩銪銫銬閡閣閤閥閨閩陊陋陌降陎陏限陑陓陔雒雿需靘靺靻靼靽靾靿鞀鞁鞂鞃鞄鞅韍韎韶頖頗領颭颮颯颱飴飶飹飼飽飾馜馝馹馺馻馽駁駂駃駇骯骰骱髣髦髧鬾鬿魁魂魟魠魡鳱鳲鳳鳴鳵鳶麧麼鼻齊|15:僵僶僸價僻僽僾僿儀儂儃億儅儆儇儈儉儊儋儌凜劇劈劉劊劋劌劍勯勰勱厲嘟嘩嘪嘬嘮嘯嘰嘲嘳嘴嘵嘶嘸嘹嘺嘻嘽嘾嘿噀噁噂噅噆噈噉噊噌噎噗噘噙噚噴圚墜墝增墟墠墡墣墥墦墨墩墫墬墮墯墱墳壿奭嫳嫴嫵嫶嫷嫸嫹嫻嫽嫿嬁嬂嬃嬅嬇嬈嬉嬋嬌嬏審寫寬寮導層履屧嶒嶓嶔嶕嶗嶙嶚嶜嶝嶞嶟嶠嶡嶢幜幝幟幠幡幢幣廙廚廛廜廝廞廟廠廡廢廣弊彆彈彉影徵徶德徹慒慓慔慕慖慘慚慛慝慞慟慡慢慣慥慦慧慪慫慬慮慰慱慲慳慴慵慶慷慹慺慼慾憀憂憃戭戮揅摋摍摎摐摑摒摓摔摘摙摛摜摝摞摟摠摡摥摦摧摨摩摫摬摭摮摯摰摲摳摴摵摶摷摸摹摺摻摽摿撂整敵敶敷數敹敺敻斳暩暪暫暮暯暰暱暲暴暵暷槢槤槥槦槧槨槫槬槭槮槱槲槳槴槶槷槸槻槼槽槾槿樀樁樂樄樅樆樇樈樉樊樍樏樑樓樔樕樖樗樘標樛樝樞樟樠模樣樥樦樧樨歎歐歑殢殣殤殥殦毅毆毿氀氁氂滌滫滬滭滮滯滱滲滴滵滶滷滸滹滻滼滽滾滿漀漁漂漃漅漆漇漈漉漊漍漎漏漒演漕漘漙漚漜漞漟漠漡漢漣漥漦漧漩漪漫漬漭漮漯漰漱漲漳漵漶漷漸漹漺漻漼漾漿潀潁潃熚熛熜熝熞熟熠熡熤熥熧熨熩熪熬熯熰熱熲熳熵牖犘犚犛獌獍獎獐獑獒瑢瑣瑤瑧瑩瑪瑭瑮瑯瑰瑱瑲瑳瑵甇甈畾畿瘙瘚瘛瘜瘝瘞瘟瘠瘡瘢瘣瘤瘥瘦瘧瘨瘩皚皛皜皝皞皺盤瞇瞈瞉瞋瞌瞍瞎瞏瞑確碻碼碾磁磃磄磅磈磉磊磋磌磍磎磏磐磑磔磕禚禛禜禠禡禢稷稹稻稼稽稿穀窮窯窱窲窳窴箬箭箯箱箴箵箷箸箹箾篁範篆篇篊篋篌篎糅糈糊糋糌糎緗緘緙線緛緝緞緟締緡緣緦緧編緩緪緬緮緯緰緱緲緳練緶緷緹緺緻縃罰罳羬羭羯羰翥翦翨翩翪翫翬翭耦聤聧腛腜腞腠腡腢腤腥腦腧腩腫腮腯腰腱腲腳腴腶腷腸腹腺興舖艎艏艐艑艒艓萩萫萬萭萯萰萱萲萳萴萵萶萷萸萹萺萻萼落萿葀葂葃葄葅葆葇葉葋葌葍葎葐葑葒葔葖葙葚葛葝葞葟葠葡董葥葦葧葨葩葫葬葭葮葯葰葳葴葵葶葷葸葹葺葽葾蒂蒆蒍蒎蒏虢虣蝌蝍蝎蝏蝐蝑蝒蝓蝔蝕蝖蝗蝘蝙蝚蝛蝜蝝蝞蝟蝠蝡蝢蝣蝤蝥蝦蝧蝨蝩蝪蝫蝬蝭蝮蝯蝳蝴蝵蝶蝷蝸蝺蝻蟡衚衛衝褅褆複褉褊褋褌褎褐褑褒褓褔褕褖褗褘褙褚覢覣覤觬觭誰課誶誸誹誺誻誼誽誾調諀諂諃諄諅諆談諈諉請諍諏諑諒諓諔諕論諗諘諙谾豌豍豎貏賙賚賜賝賞賟賠賡賢賣賤賥賦賧賨質賬趛趜趟趠趡趣踏踐踑踒踓踔踕踖踗踘踙踚踛踜踝踞踟踠踡踢踣踤踥踦踧踩踮躺輖輗輘輚輛輜輝輞輟輠輣輤輥輦輩輪輬迸逭逮逯週進逴逵逶逸部郩郪郫郬郭郯郰郱郲郳郴郵醀醁醂醃醄醅醆醇醉醊醋銲銳銴銵銶銷銻銼鋀鋁鋂鋃鋄鋅鋆鋇鋈鋉鋊鋋鋌鋍鋎鋏鋐鋑鋒鋓鋕鋗鋘鋙鋝鋞鋟鋠鋡鋤鋦鋧鋨鋩鋪鋮鋯鋰鋱閫閬閭閮閰閱陘陛陜陝陞陟陡院陣除雓霂霄霅霆震霈霉靚靠鞈鞊鞋鞍鞎鞏韏韐頛頜頝頞頠頡頦頧頨頩頫颲颳飺餀餂餃餇餈餉養餌駉駋駌駍駎駏駐駑駒駓駔駕駖駗駘駙駛駜駝駟骳骴骷髫髬髭髮髯髱髲髳鬧魃魄魅魆魤魦魧魨魬魯魰魱魴魵魶魷鳷鳹鳺鳻鳼鳽鳿鴀鴃鴄鴅鴆鴇鴈鴉麃麩麾黎黓鼏鼐齒|16:儐儑儒儓儔儕儗儘儚儜兣冀冪凝凞剿劑劓勳匴叡噞噠噢噣噤噥噦器噩噪噫噬噭噮噯噰噱噲噳噶噷噸噹圛圜墺墼墽墾墿壁壂壅壆壇壈壉奮嬐嬓嬔嬖嬗嬙嬚嬛嬝嬞嬠嬡學寯寰嶧嶨嶩嶪嶬嶭嶮嶯嶰嶱嶲嶴嶵幦幧幨幩廥廦廧廨廩彊彋徻徼憉憊憋憌憍憎憐憑憒憓憔憖憚憛憝憟憡憢憤憧憨憩憪憫憬憭憮憯憰憱憲憳戰撅撇撈撉撊撋撌撏撐撒撓撕撖撗撘撙撚撜撝撞撟撠撢撣撤撥撦撩撫撬播撮撰撱撲撳攳敼敿斢暸暹暺暻暽暾曀曄曆曇曈曉曊曋曌朣樲樴樵樸樹樺樻樼樽樾樿橀橁橄橆橇橈橉橋橍橎橏橐橑橔橕橖橘橙橚橛橝橞機橠橡橢橤橦橧橨橩橪橫橭橯橶歔歕歖歙歷殧殪殫毇毈氃氄氅氆潎潏潐潑潒潓潔潕潗潘潚潛潝潞潟潠潡潢潣潤潦潧潩潪潫潬潭潮潯潰潲潳潶潷潸潺潻潼潽潾潿澀澂澄澅澆澇澈澉澋澌澍澎澐澒澓澔澕澖澗熸熹熼熽熾熿燀燁燂燃燄燅燆燇燈燉燊燋燎燏燐燒燔燕燖燘燙燚燛燜犝犞獗獘獙獚獛獝獞獟獠獡獢瑹瑼瑽瑾瑿璀璁璃璅璆璇璈璉璊璋瓢甋甌甍疀瘭瘯瘰瘱瘲瘳瘴瘵瘸瘺瘼瘽皻盥盦盧瞕瞗瞙瞚瞛瞜瞝瞞瞟瞠瞡瞢瞣磚磛磝磞磟磠磡磢磣磥磧磨磩磪磬磭禤禦穄穆穇穈穊穋穌積穎窵窶窷窸窺竮築篔篕篘篙篚篛篜篝篞篟篠篡篢篣篤篥篦篧篨篩篪篫簑糐糑糒糔糕糖糗縈縉縊縋縌縍縎縏縐縑縒縓縔縕縖縗縚縛縜縝縞縟縠縡縢縣縤縥罃罵罶罷羱羲翮翯翰翱耨耩耪聬腿膀膂膃膆膇膈膉膊膋膌膍膏臲臻舉艕艖艗艘艙蒐蒑蒔蒗蒘蒙蒚蒛蒜蒝蒞蒟蒠蒡蒢蒤蒧蒨蒩蒪蒫蒬蒮蒯蒰蒱蒲蒴蒶蒸蒹蒺蒻蒼蒿蓀蓁蓂蓄蓅蓆蓇蓉蓊蓋蓌蓍蓎蓏蓐蓑蓒蓓蓔蓖蓗蓛蔱虤虥蝹螁螂螃螄螅螇螈螉融螏螐螑螒螓螔螖螗螘螚螛螜螝螞螟螢螣螤衡褞褟褡褢褣褥褦褧褩褪褫褬褭褮褯褰褱褲覦親觰觱諛諜諝諞諟諠諡諢諤諦諧諨諫諭諮諯諰諱諲諳諴諵諶諷諸諺諻諼諾諿謀謁謂豫豬豭貐貑貒貓賭賮賰賱賳賴賵赬赭赮趥趧踫踰踱踳踴踵踶踸踹踼踽踾踿蹀蹁蹂蹄蹅躽輮輯輲輳輴輵輶輷輸輹輻辦辨逼逽逾逿遁遂遄遇遉遊運遍過遏遐遑遒道達違郹郺郻郼都郾郿鄀鄁鄂鄃鄄鄅鄆鄇鄈鄉醍醏醐醑醒醓鉼鋷鋸鋹鋺鋻鋼鋾鋿錀錁錂錄錆錈錉錋錌錍錎錏錐錒錓錔錕錖錘錙錚錛錝錞錟錠錡錢錣錤錥錦錧錩錪錫錭錮錯錳錴錵錶錸錹錼鍆镼閵閶閹閺閻閼閽閾閿闀陪陫陬陭陯陰陱陲陳陴陵陶陷陸雔雕霋霍霎霏霐霑霒霓霖靛靜靦鞔鞗鞘鞙韰韸頤頭頯頰頲頵頷頸頹頻餐餑餒餓餔餕餖餗餘馞駢駣駤駥駧駩駪駬駭駮駰駱骸骹骻骼髶髷髹髺髻鬨鬳魺魻魼魽魾鮀鮂鮅鮆鮇鮈鮐鮑鮒鮓鮕鴐鴒鴔鴕鴗鴘鴙鴛鴝鴞鴟鴠鴢鴣鴥鴦鴨鴩麆麇麈麭麮黔黕黖默黺鼒鼽龍|17:償儠儡儢儤儥儦儩優勴勵噾噿嚀嚁嚂嚃嚄嚅嚆嚇嚌嚍嚎嚏嚐嚓壎壏壑壒壓壔壕壖嬣嬤嬥嬦嬧嬨嬪嬬嬭嬮嬯嬰嬲嬴孺孻寱寲尷屨嶷嶸嶺嶼嶽幪幫幬彌徽徾憴憵憶憸憺憼憾憿懁懂懃懅懆懇懈應懊懋懌懍戲撻撼撽撾撿擁擂擃擄擅擇擉擊擋操擎擏擐擒擔擖擗擘擙據擛斀斁斂斶旚曏曒曖曚橾橿檀檁檃檄檅檇檉檌檍檎檐檑檒檓檔檕檖檗檚檛檜檞檟檠檡檢檣檤檥檦檨歛歜殭殮毚氈氉澞澠澡澢澣澤澥澦澧澨澩澪澫澬澭澮澯澰澱澲澳澴澶澸澹澺澼澽澿激濁濂濃濄濆濇濈濉濊濋濌濍濎濏營燠燡燢燤燥燦燧燨燬燭燮燰燱燲燴牆獥獦獧獨獩獪獫獬璐璒璔璕璗璘璚璜璞璟璠璡璣甏甐甑甒疄療癃癆癇癈癉癌皤盩盪瞥瞧瞨瞪瞫瞬瞭瞰瞱瞲瞳瞴瞵瞶瞷矯矰磯磲磳磴磷磹磺磻磼磽磾磿礁礂礄礅禧禨禪禫穔穖穗穘穚穛穜窾窿竀竁篰篱篲篳篴篷篸篹篻篽篾篿簀簁簂簃簅簆簇簉簊簋簌簍簎簏簐糙糜糝糞糟糠糢糨縩縪縫縭縮縯縰縱縲縳縴縵縶縷縸縹縺縻縼總績縿繀繁繂繃繄繅繆繇繉繌罄罅罹罺罻罼翲翳翴翵耬聯聰聱聲聳膕膗膘膙膚膛膜膝膞膟膠膢膣臨臩艚艛艜艱蓧蓨蓩蓪蓫蓬蓮蓯蓰蓱蓲蓳蓴蓶蓷蓹蓺蓻蓼蓽蓾蓿蔀蔂蔆蔇蔈蔉蔊蔋蔌蔍蔎蔏蔑蔒蔓蔔蔕蔖蔗蔘蔙蔚蔜蔝蔞蔟蔠蔡蔣蔤蔥蔦蔧蔨蔩蔪蔫蔬蔭蔮蔯蔰蔻虧虨螪螫螬螭螮螯螰螲螳螴螵螶螷螸螹螺螻螼螽螾螿蟀蟂蟃蟄蟅蟆蟈蟉蟊蟋蟌蟑褳褵褶褷褸褻褼褽褾襁襂襄覬覭覮覯觲觳謄謅謆謇謈謊謋謍謎謏謐謑謒謓謔謕謖謗謘謙謚講謜謝謞謠謢谿豁豏豯豰豱豲豳貔貕賸賹賺賻購賽赯趨蹇蹈蹉蹊蹋蹌蹍蹎蹐蹓輾輿轀轂轃轄轅遘遙遛遜遝遞遠遢遣鄋鄍鄎鄏鄐鄑鄒鄔鄖鄗醙醚醛醜醝醞醟醠醡醢醣錨鍇鍉鍊鍋鍌鍍鍎鍏鍐鍑鍒鍔鍕鍖鍗鍘鍙鍚鍛鍜鍞鍠鍡鍣鍤鍥鍧鍪鍬鍭鍰鍱鍵鍶鍷鍹鍺鍻鍼鍾鎀鎂鎃閷闃闅闆闇闈闉闊闋闌闍陼陽陾隀隃隄隅隆隇隈隉隊隋隍階隸雖霘霙霜霝霞霟霠鞚鞜鞝鞞鞠鞡韓韔韕韱顁顃顄顅顆顈顉顊颶餅餚餛餞餟餡餤餥餧館餩馘馡馣駴駶駷駸駹駺駻駼駽駾駿騁騂騃骾髼髽髾鬁魈鮚鮛鮞鮠鮡鮢鮤鮥鮦鮨鮪鮫鮭鮮鮯鴭鴮鴯鴰鴱鴳鴶鴷鴸鴻鴽鴾鴿鵀鵁鵂鵃鵅麉麊麋麰黈黏黚黛黜黝點黻黿鼢鼣鼤鼾齋齔龜龠|18:儭儮儰儱儲叢嚕嚗嚘嚙嚚嚜嚝壘壙奰嬸嬼嬽屩屪巀巂幭幮幯彝懖懘懞懟懠懣懤懥懦懧懨戳戴擠擢擣擤擦擨擩擫擬擭擯擰擱斃斷旛曘曙曛曜朦檬檭檮檯檳檴檶檷檸檹檺檻檽櫂櫃櫅櫆櫇歞歟歸殯氋濔濕濘濛濜濝濞濟濠濡濢濣濤濦濧濨濩濫濬濭濮濯濰濱濲濴濷燸燹燻燼燽燾燿爁爂爃爵獮獯獰獲獳璥璦璧璨璩璪璫璭璯環璱璲甓甔甕癐癒癓癖癗癘癙癚癜皦皽盬瞺瞻瞼瞽瞿矂礉礌礎礐礑礒礓礔禬禭禮穟穠穡穢竄竅簙簜簝簞簟簠簡簢簣簥簦簧簨簩簪簫簬簭簰糧繈繐繑繒繓織繕繖繗繘繙繚繜繞繟繠繡繢繣罈罽罾罿羳羵翷翸翹翻翼聵聶職膦膧膨膩膫膬膮膰膱膲膳膴膵舊艞艟蔽蔾蕀蕁蕃蕄蕅蕆蕇蕈蕉蕊蕍蕎蕑蕓蕔蕕蕖蕗蕘蕙蕛蕝蕞蕠蕡蕢蕣蕤蕥蕦蕧蕨蕩蕪蕫蕬蕭蕮蕱蕵虩蟓蟔蟗蟘蟙蟛蟜蟝蟞蟟蟠蟢蟣蟤蟥蟦蟧蟨蟪蟫蟬蟭蟯蟲蟳蟴襆襉襋襌襏襐襑襒襓覆覲觴謣謤謥謦謧謨謪謫謬謮謯謰謱謳謵謶謷謹謺謻謼謽謾豂豐豵貗貘貙賾贀贂贄贅蹔蹕蹖蹗蹙蹚蹛蹜蹝蹞蹟蹠蹡蹢蹣蹤蹥蹦蹧軀轆轇轈轉轋遧遨適遫遭遮遯遰遳鄘鄙鄚鄛鄜鄝鄞鄟鄠鄡鄢鄣鄤醥醧醨醪醫醬釐鎈鎉鎊鎌鎍鎎鎏鎑鎒鎔鎕鎖鎗鎘鎙鎚鎛鎝鎞鎟鎡鎢鎣鎤鎥鎦鎧鎨鎪鎬鎮鎯鎰鎱鎲鎳鎴鎵鎷闐闑闒闓闔闕闖隑隒隓隔隕隗隘隙雗雘雙雚雛雜雝雞雟霢霣霤霥鞢鞣鞤鞥鞦鞨鞪鞫鞬鞭鞮韖韗韘韙韹韺題額顎顏顐顑顒顓颸颺餪餫餬餭餮餯餰餱餲餳餵馥騄騅騆騇騉騊騋騍騎騏騑骿髀髁髜鬃鬄鬅鬆鬈鬩鬵魊魋魌魍魎魏鮵鮶鮸鮹鮽鮿鯀鯁鯃鯄鯆鯇鯈鯉鯊鯓鵊鵋鵌鵏鵑鵒鵓鵔鵖鵗鵘鵙鵚鵛鵜鵝鵟鵠鵡麌麍麎黟黠鼀鼁鼕鼖鼥鼨鼩鼪鼫鼬齌齕|19:儳儴儵劖勷勸厴嚥嚦嚧嚨嚪嚫嚬嚭嚮壚壛壝壞壟壢夒嬾嬿寵巃幰廬徿忁懩懪懫懭懮懰懱懲擲擳擴擷擸擺擻擼擽擾擿攀攁攃攄攆斄斔旝旞曝曞曠櫋櫌櫍櫏櫐櫑櫓櫙櫚櫛櫜櫝櫞櫟櫠櫡櫥櫫歠殰毉氌濺濻濼濾濿瀀瀁瀄瀅瀆瀇瀉瀊瀋瀌瀍瀎瀏瀑瀔爅爆爇爊爌爍牘犡犢犣犤犥犦獵獶獷獸璵璶璷璸璺璻璽璾璿瓀瓁瓂瓣甖疆疇癟癠癡矄矇矉矊矱礗礙礛礜礝礞礡禰禱穧穨穩穫簳簷簸簹簻簼簽簾簿籀糪糬繨繩繪繫繭繯繰繲繳繴繵繶繷繸繹繺罊罋羶羷羸羹翽翾聸膷膹膺膻膼膽膾膿臀臂臃臄臅臆臇臉臊臌舋艡艣艤蕶蕷蕸蕹蕺蕻蕼蕾薀薁薂薃薄薅薆薇薈薉薊薋薌薍薎薏薐薑薔薕薖薘薙薚薛薜薝薞薟薠薡薢薣薤薦薧薨薪蟒蟶蟷蟹蟺蟻蟼蟾蟿蠀蠁蠂蠃蠅蠆蠈蠉蠊蠋蠌蠍襖襗襘襙襚襛襜襝襞襟襠襡襢覈覶覷觶譀譁譂譅譆譇譈證譊譋譎譏譐譑譒譓譔譕譖譗識譙譚譜豃豷貚贆贇贈贉贊趪趫趬趭蹩蹪蹬蹭蹯蹲蹳蹴蹶蹸蹺蹻蹼軂轍轎轏轐轑轒轓轔辭辴遲遴遵遶遷選遹遺遻遼邆鄦鄧鄨鄩鄪鄫鄬鄭鄮鄯鄰鄱鄲醭醮醯醰醱鎩鏀鏂鏃鏄鏇鏈鏊鏌鏍鏎鏏鏐鏑鏒鏔鏕鏖鏗鏘鏙鏚鏜鏝鏞鏟鏡鏢鏣鏤鏦鏧鏨鏬鏮鏹闚闛關際障隞隡雡離難霦霧霨霩霪霫霬靡鞳鞶鞷韜韝韞韟韻顗願顙顛顜顝類颻颼颽颾颿飀餺餼餽餾餿饁馦馧騔騕騖騙騚騛騜騝騞騠騢騣騤騥騧髂鬊鬋鬌鬍鬎鬷鯔鯕鯖鯗鯙鯚鯛鯜鯞鯠鯡鯢鯤鯥鯦鯧鯨鯪鯫鯬鯰鵧鵨鵩鵪鵫鵬鵯鵰鵱鵲鵳鵴鵵鵷鵸鵹鵻鵽鵿鶀鶁鶂鶄鶅鶆鶇鶈鶉鶊鶋鶌麑麒麓麔麗麴黀黼鼭齀齁齍齖齗齘龐|20:匷嚲嚳嚴嚵嚶嚷壣壤孀孃孅孽寶巆巇巉巋廮廯忀懵懶懷懸攇攉攌攍攎攏攐旟曣曤曦曨朧櫧櫨櫪櫬櫮櫯櫰櫱櫳瀕瀖瀗瀘瀙瀚瀛瀜瀝瀟瀠瀡瀢瀣瀤瀦瀧瀨瀩瀪瀫爐爓爔犧犨獺獻瓃瓅瓊瓋癢癤癥皪皫皾盭矌矍矎矏矲礣礤礥礦礧礨礩礪礫礬禲穬穭穮竇競竷籃籅籇籈籉籊籌籍糮糯糰繻繼繽繾纀纁纂罌羃羅羆羺翿耀聹臍臏臐臑臒艦艨艩薩薯薰薱薳薴薵薶薷薸薹薺薽薾薿藀藂藃藄藅藆藇藈藉藋藍藎藏藐藑藒蘤蠐蠑蠓蠔蠕蠖蠗蠙襣襤襦覹覺觷觸譝譟譠譣譥警譧譨譪譫譬譭譯議豶贍贏趮躁躂躄躅躆躇躈躉轕轖轗轘轙轚辮遽遾避邀邁邂邃還邅鄳鄴鄵鄶醲醳醴醵醷釋鏵鏶鏷鏸鏺鏻鏼鏽鏾鏿鐀鐃鐆鐇鐉鐊鐋鐌鐍鐎鐏鐐鐑鐒鐓鐔鐕鐖鐘鐙鐠鐨镽闞闟闠闡隢隤霮霯霰露鞹鞻韽韾響顟顠顢顣飁飂飄饃饅饇饈饉馨騩騪騫騬騭騮騰騱騲騴騵騶騷騸髆髇髊鬐鬑鬒鯷鯸鯽鰅鰆鰇鰈鰉鰋鰍鰎鰒鰓鰔鰗鶐鶒鶔鶖鶗鶘鶙鶚鶛鶜鶝鶞鶟鶠鶡鶢鶣鶤鶦鶧鶨鶩鶪鹹麙麚麛麵黤黥黦黧黨鼮鼯鼰齙齛齜齝齞齟齠齡齣龑|21:亹儷儸儹儺劗劘嚼嚽嚾囀囁囂囃囍孇孈屬巍巏廱懹懺懻攓攔攕攖攗攘攙斕曩櫸櫹櫺櫻櫼欀欂欃欄殲瀯瀰瀱瀲瀳瀴瀵瀷瀸瀹瀺瀻瀼瀾瀿灀灁爙爚爛獼獽瓏甗癩癪矐矓礭礯礱籐籓籔糲纆纇纈纊纋續纍纏罍羻羼耰臕臗臘藕藗藘藙藚藜藝藞藟藡藢藣藤藥藦藨藩藪藫藬藭藯藰藱藲蠛蠜蠝蠟蠠蠡蠢蠣蠤衊襩襪襫襬襭襮覽觺譴護譸譹譺譻譽贐贓贔趯躊躋躌躍躎轛轝轞轟辯邇邈鄸鄹醹醺鐩鐪鐫鐬鐮鐰鐱鐲鐳鐵鐶鐷鐸鐹鐺鐻鐼鐽鐿鑀闢闣闤闥隧隨隩險霵霸霹霺鞿韡顤顥顧飆飉饋饌饎饐饑饒饓騹騺騽騾騿驀驁驂驃驄驅驆髍髏鬕鬖鬗鬘鬺魑魒魔鰜鰝鰡鰣鰤鰥鰨鰩鰫鰬鰭鶬鶭鶯鶱鶲鶳鶴鶵鶶鶷鶸鶹鶺鶻鶼鶾鶿鷁鷂鷃鷅鷇鷈鷊鷌鷍鷎鷏鹺麜麝黫黭黮黯鼘鼙鼚鼛鼱齎齤齥齦齧龒|22:儻儼囅囆囈囉囊囋夔奱孋孌孿巑巒巔巕廲彎懼懽懾懿攛攜攝欈欉權欋歡氍灂灃灄灅灆灈灉灊灌爝爞爟犩獾獿瓔瓕瓖瓤疊癬癭癮礵禳禴穰竊籗籙籚籛籜籟籠糱糴纑罏聽聾臙臚臛艫藶藷藸藹藺藻藽藾藿蘀蘁蘄蘅蘆蘇蘉蘊蘋蘌蘑蘢蠥蠦蠨蠩蠪蠫蠬襯襱襲覾覿觻觼譾譿讀讂讄讅贕贖贗躐躑躒躓躔躕躖轠轡轢邊邋鄺鄻鄾鑄鑅鑆鑇鑈鑉鑊鑋鑌鑏鑐鑑鑒隬隮隰隱霽霾霿韁韃韣顩顪顫飋饔饕饖饗饘饙驈驉驊驌驍驎驏驐驒驓驔驕髐鬙鬚鬫鬻魕魖鰱鰲鰳鰴鰶鰷鰹鰻鰼鰽鰾鰿鱀鱁鱄鱆鱈鷋鷐鷑鷒鷓鷕鷖鷗鷘鷙鷚鷛鷜鷝鷞鷟麶黐黰鼲鼳鼴鼵齂齪齫齬龔龕龢|23:儽劙囌壧壨孍巖巘彏戀戁攠攡攢攣攤攦斖曫曬欏欐欑欒毊灑灒灕灖灗灘爢玀瓗瓘瓙癰皭矔穱籣籤籥籦籧纓纔纕纖羇臝艬蘗蘘蘙蘚蘛蘜蘞蘟蘠蘡蘣蘥蘦蘧蘩蘪蘬蘭蘮蠮蠯蠰蠱蠲蠳襳襴觾讆讈變讋讌讎豅贙躗躘躚轣轤邍鄿酀醼鑕鑗鑝鑞鑠鑢鑣鑤隳靨韄韅頀顯饛饜驖驗驙驚驛髑髒髓體鬞鬟鬠鱉鱊鱋鱌鱍鱎鱐鱒鱔鱕鱖鱗鱘鱙鷡鷢鷣鷤鷥鷦鷨鷩鷫鷬鷭鷮鷯鷰鷲鷳鷴鷵鷶鷷鷸鷺鷻麟黲黳黴鼆鼇鼜鼶鼷鼸齃齏齮齯齰齱|24:囑囓壩奲孎屭戃戄攥攩攪攫曭曮欓灚灛爣犪玁玂玃瓚瓥癱癲矕矗礸禶禷籪纗罐臞臟艭艷蘲蘳蘴蘵蘶蠵蠶蠷蠸蠹衋衢襶讒讓讔讕讖贛躝躞躟躠酁酃醽醾釀鑨鑩鑪鑫隴雥靂靃靄靆靇靈韆韇韥顰驞驟髕鬢魘魙鱞鱟鱠鱢鱣鱦鱧鷹鷽鷾鷿鸀鸁鸂鸃鸄鸅鸆鸇鸉鹼鹽麠黂鼞齆齲齴齵齶齷|25:囔廳攬攭斸欖欗欘欙欚灝灞灟灠灡爦瓛矘矙礹籩籫籬籮糶纘纙纚纛羈羉臠臡臢蘱蘸蘹蘺蘻蘼蘾蘿虀蠻襹襺襻襼觀觿讘讙躡躣躤躥酄酅酆釁釂鑭鑮鑯鑰鑱鑲鑳靉顱顲髖鬣鱨鱭鱮鸋鸍鸏鸐鸑鸒麡黌黵鼉齇齸齹齺齻|26:圞攮灢灣矚籯虃虪蠼讚趲躦邏邐酇酈釃鑴鑵鑶鑷鑸韉饞饟驠驢鱱鱳鱴鱵鸓鸔黶鼊龤|27:灤灥灦糷纜虆虇虈蠽蠾讜讞貜躩躪軉釅鑼鑽鑾鑿靋顳顴飌馫驤驥驦驧鬤鬮鱷鱸鸕鸗黷齈|28:戇欞灨爧蠿豔钀钁钂饡驨驩鸙鸚|29:爨讟躨钃驪鬱鱹鸛麷|30:癵驫鱺鸝鸞|31:虋虌|32:灩籲|33:灪爩麤|35:齾|36:齉|48:龘";</script>
-<script>// 觀象閣 內容資料：81 數理詳解、紫微星曜、八字五行建議、十神、取名用字庫、各功能說明
+<script>// 靈犀 內容資料：81 數理詳解、紫微星曜、八字五行建議、十神、取名用字庫、各功能說明
 window.GX_CONTENT={
 // 81 數理詳解（索引 1..81）
 N81D:[null,
@@ -1867,7 +1898,7 @@ function lensOf(c,cat){
 }
 function shareText(R){
   const d=TD.spreads.find(s=>s.k===R.s);
-  return `【觀象閣・塔羅】${R.q||'塔羅占卜'}\n牌陣：${d.n}\n`+R.c.map((x,k)=>{const c=tcard(x.i);return `${d.pos[k]}：${c.zh}${x.rev?'（逆位）':'（正位）'}— ${x.rev?c.rev:c.up}`}).join('\n');
+  return `【靈犀・塔羅】${R.q||'塔羅占卜'}\n牌陣：${d.n}\n`+R.c.map((x,k)=>{const c=tcard(x.i);return `${d.pos[k]}：${c.zh}${x.rev?'（逆位）':'（正位）'}— ${x.rev?c.rev:c.up}`}).join('\n');
 }
 function tarotReadingHtml(R){
   const d=TD.spreads.find(s=>s.k===R.s), cards=R.c.map(x=>({...tcard(x.i),R:x.rev}));
@@ -1907,7 +1938,7 @@ function tarotReadingHtml(R){
     <p class="small muted">塔羅反映的是此刻的能量與可能性，結果會隨你的選擇而改變。同一件事建議隔一段時間、情況有變化後再問。</p></div>`;
 }
 async function shareOut(text){
-  try{if(navigator.share){await navigator.share({title:'觀象閣',text});return}}catch(e){if(e&&e.name==='AbortError')return}
+  try{if(navigator.share){await navigator.share({title:'靈犀',text});return}}catch(e){if(e&&e.name==='AbortError')return}
   try{await navigator.clipboard.writeText(text);hud('已複製，可貼到 LINE')}catch(e){toast('無法自動複製，請長按選取文字','warn')}
 }
 function tarotFinish(){
@@ -2144,7 +2175,7 @@ const QGUIDE={
 const QTIME=['近期即可見到轉機，大約在一個月內。','需要一段時間醞釀，約一至三個月逐漸明朗。','宜等過了這個時節（季節更替後）再行動。'];
 const QDO=[['積極行動','把握時機','行善回饋'],['守本分','多做準備','耐心等待'],['暫緩決定','守成保守','多行善事']];
 const QDONT=[['得意忘形','鬆懈怠慢'],['急躁冒進','聽信傳言'],['勉強硬來','借貸擔保']];
-function qianShareText(n,cat,q){const Q=QD[n-1];return `【觀象閣・求籤】第 ${n} 籤（${Q[0]}・${Q[1]}籤）\n${Q[2]}\n白話：${Q[3]}\n所問：${cat}${q?'——'+q:''}`}
+function qianShareText(n,cat,q){const Q=QD[n-1];return `【靈犀・求籤】第 ${n} 籤（${Q[0]}・${Q[1]}籤）\n${Q[2]}\n白話：${Q[3]}\n所問：${cat}${q?'——'+q:''}`}
 function qianResult(n,cat,q){
   const Q=QD[n-1], lines=Q[2].replace(/。$/,'').split('，');
   const lv=Q[1].startsWith('上')?0:Q[1]==='中'?1:2, lvCls=['good','mid','bad'][lv];
@@ -2345,8 +2376,8 @@ document.addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedT
 let spReady=false;
 function hideSplash(force){
   const sp=$('#splash');if(!sp||sp.classList.contains('out'))return;
-  const left=force?0:Math.max(0,(sp.classList.contains('still')?700:2700)-performance.now());
-  setTimeout(()=>{sp.classList.add('out');document.documentElement.classList.remove('splashing');setTimeout(()=>sp.remove(),700)},left);
+  const left=force?0:Math.max(0,(sp.classList.contains('still')?900:7000)-performance.now());
+  setTimeout(()=>{sp.classList.add('out');document.documentElement.classList.remove('splashing');setTimeout(()=>sp.remove(),1300)},left);
 }
 document.addEventListener('pointerdown',e=>{if(e.target.closest('#splash')&&spReady)hideSplash(true)},true);
 
