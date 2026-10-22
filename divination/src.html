@@ -839,14 +839,16 @@ function sym(k,col,cx,cy,sz){
   }
   return C(0,0,12);
 }
-function cardFace(i){
+/* 牌面：1909 年萊德偉特（Pamela Colman Smith 繪，公有領域）；圖檔載入失敗時退回自繪牌面 */
+function cardFace(i){return `<img class="tface" src="img/tarot/${i}.jpg" alt="" width="260" height="457" decoding="async" onerror="this.outerHTML=cardSvg(${i})">`}
+function cardSvg(i){
   const c=tcard(i), [b1,b2,g]=SUIT_PAL[c.suit], id='g'+i, rg='r'+i;
   let art='';
   if(c.major||c.r===0||c.r>=10)art=sym(c.sym,g,60,98,c.major?50:c.r===0?52:44);
   else{const n=c.r+1, cols=n<=3?1:2, rows=Math.ceil(n/cols), sz=n<=3?26:n<=6?22:18, gap=rows>4?21:rows>3?24:28;for(let k=0;k<n;k++){const col=k%cols,row=Math.floor(k/cols);const x=cols===1?60:(n%2&&k===n-1?60:43+col*34), y=98+(row-(rows-1)/2)*gap;art+=sym(c.sym,g,x,y,sz)}}
   const court=!c.major&&c.r>=10?`<text x="60" y="146" text-anchor="middle" font-size="8.5" fill="${g}" letter-spacing="2.5" opacity=".85">${['PAGE','KNIGHT','QUEEN','KING'][c.r-10]}</text>`:'';
   const star=(x,y)=>`<path d="M${x} ${y-3}L${x+.8} ${y-.8}L${x+3} ${y}L${x+.8} ${y+.8}L${x} ${y+3}L${x-.8} ${y+.8}L${x-3} ${y}L${x-.8} ${y-.8}Z" fill="${g}" opacity=".8"/>`;
-  return `<svg viewBox="0 0 120 200" class="tface" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="${b1}"/><stop offset="1" stop-color="${b2}"/></linearGradient><radialGradient id="${rg}" cx="50%" cy="49%" r="40%"><stop offset="0" stop-color="${g}" stop-opacity=".28"/><stop offset="1" stop-color="${g}" stop-opacity="0"/></radialGradient></defs>
+  return `<svg viewBox="0 0 120 200" class="tface" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="${b1}"/><stop offset="1" stop-color="${b2}"/></linearGradient><radialGradient id="${rg}" cx="50%" cy="49%" r="40%"><stop offset="0" stop-color="${g}" stop-opacity=".28"/><stop offset="1" stop-color="${g}" stop-opacity="0"/></radialGradient></defs>
     <rect width="120" height="200" rx="10" fill="url(#${id})"/><ellipse cx="60" cy="98" rx="50" ry="56" fill="url(#${rg})"/>
     <rect x="5" y="5" width="110" height="190" rx="7" fill="none" stroke="${g}" stroke-opacity=".7" stroke-width=".9"/><rect x="8.5" y="8.5" width="103" height="183" rx="5" fill="none" stroke="${g}" stroke-opacity=".3" stroke-width=".5"/>
     ${star(14,14)}${star(106,14)}${star(14,186)}${star(106,186)}
@@ -856,14 +858,14 @@ function cardFace(i){
     <text x="60" y="171" text-anchor="middle" font-size="13" font-weight="600" fill="${g}" font-family="'Noto Serif TC','Songti TC',serif">${c.zh}</text>
     <text x="60" y="183" text-anchor="middle" font-size="6.2" fill="${g}" opacity=".75" letter-spacing=".9" font-family="Georgia,serif">${c.en.toUpperCase()}</text></svg>`;
 }
-const CARD_BACK=`<svg viewBox="0 0 120 200" class="tback" aria-hidden="true"><defs><radialGradient id="cbg" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#22305A"/><stop offset="1" stop-color="#0E1428"/></radialGradient><pattern id="cbp" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 6H12M6 0V12" stroke="#D9B46A" stroke-opacity=".09" stroke-width=".6"/></pattern></defs><rect width="120" height="200" rx="10" fill="url(#cbg)"/><rect width="120" height="200" rx="10" fill="url(#cbp)"/><rect x="5" y="5" width="110" height="190" rx="7" fill="none" stroke="#D9B46A" stroke-opacity=".7" stroke-width=".9"/><rect x="9" y="9" width="102" height="182" rx="5" fill="none" stroke="#D9B46A" stroke-opacity=".3" stroke-width=".5"/>${Array.from({length:24},(_,i)=>{const a=i/24*Math.PI*2;return `<line x1="${(60+Math.cos(a)*12).toFixed(1)}" y1="${(100+Math.sin(a)*12).toFixed(1)}" x2="${(60+Math.cos(a)*(i%2?28:40)).toFixed(1)}" y2="${(100+Math.sin(a)*(i%2?28:40)).toFixed(1)}" stroke="#D9B46A" stroke-opacity="${i%2?.45:.8}" stroke-width=".7"/>`}).join('')}<circle cx="60" cy="100" r="44" fill="none" stroke="#D9B46A" stroke-opacity=".4" stroke-width=".6"/><circle cx="60" cy="100" r="48" fill="none" stroke="#D9B46A" stroke-opacity=".2" stroke-width=".5" stroke-dasharray="1.5 2.5"/><path d="M60 88L63 97L72 100L63 103L60 112L57 103L48 100L57 97Z" fill="#D9B46A" opacity=".9"/><path d="M60 22L62 27L67 29L62 31L60 36L58 31L53 29L58 27Z M60 164L62 169L67 171L62 173L60 178L58 173L53 171L58 169Z" fill="#D9B46A" opacity=".6"/></svg>`;
+const CARD_BACK=`<svg viewBox="0 0 120 200" class="tback" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><radialGradient id="cbg" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#22305A"/><stop offset="1" stop-color="#0E1428"/></radialGradient><pattern id="cbp" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 6H12M6 0V12" stroke="#D9B46A" stroke-opacity=".09" stroke-width=".6"/></pattern></defs><rect width="120" height="200" rx="10" fill="url(#cbg)"/><rect width="120" height="200" rx="10" fill="url(#cbp)"/><rect x="5" y="5" width="110" height="190" rx="7" fill="none" stroke="#D9B46A" stroke-opacity=".7" stroke-width=".9"/><rect x="9" y="9" width="102" height="182" rx="5" fill="none" stroke="#D9B46A" stroke-opacity=".3" stroke-width=".5"/>${Array.from({length:24},(_,i)=>{const a=i/24*Math.PI*2;return `<line x1="${(60+Math.cos(a)*12).toFixed(1)}" y1="${(100+Math.sin(a)*12).toFixed(1)}" x2="${(60+Math.cos(a)*(i%2?28:40)).toFixed(1)}" y2="${(100+Math.sin(a)*(i%2?28:40)).toFixed(1)}" stroke="#D9B46A" stroke-opacity="${i%2?.45:.8}" stroke-width=".7"/>`}).join('')}<circle cx="60" cy="100" r="44" fill="none" stroke="#D9B46A" stroke-opacity=".4" stroke-width=".6"/><circle cx="60" cy="100" r="48" fill="none" stroke="#D9B46A" stroke-opacity=".2" stroke-width=".5" stroke-dasharray="1.5 2.5"/><path d="M60 88L63 97L72 100L63 103L60 112L57 103L48 100L57 97Z" fill="#D9B46A" opacity=".9"/><path d="M60 22L62 27L67 29L62 31L60 36L58 31L53 29L58 27Z M60 164L62 169L67 171L62 173L60 178L58 173L53 171L58 169Z" fill="#D9B46A" opacity=".6"/></svg>`;
 let tSpread='three', tQ='', tCat='綜合', tDeck=null, tPicked=[], tFlipped=false, tReading=null;
 function shuffleDeck(){const a=Array.from({length:78},(_,i)=>i);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.map(i=>({i,rev:Math.random()<.5}))}
 function spreadDef(){return TD.spreads.find(s=>s.k===tSpread)}
 function slotHtml(k,d,pos){
   const p=tPicked[k];const cls=['slot',tSpread==='celtic'?'c'+(k+1):''];
   if(!p)return `<div class="${cls.join(' ')}"><div class="tcard empty"><span>${k+1}</span></div><span class="sl">${pos}</span></div>`;
-  return `<div class="${cls.join(' ')}"><button type="button" class="tcard${tFlipped?' up':''}${p.rev?' rev':''}" data-tslot="${k}" aria-label="${pos}：${tFlipped?tcard(p.i).zh+(p.rev?'逆位':'正位'):'未翻開'}" style="--d:${k*90}ms"><span class="in"><span class="bk">${CARD_BACK}</span><span class="fr">${cardFace(p.i)}</span></span></button><span class="sl">${pos}</span></div>`;
+  return `<div class="${cls.join(' ')}"><button type="button" class="tcard${tFlipped?' up':''}${p.rev?' rev':''}" data-tslot="${k}" aria-label="${pos}：${tFlipped?tcard(p.i).zh+(p.rev?'逆位':'正位'):'未翻開'}" style="--d:${k*90}ms"><span class="in"><span class="bk">${CARD_BACK}</span><span class="fr">${cardFace(p.i)}</span></span></button><span class="sl">${pos}${tFlipped?`<b class="cn">${tcard(p.i).zh}${p.rev?'・逆':''}</b>`:''}</span></div>`;
 }
 let tLib=null, tLibSel=null;
 function libHtml(){
@@ -1099,7 +1101,11 @@ const SHRINE_ART=`<div class="shrine">
 window.__gxShrine=SHRINE_ART;
 const SHRINE=`<div class="shrine photo"><img src="img/guangong.jpg" alt="關聖帝君神龕：恩主公居中端坐，紅臉美髯，左右陪祀，兩側楹聯「在漢室江山忠義高名傳萬古，中天日月烝嘗祀典享千秋」" width="900" height="900" decoding="async" onerror="this.parentNode.outerHTML=window.__gxShrine"><span class="smoke s1"></span><span class="smoke s2"></span><span class="smoke s3"></span><span class="glow"></span></div>`;
 // 筊杯：flat=true 為平面朝上
-function bweiSVG(flat,flip){return `<svg viewBox="0 0 80 44" class="bwei${flip?' fl':''}" aria-hidden="true"><path d="M4 40 C4 14 26 4 46 6 C64 8 76 20 76 40 Z" fill="${flat?'#E7B08A':'#C0392B'}" stroke="#7A1E16" stroke-width="2"/>${flat?'<path d="M14 36 C18 22 34 14 50 15" stroke="#B9774F" stroke-width="2" fill="none"/>':'<path d="M18 30 C24 18 40 12 54 14" stroke="#E9806F" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>'}</svg>`}
+function bweiSVG(flat,flip){
+  const g=flat
+    ?`<path d="M4 22 C6 40 22 47 40 47 C58 47 74 40 76 22 Z" fill="#A92E22" stroke="#6E1A12" stroke-width="2" stroke-linejoin="round"/><path d="M4 22 C14 13 66 13 76 22 C66 30 14 30 4 22 Z" fill="#EBB892" stroke="#6E1A12" stroke-width="2" stroke-linejoin="round"/><path d="M16 22 C28 18 52 18 64 22" stroke="#C88B62" stroke-width="1.6" fill="none" stroke-linecap="round"/>`
+    :`<path d="M4 40 C4 16 22 7 40 7 C58 7 76 16 76 40 C62 45 18 45 4 40 Z" fill="#C0392B" stroke="#6E1A12" stroke-width="2" stroke-linejoin="round"/><path d="M16 30 C20 19 30 13 44 13" stroke="#F09A88" stroke-width="3.2" fill="none" stroke-linecap="round" opacity=".8"/>`;
+  return `<span class="bw"><svg viewBox="0 0 80 50" class="bwei${flip?' fl':''}" aria-hidden="true">${g}</svg><i>${flat?'平':'凸'}</i></span>`}
 const JIAO={sheng:['聖筊','一平一凸','神明應允，表示同意或可以進行。'],xiao:['笑筊','兩面皆平','神明笑而不答：問題可能不夠清楚，或答案你心裡早已明白。請把問題說得更具體再問。'],yin:['陰筊','兩面皆凸','神明不同意，或時機未到。可以稍後再問，或換個方式請示。']};
 function tossJiao(){const a=Math.random()<.5,b=Math.random()<.5;return {a,b,r:a!==b?'sheng':a?'xiao':'yin'}}
 let qMode='qian', qStep=0, qCat='家運', qQ='', qNo=null, qLast=null, qTries=0, qStrict=false, qStreak=0, jTally={sheng:0,xiao:0,yin:0}, jQ='';
