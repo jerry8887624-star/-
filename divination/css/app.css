@@ -373,7 +373,7 @@ svg text{font-family:var(--f-ui)}
 .sl{font-size:12px;color:var(--muted);text-align:center;line-height:1.3}
 .spreadbox.celtic{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,auto);gap:6px;justify-items:center}
 .spreadbox.celtic .slot{width:62px}
-.spreadbox.celtic .c1{grid-area:2/2}.spreadbox.celtic .c2{grid-area:2/2;transform:rotate(90deg) translateY(-6px);z-index:2}
+.spreadbox.celtic .c1{grid-area:2/2}.spreadbox.celtic .c2{grid-area:2/2;align-self:start;transform:translateY(24%) rotate(90deg) scale(.6);z-index:2}
 .spreadbox.celtic .c2 .sl{display:none}
 .spreadbox.celtic .c3{grid-area:3/2}.spreadbox.celtic .c4{grid-area:2/1}.spreadbox.celtic .c5{grid-area:1/2}.spreadbox.celtic .c6{grid-area:2/3}
 .spreadbox.celtic .c7{grid-area:4/4}.spreadbox.celtic .c8{grid-area:3/4}.spreadbox.celtic .c9{grid-area:2/4}.spreadbox.celtic .c10{grid-area:1/4}
@@ -516,7 +516,7 @@ body.modal-open{overflow:hidden}
 .sheet-b .card{box-shadow:none}
 /* 確認對話框 */
 .layer.k-alert{align-items:center}
-.layer.k-alert .panel{width:min(290px,84vw);border-radius:16px;overflow:hidden;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);box-shadow:0 20px 60px rgba(0,0,0,.25);transform:scale(1.12);opacity:0;transition:transform .32s var(--spring),opacity .2s}
+.layer.k-alert .panel{width:min(290px,84%);border-radius:16px;overflow:hidden;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);box-shadow:0 20px 60px rgba(0,0,0,.25);transform:scale(1.12);opacity:0;transition:transform .32s var(--spring),opacity .2s}
 .layer.k-alert.show .panel{transform:none;opacity:1}
 .layer.k-alert.hide .panel{transform:scale(.96);opacity:0}
 .al-body{padding:20px 18px 16px;text-align:center;display:flex;flex-direction:column;gap:6px}
@@ -565,7 +565,7 @@ body.modal-open{overflow:hidden}
 @keyframes hudout{to{opacity:0;transform:translateY(-50%) scale(.92)}}
 @keyframes draw{to{stroke-dashoffset:0}}
 /* 頂端通知 */
-.toast{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));bottom:auto;transform:translate(-50%,-140%);display:flex;align-items:center;gap:8px;max-width:min(92vw,420px);background:color-mix(in srgb,var(--card) 86%,transparent);color:var(--ink);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);box-shadow:0 8px 30px rgba(0,0,0,.18),0 0 0 .5px var(--line);padding:10px 16px 10px 12px;border-radius:999px;font-size:14.5px;font-weight:500;z-index:70;pointer-events:none;animation:none;transition:transform .5s var(--spring)}
+.toast{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));bottom:auto;transform:translate(-50%,-140%);display:flex;align-items:center;gap:8px;max-width:min(92%,420px);background:color-mix(in srgb,var(--card) 86%,transparent);color:var(--ink);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);box-shadow:0 8px 30px rgba(0,0,0,.18),0 0 0 .5px var(--line);padding:10px 16px 10px 12px;border-radius:999px;font-size:14.5px;font-weight:500;z-index:70;pointer-events:none;animation:none;transition:transform .5s var(--spring)}
 .toast.in{transform:translate(-50%,0)}
 .toast.out{transform:translate(-50%,-140%);transition:transform .28s ease}
 .toast svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--tint);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
@@ -631,3 +631,26 @@ html.splashing,html.splashing body{overflow:hidden}
 @keyframes sp-flash{0%{opacity:0}45%{opacity:1}100%{opacity:0}}
 #splash.still *{animation:none!important;opacity:1!important;transform:none!important;filter:none!important;stroke-dashoffset:0!important;fill-opacity:1!important}
 #splash.still .sp-parts,#splash.still .sp-flash,#splash.still .sp-shine,#splash.still .sp-tshine{display:none}
+
+/* ── 大字級 / 窄螢幕：zoom 不會觸發 media query，改由 JS 依實際可用寬度加上 html.vw400 / html.narrow ── */
+html.vw400 .lucky{grid-template-columns:repeat(2,1fr)}html.vw400 .dial-wrap{width:94px;height:94px}html.vw400 .dial-num b{font-size:28px}
+html.vw400 .grid3{grid-template-columns:1fr 1fr}html.vw400 .grid3>:nth-child(3):last-child{grid-column:1 / -1}html.vw400 .largetitle h1{font-size:32px}
+html.narrow .banner{flex-direction:column;align-items:stretch;text-align:left}
+html.narrow .daily-tarot{grid-template-columns:1fr;justify-items:start}
+html.narrow .daily-tarot .tcard{width:72px}
+html.narrow .daily-tarot>.stack{width:100%}
+html.narrow .tread{grid-template-columns:1fr;gap:10px}
+html.narrow .tread .mini{width:64px}
+html.narrow .nmhead{flex-wrap:wrap!important;gap:10px!important}
+html.narrow .nmhead .ring{width:76px;height:76px}
+html.narrow .ge{grid-template-columns:auto 1fr auto;row-gap:6px}
+html.narrow .ge .n{text-align:left}
+html.narrow .ge .d{grid-column:1 / -1;grid-row:2}
+html.narrow .lucky{grid-template-columns:1fr 1fr}
+html.narrow .grid2{grid-template-columns:1fr}
+html.narrow .grid3{grid-template-columns:1fr}
+html.narrow .largetitle h1{font-size:30px}
+html.narrow .sheet-card{grid-template-columns:1fr;gap:12px}
+html.narrow .sheet-card .mini{width:88px}
+html.narrow .tbl th{white-space:normal;min-width:3em}
+.toast{width:max-content}
