@@ -72,19 +72,29 @@ document.documentElement.classList.add('splashing');})();
 <div class="tabbar"><nav aria-label="功能" id="tabs"></nav></div>
 
 <div class="sheet-back" id="sheetBack" hidden>
-  <form class="sheet" id="pForm" autocomplete="off">
+  <form class="sheet" id="pForm" autocomplete="off" novalidate>
     <div class="grab"></div>
     <div class="row between"><button type="button" class="btn ghost sm" id="pCancel">取消</button><b id="pTitle">命主資料</b><button type="submit" class="btn ghost sm">完成</button></div>
+    <div id="pGuide" class="pguide" hidden><b>四個步驟，排出你的專屬命盤</b><span>照順序填完，按最下面的「排盤」就好。資料只存在這支手機，不會上傳。</span></div>
     <div id="people" class="stack" style="gap:8px"></div>
-    <p class="small muted">可以存好幾個人（自己、家人、另一半），隨時切換。資料只存在這台裝置的瀏覽器裡，不會上傳。</p>
-    <div class="card stack">
-      <div class="grid2">
-        <label class="f" for="pSur">姓<input id="pSur" maxlength="2" required placeholder="林"></label>
-        <label class="f" for="pGiven">名<input id="pGiven" maxlength="3" required placeholder="書言"></label>
-      </div>
-      <div class="f"><span>性別</span><div class="seg" id="pGender" role="group" aria-label="性別"><button type="button" data-g="男">男（乾造）</button><button type="button" data-g="女">女（坤造）</button></div></div>
-      <label class="f" for="pDate">國曆生日<input id="pDate" type="date" min="1900-01-01" max="2099-12-31" required></label>
-      <label class="f" for="pHour">出生時辰<select id="pHour"></select></label>
+    <p class="small muted" id="pNote">可以存好幾個人（自己、家人、另一半），隨時切換。資料只存在這台裝置的瀏覽器裡，不會上傳。</p>
+    <div class="card stack psteps">
+      <div class="pstep" data-step="name"><div class="pnum"><i>1</i>姓名<em>用於姓名學筆畫分析，請填身分證上的名字</em></div>
+        <div class="grid2 keep">
+          <label class="f" for="pSur">姓<input id="pSur" maxlength="2" placeholder="林" autocomplete="family-name"></label>
+          <label class="f" for="pGiven">名<input id="pGiven" maxlength="3" placeholder="書言" autocomplete="given-name"></label>
+        </div><p class="perr" id="eName" hidden>請填寫姓和名</p></div>
+      <div class="pstep" data-step="gender"><div class="pnum"><i>2</i>性別<em>紫微大限的順逆會用到</em></div>
+        <div class="seg" id="pGender" role="group" aria-label="性別"><button type="button" data-g="男">男</button><button type="button" data-g="女">女</button></div></div>
+      <div class="pstep" data-step="date"><div class="pnum"><i>3</i>出生日期<em>只記得農曆生日？切到「農曆」直接選</em></div>
+        <div class="seg" id="pCal" role="group" aria-label="曆法"><button type="button" data-cal="solar" aria-pressed="true">國曆</button><button type="button" data-cal="lunar" aria-pressed="false">農曆</button></div>
+        <label class="f" for="pDate" id="pSolarBox"><span class="sr">國曆生日</span><input id="pDate" type="date" min="1900-01-01" max="2099-12-31" required></label>
+        <div class="lunarsel" id="pLunarBox" hidden>
+          <label class="f">年<select id="pLy"></select></label><label class="f">月<select id="pLm"></select></label><label class="f">日<select id="pLd"></select></label>
+        </div>
+        <p class="small tint-t" id="pConv"></p><p class="perr" id="eDate" hidden>請選擇出生日期</p></div>
+      <div class="pstep" data-step="hour"><div class="pnum"><i>4</i>出生時辰<em>不知道時辰，選最後一項「時辰不確定」也可以</em></div>
+        <label class="f" for="pHour"><span class="sr">出生時辰</span><select id="pHour"></select></label></div>
     </div>
     <p class="small muted">不確定時辰時，八字的年月日柱仍準確；紫微命盤與時柱僅能參考。</p>
     <button type="submit" class="btn primary block">排盤</button>
@@ -405,7 +415,7 @@ function renderOverview(){
   const cy=now.getFullYear(), ygz=yearGZ(cy), ys=yearInfo(cy);
   const dec=A?A.horoscope(now).decadal:null;
   $('#v-overview').innerHTML=`
-  ${P.sample?`<div class="banner"><span>目前顯示<b>範例命主</b>，輸入你的生辰才是你的盤。</span><button class="btn sm primary" data-act="profile">輸入生辰</button></div>`:''}
+  ${sampleBanner()}
   ${dailyCard()}
   ${guideCard()}
   <div class="grid3">
@@ -497,7 +507,7 @@ function renderZiwei(){
   const yMing=Y.palaceNames.indexOf('命宮');
   const yMutWhere=Y.mutagen.map((s,i)=>{const idx=A.palaces.findIndex(p=>[...p.majorStars,...p.minorStars].some(x=>x.name===s));return `${s}化${'祿權科忌'[i]}入${idx>=0?A.palaces[idx].name:'—'}`});
   const overviewRows=A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>{const ms=p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars;return `<tr><th><button type="button" class="btn sm ghost" data-pal="${i}">${p.name}</button></th><td>${p.majorStars.length?'':'<span class="muted">借對宮 </span>'}${ms.map(s=>`${s.name}${s.brightness?`<span class="muted small">${s.brightness}</span>`:''}${s.mutagen?`<i class="mu ${s.mutagen}">${s.mutagen}</i>`:''}`).join('、')||'—'}<br><span class="small muted">${PALACE[p.name]}・${(GC.STAR[ms[0]?.name]||[])[0]||''}</span></td></tr>`}).join('');
-  $('#v-ziwei').innerHTML=`
+  $('#v-ziwei').innerHTML=`${sampleBanner()}
   <div class="row between"><div class="eyebrow">${A.fiveElementsClass} · 命主${A.soul} · 身主${A.body}</div>
     <div class="seg" role="group" aria-label="流年疊盤" style="min-width:150px"><button type="button" data-zy="0" aria-pressed="${!zwYearOn}">本命</button><button type="button" data-zy="1" aria-pressed="${zwYearOn}">疊${lnYear}</button></div></div>
   <div class="board-wrap"><div class="board" data-fit="340">${cells}
@@ -559,7 +569,7 @@ function renderLiunian(){
   const best=[...months].sort((a,b)=>b.s-a.s).slice(0,2), worst=[...months].sort((a,b)=>a.s-b.s).slice(0,2);
   const [cls,word]=lv(I.score);
   const TAI_FIX={'值太歲（本命年）':'本命年心情與環境易起伏，宜穩不宜大變；可多行善、安太歲，穿戴喜用色增加安定感。','沖太歲':'沖太歲主變動，搬家、換工作、出國等「主動求變」反而能順勢化解；重大投資與擔保要謹慎。','害太歲':'害太歲易有小人與誤會，人際上多一分防備，文件契約要仔細看。'};
-  $('#v-liunian').innerHTML=`
+  $('#v-liunian').innerHTML=`${sampleBanner()}
   <div class="years" role="group" aria-label="選擇年份">${years.map(x=>`<button type="button" class="yr" data-yr="${x.y}" aria-pressed="${x.y===lnYear}"><div class="y num">${x.y}${x.y===cy?' 今':''}</div><div class="g">${x.gz}</div>${meter(x.score)}</button>`).join('')}</div>
   <div class="card stack">
     <div class="row between"><div><div class="eyebrow">${I.y} ${I.gz}年 · 屬${SX[ZHI.indexOf(I.gz[1])]} · 虛歲 ${I.age}</div><h3 class="h3">${I.ss}年</h3></div><div class="row">${meter(I.score,true)}<span class="pill ${cls}">${word}</span></div></div>
@@ -709,7 +719,7 @@ function renderName(){
     <p class="small">一、姓名學是輔助，八字與努力才是根本；改名後要常用（簽名、自我介紹、社群），力量才會發揮。</p>
     <p class="small">二、除了數理，也要唸起來順口、字義正面、不易寫錯或被取綽號，並避開長輩名諱。</p>
     <p class="small">三、正式改名前，建議把 2–3 個候選名字抽一張塔羅、求一支籤，或與家人討論，挑自己最有感的那一個。</p></div>`;
-  $('#v-name').innerHTML=`
+  $('#v-name').innerHTML=`${sampleBanner()}
   <div class="card stack">
     <div class="grid2"><label class="f" for="nmSur">姓<input id="nmSur" maxlength="2" value="${esc(sur)}"></label><label class="f" for="nmGiven">名<input id="nmGiven" maxlength="3" value="${esc(given)}"></label></div>
     <div class="namegrid">${[...sur].length===1?virt():''}${chars.map(x=>`<div class="ch"><div class="c">${esc(x.c)}</div><input type="number" min="1" max="64" aria-label="${esc(x.c)}的筆畫" data-ch="${esc(x.c)}" value="${x.n||''}" placeholder="?"><small>${x.t}</small></div>`).join('')}${[...given].length===1?virt():''}</div>
@@ -1267,22 +1277,51 @@ function openFs(){const L=sheet('文字大小',fsSheetBody());L.panel.addEventLi
 function updateHeader(){
   $('#whoAv').textContent=SX[ZHI.indexOf(D.birthZ)];
   $('#whoBtn').setAttribute('aria-label',`命主：${P.sur}${P.given}${P.sample?'（範例）':''}，點此編輯`);
+  $('#whoBtn').classList.toggle('nudge',!!P.sample);
 }
 
 /* ---------- 命主表單 ---------- */
+const LM_ZH=['正','二','三','四','五','六','七','八','九','十','冬','臘'];
+let pCal='solar';
+function lunarMonths(y){const lp=LunarYear.fromYear(y).getLeapMonth();const o=[];for(let m=1;m<=12;m++){o.push([m,LM_ZH[m-1]+'月']);if(m===lp)o.push([-m,'閏'+LM_ZH[m-1]+'月'])}return o}
+function fillLunar(y,m,d){
+  const ys=$('#pLy'),ms=$('#pLm'),ds=$('#pLd');
+  ys.innerHTML=`<option value="">選年</option>`+Array.from({length:200},(_,i)=>1900+i).map(v=>`<option value="${v}"${v===y?' selected':''}>${v}（${LunarYear.fromYear(v).getGanZhi()}）</option>`).join('');
+  ms.innerHTML=`<option value="">選月</option>`+(y?lunarMonths(y).map(([v,t])=>`<option value="${v}"${v===m?' selected':''}>${t}</option>`).join(''):'');
+  const n=y&&m?LunarMonth.fromYm(y,m).getDayCount():30;
+  ds.innerHTML=`<option value="">選日</option>`+Array.from({length:n},(_,i)=>i+1).map(v=>`<option value="${v}"${v===d?' selected':''}>${v<=10?'初'+'一二三四五六七八九十'[v-1]:v<20?'十'+'一二三四五六七八九'[v-11]:v===20?'二十':v<30?'廿'+'一二三四五六七八九'[v-21]:'三十'}</option>`).join('');
+}
+function lunarVal(){const y=+$('#pLy').value,m=+$('#pLm').value,d=+$('#pLd').value;return y&&m&&d?{y,m,d}:null}
+function setCal(c){pCal=c;$$('#pCal button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.cal===c));$('#pSolarBox').hidden=c!=='solar';$('#pLunarBox').hidden=c!=='lunar';syncConv()}
+function formDate(){if(pCal==='lunar'){const v=lunarVal();if(!v)return '';try{return Lunar.fromYmd(v.y,v.m,v.d).getSolar().toYmd()}catch(e){return ''}}return $('#pDate').value}
+function syncConv(){
+  const d=formDate(),el=$('#pConv');let t='';
+  if(d){const [y,m,dd]=d.split('-').map(Number);if(pCal==='lunar')t=`＝ 國曆 ${y} 年 ${m} 月 ${dd} 日`;else{try{const l=Solar.fromYmd(y,m,dd).getLunar();t=`＝ 農曆 ${l.getYearInGanZhi()}年 ${l.getMonthInChinese()}月${l.getDayInChinese()}`}catch(e){}}}
+  el.textContent=t;el.hidden=!t;markSteps();
+}
+function markSteps(){
+  const ok={name:!!($('#pSur').value.trim()&&$('#pGiven').value.trim()),gender:!!$('#pGender button[aria-pressed="true"]'),date:!!formDate(),hour:true};
+  $$('.pstep').forEach(x=>{x.classList.toggle('done',ok[x.dataset.step]);if(ok[x.dataset.step])x.classList.remove('bad')});
+  if(ok.name)$('#eName').hidden=true;if(ok.date)$('#eDate').hidden=true;
+  return ok;
+}
 function fillForm(x){
   $('#pSur').value=x.sur||'';$('#pGiven').value=x.given||'';$('#pDate').value=x.date||'';
   $('#pHour').innerHTML=HOURS.map((h,i)=>`<option value="${i}"${i===(x.hour??6)?' selected':''}>${h}</option>`).join('');
-  $$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.g===(x.gender||'女')));
+  $$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.g===x.gender));
+  const L=x.lunar||null;fillLunar(L&&L.y,L&&L.m,L&&L.d);
+  $$('.pstep').forEach(s=>s.classList.remove('bad'));$('#eName').hidden=$('#eDate').hidden=true;
+  setCal(x.cal==='lunar'?'lunar':'solar');
 }
 function renderPeople(){
   $('#people').innerHTML=PEOPLE.length?`<span class="eyebrow">已存的命盤（點名字切換）</span><div class="chips">${PEOPLE.map((x,i)=>`<button type="button" class="chip" data-person="${i}" aria-pressed="${i===curP}">${esc(x.sur+x.given)}</button>`).join('')}<button type="button" class="chip add" id="pAdd" aria-pressed="${edP===-1}">＋ 新增</button></div>`:'';
   $('#pTitle').textContent=edP===-1?'新增命盤':PEOPLE.length?'編輯命盤':'命主資料';
   $('#pDel').hidden=!(edP>=0&&PEOPLE.length>1);
 }
-function openSheet(){
-  edP=PEOPLE.length?curP:-1;fillForm(PEOPLE.length?P:{sur:'',given:'',gender:'女',date:'',hour:6});
-  renderPeople();$('#sheetBack').hidden=false;setTimeout(()=>$('#pSur').focus(),80);
+function openSheet(guide){
+  edP=PEOPLE.length?curP:-1;fillForm(PEOPLE.length?P:{sur:'',given:'',gender:'',date:'',hour:6});
+  const first=!PEOPLE.length;$('#pGuide').hidden=!first;$('#pNote').hidden=first;$('#pForm').classList.toggle('guide',first);
+  renderPeople();$('#sheetBack').hidden=false;$('#pForm').scrollTop=0;if(!guide)setTimeout(()=>$('#pSur').focus(),80);
 }
 function applyPerson(i){curP=i;P=PEOPLE[i];store.set('gx_cur',i);nameOverride=null;zwSel=null;$('#v-name').innerHTML='';nmOpt.res=null;derive();updateHeader();go(cur,false)}
 function closeSheet(){const f=$('#pForm');f.style.transform='';$('#sheetBack').hidden=true}
@@ -1302,7 +1341,11 @@ document.addEventListener('click',async e=>{
   if(t.dataset.person!==undefined){const i=+t.dataset.person;applyPerson(i);closeSheet();toast(`已切換到 ${P.sur+P.given}`,'check');return}
   if(t.id==='pAdd'){edP=-1;fillForm({sur:'',given:'',gender:'女',date:'',hour:6});renderPeople();$('#pSur').focus();return}
   if(t.id==='pDel'){const n=PEOPLE[edP].sur+PEOPLE[edP].given;if(!(await alertBox({title:`刪除「${esc(n)}」的命盤？`,msg:'刪除後無法復原，其他人的命盤不受影響。',buttons:[{text:'取消',style:'cancel',value:false},{text:'刪除',style:'destructive',value:true}]})))return;PEOPLE.splice(edP,1);store.set('gx_profiles',PEOPLE);applyPerson(0);closeSheet();hud(`已刪除 ${n}`);return}
-  if(t.dataset.g){$$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b===t));return}
+  if(t.dataset.g){$$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b===t));markSteps();return}
+  if(t.dataset.cal){if(t.dataset.cal==='lunar'&&!lunarVal()&&$('#pDate').value){try{const [y,m,d]=$('#pDate').value.split('-').map(Number);const l=Solar.fromYmd(y,m,d).getLunar();fillLunar(l.getYear(),l.getMonth(),l.getDay())}catch(e){}}
+    else if(t.dataset.cal==='solar'&&lunarVal()&&!$('#pDate').value){const d=formDate();if(d)$('#pDate').value=d}
+    setCal(t.dataset.cal);buzz();return}
+  if(t.dataset.wel!==undefined)return welcomeAct(t.dataset.wel);
   // 今日
   if(t.dataset.day!==undefined){const n=+t.dataset.day,dir=n-dayOff;if(n===dayOff)return;dayOff=n;refreshDaily(dir);return}
   if(t.dataset.chk!==undefined){const i=+t.dataset.chk,k=dayKey();let c=store.get(k,[]);c=c.includes(i)?c.filter(x=>x!==i):[...c,i];store.set(k,c);t.classList.toggle('on',c.includes(i));t.setAttribute('aria-pressed',c.includes(i));const pill=$('#guide .pill');if(pill){pill.textContent=`${c.length}/5`;pill.className=`pill ${c.length>=5?'good':'mid'} num`}if(c.length===5)hud('今日功課完成','star');else buzz();return}
@@ -1368,13 +1411,25 @@ document.addEventListener('input',e=>{
   if(t.dataset&&t.dataset.ch){nameOverride=nameOverride||{};nameOverride[t.dataset.ch]=+t.value||0;clearTimeout(renderName.t);renderName.t=setTimeout(()=>{const ch=t.dataset.ch;renderName();const el=$(`input[data-ch="${CSS.escape(ch)}"]`);if(el)el.focus()},500)}
 });
 document.addEventListener('change',e=>{if(e.target.id==='qmT'&&e.target.value){const d=new Date(e.target.value);if(!isNaN(d)){qmTime=d;renderQimen()}}if(e.target.id==='qStrict')qStrict=e.target.checked});
+$('#pForm').addEventListener('input',markSteps);
+$('#pForm').addEventListener('change',e=>{const id=e.target.id;if(id==='pLy'||id==='pLm'){const v={y:+$('#pLy').value,m:+$('#pLm').value,d:+$('#pLd').value};
+  if(id==='pLy'&&v.y&&!lunarMonths(v.y).some(([x])=>x===v.m))v.m=0;if(v.y&&v.m)v.d=Math.min(v.d,LunarMonth.fromYm(v.y,v.m).getDayCount());fillLunar(v.y||0,v.m||0,v.d||0)}
+  syncConv()});
 $('#sheetBack').addEventListener('click',e=>{if(e.target.id==='sheetBack')closeSheet()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheetBack').hidden)closeSheet()});
 $('#pForm').addEventListener('submit',e=>{
   e.preventDefault();
   const g=$('#pGender button[aria-pressed="true"]');
-  const np={sur:$('#pSur').value.trim(),given:$('#pGiven').value.trim(),gender:g?g.dataset.g:P.gender,date:$('#pDate').value,hour:+$('#pHour').value,sample:false};
-  if(!np.sur||!np.given||!np.date){toast('請填寫姓名與生日','warn');return}
+  const ok=markSteps();
+  if(!ok.name||!ok.gender||!ok.date){
+    const miss=['name','gender','date'].filter(k=>!ok[k]);
+    miss.forEach(k=>{const el=$(`.pstep[data-step="${k}"]`);el.classList.remove('bad');void el.offsetWidth;el.classList.add('bad')});
+    $('#eName').hidden=ok.name;$('#eDate').hidden=ok.date;
+    const f=$(`.pstep[data-step="${miss[0]}"]`);f.scrollIntoView({block:'center',behavior:'smooth'});
+    if(miss[0]==='name')($('#pSur').value.trim()?$('#pGiven'):$('#pSur')).focus({preventScroll:true});
+    toast(`還差：${miss.map(k=>({name:'姓名',gender:'性別',date:'出生日期'})[k]).join('、')}`,'warn');buzz();return}
+  const lv=pCal==='lunar'?lunarVal():null;
+  const np={sur:$('#pSur').value.trim(),given:$('#pGiven').value.trim(),gender:g.dataset.g,date:formDate(),hour:+$('#pHour').value,sample:false,...(lv?{cal:'lunar',lunar:lv}:{})};
   const yy=+np.date.slice(0,4);if(yy<1900||yy>2099){toast('生日請在 1900–2099 年之間','warn');return}
   if(edP===-1){PEOPLE.push(np);edP=PEOPLE.length-1}else PEOPLE[edP]=np;
   store.set('gx_profiles',PEOPLE);applyPerson(edP);closeSheet();hud(`已排好 ${np.sur+np.given} 的命盤`);
@@ -1388,13 +1443,42 @@ document.addEventListener('touchstart',e=>{const d=e.target.closest('#daily');if
 document.addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;tx=null;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx))return;const n=Math.max(0,Math.min(6,dayOff+(dx<0?1:-1)));if(n!==dayOff){const dir=n-dayOff;dayOff=n;buzz();refreshDaily(dir)}},{passive:true});
 
 /* ---------- 開場動畫 ---------- */
-let spReady=false;
+let spReady=false,booted=false;
 function hideSplash(force){
   const sp=$('#splash');if(!sp||sp.classList.contains('out'))return;
   const left=force?0:Math.max(0,(sp.classList.contains('still')?900:7000)-performance.now());
-  setTimeout(()=>{sp.classList.add('out');document.documentElement.classList.remove('splashing');setTimeout(()=>sp.remove(),1300)},left);
+  setTimeout(()=>{sp.classList.add('out');document.documentElement.classList.remove('splashing');if(booted)setTimeout(maybeWelcome,550);setTimeout(()=>sp.remove(),1300)},left);
 }
 document.addEventListener('pointerdown',e=>{if(e.target.closest('#splash')&&spReady)hideSplash(true)},true);
+
+/* ---------- 初次使用引導 ---------- */
+function welcomeHtml(){return `<div class="wel" role="dialog" aria-modal="true" aria-labelledby="welT">
+  <div class="wel-in">
+    <img class="wel-logo" src="icons/icon-192.png" alt="" onerror="this.remove()">
+    <h1 id="welT">歡迎來到靈犀</h1>
+    <p class="wel-sub">你的口袋命理師</p>
+    <ul class="wel-list">
+      <li><i class="wi">☀︎</i><div><b>每日運勢與行動指南</b><span>今天適合做什麼、避開什麼，一看就懂</span></div></li>
+      <li><i class="wi">✦</i><div><b>塔羅占卜・求籤擲筊</b><span>心裡有事時，問一問</span></div></li>
+      <li><i class="wi">◎</i><div><b>紫微命盤・流年・姓名學</b><span>看懂自己的個性、運勢走向與名字</span></div></li>
+    </ul>
+    <div class="wel-how"><b>第一次使用，請先填你的資料</b>
+      <ol><li>姓名</li><li>性別</li><li>出生日期（國曆、農曆都可以）</li><li>出生時辰（不知道也沒關係）</li></ol>
+      <span>大約 30 秒。資料只存在這支手機，不會上傳。</span></div>
+  </div>
+  <div class="wel-acts"><button type="button" class="btn primary block" data-wel="go">開始填寫我的資料</button><button type="button" class="btn ghost block" data-wel="skip">先看範例</button></div>
+</div>`}
+function showWelcome(){if($('#welcome'))return;const w=document.createElement('div');w.id='welcome';w.innerHTML=welcomeHtml();document.body.appendChild(w);document.body.classList.add('modal-open');requestAnimationFrame(()=>w.classList.add('show'));setTimeout(()=>w.querySelector('[data-wel="go"]').focus({preventScroll:true}),400)}
+function hideWelcome(){const w=$('#welcome');if(!w)return;w.classList.remove('show');w.classList.add('hide');if(!layers.length)document.body.classList.remove('modal-open');setTimeout(()=>w.remove(),reduceMotion()?0:420)}
+function welcomeAct(a){
+  try{sessionStorage.setItem('gx_wel','1')}catch(e){}
+  hideWelcome();
+  if(a==='go')setTimeout(()=>openSheet(true),reduceMotion()?0:260);
+  else toast('隨時點右上角的生肖，或「輸入生辰」都能填寫','info');
+}
+function needProfile(){return !PEOPLE.length}
+function maybeWelcome(){let seen=false;try{seen=sessionStorage.getItem('gx_wel')==='1'}catch(e){}if(needProfile()&&!seen)showWelcome()}
+const sampleBanner=()=>P.sample?`<div class="banner"><span>目前顯示<b>範例命主</b>，輸入你的姓名與生辰才是你的盤。</span><button class="btn sm primary" data-act="profile">輸入生辰</button></div>`:'';
 
 /* ---------- 啟動 ---------- */
 function boot(){
@@ -1405,6 +1489,7 @@ function boot(){
   $('#boot').hidden=true;updateHeader();
   const h=(location.hash||'').slice(1);go(VIEWS.includes(h)?h:store.get('gx_tab','overview'),false);
   hideSplash();
+  booted=true;if(!$('#splash'))setTimeout(maybeWelcome,300);
   }catch(err){hideSplash(true);$('#boot').hidden=false;$('#boot').innerHTML='<b>頁面啟動失敗</b><br><span style="font-size:13px">'+esc(err&&err.message||err)+'</span>';throw err}
 }
 boot();
