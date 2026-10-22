@@ -802,6 +802,7 @@ html{scroll-padding-top:calc(64px + env(safe-area-inset-top,0px));scroll-padding
 .tbl.bz td.small{white-space:nowrap;line-height:1.6}
 .tbl.bz .hg{display:block}
 .tbl.bz tr:first-child th{text-align:center}
+.linkbtn{border:0;background:none;padding:0;color:var(--tint);font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -2297,6 +2298,18 @@ function bweiShape(flat){return flat
 function bweiSVG(flat,flip){return `<span class="bw"><svg viewBox="0 0 80 50" class="bwei${flip?' fl':''}" aria-hidden="true">${bweiShape(flat)}</svg><i>${flat?'平':'凸'}</i></span>`}
 const JIAO={sheng:['聖筊','一平一凸','神明應允，表示同意或可以進行。'],xiao:['笑筊','兩面皆平','神明笑而不答：問題可能不夠清楚，或答案你心裡早已明白。請把問題說得更具體再問。'],yin:['陰筊','兩面皆凸','神明不同意，或時機未到。可以稍後再問，或換個方式請示。']};
 function tossJiao(){const a=Math.random()<.5,b=Math.random()<.5;return {a,b,r:a!==b?'sheng':a?'xiao':'yin'}}
+/* 稟告詞：依廟方慣例帶入 信士／信女、姓名、民國年＋農曆生日與時辰、生肖、居住地、所問之事 */
+const CN_D='〇一二三四五六七八九';
+function cnNum(n){if(n<=0)return String(n);if(n<10)return CN_D[n];if(n<20)return '十'+(n%10?CN_D[n%10]:'');if(n<100)return CN_D[Math.floor(n/10)]+'十'+(n%10?CN_D[n%10]:'');if(n<1000){const h=Math.floor(n/100),r=n%100;return CN_D[h]+'百'+(r===0?'':r<10?'零'+CN_D[r]:r<20?'一十'+(r%10?CN_D[r%10]:''):cnNum(r))}return String(n).split('').map(d=>CN_D[d]).join('')}
+function prayText(){
+  const L=D.lunar, ly=L.getYear(), roc=ly-1911;
+  const yr=roc>0?`民國${cnNum(roc)}年`:`西元${String(ly).split('').map(d=>CN_D[d]).join('')}年`;
+  const lm=L.getMonth(), mon=(lm<0?'閏':'')+S2T(L.getMonthInChinese()).replace(/^閏/,'')+'月';
+  const hr=P.hour===13?'':HOURS[P.hour].split(' ')[0].replace(/^[早晚]/,'');
+  const who=P.gender==='女'?'信女':'信士', addr=($('#qAddr')?.value??store.get('gx_addr','')).trim();
+  const q=($('#qQ')?.value??qQ).trim().replace(/[。.！!？?，,、；;\s]+$/,'');
+  return `恩主公在上，${who} <b>${esc(P.sur+P.given)}</b>，${yr}農曆${mon}${S2T(L.getDayInChinese())}${hr?hr+'':''}生，生肖屬${SX[ZHI.indexOf(D.birthZ)]}${addr?`，現居${esc(addr)}`:''}，今日誠心向恩主公稟告：所問<b>${qCat}</b>之事${q?`——${esc(q)}`:''}。懇請恩主公慈悲指點，賜籤明示。`;
+}
 let qMode='qian', qStep=0, qCat='家運', qQ='', qNo=null, qLast=null, qTries=0, qStrict=false, qStreak=0, jTally={sheng:0,xiao:0,yin:0}, jQ='';
 const QCATS=['家運','事業','求財','婚姻','健康','出行','功名','失物','訴訟'];
 const QSTEPS=['稟告','請示','抽籤','確認','解籤'];
@@ -2324,7 +2337,8 @@ function renderQian(){
       st=`<div class="stack">
         <div class="chips" role="group" aria-label="所求之事">${QCATS.map(c=>`<button type="button" class="chip" data-qcat="${c}" aria-pressed="${c===qCat}">${c}</button>`).join('')}</div>
         <label class="f" for="qQ">想請示的事<textarea id="qQ" maxlength="80" placeholder="例：今年轉換工作是否順利？">${esc(qQ)}</textarea></label>
-        <div class="pray"><span class="eyebrow">稟告範例（可在心中默念）</span><p>恩主公在上，弟子 <b>${name}</b>，農曆生於 ${S2T(D.lunar.getYearInGanZhi())}年${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())}，今日誠心祈求恩主公指點：<b>${qCat}</b>${qQ?`——${esc(qQ)}`:''}。懇請恩主公賜籤指示。</p></div>
+        <label class="f" for="qAddr">居住地（可不填）<input id="qAddr" maxlength="30" placeholder="例：台北市中山區" value="${esc(store.get('gx_addr',''))}"></label>
+        <div class="pray"><span class="eyebrow">稟告詞（依你的命主資料自動帶入，可在心中默念）</span><p id="prayP">${prayText()}</p>${P.sample?`<p class="small" style="margin-top:6px">目前是範例命主，<button type="button" class="linkbtn" data-act="profile">輸入你的姓名與生辰</button>後稟告詞會自動換成你的資料。</p>`:''}</div>
         <label class="toggle"><input type="checkbox" id="qStrict"${qStrict?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>嚴謹模式：確認籤詩需連續三個聖筊</span></label>
         <button type="button" class="btn primary block" id="qNext0">稟告完成，擲筊請示</button></div>`;
     }else if(qStep===1){
@@ -2655,6 +2669,7 @@ document.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='tQ')tQ=t.value;
   if(t.id==='qQ')qQ=t.value;
+  if(t.id==='qQ'||t.id==='qAddr'){if(t.id==='qAddr')store.set('gx_addr',t.value.trim());const pp=$('#prayP');if(pp)pp.innerHTML=prayText()}
   if(t.id==='jQ')jQ=t.value;
   if(t.id==='nmSur'||t.id==='nmGiven'){clearTimeout(renderName.t);renderName.t=setTimeout(()=>{const id=t.id,pos=t.selectionStart;renderName();const el=$('#'+id);el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}},350)}
   if(t.dataset&&t.dataset.ch){nameOverride=nameOverride||{};nameOverride[t.dataset.ch]=+t.value||0;clearTimeout(renderName.t);renderName.t=setTimeout(()=>{const ch=t.dataset.ch;renderName();const el=$(`input[data-ch="${CSS.escape(ch)}"]`);if(el)el.focus()},500)}
