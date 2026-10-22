@@ -67,7 +67,68 @@ addEventListener('error',function(e){var m=(e.message||(e.target&&e.target.src?'
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,1800)}
+/* ---------- 彈出視窗：通知、提示、確認、揭曉、底部面板 ---------- */
+const reduceMotion=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ICONS={check:'<path d="M7 12.5l3.2 3.2L17 9" />',info:'<circle cx="12" cy="8" r=".6"/><path d="M12 11v6"/>',heart:'<path d="M12 19s-7-4.4-7-9.2A3.8 3.8 0 0 1 12 7.5a3.8 3.8 0 0 1 7 2.3C19 14.6 12 19 12 19z"/>',warn:'<path d="M12 8v5"/><circle cx="12" cy="16.5" r=".6"/>',star:'<path d="M12 4l2.3 4.9 5.2.6-3.9 3.6 1.1 5.2L12 15.7 7.3 18.3l1.1-5.2-3.9-3.6 5.2-.6z"/>'};
+function toast(t,icon='info'){
+  const el=$('#toast');el.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]||ICONS.info}</svg><span>${esc(t)}</span>`;
+  el.hidden=false;el.classList.remove('out');void el.offsetWidth;el.classList.add('in');
+  clearTimeout(toast.t);toast.t=setTimeout(()=>{el.classList.add('out');setTimeout(()=>{el.hidden=true;el.classList.remove('in','out')},280)},2000);
+}
+function hud(text,icon='check'){
+  const el=document.createElement('div');el.className='hud';el.setAttribute('role','status');
+  el.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]||ICONS.check}</svg><span>${esc(text)}</span>`;
+  document.body.appendChild(el);buzz();
+  setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),300)},reduceMotion()?900:1250);
+}
+const layers=[];
+function openLayer(kind,html,{label='',onClose}={}){
+  const root=document.createElement('div');root.className=`layer k-${kind}`;
+  root.innerHTML=`<div class="scrim"></div><div class="panel" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1">${html}</div>`;
+  document.body.appendChild(root);document.body.classList.add('modal-open');
+  const L={root,panel:root.querySelector('.panel'),kind,onClose,prev:document.activeElement};layers.push(L);
+  requestAnimationFrame(()=>root.classList.add('show'));
+  root.querySelector('.scrim').addEventListener('click',()=>{if(kind!=='alert')closeLayer(L)});
+  setTimeout(()=>{(L.panel.querySelector('[data-autofocus]')||L.panel).focus({preventScroll:true})},60);
+  if(kind==='sheet')dragToClose(L.panel.querySelector('.grabzone')||L.panel,L.panel,()=>closeLayer(L));
+  return L;
+}
+function closeLayer(L,value){
+  L=L||layers[layers.length-1];if(!L||L.closing)return;L.closing=true;
+  L.root.classList.remove('show');L.root.classList.add('hide');
+  const i=layers.indexOf(L);if(i>=0)layers.splice(i,1);
+  if(!layers.length)document.body.classList.remove('modal-open');
+  setTimeout(()=>L.root.remove(),reduceMotion()?0:340);
+  try{L.prev&&L.prev.focus&&L.prev.focus({preventScroll:true})}catch(e){}
+  L.onClose&&L.onClose(value);
+}
+function dragToClose(handle,panel,close){
+  let y0=null,dy=0,t0=0;
+  handle.addEventListener('touchstart',e=>{if(panel.scrollTop>0&&handle===panel)return;y0=e.touches[0].clientY;dy=0;t0=Date.now();panel.style.transition='none'},{passive:true});
+  handle.addEventListener('touchmove',e=>{if(y0===null)return;dy=Math.max(0,e.touches[0].clientY-y0);panel.style.transform=`translateY(${dy}px)`},{passive:true});
+  handle.addEventListener('touchend',()=>{if(y0===null)return;panel.style.transition='';const v=dy/Math.max(1,Date.now()-t0);if(dy>110||v>.6){panel.style.transform=`translateY(100%)`;close()}else panel.style.transform='';y0=null},{passive:true});
+}
+function sheet(title,body,opts={}){
+  return openLayer('sheet',`<div class="grabzone"><div class="grab"></div><div class="sheet-h"><b>${title}</b><button type="button" class="xbtn" data-close aria-label="關閉"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div></div><div class="sheet-b">${body}</div>`,{label:title.replace(/<[^>]+>/g,''),...opts});
+}
+function alertBox({title,msg='',buttons=[{text:'好',value:true}]}){
+  return new Promise(res=>{
+    const L=openLayer('alert',`<div class="al-body"><b>${title}</b>${msg?`<p>${msg}</p>`:''}</div><div class="al-btns${buttons.length>2?' col':''}">${buttons.map((b,i)=>`<button type="button" class="${b.style||''}" data-alv="${i}"${b.style==='cancel'?' data-autofocus':''}>${b.text}</button>`).join('')}</div>`,{label:title,onClose:v=>res(v)});
+    L.panel.addEventListener('click',e=>{const b=e.target.closest('[data-alv]');if(b)closeLayer(L,buttons[+b.dataset.alv].value)});
+  });
+}
+function reveal({tone='gold',art='',kicker='',big,sub='',body='',actions=[]}){
+  return new Promise(res=>{
+    const L=openLayer('reveal',`<div class="rv ${tone}"><div class="rv-glow"></div>${Array.from({length:10},(_,i)=>`<i class="spark" style="--a:${i*36}deg;--d:${(i%3)*.08}s"></i>`).join('')}
+      ${art?`<div class="rv-art">${art}</div>`:''}${kicker?`<div class="rv-k">${kicker}</div>`:''}<div class="rv-big">${big}</div>${sub?`<div class="rv-sub">${sub}</div>`:''}${body?`<p class="rv-body">${body}</p>`:''}
+      <div class="rv-acts">${actions.map((a,i)=>`<button type="button" class="btn ${a.primary?'primary':''} block" data-rv="${i}"${i===0?' data-autofocus':''}>${a.text}</button>`).join('')}</div></div>`,{label:String(big).replace(/<[^>]+>/g,''),onClose:v=>res(v)});
+    L.panel.addEventListener('click',e=>{const b=e.target.closest('[data-rv]');if(b)closeLayer(L,actions[+b.dataset.rv].value)});
+    buzz();
+  });
+}
+document.addEventListener('click',e=>{if(e.target.closest('[data-close]')){closeLayer();e.stopPropagation()}},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&layers.length){const L=layers[layers.length-1];if(L.kind!=='alert')closeLayer(L)}});
+
 const meter=(s,big)=>`<span class="meter${big?' big':''}" aria-label="${s} / 5">${[1,2,3,4,5].map(i=>`<i class="${i<=Math.round(s)?'on':''}"></i>`).join('')}</span>`;
 const lv=s=>s>=4?['good','吉']:s>=3?['mid','平']:['bad','慎'];
 
@@ -664,7 +725,7 @@ function renderQimen(){
     ${use.ma?'<p class="good-t">逢驛馬，事情變動快，利出行與跑動。</p>':''}
     <div class="reader"><div class="seal" aria-hidden="true">遁</div><p>${us>=3?`此時${qmCat}之事可行，往${PAL[use.p][1]}方向或在此時辰行動最有利。`:us>=0?`${qmCat}之事吉凶參半，可行但要準備備案；若能選擇，改走${PAL[best.p][1]}方較順。`:`此時不利${qmCat}，建議換個時辰再看，或往${PAL[best.p][1]}方（${best.door}門）借力。`}</p></div>
   </div>
-  ${qmSel?qmDetail(Q.cells[qmSel]):`<p class="small muted" style="text-align:center">點盤面任一宮，查看該方位的詳細解讀</p>`}
+  <p class="small muted" style="text-align:center">點盤面任一宮，查看該方位的詳細解讀</p>
   <div class="card flat stack"><h3 class="h3">此時最佳方位：${PAL[best.p][1]}</h3><p class="small">${best.door}門・${best.star}・${best.god}。談事、出門、坐位面向這個方位，借一點天時地利。</p></div>
   ${helpBox('qimen')}`;
 }
@@ -757,10 +818,7 @@ function libHtml(){
   return `<details class="card more lib"${tLib?' open':''}><summary><div><h3 class="h3">牌義圖鑑</h3><span class="small muted">78 張牌的正逆位意義</span></div></summary>
     <div class="stack" style="margin-top:12px"><div class="seg" role="group" aria-label="牌組">${groups.map(x=>`<button type="button" data-lib="${x[0]}" aria-pressed="${x[0]===g[0]}">${x[1]}</button>`).join('')}</div>
     <div class="libgrid">${g[2].map(i=>`<button type="button" class="lc${tLibSel===i?' on':''}" data-libc="${i}" aria-label="${tcard(i).zh}">${cardFace(i)}</button>`).join('')}</div>
-    ${sel?`<div class="libd stack" id="libd"><div class="row between"><h4>${sel.zh}</h4><span class="small muted">${sel.en}</span></div>
-      <p class="small muted">${sel.major?`大阿爾克那 ${sel.num}`:`${sel.S.zh}（${sel.S.el}）· ${sel.S.dom} · ${RANK_THEME[sel.r]}`}</p>
-      <div class="catgrid"><div class="catrow"><b>正位</b><span><b>${sel.kwU}</b><br>${sel.up}</span></div><div class="catrow"><b>逆位</b><span>${sel.major?`<b>${sel.kwR}</b><br>`:''}${sel.rev}</span></div>
-      ${sel.major?`<div class="catrow"><b>感情</b><span>${sel.love}</span></div><div class="catrow"><b>工作</b><span>${sel.work}</span></div><div class="catrow"><b>建議</b><span>${sel.adv}</span></div>`:`<div class="catrow"><b>感情</b><span>${TD.lens.感情[sel.suit][0]}</span></div><div class="catrow"><b>工作</b><span>${TD.lens.事業[sel.suit][0]}</span></div>`}</div></div>`:'<p class="small muted">點任一張牌查看牌義。</p>'}</div></details>`;
+    <p class="small muted">點任一張牌查看正逆位與各類解讀。</p></div></details>`;
 }
 function renderTarot(){
   const d=spreadDef(), need=d.pos.length, done=tPicked.length>=need;
@@ -807,7 +865,7 @@ function tarotReadingHtml(R){
   if(d.k==='love'){const me=cardScore(cards[0],cards[0].R),you=cardScore(cards[1],cards[1].R);verdict=`<div class="answer ${me>0&&you>0?'good':me<0&&you<0?'bad':'mid'}"><b>${me>0&&you>0?'兩情相悅':me>0&&you<=0?'你較投入':me<=0&&you>0?'對方較投入':'都有保留'}</b><span>${me>0&&you>0?'雙方心意都是正向的，關係有發展空間。':me>0?'你的心意比較積極，對方還在觀望或有顧慮。':you>0?'對方比你更積極，你可以想想自己真正的感受。':'兩個人都還沒完全打開心，需要更多時間與信任。'}</span></div>`}
   const keyLens=lensOf(key,cat==='綜合'?'事業':cat);
   const oneLine=`${tone[0]==='good'?'牌面整體是支持你的':tone[0]==='mid'?'事情有機會，但需要條件配合':'牌面提醒你先停下來想清楚'}。關鍵落在「${d.pos[cards.length-1]}」的<b>${key.zh}${key.R?'逆位':''}</b>：${key.major?key.adv:(key.R?key.rev:key.up)}`;
-  const per=cards.map((c,k)=>{const lz=cat!=='綜合'?lensOf(c,cat):null;return `<div class="tread"><div class="mini${c.R?' rev':''}">${cardFace(c.i)}</div><div class="stack" style="gap:4px;min-width:0">
+  const per=cards.map((c,k)=>{const lz=cat!=='綜合'?lensOf(c,cat):null;return `<div class="tread"><button type="button" class="mini${c.R?' rev':''}" data-tslot="${k}" aria-label="查看${c.zh}詳解">${cardFace(c.i)}</button><div class="stack" style="gap:4px;min-width:0">
     <div class="eyebrow">${k+1}. ${d.pos[k]} · ${TD.posd[d.pos[k]]}</div><h4>${c.zh}<span class="pill ${c.R?'mid':'good'}">${c.R?'逆位':'正位'}</span></h4>
     <p class="small muted">${c.en} · ${c.major?`大阿爾克那 ${c.num}`:`${c.S.zh}（${c.S.el}）· ${RANK_THEME[c.r]}`}</p>
     <p class="small"><b>${c.R?c.kwR:c.kwU}</b></p>
@@ -831,7 +889,7 @@ function tarotReadingHtml(R){
 }
 async function shareOut(text){
   try{if(navigator.share){await navigator.share({title:'觀象閣',text});return}}catch(e){if(e&&e.name==='AbortError')return}
-  try{await navigator.clipboard.writeText(text);toast('已複製，可以貼到 LINE')}catch(e){toast('無法自動複製，請長按選取文字')}
+  try{await navigator.clipboard.writeText(text);hud('已複製，可貼到 LINE')}catch(e){toast('無法自動複製，請長按選取文字','warn')}
 }
 function tarotFinish(){
   const now=new Date();
@@ -1084,6 +1142,30 @@ function qianResult(n,cat,q){
     <div class="grid2"><button type="button" class="btn" id="qShare">分享籤詩</button><button type="button" class="btn" id="qAgain">再求一籤</button></div></div>`;
 }
 
+/* ---------- 揭曉與詳解面板 ---------- */
+async function jiaoReveal(r,ctx){
+  const J=JIAO[r.r], tone=r.r==='sheng'?'good':r.r==='xiao'?'mid':'bad', art=`<div class="jiao done">${bweiSVG(r.a,false)}${bweiSVG(r.b,true)}</div>`;
+  let o={tone,art,kicker:J[1],big:J[0],body:J[2],actions:[]};
+  if(ctx==='ask'){o.actions=r.r==='sheng'?[{text:'前往抽籤',primary:true,value:'qNext1'},{text:'稍後',value:null}]:[{text:'再擲一次',primary:true,value:'qAsk'},{text:'關閉',value:null}];if(r.r==='sheng')o.body='恩主公應允，可以抽籤了。'}
+  if(ctx==='confirm'){const need=qStrict?3:1;
+    if(r.r==='sheng'&&qStreak>=need){o.kicker='恩主公賜籤';o.body=`第 ${qNo} 籤（${QD[qNo-1][0]}）確認完成，這就是賜給你的籤。`;o.actions=[{text:'看籤詩',primary:true,value:'qNext3'}]}
+    else if(r.r==='sheng'){o.body=`已連續 ${qStreak} 個聖筊，還需要 ${need-qStreak} 個。`;o.actions=[{text:'再擲一次',primary:true,value:'qConfirm'}]}
+    else{o.body='這支籤不是給你的，請重新抽籤。';o.actions=[{text:'重新抽籤',primary:true,value:'qRedraw'},{text:'關閉',value:null}]}}
+  if(ctx==='jiao'){o.actions=[{text:'再擲一次',primary:true,value:'jToss'},{text:'完成',value:null}];if(r.r==='sheng'&&jTally.sheng>=3){o.kicker=`已得 ${jTally.sheng} 個聖筊`}}
+  const v=await reveal(o);if(v)setTimeout(()=>$('#'+v)?.click(),60);
+}
+function cardSheet(i,rev,pos,cat){
+  const c={...tcard(i),R:rev}, lz=cat&&cat!=='綜合'?lensOf(c,cat):null;
+  const both=pos==null;
+  sheet(`${c.zh}<span class="small muted" style="font-weight:400"> · ${c.en}</span>`,`<div class="card stack"><div class="sheet-card"><div class="mini${rev?' rev':''}">${cardFace(i)}</div><div class="stack" style="gap:6px;min-width:0">
+    ${pos?`<span class="eyebrow">${pos} · ${TD.posd[pos]||''}</span>`:''}<h4>${c.zh}${both?'':`<span class="pill ${rev?'mid':'good'}">${rev?'逆位':'正位'}</span>`}</h4>
+    <span class="small muted">${c.major?`大阿爾克那 ${c.num}`:`${c.S.zh}（${c.S.el}）· ${c.S.dom}`}</span>
+    <span class="small"><b>${both?c.kwU:(rev?c.kwR:c.kwU)}</b></span></div></div>
+    ${both?`<div class="catgrid"><div class="catrow"><b>正位</b><span>${c.up}</span></div><div class="catrow"><b>逆位</b><span>${c.rev}</span></div></div>`:`<p>${rev?c.rev:c.up}</p>`}
+    ${lz?`<p class="small lens"><b>就${esc(cat)}而言</b>　${lz}</p>`:''}
+    <div class="catgrid">${c.major?`<div class="catrow"><b>感情</b><span>${c.love}</span></div><div class="catrow"><b>工作</b><span>${c.work}</span></div><div class="catrow"><b>建議</b><span>${c.adv}</span></div>`:['感情','事業','財運','健康'].map(k=>`<div class="catrow"><b>${k}</b><span>${TD.lens[k][c.suit][rev?1:0]}</span></div>`).join('')}</div></div>`);
+}
+
 /* ---------- 導航 ---------- */
 const GROUPS=[
  {k:'today',n:'今日',views:['overview'],icon:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>'},
@@ -1132,14 +1214,15 @@ function fillForm(x){
 function renderPeople(){
   $('#people').innerHTML=PEOPLE.length?`<span class="eyebrow">已存的命盤（點名字切換）</span><div class="chips">${PEOPLE.map((x,i)=>`<button type="button" class="chip" data-person="${i}" aria-pressed="${i===curP}">${esc(x.sur+x.given)}</button>`).join('')}<button type="button" class="chip add" id="pAdd" aria-pressed="${edP===-1}">＋ 新增</button></div>`:'';
   $('#pTitle').textContent=edP===-1?'新增命盤':PEOPLE.length?'編輯命盤':'命主資料';
-  const del=$('#pDel');del.hidden=!(edP>=0&&PEOPLE.length>1);del.dataset.sure='';del.textContent='刪除這個人';
+  $('#pDel').hidden=!(edP>=0&&PEOPLE.length>1);
 }
 function openSheet(){
   edP=PEOPLE.length?curP:-1;fillForm(PEOPLE.length?P:{sur:'',given:'',gender:'女',date:'',hour:6});
   renderPeople();$('#sheetBack').hidden=false;setTimeout(()=>$('#pSur').focus(),80);
 }
 function applyPerson(i){curP=i;P=PEOPLE[i];store.set('gx_cur',i);nameOverride=null;zwSel=null;$('#v-name').innerHTML='';nmOpt.res=null;derive();updateHeader();go(cur,false)}
-function closeSheet(){$('#sheetBack').hidden=true}
+function closeSheet(){const f=$('#pForm');f.style.transform='';$('#sheetBack').hidden=true}
+dragToClose($('#pForm .grab'),$('#pForm'),()=>{closeSheet()});
 const wait=ms=>new Promise(r=>setTimeout(r,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
 async function animToss(){const j=$('#jiao');if(j){j.classList.remove('done');j.classList.add('tossing')}buzz();await wait(900)}
 
@@ -1151,13 +1234,13 @@ document.addEventListener('click',async e=>{
   if(t.dataset.go)return go(t.dataset.go);
   if(t.id==='whoBtn'||t.dataset.act==='profile')return openSheet();
   if(t.id==='pCancel')return closeSheet();
-  if(t.dataset.person!==undefined){const i=+t.dataset.person;applyPerson(i);closeSheet();toast(`已切換到 ${P.sur+P.given}`);return}
+  if(t.dataset.person!==undefined){const i=+t.dataset.person;applyPerson(i);closeSheet();toast(`已切換到 ${P.sur+P.given}`,'check');return}
   if(t.id==='pAdd'){edP=-1;fillForm({sur:'',given:'',gender:'女',date:'',hour:6});renderPeople();$('#pSur').focus();return}
-  if(t.id==='pDel'){const n=PEOPLE[edP].sur+PEOPLE[edP].given;if(t.dataset.sure!=='1'){t.dataset.sure='1';t.textContent=`確定刪除 ${n}？再按一次`;return}PEOPLE.splice(edP,1);store.set('gx_profiles',PEOPLE);applyPerson(0);closeSheet();toast(`已刪除 ${n}`);return}
+  if(t.id==='pDel'){const n=PEOPLE[edP].sur+PEOPLE[edP].given;if(!(await alertBox({title:`刪除「${esc(n)}」的命盤？`,msg:'刪除後無法復原，其他人的命盤不受影響。',buttons:[{text:'取消',style:'cancel',value:false},{text:'刪除',style:'destructive',value:true}]})))return;PEOPLE.splice(edP,1);store.set('gx_profiles',PEOPLE);applyPerson(0);closeSheet();hud(`已刪除 ${n}`);return}
   if(t.dataset.g){$$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b===t));return}
   // 今日
   if(t.dataset.day!==undefined){const n=+t.dataset.day,dir=n-dayOff;if(n===dayOff)return;dayOff=n;refreshDaily(dir);return}
-  if(t.dataset.chk!==undefined){const i=+t.dataset.chk,k=dayKey();let c=store.get(k,[]);c=c.includes(i)?c.filter(x=>x!==i):[...c,i];store.set(k,c);t.classList.toggle('on',c.includes(i));t.setAttribute('aria-pressed',c.includes(i));const pill=$('#guide .pill');if(pill){pill.textContent=`${c.length}/5`;pill.className=`pill ${c.length>=5?'good':'mid'} num`}if(c.length===5)toast('今天的功課都完成了');buzz();return}
+  if(t.dataset.chk!==undefined){const i=+t.dataset.chk,k=dayKey();let c=store.get(k,[]);c=c.includes(i)?c.filter(x=>x!==i):[...c,i];store.set(k,c);t.classList.toggle('on',c.includes(i));t.setAttribute('aria-pressed',c.includes(i));const pill=$('#guide .pill');if(pill){pill.textContent=`${c.length}/5`;pill.className=`pill ${c.length>=5?'good':'mid'} num`}if(c.length===5)hud('今日功課完成','star');else buzz();return}
   if(t.dataset.ask){tCat=t.dataset.ask;tQ='';tDeck=null;tPicked=[];tFlipped=false;tReading=null;go('tarot');return}
   if(t.id==='dailyCard'){if(t.classList.contains('up'))return;t.classList.add('up');store.set(t.dataset.dkey,true);buzz();await wait(500);const r=$('#dailyMeaning'),h=$('#dailyHint');if(r)r.hidden=false;if(h)h.hidden=true;return}
   if(t.dataset.dtarot!==undefined){const now=new Date();tSpread='one';tQ='今日的提醒';tCat='綜合';tDeck=[];tPicked=[{k:-1,i:+t.dataset.dtarot,rev:t.dataset.drev==='1'}];tFlipped=true;tReading={s:'one',q:'今日的提醒',cat:'綜合',t:`${now.getMonth()+1}/${now.getDate()} 每日一牌`,c:[{i:+t.dataset.dtarot,rev:t.dataset.drev==='1'}]};go('tarot');setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),350);return}
@@ -1167,36 +1250,36 @@ document.addEventListener('click',async e=>{
   if(t.id==='tShuffle'||t.id==='tReshuffle'){tQ=$('#tQ')?.value||tQ;tPicked=[];tFlipped=false;tReading=null;tDeck=shuffleDeck();renderTarot();const d=$('#deck');if(d){d.classList.add('shuffling');buzz();d.scrollLeft=(d.scrollWidth-d.clientWidth)/2;setTimeout(()=>d.classList.remove('shuffling'),700);$('#ttable').scrollIntoView({behavior:'smooth',block:'start'})}return}
   if(t.dataset.dk!==undefined){const need=spreadDef().pos.length;if(tPicked.length>=need)return;const k=+t.dataset.dk;tPicked.push({k,...tDeck[k]});buzz();t.classList.add('taken');await wait(220);tQ=$('#tQ')?.value||tQ;if(tPicked.length>=need)tarotFinish();const sx=$('#deck')?.scrollLeft||0;renderTarot();const d=$('#deck');if(d)d.scrollLeft=sx;return}
   if(t.id==='tAuto'){tQ=$('#tQ')?.value||tQ;const need=spreadDef().pos.length;const free=tDeck.map((c,k)=>k).filter(k=>!tPicked.some(p=>p.k===k));while(tPicked.length<need){const k=free.splice(Math.floor(Math.random()*free.length),1)[0];tPicked.push({k,...tDeck[k]})}tarotFinish();renderTarot();return}
-  if(t.id==='tFlip'||t.dataset.tslot!==undefined){if(!tReading)return;if(!tFlipped){tFlipped=true;$$('.spreadbox .tcard').forEach(c=>c.classList.add('up'));buzz();await wait(900);renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}else{const k=+t.dataset.tslot;const el=$$('.tread')[k];if(el)el.scrollIntoView({behavior:'smooth',block:'center'})}return}
+  if(t.id==='tFlip'||t.dataset.tslot!==undefined){if(!tReading)return;if(!tFlipped){tFlipped=true;$$('.spreadbox .tcard').forEach(c=>c.classList.add('up'));buzz();await wait(900);renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}else{const k=+t.dataset.tslot,x=tReading.c[k];cardSheet(x.i,x.rev,spreadDef().pos[k],tReading.cat)}return}
   if(t.dataset.thist!==undefined){const h=store.get('gx_tarot',[])[+t.dataset.thist];if(h){tSpread=h.s;tQ=h.q;tCat=h.cat||'綜合';tDeck=[];tPicked=h.c.map((c,k)=>({k:-1-k,...c}));tFlipped=true;tReading=h;renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth'}),60)}return}
-  if(t.id==='tClear'){store.set('gx_tarot',[]);renderTarot();toast('紀錄已清除');return}
+  if(t.id==='tClear'){if(await alertBox({title:'清除抽牌紀錄？',msg:'清除後無法復原。',buttons:[{text:'取消',style:'cancel',value:false},{text:'清除',style:'destructive',value:true}]})){store.set('gx_tarot',[]);renderTarot();hud('已清除')}return}
   if(t.id==='tShare'&&tReading){shareOut(shareText(tReading));return}
-  if(t.dataset.lib){tLib=t.dataset.lib;tLibSel=null;renderTarot();$('.lib')?.scrollIntoView({block:'start',behavior:'smooth'});return}
-  if(t.dataset.libc!==undefined){tLib=tLib||'major';tLibSel=+t.dataset.libc;renderTarot();$('#libd')?.scrollIntoView({block:'nearest',behavior:'smooth'});return}
+  if(t.dataset.lib){tLib=t.dataset.lib;tLibSel=null;const y=scrollY;renderTarot();scrollTo(0,y);return}
+  if(t.dataset.libc!==undefined){cardSheet(+t.dataset.libc,false,null,null);return}
   // 求籤
   if(t.dataset.qm){qMode=t.dataset.qm;qLast=null;renderQian();return}
   if(t.dataset.qcat){qCat=t.dataset.qcat;qQ=$('#qQ')?.value||qQ;renderQian();return}
   if(t.id==='qNext0'){qScroll=true;qQ=$('#qQ')?.value||'';qStrict=$('#qStrict')?.checked||false;qStep=1;qLast=null;qTries=0;renderQian();return}
-  if(t.id==='qAsk'){qScroll=true;await animToss();qLast=tossJiao();qTries++;renderQian();return}
+  if(t.id==='qAsk'){qScroll=true;await animToss();qLast=tossJiao();qTries++;renderQian();jiaoReveal(qLast,'ask');return}
   if(t.id==='qNext1'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}
-  if(t.id==='qShake'){if(qNo)return;const s=t.querySelector('.tube');s.classList.add('shake');buzz();await wait(1200);qNo=1+Math.floor(Math.random()*60);renderQian();buzz();return}
+  if(t.id==='qShake'){if(qNo)return;const s=t.querySelector('.tube');s.classList.add('shake');buzz();await wait(1200);qNo=1+Math.floor(Math.random()*60);renderQian();const v=await reveal({tone:'gold',art:tubeSVG(qNo).replace('class="tube out"','class="tube out" style="width:84px"'),kicker:'籤筒落出',big:`第 ${qNo} 籤`,sub:`${QD[qNo-1][0]}籤`,body:'請擲筊確認，是否為恩主公所賜。',actions:[{text:'擲筊確認',primary:true,value:'qNext2'},{text:'稍後',value:null}]});if(v)setTimeout(()=>$('#'+v)?.click(),60);return}
   if(t.id==='qNext2'){qScroll=true;qStep=3;qLast=null;qStreak=0;renderQian();return}
-  if(t.id==='qConfirm'){qScroll=true;await animToss();qLast=tossJiao();qStreak=qLast.r==='sheng'?qStreak+1:0;renderQian();return}
+  if(t.id==='qConfirm'){qScroll=true;await animToss();qLast=tossJiao();qStreak=qLast.r==='sheng'?qStreak+1:0;renderQian();jiaoReveal(qLast,'confirm');return}
   if(t.id==='qRedraw'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}
   if(t.id==='qNext3'){qScroll=true;qStep=4;const now=new Date();const h=store.get('gx_qian',[]);h.unshift({n:qNo,cat:qCat,q:qQ,t:`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`});store.set('gx_qian',h.slice(0,20));renderQian();return}
   if(t.id==='qShare'){shareOut(qianShareText(qNo,qCat,qQ));return}
   if(t.id==='qAgain'){qStep=0;qNo=null;qLast=null;renderQian();window.scrollTo({top:0,behavior:'smooth'});return}
   if(t.dataset.qhist!==undefined){const h=store.get('gx_qian',[])[+t.dataset.qhist];if(h){qMode='qian';qStep=4;qNo=h.n;qCat=h.cat;qQ=h.q;renderQian()}return}
-  if(t.id==='qClear'){store.set('gx_qian',[]);renderQian();toast('紀錄已清除');return}
-  if(t.id==='jToss'){qScroll=true;jQ=$('#jQ')?.value||jQ;await animToss();qLast=tossJiao();jTally[qLast.r]++;renderQian();if(jTally.sheng>=3&&qLast.r==='sheng')toast('已得三個聖筊');return}
+  if(t.id==='qClear'){if(await alertBox({title:'清除求籤紀錄？',msg:'清除後無法復原。',buttons:[{text:'取消',style:'cancel',value:false},{text:'清除',style:'destructive',value:true}]})){store.set('gx_qian',[]);renderQian();hud('已清除')}return}
+  if(t.id==='jToss'){qScroll=true;jQ=$('#jQ')?.value||jQ;await animToss();qLast=tossJiao();jTally[qLast.r]++;renderQian();jiaoReveal(qLast,'jiao');return}
   if(t.id==='jReset'){jTally={sheng:0,xiao:0,yin:0};qLast=null;renderQian();return}
   // 命盤
-  if(t.dataset.pal!==undefined){zwSel=+t.dataset.pal;renderZiwei();$('#zwDetail')?.scrollIntoView({behavior:'smooth',block:'start'});return}
+  if(t.dataset.pal!==undefined){zwSel=+t.dataset.pal;const y=scrollY;renderZiwei();scrollTo(0,y);const d=$('#zwDetail');if(d&&!t.closest('.layer'))sheet(`${D.astro.palaces[zwSel].name}`,`<div class="card stack">${d.innerHTML}</div>`);else if(d)closeLayer();return}
   if(t.dataset.zy!==undefined){zwYearOn=t.dataset.zy==='1';renderZiwei();return}
   if(t.dataset.yr){lnYear=+t.dataset.yr;renderLiunian();return}
   // 奇門
   if(t.dataset.qc){qmCat=t.dataset.qc;qmSel=null;renderQimen();return}
-  if(t.dataset.qp){qmSel=+t.dataset.qp===qmSel?null:+t.dataset.qp;renderQimen();const d=$('#qmDetail');if(d)d.scrollIntoView({behavior:'smooth',block:'nearest'});return}
+  if(t.dataset.qp){qmSel=+t.dataset.qp;const y=scrollY;renderQimen();scrollTo(0,y);const c=qimen(qmTime||new Date()).cells[qmSel];sheet(`${PAL[qmSel][0]}${qmSel}宮 · ${PAL[qmSel][1]}方`,qmDetail(c).replace('id="qmDetail"',''));return}
   if(t.id==='qmNow'){qmTime=null;renderQimen();return}
   // 姓名
   if(t.dataset.ng){nmOpt.g=t.dataset.ng;nmOpt.res=null;renderName();return}
@@ -1206,10 +1289,10 @@ document.addEventListener('click',async e=>{
   if(t.id==='genBtn'){nmOpt.fix=$('#nmFix')?.value||'';const sur=$('#nmSur').value.trim()||P.sur;t.textContent='推算中…';setTimeout(()=>{nmOpt.res=genNames(sur);nmOpt.show=10;renderName();const c=$('#genCard');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});toast(nmOpt.res.length?`找到 ${nmOpt.res.length} 個好名字`:'找不到符合的名字')},30);return}
   if(t.dataset.try){$('#nmGiven').value=t.dataset.try;renderName();window.scrollTo({top:0,behavior:'smooth'});return}
   if(t.dataset.tryfull){const f=t.dataset.tryfull,sl=[...($('#nmSur').value.trim()||P.sur)].length;$('#nmSur').value=[...f].slice(0,sl).join('');$('#nmGiven').value=[...f].slice(sl).join('');renderName();window.scrollTo({top:0,behavior:'smooth'});return}
-  if(t.dataset.fav){const sur=$('#nmSur').value.trim(),n=sur+t.dataset.fav;let f=store.get('gx_fav',[]);f=f.includes(n)?f.filter(x=>x!==n):[n,...f].slice(0,30);store.set('gx_fav',f);t.textContent=f.includes(n)?'已收藏 ✓':'收藏';toast(f.includes(n)?'已加入收藏':'已取消收藏');return}
+  if(t.dataset.fav){const sur=$('#nmSur').value.trim(),n=sur+t.dataset.fav;let f=store.get('gx_fav',[]);f=f.includes(n)?f.filter(x=>x!==n):[n,...f].slice(0,30);store.set('gx_fav',f);t.textContent=f.includes(n)?'已收藏 ✓':'收藏';f.includes(n)?hud('已加入收藏','heart'):toast('已取消收藏');return}
   if(t.id==='genAgain'){nmOpt.seed=(nmOpt.seed||1)+7919;const sur=$('#nmSur').value.trim()||P.sur;nmOpt.res=genNames(sur);nmOpt.show=10;renderName();$('#genCard')?.scrollIntoView({behavior:'smooth',block:'start'});buzz();return}
   if(t.id==='genMore'){nmOpt.show+=10;renderName();return}
-  if(t.id==='favClear'){store.set('gx_fav',[]);renderName();toast('收藏已清除');return}
+  if(t.id==='favClear'){if(await alertBox({title:'清除所有收藏？',buttons:[{text:'取消',style:'cancel',value:false},{text:'清除',style:'destructive',value:true}]})){store.set('gx_fav',[]);renderName();hud('已清除')}return}
 });
 document.addEventListener('input',e=>{
   const t=e.target;
@@ -1226,10 +1309,10 @@ $('#pForm').addEventListener('submit',e=>{
   e.preventDefault();
   const g=$('#pGender button[aria-pressed="true"]');
   const np={sur:$('#pSur').value.trim(),given:$('#pGiven').value.trim(),gender:g?g.dataset.g:P.gender,date:$('#pDate').value,hour:+$('#pHour').value,sample:false};
-  if(!np.sur||!np.given||!np.date){toast('請填寫姓名與生日');return}
-  const yy=+np.date.slice(0,4);if(yy<1900||yy>2099){toast('生日請在 1900–2099 年之間');return}
+  if(!np.sur||!np.given||!np.date){toast('請填寫姓名與生日','warn');return}
+  const yy=+np.date.slice(0,4);if(yy<1900||yy>2099){toast('生日請在 1900–2099 年之間','warn');return}
   if(edP===-1){PEOPLE.push(np);edP=PEOPLE.length-1}else PEOPLE[edP]=np;
-  store.set('gx_profiles',PEOPLE);applyPerson(edP);closeSheet();toast(`已排好 ${np.sur+np.given} 的命盤`);
+  store.set('gx_profiles',PEOPLE);applyPerson(edP);closeSheet();hud(`已排好 ${np.sur+np.given} 的命盤`);
 });
 
 /* ---------- 手勢與捲動 ---------- */
