@@ -727,3 +727,12 @@ html.narrow .rv-art .jiao{gap:12px}html.narrow .rv-art .bwei{width:56px}html.nar
 .jiao.settled .bw i{animation:capin .45s var(--spring) both}
 .jstage .jres{animation:capin .5s .15s var(--spring) both}
 .view.calm>*{animation:none}
+.wel-in{padding:22px 22px 6px;gap:4px}
+.wel-logo{width:60px;height:60px;border-radius:14px}
+.wel h1{font-size:26px;margin-top:6px}
+.wel-list{gap:10px;margin:12px 0 4px}
+.wel-list .wi{width:36px;height:36px;font-size:17px}
+.wel-how{padding:12px 14px;margin-top:8px}
+.wel-how ol{gap:0}
+.wel-acts{padding:10px 22px calc(14px + env(safe-area-inset-bottom,0px))}
+.wel-in{padding-top:18px}@media (max-height:740px){.wel-list span,.wel-sub{display:none}.wel-list{gap:8px}}

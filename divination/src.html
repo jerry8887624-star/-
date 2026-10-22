@@ -49,7 +49,10 @@
 (function(){var s=document.getElementById('splash');try{if(sessionStorage.getItem('gx_sp')){s.remove();return}sessionStorage.setItem('gx_sp','1')}catch(e){}
 if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){s.classList.add('still')}
 else{var box=document.getElementById('spParts'),h='';for(var i=0;i<36;i++){var a=Math.random()*Math.PI*2,d=55+Math.random()*45,t=i/36*Math.PI*2-Math.PI/2;h+='<i style="--sx:'+(Math.cos(a)*d).toFixed(1)+'vmax;--sy:'+(Math.sin(a)*d).toFixed(1)+'vmax;--ex:'+(Math.cos(t)*.3223).toFixed(4)+';--ey:'+(Math.sin(t)*.3223).toFixed(4)+';--d:'+(.45+Math.random()*.55).toFixed(2)+'s;--z:'+(2+Math.random()*3).toFixed(1)+'px"></i>'}box.innerHTML=h}
-document.documentElement.classList.add('splashing');})();
+document.documentElement.classList.add('splashing');
+/* 保險：開場動畫絕不會卡住——點一下即可略過；10 秒後若程式仍未啟動，自動收起並提示重新載入 */
+var t0=Date.now();s.addEventListener('click',function(){if(Date.now()-t0>1200&&!window.__gxBooted&&window.__gxBail)window.__gxBail('仍在載入中…')});
+setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('載入時間比平常久')},10000);})();
 </script>
 
 <div class="app">
@@ -105,7 +108,15 @@ document.documentElement.classList.add('splashing');})();
 
 <script>
 window.__gxErr=[];
-addEventListener('error',function(e){var m=(e.message||(e.target&&e.target.src?'無法載入 '+e.target.src:'未知錯誤'));window.__gxErr.push(m);var b=document.getElementById('boot');if(b){b.innerHTML='<b>頁面載入發生問題</b><br><span style="font-size:13px">'+String(m).replace(/</g,'&lt;')+'</span><br><span style="font-size:13px">請截圖這個畫面，或改用 Safari／Chrome 開啟後重新整理。</span>'}},true);
+window.__gxBail=function(m){
+  var sp=document.getElementById('splash');if(sp)sp.remove();document.documentElement.classList.remove('splashing');
+  if(window.__gxBooted)return;var b=document.getElementById('boot');if(!b)return;b.hidden=false;
+  b.innerHTML='<b>'+String(m).replace(/</g,'&lt;')+'</b>'+(window.__gxErr.length?'<br><span style="font-size:13px">'+window.__gxErr.slice(-3).join('<br>').replace(/</g,'&lt;')+'</span>':'')+'<br><span style="font-size:13px">請按下方按鈕重新載入；若一直出現，請截圖這個畫面給開發者。</span><br><button type="button" class="btn primary" style="margin-top:12px" onclick="try{sessionStorage.removeItem(\'gx_sp\')}catch(e){}location.reload()">重新載入</button>';
+};
+addEventListener('error',function(e){var t=e.target;if(t&&t!==window&&t.tagName&&t.tagName!=='SCRIPT')return;
+  var m=(e.message||(t&&t.src?'無法載入 '+t.src:'未知錯誤'))+(e.lineno?' (第 '+e.lineno+' 行)':'');window.__gxErr.push(m);
+  if(!window.__gxBooted)setTimeout(function(){if(!window.__gxBooted)window.__gxBail('頁面載入發生問題')},1500)},true);
+addEventListener('unhandledrejection',function(e){window.__gxErr.push('Promise: '+(e.reason&&e.reason.message||e.reason))});
 </script>
 <script src="vendor/lunar.js"></script>
 <script>window.Solar||document.write('<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"><\/script>')</script>
@@ -1543,7 +1554,7 @@ function boot(){
   $('#boot').hidden=true;updateHeader();
   const h=(location.hash||'').slice(1);go(VIEWS.includes(h)?h:store.get('gx_tab','overview'),false);
   hideSplash();
-  booted=true;if(!$('#splash'))setTimeout(maybeWelcome,300);
+  booted=true;window.__gxBooted=true;if(!$('#splash'))setTimeout(maybeWelcome,300);
   }catch(err){hideSplash(true);$('#boot').hidden=false;$('#boot').innerHTML='<b>頁面啟動失敗</b><br><span style="font-size:13px">'+esc(err&&err.message||err)+'</span>';throw err}
 }
 boot();
