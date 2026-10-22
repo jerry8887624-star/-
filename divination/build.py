@@ -26,14 +26,14 @@ page = f'''<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="觀象閣：每日運勢、塔羅占卜、求籤擲筊、紫微斗數、八字流年、姓名學改名與奇門遁甲。">
+<meta name="description" content="靈犀：每日運勢、塔羅占卜、求籤擲筊、紫微斗數、八字流年、姓名學改名與奇門遁甲。">
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="觀象閣">
-<meta property="og:title" content="觀象閣">
-<meta property="og:description" content="知天時・趨吉凶｜每日運勢、塔羅、求籤擲筊、紫微流年、姓名改名、奇門方位">
+<meta name="apple-mobile-web-app-title" content="靈犀">
+<meta property="og:title" content="靈犀 LINGXI｜心有靈犀・一點通">
+<meta property="og:description" content="心有靈犀・一點通｜每日運勢、塔羅、求籤擲筊、紫微流年、姓名改名、奇門方位">
 <link rel="icon" type="image/svg+xml" href="icons/logo.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
