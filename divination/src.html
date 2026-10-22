@@ -314,7 +314,9 @@ function derive(){
   const ji=strong?[(dmE+4)%5,dmE]:[(dmE+3)%5,(dmE+2)%5];
   const yun=ec.getYun(P.gender==='男'?1:0).getDaYun().filter(x=>x.getGanZhi());
   let astro=null;try{astro=iztro.astro.bySolar(`${y}-${m}-${d}`,hr,P.gender,true,'zh-TW')}catch(e){console.error(e)}
-  D={y,m,d,solar,lunar,ec,pillars,dm,dmE,cnt,support,strong,xi,ji,yun,astro,birthZ:pillars[0][1]};
+  // 生肖與犯太歲依公廟慣例以農曆正月初一換年；八字年柱依子平法以立春換年，兩者在「立春後、春節前」出生者會不同
+  const birthZ=lunar.getYearZhi(), lcZ=pillars[0][1];
+  D={y,m,d,solar,lunar,ec,pillars,dm,dmE,cnt,support,strong,xi,ji,yun,astro,birthZ,lcZ,zNote:birthZ!==lcZ?`生肖依農曆正月初一換年，屬${SX[ZHI.indexOf(birthZ)]}；八字年柱依立春換年，為${pillars[0]}（${SX[ZHI.indexOf(lcZ)]}）。`:''};
 }
 function gzScore(gz){let s=3;const a=gWx(gz[0]),b=zWx(gz[1]);if(D.xi.includes(a))s+=1;if(D.ji.includes(a))s-=1;if(D.xi.includes(b))s+=.5;if(D.ji.includes(b))s-=.5;return Math.max(1,Math.min(5,s))}
 function hash(str){let h=2166136261;for(const c of str){h^=c.codePointAt(0);h=Math.imul(h,16777619)}return h>>>0}
@@ -447,6 +449,7 @@ function renderOverview(){
   <div class="card stack">
     <div class="row between"><div><div class="eyebrow">${P.gender==='男'?'乾造':'坤造'} · 屬${SX[ZHI.indexOf(D.birthZ)]}</div><h3 class="h3">${esc(P.sur+P.given)} 的命盤</h3></div>
       <div class="small muted" style="text-align:right">國曆 ${D.y}/${D.m}/${D.d}<br>農曆 ${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())} ${P.hour===13?'時辰不確定':HOURS[P.hour].split(' ')[0]}</div></div>
+    ${D.zNote?`<p class="small muted" style="margin-top:-4px">${D.zNote}</p>`:''}
     <div class="pillars">${['年柱','月柱','日柱','時柱'].map((lb,i)=>{const p=D.pillars[i];return `<div class="pillar${i===2?' dm':''}"><div class="lb">${lb}</div><div class="gz"><span class="t${gWx(p[0])}">${p[0]}</span><span class="t${zWx(p[1])}">${p[1]}</span></div><div class="ss">${i===2?'日主':shishen(D.dm,p[0])}</div></div>`}).join('')}</div>
     <div class="wxbar" aria-label="五行分布">${D.cnt.map((c,e)=>c?`<span style="flex:${c};background:var(--${['wood','fire','earth','metal','water'][e]})"></span>`:'').join('')}</div>
     <div class="legend">${D.cnt.map((c,e)=>`<span><i style="background:var(--${['wood','fire','earth','metal','water'][e]})"></i>${WX[e]} ${c}</span>`).join('')}</div>
@@ -602,7 +605,7 @@ function renderLiunian(){
     <p>${YEARSS[I.ss]}</p>
     <dl class="kv">
       <dt>流年天干</dt><dd>${I.gz[0]}${elTag(gWx(I.gz[0]))} ${D.xi.includes(gWx(I.gz[0]))?'<span class="good-t">為喜用，助力明顯</span>':D.ji.includes(gWx(I.gz[0]))?'<span class="bad-t">為忌神，阻力較多</span>':'平'}</dd>
-      <dt>流年地支</dt><dd>${I.gz[1]}${elTag(zWx(I.gz[1]))} ${I.tai?`<span class="bad-t">犯太歲</span>（${I.tai.detail}）`:'與生肖無沖刑害破，未犯太歲'}</dd>
+      <dt>流年地支</dt><dd>${I.gz[1]}${elTag(zWx(I.gz[1]))} ${I.tai?`<span class="bad-t">犯太歲</span>（${I.tai.detail}）`:'與生肖無沖刑害破，未犯太歲'}${D.zNote?`<br><span class="small muted">生肖依農曆正月初一換年（屬${SX[ZHI.indexOf(D.birthZ)]}），與公廟安太歲相同。</span>`:''}</dd>
       ${dyHere?`<dt>所行大運</dt><dd>${dyHere.getGanZhi()}（${dyHere.getStartYear()}–${dyHere.getEndYear()}）${shishen(D.dm,dyHere.getGanZhi()[0])}運</dd>`:''}
       ${I.zw?`<dt>紫微流年</dt><dd>流年命宮入本命<b>${I.zw.palace}</b>：焦點在${FOCUS[I.zw.palace]}</dd><dt>流年四化</dt><dd class="small">${I.zw.mut.map((s,i)=>`${s}<i class="mu ${'祿權科忌'[i]}">${'祿權科忌'[i]}</i>入${I.zw.where[i]}`).join('、')}</dd>`:''}
     </dl>
