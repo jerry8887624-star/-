@@ -1,0 +1,16 @@
+{
+  "name": "觀象閣",
+  "short_name": "觀象閣",
+  "description": "每日運勢、塔羅、求籤擲筊、紫微流年、姓名改名與奇門方位",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0A0F22",
+  "theme_color": "#0A0F22",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
