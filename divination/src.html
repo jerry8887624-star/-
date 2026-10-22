@@ -157,6 +157,8 @@ function toast(t,icon='info'){
 function hud(text,icon='check'){
   const el=document.createElement('div');el.className='hud';el.setAttribute('role','status');
   el.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]||ICONS.check}</svg><span>${esc(text)}</span>`;
+  // 每條線都以自身全長為 1 來描繪，圖示才會完整畫完（星星等較長的外框不會缺角）
+  el.querySelectorAll('svg *').forEach(n=>n.setAttribute('pathLength','1'));
   document.body.appendChild(el);buzz();
   setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),300)},reduceMotion()?900:1250);
 }

@@ -594,7 +594,7 @@ body.modal-open{overflow:hidden}
 .rv .btn.primary{background:linear-gradient(180deg,#F1CF83,#C99A3E);color:#2A1606}
 /* 中央成功提示 */
 .hud{position:fixed;left:50%;top:44%;z-index:60;width:150px;min-height:136px;margin-left:-75px;padding:18px 12px 14px;border-radius:18px;background:color-mix(in srgb,var(--card) 82%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);box-shadow:0 12px 40px rgba(0,0,0,.2);display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;font-size:14.5px;font-weight:600;animation:hudin .4s var(--spring);transform:translateY(-50%)}
-.hud svg{width:52px;height:52px;fill:none;stroke:var(--tint);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40;animation:draw .5s .12s var(--ease) forwards}
+.hud svg{width:52px;height:52px;fill:none;stroke:var(--tint);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:draw .6s .12s var(--ease) forwards}
 .hud.out{animation:hudout .3s ease forwards}
 @keyframes hudin{from{opacity:0;transform:translateY(-50%) scale(.8)}}
 @keyframes hudout{to{opacity:0;transform:translateY(-50%) scale(.92)}}
@@ -1297,6 +1297,8 @@ function toast(t,icon='info'){
 function hud(text,icon='check'){
   const el=document.createElement('div');el.className='hud';el.setAttribute('role','status');
   el.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]||ICONS.check}</svg><span>${esc(text)}</span>`;
+  // 每條線都以自身全長為 1 來描繪，圖示才會完整畫完（星星等較長的外框不會缺角）
+  el.querySelectorAll('svg *').forEach(n=>n.setAttribute('pathLength','1'));
   document.body.appendChild(el);buzz();
   setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),300)},reduceMotion()?900:1250);
 }
