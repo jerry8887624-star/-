@@ -2305,7 +2305,7 @@ async function jiaoReveal(r,ctx){
     else if(r.r==='sheng'){o.body=`已連續 ${qStreak} 個聖筊，還需要 ${need-qStreak} 個。`;o.actions=[{text:'再擲一次',primary:true,value:'qConfirm'}]}
     else{o.body='這支籤不是給你的，請重新抽籤。';o.actions=[{text:'重新抽籤',primary:true,value:'qRedraw'},{text:'關閉',value:null}]}}
   if(ctx==='jiao'){o.actions=[{text:'再擲一次',primary:true,value:'jToss'},{text:'完成',value:null}];if(r.r==='sheng'&&jTally.sheng>=3){o.kicker=`已得 ${jTally.sheng} 個聖筊`}}
-  const v=await reveal(o);if(v)setTimeout(()=>$('#'+v)?.click(),60);
+  const v=await reveal(o);tossBusy=false;if(v)setTimeout(()=>$('#'+v)?.click(),60);
 }
 function cardSheet(i,rev,pos,cat){
   const c={...tcard(i),R:rev}, lz=cat&&cat!=='綜合'?lensOf(c,cat):null;
@@ -2425,7 +2425,8 @@ function applyPerson(i){curP=i;P=PEOPLE[i];store.set('gx_cur',i);nameOverride=nu
 function closeSheet(){const f=$('#pForm');f.style.transform='';$('#sheetBack').hidden=true}
 dragToClose($('#pForm .grab'),$('#pForm'),()=>{closeSheet()});
 const wait=ms=>new Promise(r=>setTimeout(r,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
-async function animToss(){const j=$('#jiao');if(j){j.classList.remove('done');j.classList.add('tossing')}buzz();await wait(900)}
+let tossBusy=false;
+async function animToss(){$$('#qAsk,#qConfirm,#jToss').forEach(b=>{b.disabled=true;b.textContent='擲筊中…'});const j=$('#jiao');if(j){j.classList.remove('done');j.classList.add('tossing')}buzz();await wait(900)}
 
 /* ---------- 事件 ---------- */
 document.addEventListener('click',async e=>{
@@ -2466,18 +2467,18 @@ document.addEventListener('click',async e=>{
   if(t.dataset.qm){qMode=t.dataset.qm;qLast=null;renderQian();return}
   if(t.dataset.qcat){qCat=t.dataset.qcat;qQ=$('#qQ')?.value||qQ;renderQian();return}
   if(t.id==='qNext0'){qScroll=true;qQ=$('#qQ')?.value||'';qStrict=$('#qStrict')?.checked||false;qStep=1;qLast=null;qTries=0;renderQian();return}
-  if(t.id==='qAsk'){qScroll=true;await animToss();qLast=tossJiao();qTries++;renderQian();jiaoReveal(qLast,'ask');return}
+  if(t.id==='qAsk'){if(tossBusy)return;tossBusy=true;qScroll=true;await animToss();qLast=tossJiao();qTries++;renderQian();jiaoReveal(qLast,'ask');return}
   if(t.id==='qNext1'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}
   if(t.id==='qShake'){if(qNo)return;const s=t.querySelector('.tube');s.classList.add('shake');buzz();await wait(1200);qNo=1+Math.floor(Math.random()*60);renderQian();const v=await reveal({tone:'gold',art:tubeSVG(qNo).replace('class="tube out"','class="tube out" style="width:84px"'),kicker:'籤筒落出',big:`第 ${qNo} 籤`,sub:`${QD[qNo-1][0]}籤`,body:'請擲筊確認，是否為恩主公所賜。',actions:[{text:'擲筊確認',primary:true,value:'qNext2'},{text:'稍後',value:null}]});if(v)setTimeout(()=>$('#'+v)?.click(),60);return}
   if(t.id==='qNext2'){qScroll=true;qStep=3;qLast=null;qStreak=0;renderQian();return}
-  if(t.id==='qConfirm'){qScroll=true;await animToss();qLast=tossJiao();qStreak=qLast.r==='sheng'?qStreak+1:0;renderQian();jiaoReveal(qLast,'confirm');return}
+  if(t.id==='qConfirm'){if(tossBusy)return;tossBusy=true;qScroll=true;await animToss();qLast=tossJiao();qStreak=qLast.r==='sheng'?qStreak+1:0;renderQian();jiaoReveal(qLast,'confirm');return}
   if(t.id==='qRedraw'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}
   if(t.id==='qNext3'){qScroll=true;qStep=4;const now=new Date();const h=store.get('gx_qian',[]);h.unshift({n:qNo,cat:qCat,q:qQ,t:`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`});store.set('gx_qian',h.slice(0,20));renderQian();return}
   if(t.id==='qShare'){shareOut(qianShareText(qNo,qCat,qQ));return}
   if(t.id==='qAgain'){qStep=0;qNo=null;qLast=null;renderQian();window.scrollTo({top:0,behavior:'smooth'});return}
   if(t.dataset.qhist!==undefined){const h=store.get('gx_qian',[])[+t.dataset.qhist];if(h){qMode='qian';qStep=4;qNo=h.n;qCat=h.cat;qQ=h.q;renderQian()}return}
   if(t.id==='qClear'){if(await alertBox({title:'清除求籤紀錄？',msg:'清除後無法復原。',buttons:[{text:'取消',style:'cancel',value:false},{text:'清除',style:'destructive',value:true}]})){store.set('gx_qian',[]);renderQian();hud('已清除')}return}
-  if(t.id==='jToss'){qScroll=true;jQ=$('#jQ')?.value||jQ;await animToss();qLast=tossJiao();jTally[qLast.r]++;renderQian();jiaoReveal(qLast,'jiao');return}
+  if(t.id==='jToss'){if(tossBusy)return;tossBusy=true;qScroll=true;jQ=$('#jQ')?.value||jQ;await animToss();qLast=tossJiao();jTally[qLast.r]++;renderQian();jiaoReveal(qLast,'jiao');return}
   if(t.id==='jReset'){jTally={sheng:0,xiao:0,yin:0};qLast=null;renderQian();return}
   // 命盤
   if(t.dataset.pal!==undefined){zwSel=+t.dataset.pal;const y=scrollY;renderZiwei();scrollTo(0,y);const d=$('#zwDetail');if(d&&!t.closest('.layer'))sheet(`${D.astro.palaces[zwSel].name}`,`<div class="card stack">${d.innerHTML}</div>`);else if(d)closeLayer();return}
