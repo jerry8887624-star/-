@@ -1253,7 +1253,7 @@ function fsApply(o){const r=document.documentElement;r.style.zoom=o.z>1?o.z:'';r
 function fitAll(){
   const r=document.documentElement, z=parseFloat(r.style.zoom)||1, w=innerWidth/z;
   r.classList.toggle('vw400',w<=400);r.classList.toggle('narrow',w<340);
-  document.querySelectorAll('[data-fit]').forEach(el=>{el.style.zoom='';const cw=el.parentElement.clientWidth;if(!cw)return;const m=+el.dataset.fit;if(cw<m)el.style.zoom=(cw/m).toFixed(3)});
+  document.querySelectorAll('[data-fit]').forEach(el=>{el.style.zoom='';const pe=el.parentElement,cs=getComputedStyle(pe),cw=pe.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);if(cw<=0)return;const m=+el.dataset.fit;if(cw<m)el.style.zoom=(cw/m).toFixed(3)});
 }
 let fitRaf=0;const fitSoon=()=>{cancelAnimationFrame(fitRaf);fitRaf=requestAnimationFrame(fitAll)};
 new MutationObserver(fitSoon).observe(document.body,{childList:true,subtree:true});
