@@ -29,8 +29,9 @@
 <div class="sheet-back" id="sheetBack" hidden>
   <form class="sheet" id="pForm" autocomplete="off">
     <div class="grab"></div>
-    <div class="row between"><button type="button" class="btn ghost sm" id="pCancel">取消</button><b>命主資料</b><button type="submit" class="btn ghost sm">完成</button></div>
-    <p class="small muted">輸入生辰，排出你的命盤。資料只存在這台裝置的瀏覽器裡，不會上傳。</p>
+    <div class="row between"><button type="button" class="btn ghost sm" id="pCancel">取消</button><b id="pTitle">命主資料</b><button type="submit" class="btn ghost sm">完成</button></div>
+    <div id="people" class="stack" style="gap:8px"></div>
+    <p class="small muted">可以存好幾個人（自己、家人、另一半），隨時切換。資料只存在這台裝置的瀏覽器裡，不會上傳。</p>
     <div class="card stack">
       <div class="grid2">
         <label class="f" for="pSur">姓<input id="pSur" maxlength="2" required placeholder="林"></label>
@@ -40,8 +41,9 @@
       <label class="f" for="pDate">國曆生日<input id="pDate" type="date" min="1900-01-01" max="2099-12-31" required></label>
       <label class="f" for="pHour">出生時辰<select id="pHour"></select></label>
     </div>
-    <p class="small muted">不確定時辰時，紫微命盤與時柱僅能參考。</p>
+    <p class="small muted">不確定時辰時，八字的年月日柱仍準確；紫微命盤與時柱僅能參考。</p>
     <button type="submit" class="btn primary block">排盤</button>
+    <button type="button" class="btn ghost block" id="pDel" hidden>刪除這個人</button>
   </form>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -58,6 +60,7 @@ addEventListener('error',function(e){var m=(e.message||(e.target&&e.target.src?'
 <script>/*CONTENT*/</script>
 <script>/*TAROT_DATA*/</script>
 <script>/*QIAN_DATA*/</script>
+<script>/*TONE_DATA*/</script>
 <script>
 (function(){
 "use strict";
@@ -77,7 +80,7 @@ const zWx=z=>ZWX[ZHI.indexOf(z)];
 const elTag=e=>`<span class="el e${e}">${WX[e]}</span>`;
 function shishen(dm,g){const d=GAN.indexOf(dm),o=GAN.indexOf(g);const rel=(Math.floor(o/2)-Math.floor(d/2)+5)%5;return [['比肩','劫財'],['食神','傷官'],['偏財','正財'],['七殺','正官'],['偏印','正印']][rel][(d%2)===(o%2)?0:1]}
 function gzIdx(gz){const g=GAN.indexOf(gz[0]),z=ZHI.indexOf(gz[1]);for(let i=0;i<60;i++)if(i%10===g&&i%12===z)return i;return 0}
-const S2T=(()=>{const s='坏壞馀餘余餘诸諸动動门門开開盖蓋纳納财財会會亲親结結网網养養鸡雞讼訟疗療针針种種筑築竖豎经經络絡酝醞酿釀货貨订訂进進斋齋绘繪启啟钻鑽殓殮谢謝补補扫掃涂塗猎獵渔漁发髮医醫词詞机機仓倉习習艺藝学學饰飾墙牆归歸宁寧问問帐帳寿壽庙廟桥橋栖棲马馬椆稠礼禮远遠买買卖賣车車书書带帶断斷蚁蟻选選举舉庆慶赐賜应應运運处處树樹兴興产產业業场場灵靈体體头頭对對时時节節气氣惊驚蛰蟄谷穀满滿闭閉鱼魚挂掛厕廁坟墳丧喪硙磑';const m={};for(let i=0;i<s.length;i+=2)m[s[i]]=s[i+1];return t=>String(t).replace(/./g,c=>m[c]||c)})();
+const S2T=(()=>{const s='坏壞馀餘余餘诸諸动動门門开開盖蓋纳納财財会會亲親结結网網养養鸡雞讼訟疗療针針种種筑築竖豎经經络絡酝醞酿釀货貨订訂进進斋齋绘繪启啟钻鑽殓殮谢謝补補扫掃涂塗猎獵渔漁发髮医醫词詞机機仓倉习習艺藝学學饰飾墙牆归歸宁寧问問帐帳寿壽庙廟桥橋栖棲马馬椆稠礼禮远遠买買卖賣车車书書带帶断斷蚁蟻选選举舉庆慶赐賜应應运運处處树樹兴興产產业業场場灵靈体體头頭对對时時节節气氣惊驚蛰蟄谷穀满滿闭閉鱼魚挂掛厕廁坟墳丧喪硙磑猪豬东東龙龍腊臘无無佣傭';const m={};for(let i=0;i<s.length;i+=2)m[s[i]]=s[i+1];return t=>String(t).replace(/./g,c=>m[c]||c)})();
 
 const CATS=['綜合','事業','財運','感情','健康','學業','出行'];
 /* ---------- 紫微資料 ---------- */
@@ -155,9 +158,12 @@ function qimen(date){
 }
 
 /* ---------- 命主 ---------- */
-const HOURS=['早子時 00–01','丑時 01–03','寅時 03–05','卯時 05–07','辰時 07–09','巳時 09–11','午時 11–13','未時 13–15','申時 15–17','酉時 17–19','戌時 19–21','亥時 21–23','晚子時 23–24'];
+const HOURS=['早子時 00–01','丑時 01–03','寅時 03–05','卯時 05–07','辰時 07–09','巳時 09–11','午時 11–13','未時 13–15','申時 15–17','酉時 17–19','戌時 19–21','亥時 21–23','晚子時 23–24','時辰不確定（暫以午時計）'];
 const SAMPLE={sur:'林',given:'書言',gender:'女',date:'1992-08-16',hour:4,sample:true};
-let P=store.get('gx_profile',null)||SAMPLE;
+let PEOPLE=store.get('gx_profiles',null);
+if(!PEOPLE){const old=store.get('gx_profile',null);PEOPLE=old&&!old.sample?[old]:[]}
+let curP=Math.min(store.get('gx_cur',0),Math.max(0,PEOPLE.length-1)), edP=curP;
+let P=PEOPLE[curP]||SAMPLE;
 let D=null;
 let yjCat='綜合', yjMethod='coin', tossLines=[], lastReading=null;
 let zwSel=null, zwYearOn=true, lnYear=new Date().getFullYear(), qmCat='綜合', qmTime=null;
@@ -165,7 +171,7 @@ let nameOverride=null, qmSel=null, dayOff=0;
 
 function derive(){
   const [y,m,d]=P.date.split('-').map(Number);
-  const hh=P.hour===0?0:P.hour===12?23:P.hour*2-1;
+  const hr=P.hour===13?6:P.hour, hh=hr===0?0:hr===12?23:hr*2-1;
   const solar=Solar.fromYmdHms(y,m,d,hh,30,0), lunar=solar.getLunar(), ec=lunar.getEightChar();
   const pillars=[ec.getYear(),ec.getMonth(),ec.getDay(),ec.getTime()];
   const dm=pillars[2][0], dmE=gWx(dm);
@@ -176,7 +182,7 @@ function derive(){
   const xi=strong?[(dmE+2)%5,(dmE+1)%5]:[(dmE+4)%5,dmE];
   const ji=strong?[(dmE+4)%5,dmE]:[(dmE+3)%5,(dmE+2)%5];
   const yun=ec.getYun(P.gender==='男'?1:0).getDaYun().filter(x=>x.getGanZhi());
-  let astro=null;try{astro=iztro.astro.bySolar(`${y}-${m}-${d}`,P.hour,P.gender,true,'zh-TW')}catch(e){console.error(e)}
+  let astro=null;try{astro=iztro.astro.bySolar(`${y}-${m}-${d}`,hr,P.gender,true,'zh-TW')}catch(e){console.error(e)}
   D={y,m,d,solar,lunar,ec,pillars,dm,dmE,cnt,support,strong,xi,ji,yun,astro,birthZ:pillars[0][1]};
 }
 function gzScore(gz){let s=3;const a=gWx(gz[0]),b=zWx(gz[1]);if(D.xi.includes(a))s+=1;if(D.ji.includes(a))s-=1;if(D.xi.includes(b))s+=.5;if(D.ji.includes(b))s-=.5;return Math.max(1,Math.min(5,s))}
@@ -194,7 +200,7 @@ function baziDetail(){
   const lack=D.cnt.map((c,e)=>c?null:e).filter(e=>e!==null);
   const adv=e=>{const a=GC.WX_ADV[e];return `<tr><th>${elTag(e)}</th><td>顏色：${a.c}<br>方位：${a.d}　數字：${a.n}<br>行業：${a.j}<br>生活：${a.l}</td></tr>`};
   const support=D.support, pct=Math.round(support/9*100);
-  return `<details class="card"><summary><div class="row between"><h3 class="h3">八字詳解</h3><span class="small muted">日主強弱、十神、開運建議 ＋</span></div></summary><div class="stack" style="margin-top:12px">
+  return `<details class="card more"><summary><div><h3 class="h3">八字詳解</h3><span class="small muted">日主強弱、十神、開運建議</span></div></summary><div class="stack" style="margin-top:12px">
     <div class="tbl-wrap"><table class="tbl"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr>
       <tr><th>天干</th>${D.pillars.map((p,i)=>`<td>${p[0]} <span class="small muted">${i===2?'日主':shishen(D.dm,p[0])}</span></td>`).join('')}</tr>
       <tr><th>地支</th>${D.pillars.map(p=>`<td>${p[1]} <span class="small muted">${SX[ZHI.indexOf(p[1])]}</span></td>`).join('')}</tr>
@@ -226,15 +232,17 @@ function fortune(date){
   const le=D.xi[h%D.xi.length], la=GC.WX_ADV[le];
   const ds=GAN.indexOf(gz[0]), hs0=(ds%5)*2;
   const hours=ZHI.split('').map((z,k)=>{const g=GAN[(hs0+k)%10]+z;return {k,g,s:gzScore(g),r:`${String((k*2+23)%24).padStart(2,'0')}–${String((k*2+1)%24).padStart(2,'0')}`}});
-  const good=[...hours].sort((a,b)=>b.s-a.s||a.k-b.k).slice(0,3).sort((a,b)=>a.k-b.k);
-  const bad=[...hours].sort((a,b)=>a.s-b.s||a.k-b.k)[0];
+  const day=hours.filter(x=>x.k>=3&&x.k<=10); // 卯至戌，一般人醒著能用的時段
+  const good=[...day].sort((a,b)=>b.s-a.s||a.k-b.k).slice(0,3).sort((a,b)=>a.k-b.k);
+  const bad=[...day].sort((a,b)=>a.s-b.s||a.k-b.k)[0];
+  const nh=new Date().getHours(), nk=Math.floor(((nh+1)%24)/2), now=hours[nk];
   const best=areas.reduce((a,b)=>b.s>a.s?b:a), worst=areas.reduce((a,b)=>b.s<a.s?b:a);
   const hx=h%64, hm=(h>>>9)%6;
   let note=DAYSS[ss];
   if(chong)note+=`今日${gz[1]}沖你的日支${D.pillars[2][1]}，情緒與身體較易波動，行程別排太滿。`;
   if(he)note+=`今日${gz[1]}與你的日支六合，人緣與感情運加分。`;
   const sum=`今天整體${word==='大吉'?'非常順':word==='吉'?'不錯':word==='平'?'平穩':'需要多一分耐心'}，${best.n}運最好，${worst.s<3?`${worst.n}要多留意。`:'各方面都還算穩定。'}`;
-  return {L,gz,ss,areas,total,word,le,la,good,bad,hx,hm,note,sum,chong,he,
+  return {L,gz,ss,areas,total,word,le,la,good,bad,now,hours,hx,hm,note,sum,chong,he,
     yi:L.getDayYi().slice(0,6).map(S2T),ji:L.getDayJi().slice(0,6).map(S2T),
     chongDesc:S2T(L.getDayChongDesc()),sha:S2T(L.getDaySha())};
 }
@@ -249,11 +257,11 @@ function dailyCard(){
   const strip=Array.from({length:7},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()+i);const f=fortune(d);
     return `<button type="button" class="day${i===dayOff?' on':''}" data-day="${i}" aria-pressed="${i===dayOff}"><span class="w">${i===0?'今天':i===1?'明天':'週'+WEEK[d.getDay()]}</span><span class="d num">${d.getDate()}</span><i style="--s:${f.total}"></i></button>`}).join('');
   return `<section class="card daily stack" id="daily" aria-label="每日運勢">
-    <div class="row between"><div><div class="eyebrow">每日運勢</div><h2 class="h2">${date.getMonth()+1}月${date.getDate()}日 週${WEEK[date.getDay()]}</h2><div class="small muted">農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())} · ${F.gz}日 · ${F.ss}當值</div></div>
+    <div class="row between"><div><div class="eyebrow">每日運勢 · ${esc(P.sur+P.given)}</div><h2 class="h2">${date.getMonth()+1}月${date.getDate()}日 週${WEEK[date.getDay()]}</h2><div class="small muted">農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())} · ${F.gz}日 · ${F.ss}當值</div></div>
       <div class="dial-wrap">${dial(F.total)}<div class="dial-num"><b class="num" data-count="${F.total}">${F.total}</b><span>${F.word}</span></div></div></div>
     <div class="days" role="group" aria-label="選擇日期">${strip}</div>
     <p class="lead">${F.sum}</p>
-    <div class="areas">${F.areas.map(a=>`<div class="area"><span class="an">${a.n}</span><span class="ab"><i style="--w:${a.s/5*100}%"></i></span><span class="av num">${a.s.toFixed(1)}</span></div>`).join('')}</div>
+    <div class="areas">${F.areas.map(a=>`<div class="area"><span class="an">${a.n}</span><span class="ab"><i style="--w:${a.s/5*100}%"></i></span><span class="av num">${Math.round(a.s*20)}</span></div>`).join('')}</div>
     <p class="small">${F.note}</p>
     <div class="lucky">
       <div><span class="k">幸運色</span><span class="v"><i class="sw e${F.le}"></i>${F.la.c.split('、')[0]}</span></div>
@@ -261,17 +269,19 @@ function dailyCard(){
       <div><span class="k">財喜方位</span><span class="v">${F.la.d.split('、')[0]}</span></div>
       <div><span class="k">沖煞</span><span class="v">沖${F.chongDesc.replace(/^\(.*?\)/,'')} 煞${F.sha}</span></div>
     </div>
-    <div class="stack" style="gap:6px"><span class="small muted">今日吉時</span><div class="chips">${F.good.map(x=>`<span class="pill good">${ZHI[x.k]}時 ${x.r}</span>`).join('')}<span class="pill bad">避 ${ZHI[F.bad.k]}時 ${F.bad.r}</span></div></div>
+    <div class="stack" style="gap:6px"><span class="small muted">今日吉時（白天）</span><div class="chips">${F.good.map(x=>`<span class="pill good">${ZHI[x.k]}時 ${x.r}</span>`).join('')}<span class="pill bad">避 ${ZHI[F.bad.k]}時 ${F.bad.r}</span></div>
+      ${dayOff===0?`<div class="nowhour"><span class="dot ${F.now.s>=4?'good':F.now.s>=3?'mid':'bad'}"></span><span>現在是<b>${ZHI[F.now.k]}時</b>（${F.now.r}）${F.now.s>=4?'，正是好時辰，適合處理重要的事。':F.now.s>=3?'，時運平穩，按部就班即可。':'，時運稍弱，重要決定可以等下一個吉時。'}</span></div>`:''}</div>
     <div class="yiji"><b class="y">宜</b><span>${F.yi.join('、')||'—'}</span><b class="j">忌</b><span>${F.ji.join('、')||'—'}</span></div>
-    <details><summary class="small" style="color:var(--seal)">五大面向詳解 ＋</summary><div class="tbl-wrap" style="margin-top:8px"><table class="tbl">${F.areas.map(a=>`<tr><th>${a.n}</th><td>${meter(a.s)} <span class="small muted">${a.d}</span><br><span class="small">${areaTxt(a.n,a.s)}</span></td></tr>`).join('')}</table></div></details>
+    <details class="disc"><summary>五大面向詳解</summary><div class="tbl-wrap" style="margin-top:8px"><table class="tbl">${F.areas.map(a=>`<tr><th>${a.n}</th><td>${meter(a.s)} <span class="small muted">${a.d}</span><br><span class="small">${areaTxt(a.n,a.s)}</span></td></tr>`).join('')}</table></div></details>
     ${dailyTarotHtml(date)}
   </section>`;
 }
+function dtKey(date){return 'gx_dt_'+date.toDateString()}
 function dailyTarotHtml(date){
-  const d=tarotDaily(date), c=tcard(d.i);
-  return `<div class="daily-tarot"><button type="button" class="tcard${d.rev?' rev':''}" id="dailyCard" aria-label="翻開${dayOff?'當日':'今日'}塔羅牌"><span class="in"><span class="bk">${CARD_BACK}</span><span class="fr">${cardFace(d.i)}</span></span></button>
-    <div class="stack" style="gap:4px;min-width:0"><span class="eyebrow">${dayOff?'當日':'每日'}一牌</span><span id="dailyHint" class="small muted">點牌翻開，看看今天的提醒</span>
-    <div id="dailyMeaning" hidden><b>${c.zh}・${d.rev?'逆位':'正位'}</b><p class="small">${d.rev?c.rev:c.up}</p></div></div></div>`;
+  const d=tarotDaily(date), c=tcard(d.i), open=store.get(dtKey(date),false);
+  return `<div class="daily-tarot"><button type="button" class="tcard${d.rev?' rev':''}${open?' up':''}" id="dailyCard" data-dkey="${dtKey(date)}" aria-label="翻開${dayOff?'當日':'今日'}塔羅牌"><span class="in"><span class="bk">${CARD_BACK}</span><span class="fr">${cardFace(d.i)}</span></span></button>
+    <div class="stack" style="gap:4px;min-width:0"><span class="eyebrow">${dayOff?'當日':'每日'}一牌</span><span id="dailyHint" class="small muted"${open?' hidden':''}>先在心裡想著今天最在意的事，再點牌翻開</span>
+    <div id="dailyMeaning" class="stack" style="gap:4px"${open?'':' hidden'}><b>${c.zh}・${d.rev?'逆位':'正位'}</b><span class="small muted">${d.rev?c.kwR:c.kwU}</span><p class="small">${d.rev?c.rev:c.up}</p>${c.major?`<p class="small"><b>今日提醒</b>　${c.adv}</p>`:''}<button type="button" class="btn sm" data-dtarot="${d.i}" data-drev="${d.rev?1:0}" style="align-self:flex-start">看完整解讀</button></div></div></div>`;
 }
 function qmBestNow(){return Object.values(qimen(new Date()).cells).sort((a,b)=>b.score-a.score)[0]}
 const AREA_TXT={
@@ -305,7 +315,7 @@ function renderOverview(){
   </div>
   <div class="card stack">
     <div class="row between"><div><div class="eyebrow">${P.gender==='男'?'乾造':'坤造'} · 屬${SX[ZHI.indexOf(D.birthZ)]}</div><h3 class="h3">${esc(P.sur+P.given)} 的命盤</h3></div>
-      <div class="small muted" style="text-align:right">國曆 ${D.y}/${D.m}/${D.d}<br>農曆 ${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())} ${HOURS[P.hour].split(' ')[0]}</div></div>
+      <div class="small muted" style="text-align:right">國曆 ${D.y}/${D.m}/${D.d}<br>農曆 ${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())} ${P.hour===13?'時辰不確定':HOURS[P.hour].split(' ')[0]}</div></div>
     <div class="pillars">${['年柱','月柱','日柱','時柱'].map((lb,i)=>{const p=D.pillars[i];return `<div class="pillar${i===2?' dm':''}"><div class="lb">${lb}</div><div class="gz"><span class="t${gWx(p[0])}">${p[0]}</span><span class="t${zWx(p[1])}">${p[1]}</span></div><div class="ss">${i===2?'日主':shishen(D.dm,p[0])}</div></div>`}).join('')}</div>
     <div class="wxbar" aria-label="五行分布">${D.cnt.map((c,e)=>c?`<span style="flex:${c};background:var(--${['wood','fire','earth','metal','water'][e]})"></span>`:'').join('')}</div>
     <div class="legend">${D.cnt.map((c,e)=>`<span><i style="background:var(--${['wood','fire','earth','metal','water'][e]})"></i>${WX[e]} ${c}</span>`).join('')}</div>
@@ -381,15 +391,15 @@ function renderZiwei(){
   const yMing=Y.palaceNames.indexOf('命宮');
   const yMutWhere=Y.mutagen.map((s,i)=>{const idx=A.palaces.findIndex(p=>[...p.majorStars,...p.minorStars].some(x=>x.name===s));return `${s}化${'祿權科忌'[i]}入${idx>=0?A.palaces[idx].name:'—'}`});
   const overviewRows=A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>{const ms=p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars;return `<tr><th><button type="button" class="btn sm ghost" data-pal="${i}">${p.name}</button></th><td>${p.majorStars.length?'':'<span class="muted">借對宮 </span>'}${ms.map(s=>`${s.name}${s.brightness?`<span class="muted small">${s.brightness}</span>`:''}${s.mutagen?`<i class="mu ${s.mutagen}">${s.mutagen}</i>`:''}`).join('、')||'—'}<br><span class="small muted">${PALACE[p.name]}・${(GC.STAR[ms[0]?.name]||[])[0]||''}</span></td></tr>`}).join('');
-  $('#v-ziwei').innerHTML=`${helpBox('ziwei')}
-  <div class="row between"><div><div class="eyebrow">紫微斗數 · ${A.fiveElementsClass}</div><h2 class="h2">命盤十二宮</h2></div>
+  $('#v-ziwei').innerHTML=`
+  <div class="row between"><div class="eyebrow">${A.fiveElementsClass} · 命主${A.soul} · 身主${A.body}</div>
     <div class="seg" role="group" aria-label="流年疊盤" style="min-width:150px"><button type="button" data-zy="0" aria-pressed="${!zwYearOn}">本命</button><button type="button" data-zy="1" aria-pressed="${zwYearOn}">疊${lnYear}</button></div></div>
   <div class="board-wrap"><div class="board">${cells}
     <div class="center"><div class="nm">${esc(P.sur+P.given)}</div><div>${P.gender==='男'?'陽':'陰'}${P.gender} · ${A.zodiac} · ${A.sign}</div><div>${S2T(A.lunarDate)}</div><div>${A.chineseDate}</div><div>${A.fiveElementsClass} · 命主${A.soul} · 身主${A.body}</div>
     ${zwYearOn?`<div class="small" style="margin-top:4px"><b>${lnYear} ${Y.heavenlyStem}${Y.earthlyBranch}年</b><br>${Y.mutagen.map((s,i)=>`${s}<i class="mu ${'祿權科忌'[i]}">${'祿權科忌'[i]}</i>`).join(' ')}</div>`:''}</div>
   </div></div>
   <p class="small muted">點任一宮看解讀；淡紅底為該宮的三方四正。${zwYearOn?'虛線框四化為流年四化，右上角為流年宮位。':''}</p>
-  <div class="card stack">
+  <div class="card stack" id="zwDetail">
     <div class="row between"><div><div class="eyebrow">${sel.heavenlyStem}${sel.earthlyBranch}宮 · 大限 ${sel.decadal.range[0]}–${sel.decadal.range[1]} 歲${dec.index===zwSel?' · 目前大限':''}</div><h3 class="h3">${sel.name}：${PALACE[sel.name]||''}</h3></div></div>
     ${borrowed?`<p class="small muted">本宮無主星，借對宮（${A.palaces[(zwSel+6)%12].name}）主星論斷，特質較不穩定、易受環境影響。</p>`:''}
     ${ownMaj.map(s=>`<p><b>${s.name}</b>${s.brightness?`<span class="pill ${['廟','旺'].includes(s.brightness)?'good':s.brightness==='陷'||s.brightness==='不'?'bad':'mid'}" style="margin-left:6px">${s.brightness}・${BRIGHT[s.brightness]||''}</span>`:''}　${MAJOR[s.name]||''}</p>${starDetail(s.name)}`).join('')}
@@ -405,8 +415,9 @@ function renderZiwei(){
     <p>身宮在<b>${A.palaces.find(p=>p.isBodyPalace).name}</b>：中年以後，人生重心會放在${FOCUS[A.palaces.find(p=>p.isBodyPalace).name]}。</p>
     <p class="small muted">生年四化：${[...A.palaces.flatMap(p=>[...p.majorStars,...p.minorStars].filter(s=>s.mutagen).map(s=>`${s.name}化${s.mutagen}在${p.name}`))].join('、')}。</p>
   </div>
-  <details class="card"><summary><div class="row between"><h3 class="h3">十二宮總覽</h3><span class="small muted">點宮名跳轉 ＋</span></div></summary><div class="tbl-wrap" style="margin-top:10px"><table class="tbl">${overviewRows}</table></div></details>
-  ${zwYearOn?`<div class="card stack"><h3 class="h3">${lnYear} 流年重點</h3><p>流年命宮落在本命<b>${A.palaces[yMing].name}</b>，這一年你的心思會放在${FOCUS[A.palaces[yMing].name]}。</p><p class="small">${yMutWhere.join('、')}。</p><p class="small muted">化忌所在的宮位，是今年最需要用心、也最容易卡關的地方。</p></div>`:''}`;
+  <details class="card more"><summary><div><h3 class="h3">十二宮總覽</h3><span class="small muted">每宮主星一覽，點宮名跳轉</span></div></summary><div class="tbl-wrap" style="margin-top:10px"><table class="tbl">${overviewRows}</table></div></details>
+  ${zwYearOn?`<div class="card stack"><h3 class="h3">${lnYear} 流年重點</h3><p>流年命宮落在本命<b>${A.palaces[yMing].name}</b>，這一年你的心思會放在${FOCUS[A.palaces[yMing].name]}。</p><p class="small">${yMutWhere.join('、')}。</p><p class="small muted">化忌所在的宮位，是今年最需要用心、也最容易卡關的地方。</p></div>`:''}
+  ${helpBox('ziwei')}`;
 }
 
 /* ---------- 視圖：流年 ---------- */
@@ -435,15 +446,14 @@ function renderLiunian(){
   const MN=['正','二','三','四','五','六','七','八','九','十','冬','臘'], JIE=['2/4','3/6','4/5','5/6','6/6','7/7','8/8','9/8','10/8','11/7','12/7','1/6'];
   const months=MN.map((n,k)=>{const gz=GAN[(m0+k)%10]+ZHI[(k+2)%12];return {n,gz,ss:shishen(D.dm,gz[0]),s:gzScore(gz),jie:JIE[k]}});
   const curM=lnYear===cy?((ZHI.indexOf(Solar.fromDate(new Date()).getLunar().getMonthInGanZhiExact()[1])-2+12)%12):-1;
-  const W=520,Hh=150,pad=26,bw=(W-pad*2)/12;
-  const yv=s=>Hh-22-(s-1)/4*(Hh-46);
-  const bars=months.map((m,k)=>{const x=pad+k*bw+bw*.18,w=bw*.64,y=yv(m.s);return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${(Hh-22-y).toFixed(1)}" rx="3" fill="${k===curM?'var(--seal)':m.s>=4?'var(--good)':m.s>=3?'var(--mid)':'var(--bad)'}" opacity="${k===curM?1:.75}"/><text x="${(x+w/2).toFixed(1)}" y="${Hh-6}" text-anchor="middle" font-size="12" fill="var(--muted)">${m.n}</text><text x="${(x+w/2).toFixed(1)}" y="${(y-5).toFixed(1)}" text-anchor="middle" font-size="10.5" fill="var(--ink)">${m.gz}</text>`}).join('');
-  const grid=[1,3,5].map(s=>`<line x1="${pad}" x2="${W-pad}" y1="${yv(s)}" y2="${yv(s)}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${pad-6}" y="${yv(s)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${s}</text>`).join('');
+  const W=360,Hh=178,pad=18,bw=(W-pad-4)/12;
+  const yv=s=>Hh-24-(s-1)/4*(Hh-58);
+  const bars=months.map((m,k)=>{const x=pad+k*bw+bw*.16,w=bw*.68,y=yv(m.s),on=k===curM;return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${(Hh-24-y).toFixed(1)}" rx="4" fill="${m.s>=4?'var(--good)':m.s>=3?'var(--tint)':'var(--bad)'}" opacity="${on?1:.62}"${on?' stroke="var(--ink)" stroke-width="1.5"':''}/><text x="${(x+w/2).toFixed(1)}" y="${Hh-8}" text-anchor="middle" font-size="11" font-weight="${on?700:400}" fill="${on?'var(--ink)':'var(--muted)'}">${m.n}</text><text x="${(x+w/2).toFixed(1)}" y="${(y-12).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="var(--ink)">${m.gz[0]}</text><text x="${(x+w/2).toFixed(1)}" y="${(y-2.5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="var(--ink)">${m.gz[1]}</text>${on?`<text x="${(x+w/2).toFixed(1)}" y="${(y-24).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--tint)">本月</text>`:''}`}).join('');
+  const grid=[1,3,5].map(s=>`<line x1="${pad}" x2="${W-4}" y1="${yv(s)}" y2="${yv(s)}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${pad-5}" y="${yv(s)+3.5}" text-anchor="end" font-size="9.5" fill="var(--muted)">${s}</text>`).join('');
   const best=[...months].sort((a,b)=>b.s-a.s).slice(0,2), worst=[...months].sort((a,b)=>a.s-b.s).slice(0,2);
   const [cls,word]=lv(I.score);
   const TAI_FIX={'值太歲（本命年）':'本命年心情與環境易起伏，宜穩不宜大變；可多行善、安太歲，穿戴喜用色增加安定感。','沖太歲':'沖太歲主變動，搬家、換工作、出國等「主動求變」反而能順勢化解；重大投資與擔保要謹慎。','害太歲':'害太歲易有小人與誤會，人際上多一分防備，文件契約要仔細看。'};
-  $('#v-liunian').innerHTML=`${helpBox('liunian')}
-  <div><div class="eyebrow">排流年 · 八字流年 × 紫微流年</div><h2 class="h2">十年運勢</h2></div>
+  $('#v-liunian').innerHTML=`
   <div class="years" role="group" aria-label="選擇年份">${years.map(x=>`<button type="button" class="yr" data-yr="${x.y}" aria-pressed="${x.y===lnYear}"><div class="y num">${x.y}${x.y===cy?' 今':''}</div><div class="g">${x.gz}</div>${meter(x.score)}</button>`).join('')}</div>
   <div class="card stack">
     <div class="row between"><div><div class="eyebrow">${I.y} ${I.gz}年 · 屬${SX[ZHI.indexOf(I.gz[1])]} · 虛歲 ${I.age}</div><h3 class="h3">${I.ss}年</h3></div><div class="row">${meter(I.score,true)}<span class="pill ${cls}">${word}</span></div></div>
@@ -461,8 +471,8 @@ function renderLiunian(){
   </div>
   <div class="card stack">
     <div class="row between"><h3 class="h3">${I.y} 流月</h3><span class="small muted">以節氣換月</span></div>
-    <div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${Hh}" width="100%" style="min-width:420px" role="img" aria-label="流月運勢">${grid}${bars}</svg></div>
-    <details><summary class="small" style="color:var(--seal)">展開每月詳解 ＋</summary><div class="tbl-wrap" style="margin-top:8px"><table class="tbl">${months.map((m,k)=>`<tr${k===curM?' style="background:color-mix(in srgb,var(--seal) 8%,transparent)"':''}><th>${m.n}月<br><span class="small">${m.jie}起</span></th><td><b>${m.gz}・${m.ss}</b> ${meter(m.s)}<br><span class="small">${GC.MONTH_SS[m.ss]}</span></td></tr>`).join('')}</table></div></details>
+    <svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="流月運勢，1 到 5 分">${grid}${bars}</svg><div class="legend"><span><i style="background:var(--good)"></i>順</span><span><i style="background:var(--tint)"></i>平</span><span><i style="background:var(--bad)"></i>留意</span></div>
+    <details class="disc"><summary>每月詳解</summary><div class="tbl-wrap" style="margin-top:8px"><table class="tbl">${months.map((m,k)=>`<tr${k===curM?' style="background:color-mix(in srgb,var(--seal) 8%,transparent)"':''}><th>${m.n}月<br><span class="small">${m.jie}起</span></th><td><b>${m.gz}・${m.ss}</b> ${meter(m.s)}<br><span class="small">${GC.MONTH_SS[m.ss]}</span></td></tr>`).join('')}</table></div></details>
     <p class="small"><span class="good-t">較順：</span>${best.map(m=>`${m.n}月（${m.jie}起，${m.ss}）`).join('、')}　<span class="bad-t">留意：</span>${worst.map(m=>`${m.n}月（${m.jie}起，${m.ss}）`).join('、')}</p>
   </div>
   <div class="card stack">
@@ -470,7 +480,8 @@ function renderLiunian(){
     <div class="dayun">${D.yun.map((x,i)=>`<div class="dy${i===curDy?' on':''}" title="${shishen(D.dm,x.getGanZhi()[0])}運"><div class="a num">${x.getStartAge()}歲</div><div class="g">${x.getGanZhi()}</div><div class="a num">${x.getStartYear()}</div></div>`).join('')}</div>
     ${dyHere?`<p class="small"><b>目前 ${dyHere.getGanZhi()} 大運（${shishen(D.dm,dyHere.getGanZhi()[0])}運）</b>　${GC.SS_TXT[shishen(D.dm,dyHere.getGanZhi()[0])]}${D.xi.includes(gWx(dyHere.getGanZhi()[0]))?'大運天干為喜用，這十年整體助力較多。':D.ji.includes(gWx(dyHere.getGanZhi()[0]))?'大運天干為忌神，這十年宜穩紮穩打。':''}</p>`:''}
     <p class="small muted">大運十年一換，決定一段時期的大環境；流年是每年的天氣。兩者同喜，最好用力。</p>
-  </div>`;
+  </div>
+  ${helpBox('liunian')}`;
 }
 
 /* ---------- 視圖：姓名 ---------- */
@@ -494,6 +505,20 @@ function nameAnalysis(sur,given){
 const POOL=(GC.POOL||'').split('|').filter(Boolean).map(x=>({c:x[0],e:WX.indexOf(x[1]),g:x[2],m:x.slice(3)}));
 const POOLMAP=Object.fromEntries(POOL.map(x=>[x.c,x]));
 let nmOpt={g:null,len:2,fix:'',pos:0,prefer:null,res:null,show:10};
+const TONE={};(window.TONE_RAW||'').split('|').forEach(seg=>{const [t,chs]=seg.split(':');if(chs)for(const c of chs)TONE[c]=+t});
+const TONE_ZH=['','一聲','二聲','三聲','四聲','輕聲'];
+function toneInfo(full){
+  const t=[...full].map(c=>TONE[c]||0);if(t.some(x=>!x))return null;
+  let sc=0;const notes=[];
+  const pz=t.map(x=>x<=2?'平':'仄').join('');
+  if(new Set(t).size===1){sc-=8;notes.push('每個字同一個聲調，唸起來較平板')}
+  else if(pz.includes('平')&&pz.includes('仄')){sc+=3;notes.push('平仄交錯，有抑揚頓挫')}
+  else notes.push('平仄偏單一，起伏較少');
+  for(let i=1;i<t.length;i++)if(t[i]===3&&t[i-1]===3){sc-=4;notes.push('連續兩個三聲，唸起來會變調');break}
+  const last=t[t.length-1];
+  if(last===1||last===2){sc+=2;notes.push('收尾是平聲，響亮好叫')}else if(last===3){sc-=3;notes.push('收尾三聲，叫起來較低沉')}
+  return {t,pz,sc,notes};
+}
 function genNames(sur){
   const g=nmOpt.g||P.gender, pref=nmOpt.prefer||D.xi, gk=g==='男'?'m':g==='女'?'f':null;
   const pool=POOL.filter(x=>(!gk||x.g==='u'||x.g===gk)&&!sur.includes(x.c));
@@ -503,7 +528,7 @@ function genNames(sur){
   if(nmOpt.len===1){pool.forEach(a=>combos.push([a]))}
   else if(fixObj){pool.forEach(a=>{if(a.c!==fix)combos.push(nmOpt.pos===0?[fixObj,a]:[a,fixObj])})}
   else pool.forEach(a=>pool.forEach(b=>{if(a.c!==b.c)combos.push([a,b])}));
-  const out=[];
+  const out=[];let seed=nmOpt.seed||1;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
   for(const cs of combos){
     const given=cs.map(x=>x.c).join('');const N=nameAnalysis(sur,given);if(!N.ok)continue;
     const ks=['ren','di','wai','zong'].map(k=>n81(N.g[k])[0]);
@@ -511,17 +536,18 @@ function genNames(sur){
     let sc=N.score+(D.xi.includes(N.e[1])?6:D.ji.includes(N.e[1])?-6:0);
     cs.forEach(x=>{if(pref.includes(x.e))sc+=4;if(D.ji.includes(x.e))sc-=4});
     if(ks.every(k=>k==='吉'))sc+=4;
-    out.push({given,cs,N,sc});
+    const T=toneInfo(sur+given);if(T)sc+=T.sc;
+    out.push({given,cs,N,T,sc,j:sc+rnd()*6});
   }
-  out.sort((a,b)=>b.sc-a.sc);
+  out.sort((a,b)=>b.j-a.j);
   const used={},pick=[];
-  for(const o of out){if(o.cs.some(x=>(used[x.c]||0)>=2&&x.c!==fix))continue;o.cs.forEach(x=>used[x.c]=(used[x.c]||0)+1);pick.push(o);if(pick.length>=30)break}
+  for(const o of out){if(o.cs.some(x=>used[x.c]&&x.c!==fix))continue;o.cs.forEach(x=>used[x.c]=1);pick.push(o);if(pick.length>=30)break}
   return pick;
 }
 function candHtml(o,sur,fav){
   return `<div class="cand"><div class="nm">${esc(sur)}${o.given}</div><div class="sc">${Math.min(100,o.N.score)}<span class="small muted"> 分</span></div>
     <div class="meta">${o.cs.map(x=>`<span>${x.c}${x.e>=0?elTag(x.e):''} ${strokesOf(x.c)}畫・${esc(x.m)}</span>`).join('')}</div>
-    <div class="meta"><span>人格${o.N.g.ren}</span><span>地格${o.N.g.di}</span><span>外格${o.N.g.wai}</span><span>總格${o.N.g.zong}</span><span>三才 ${o.N.e.map(e=>WX[e]).join('')}</span>${D.xi.includes(o.N.e[1])?'<span class="good-t">人格補喜用</span>':''}</div>
+    <div class="meta"><span>人格${o.N.g.ren}</span><span>地格${o.N.g.di}</span><span>外格${o.N.g.wai}</span><span>總格${o.N.g.zong}</span><span>三才 ${o.N.e.map(e=>WX[e]).join('')}</span>${o.T?`<span>音律 ${o.T.pz}</span>`:''}${D.xi.includes(o.N.e[1])?'<span class="good-t">人格補喜用</span>':''}</div>
     <div class="acts"><button type="button" class="btn sm" data-try="${o.given}">帶入詳細分析</button><button type="button" class="btn sm ghost" data-fav="${o.given}">${fav.includes(sur+o.given)?'已收藏 ✓':'收藏'}</button></div></div>`;
 }
 function renderName(){
@@ -549,6 +575,7 @@ function renderName(){
       <p>人格${WX[N.e[1]]} → 地格${WX[N.e[2]]}　${GC.SANCAI_REL[N.r2]}這組代表你與家庭、部屬、子女的關係與健康基礎。</p>
       <p>${GC.REN_WX[N.e[1]]}</p>
     </div>
+    ${(()=>{const T=toneInfo(sur+given);return T?`<div class="card stack"><h3 class="h3">音律　<span class="small muted">${[...(sur+given)].map((c,i)=>`${c}${TONE_ZH[T.t[i]]}`).join('・')}</span></h3><p>平仄：<b>${T.pz}</b>。${T.notes.join('；')}。</p><p class="small muted">名字天天被叫，好唸、好記、不拗口，和數理一樣重要。</p></div>`:''})()}
     <div class="card stack">
       <h3 class="h3">姓名 × 八字</h3>
       <p>你的八字喜用 ${D.xi.map(elTag).join(' ')}，忌 ${D.ji.map(elTag).join(' ')}。人格屬${elTag(renE)}，<span class="${match}-t">${match==='good'?'正好補到命局需要的五行，名字與命盤相輔相成。':match==='bad'?'屬於命局的忌神，名字對運勢的助力有限。':'不衝突也不特別補益。'}</span></p>
@@ -568,6 +595,7 @@ function renderName(){
     ${nmOpt.len===2?`<div class="grid2"><label class="f" for="nmFix">指定一字（輩分字，可空白）<input id="nmFix" maxlength="1" value="${esc(nmOpt.fix)}" placeholder="例：宇"></label><div class="f"><span>放在</span><div class="seg" role="group" aria-label="指定字位置"><button type="button" data-np="0" aria-pressed="${nmOpt.pos===0}">第一字</button><button type="button" data-np="1" aria-pressed="${nmOpt.pos===1}">第二字</button></div></div></div>`:''}
     <div class="f"><span>偏好用字五行（預設為你的喜用神）</span><div class="chips">${[0,1,2,3,4].map(e=>`<button type="button" class="chip" data-ne="${e}" aria-pressed="${pref.includes(e)}">${WX[e]}</button>`).join('')}</div></div>
     <button type="button" class="btn primary block" id="genBtn">產生建議名字</button>
+    ${nmOpt.res&&nmOpt.res.length?`<button type="button" class="btn block" id="genAgain">換一批</button>`:''}
     ${nmOpt.res?(nmOpt.res.length?`<div>${nmOpt.res.slice(0,nmOpt.show).map(o=>candHtml(o,sur,fav)).join('')}</div>${nmOpt.res.length>nmOpt.show?`<button type="button" class="btn block" id="genMore">顯示更多（還有 ${nmOpt.res.length-nmOpt.show} 個）</button>`:''}`:'<p>這組條件找不到五格皆吉的名字，試試改變字數、指定字或放寬性別。</p>'):''}
   </div>
   ${fav.length?`<div class="card stack"><div class="row between"><h3 class="h3">我的收藏</h3><button type="button" class="btn sm ghost" id="favClear">清除</button></div><div class="chips">${fav.map(n=>`<button type="button" class="chip" data-tryfull="${esc(n)}">${esc(n)}</button>`).join('')}</div><p class="small muted">點名字可帶入上方詳細分析比較。</p></div>`:''}
@@ -575,13 +603,13 @@ function renderName(){
     <p class="small">一、姓名學是輔助，八字與努力才是根本；改名後要常用（簽名、自我介紹、社群），力量才會發揮。</p>
     <p class="small">二、除了數理，也要唸起來順口、字義正面、不易寫錯或被取綽號，並避開長輩名諱。</p>
     <p class="small">三、正式改名前，建議把 2–3 個候選名字抽一張塔羅、求一支籤，或與家人討論，挑自己最有感的那一個。</p></div>`;
-  $('#v-name').innerHTML=`${helpBox('name')}
-  <div><div class="eyebrow">姓名學</div><h2 class="h2">一個名字，五種格局</h2></div>
+  $('#v-name').innerHTML=`
   <div class="card stack">
     <div class="grid2"><label class="f" for="nmSur">姓<input id="nmSur" maxlength="2" value="${esc(sur)}"></label><label class="f" for="nmGiven">名<input id="nmGiven" maxlength="3" value="${esc(given)}"></label></div>
     <div class="namegrid">${[...sur].length===1?virt():''}${chars.map(x=>`<div class="ch"><div class="c">${esc(x.c)}</div><input type="number" min="1" max="64" aria-label="${esc(x.c)}的筆畫" data-ch="${esc(x.c)}" value="${x.n||''}" placeholder="?"><small>${x.t}</small></div>`).join('')}${[...given].length===1?virt():''}</div>
     <p class="small muted">筆畫依康熙字典計算（氵算水4、艹算艸6、扌算手4、忄算心4、王旁算玉5、阝依阜8／邑7）。查無的字可自行填入。</p>
-  </div>${body}${gen}`;
+  </div>${body}${gen}
+  ${helpBox('name')}`;
 }
 
 /* ---------- 視圖：奇門 ---------- */
@@ -620,10 +648,9 @@ function renderQimen(){
       <span class="pal">${PAL[p][0]}${p} ${PAL[p][1]}</span><span class="es">${c.earth}</span></button>`}).join('');
   const uS=STAR_S[use.star.split('‧')[0]], uD=DOOR_S[use.door], uG=GOD_S[use.god];
   const us=use.score, uLv=us>=3?['good','可行']:us>=0?['mid','謹慎可行']:['bad','暫緩'];
-  $('#v-qimen').innerHTML=`${helpBox('qimen')}
-  <div><div class="eyebrow">奇門遁甲 · 時家轉盤 · 拆補法</div><h2 class="h2">此時此刻，往哪裡走</h2></div>
+  $('#v-qimen').innerHTML=`
   <div class="card stack">
-    <div class="grid2"><label class="f" for="qmT">起局時間<input id="qmT" type="datetime-local" value="${dtv}"></label><div class="f"><span>　</span><button type="button" class="btn" id="qmNow">回到現在</button></div></div>
+    <label class="f" for="qmT"><span class="row between">起局時間${qmTime?'<button type="button" class="btn sm ghost" id="qmNow">回到現在</button>':'<span class="pill good">即時</span>'}</span><input id="qmT" type="datetime-local" value="${dtv}"></label>
     <div class="chips" role="group" aria-label="所問之事">${CATS.map(c=>`<button type="button" class="chip" data-qc="${c}" aria-pressed="${c===qmCat}">${c}</button>`).join('')}</div>
     <p class="small muted">${Q.jq} · ${Q.yang?'陽':'陰'}遁${'一二三四五六七八九'[Q.ju-1]}局（${Q.yuan}元）· ${Q.dayGZ}日 ${Q.hourGZ}時 · 旬首${Q.xunYi} · 值符${Q.zhiFu} · 值使${Q.zhiShi}門 · 空亡${Q.kong} · 馬星${Q.maZ}</p>
   </div>
@@ -633,12 +660,13 @@ function renderQimen(){
     <div class="row between"><div><div class="eyebrow">問${qmCat} · 用神${kind==='door'?key+'門':key}</div><h3 class="h3">用神落${PAL[use.p][0]}${use.p}宮 · ${PAL[use.p][1]}方</h3></div><span class="pill ${uLv[0]}">${uLv[1]}</span></div>
     <p><b>${use.door}門</b>：${uD[1]}。<b>${use.star}</b>：${uS[1]}。<b>${use.god}</b>：${uG[1]}。</p>
     ${use.kong?'<p class="bad-t">用神落空亡：事情虛而不實，或時機未到，宜等出空（過了這個時辰／旬）再行動。</p>':''}
-    ${use.po?`<p class="mid-t">${use.door}門受宮所迫（門迫），${DOOR_S[use.door][0]>0?'吉門被迫，好處打折扣。':'凶上加凶，宜避開。'}</p>`:''}
+    ${use.po?`<p class="mid-t">${use.door}門受宮所迫（門迫），${DOOR_S[use.door][0]>0?'吉門被迫，好處打折扣。':DOOR_S[use.door][0]<0?'凶上加凶，宜避開。':'阻力增加，行事要多一分耐心。'}</p>`:''}
     ${use.ma?'<p class="good-t">逢驛馬，事情變動快，利出行與跑動。</p>':''}
     <div class="reader"><div class="seal" aria-hidden="true">遁</div><p>${us>=3?`此時${qmCat}之事可行，往${PAL[use.p][1]}方向或在此時辰行動最有利。`:us>=0?`${qmCat}之事吉凶參半，可行但要準備備案；若能選擇，改走${PAL[best.p][1]}方較順。`:`此時不利${qmCat}，建議換個時辰再看，或往${PAL[best.p][1]}方（${best.door}門）借力。`}</p></div>
   </div>
   ${qmSel?qmDetail(Q.cells[qmSel]):`<p class="small muted" style="text-align:center">點盤面任一宮，查看該方位的詳細解讀</p>`}
-  <div class="card flat stack"><h3 class="h3">此時最佳方位：${PAL[best.p][1]}</h3><p class="small">${best.door}門・${best.star}・${best.god}。談事、出門、坐位面向這個方位，借一點天時地利。</p></div>`;
+  <div class="card flat stack"><h3 class="h3">此時最佳方位：${PAL[best.p][1]}</h3><p class="small">${best.door}門・${best.star}・${best.god}。談事、出門、坐位面向這個方位，借一點天時地利。</p></div>
+  ${helpBox('qimen')}`;
 }
 
 /* ---------- 塔羅 ---------- */
@@ -696,20 +724,23 @@ function sym(k,col,cx,cy,sz){
   return C(0,0,12);
 }
 function cardFace(i){
-  const c=tcard(i), [b1,b2,g]=SUIT_PAL[c.suit], id='g'+i;
+  const c=tcard(i), [b1,b2,g]=SUIT_PAL[c.suit], id='g'+i, rg='r'+i;
   let art='';
-  if(c.major||c.r===0||c.r>=10)art=sym(c.sym,g,60,96,c.major?44:c.r===0?48:40);
-  else{const n=c.r+1, cols=n<=3?1:2, rows=Math.ceil(n/cols);for(let k=0;k<n;k++){const col=k%cols,row=Math.floor(k/cols);const x=cols===1?60:44+col*32, y=96+(row-(rows-1)/2)*(rows>4?22:26);art+=sym(c.sym,g,x,y,rows>4?16:20)}}
-  const court=!c.major&&c.r>=10?`<text x="60" y="142" text-anchor="middle" font-size="9" fill="${g}" letter-spacing="2" opacity=".85">${['PAGE','KNIGHT','QUEEN','KING'][c.r-10]}</text>`:'';
-  return `<svg viewBox="0 0 120 200" class="tface" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${b1}"/><stop offset="1" stop-color="${b2}"/></linearGradient></defs>
-    <rect width="120" height="200" rx="10" fill="url(#${id})"/><rect x="6" y="6" width="108" height="188" rx="6" fill="none" stroke="${g}" stroke-opacity=".55" stroke-width=".8"/>
-    <text x="60" y="30" text-anchor="middle" font-size="13" fill="${g}" font-family="Georgia,'Times New Roman',serif" letter-spacing="1">${c.num}</text>
+  if(c.major||c.r===0||c.r>=10)art=sym(c.sym,g,60,98,c.major?50:c.r===0?52:44);
+  else{const n=c.r+1, cols=n<=3?1:2, rows=Math.ceil(n/cols), sz=n<=3?26:n<=6?22:18, gap=rows>4?21:rows>3?24:28;for(let k=0;k<n;k++){const col=k%cols,row=Math.floor(k/cols);const x=cols===1?60:(n%2&&k===n-1?60:43+col*34), y=98+(row-(rows-1)/2)*gap;art+=sym(c.sym,g,x,y,sz)}}
+  const court=!c.major&&c.r>=10?`<text x="60" y="146" text-anchor="middle" font-size="8.5" fill="${g}" letter-spacing="2.5" opacity=".85">${['PAGE','KNIGHT','QUEEN','KING'][c.r-10]}</text>`:'';
+  const star=(x,y)=>`<path d="M${x} ${y-3}L${x+.8} ${y-.8}L${x+3} ${y}L${x+.8} ${y+.8}L${x} ${y+3}L${x-.8} ${y+.8}L${x-3} ${y}L${x-.8} ${y-.8}Z" fill="${g}" opacity=".8"/>`;
+  return `<svg viewBox="0 0 120 200" class="tface" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="${b1}"/><stop offset="1" stop-color="${b2}"/></linearGradient><radialGradient id="${rg}" cx="50%" cy="49%" r="40%"><stop offset="0" stop-color="${g}" stop-opacity=".28"/><stop offset="1" stop-color="${g}" stop-opacity="0"/></radialGradient></defs>
+    <rect width="120" height="200" rx="10" fill="url(#${id})"/><ellipse cx="60" cy="98" rx="50" ry="56" fill="url(#${rg})"/>
+    <rect x="5" y="5" width="110" height="190" rx="7" fill="none" stroke="${g}" stroke-opacity=".7" stroke-width=".9"/><rect x="8.5" y="8.5" width="103" height="183" rx="5" fill="none" stroke="${g}" stroke-opacity=".3" stroke-width=".5"/>
+    ${star(14,14)}${star(106,14)}${star(14,186)}${star(106,186)}
+    <circle cx="60" cy="26" r="11" fill="none" stroke="${g}" stroke-opacity=".55" stroke-width=".7"/><text x="60" y="30.2" text-anchor="middle" font-size="${c.num.length>2?8.5:11.5}" fill="${g}" font-family="Georgia,'Times New Roman',serif">${c.num}</text>
     ${art}${court}
-    <text x="60" y="168" text-anchor="middle" font-size="12.5" fill="${g}" font-family="'Noto Serif TC','Songti TC',serif">${c.zh}</text>
-    <text x="60" y="182" text-anchor="middle" font-size="6.5" fill="${g}" opacity=".7" letter-spacing=".8" font-family="Georgia,serif">${c.en.toUpperCase()}</text></svg>`;
+    <path d="M30 156H90" stroke="${g}" stroke-opacity=".45" stroke-width=".6"/><circle cx="60" cy="156" r="1.6" fill="${g}"/>
+    <text x="60" y="171" text-anchor="middle" font-size="13" font-weight="600" fill="${g}" font-family="'Noto Serif TC','Songti TC',serif">${c.zh}</text>
+    <text x="60" y="183" text-anchor="middle" font-size="6.2" fill="${g}" opacity=".75" letter-spacing=".9" font-family="Georgia,serif">${c.en.toUpperCase()}</text></svg>`;
 }
-const CARD_BACK=`<svg viewBox="0 0 120 200" class="tback" aria-hidden="true"><rect width="120" height="200" rx="10" fill="#141B33"/><rect x="6" y="6" width="108" height="188" rx="6" fill="none" stroke="#D9B46A" stroke-opacity=".6" stroke-width=".8"/>${Array.from({length:16},(_,i)=>{const a=i/16*Math.PI*2;return `<line x1="${60+Math.cos(a)*10}" y1="${100+Math.sin(a)*10}" x2="${60+Math.cos(a)*(i%2?26:38)}" y2="${100+Math.sin(a)*(i%2?26:38)}" stroke="#D9B46A" stroke-opacity=".7" stroke-width=".8"/>`}).join('')}<circle cx="60" cy="100" r="8" fill="none" stroke="#D9B46A" stroke-width=".8"/><circle cx="60" cy="100" r="44" fill="none" stroke="#D9B46A" stroke-opacity=".35" stroke-width=".6"/><circle cx="60" cy="100" r="2" fill="#D9B46A"/></svg>`;
-
+const CARD_BACK=`<svg viewBox="0 0 120 200" class="tback" aria-hidden="true"><defs><radialGradient id="cbg" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#22305A"/><stop offset="1" stop-color="#0E1428"/></radialGradient><pattern id="cbp" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 6H12M6 0V12" stroke="#D9B46A" stroke-opacity=".09" stroke-width=".6"/></pattern></defs><rect width="120" height="200" rx="10" fill="url(#cbg)"/><rect width="120" height="200" rx="10" fill="url(#cbp)"/><rect x="5" y="5" width="110" height="190" rx="7" fill="none" stroke="#D9B46A" stroke-opacity=".7" stroke-width=".9"/><rect x="9" y="9" width="102" height="182" rx="5" fill="none" stroke="#D9B46A" stroke-opacity=".3" stroke-width=".5"/>${Array.from({length:24},(_,i)=>{const a=i/24*Math.PI*2;return `<line x1="${(60+Math.cos(a)*12).toFixed(1)}" y1="${(100+Math.sin(a)*12).toFixed(1)}" x2="${(60+Math.cos(a)*(i%2?28:40)).toFixed(1)}" y2="${(100+Math.sin(a)*(i%2?28:40)).toFixed(1)}" stroke="#D9B46A" stroke-opacity="${i%2?.45:.8}" stroke-width=".7"/>`}).join('')}<circle cx="60" cy="100" r="44" fill="none" stroke="#D9B46A" stroke-opacity=".4" stroke-width=".6"/><circle cx="60" cy="100" r="48" fill="none" stroke="#D9B46A" stroke-opacity=".2" stroke-width=".5" stroke-dasharray="1.5 2.5"/><path d="M60 88L63 97L72 100L63 103L60 112L57 103L48 100L57 97Z" fill="#D9B46A" opacity=".9"/><path d="M60 22L62 27L67 29L62 31L60 36L58 31L53 29L58 27Z M60 164L62 169L67 171L62 173L60 178L58 173L53 171L58 169Z" fill="#D9B46A" opacity=".6"/></svg>`;
 let tSpread='three', tQ='', tCat='綜合', tDeck=null, tPicked=[], tFlipped=false, tReading=null;
 function shuffleDeck(){const a=Array.from({length:78},(_,i)=>i);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.map(i=>({i,rev:Math.random()<.5}))}
 function spreadDef(){return TD.spreads.find(s=>s.k===tSpread)}
@@ -717,6 +748,19 @@ function slotHtml(k,d,pos){
   const p=tPicked[k];const cls=['slot',tSpread==='celtic'?'c'+(k+1):''];
   if(!p)return `<div class="${cls.join(' ')}"><div class="tcard empty"><span>${k+1}</span></div><span class="sl">${pos}</span></div>`;
   return `<div class="${cls.join(' ')}"><button type="button" class="tcard${tFlipped?' up':''}${p.rev?' rev':''}" data-tslot="${k}" aria-label="${pos}：${tFlipped?tcard(p.i).zh+(p.rev?'逆位':'正位'):'未翻開'}" style="--d:${k*90}ms"><span class="in"><span class="bk">${CARD_BACK}</span><span class="fr">${cardFace(p.i)}</span></span></button><span class="sl">${pos}</span></div>`;
+}
+let tLib=null, tLibSel=null;
+function libHtml(){
+  const groups=[['major','大牌',Array.from({length:22},(_,i)=>i)],...TD.suits.map((s,k)=>[s.k,s.zh,Array.from({length:14},(_,r)=>22+k*14+r)])];
+  const g=groups.find(x=>x[0]===(tLib||'major'));
+  const sel=tLibSel!=null?tcard(tLibSel):null;
+  return `<details class="card more lib"${tLib?' open':''}><summary><div><h3 class="h3">牌義圖鑑</h3><span class="small muted">78 張牌的正逆位意義</span></div></summary>
+    <div class="stack" style="margin-top:12px"><div class="seg" role="group" aria-label="牌組">${groups.map(x=>`<button type="button" data-lib="${x[0]}" aria-pressed="${x[0]===g[0]}">${x[1]}</button>`).join('')}</div>
+    <div class="libgrid">${g[2].map(i=>`<button type="button" class="lc${tLibSel===i?' on':''}" data-libc="${i}" aria-label="${tcard(i).zh}">${cardFace(i)}</button>`).join('')}</div>
+    ${sel?`<div class="libd stack" id="libd"><div class="row between"><h4>${sel.zh}</h4><span class="small muted">${sel.en}</span></div>
+      <p class="small muted">${sel.major?`大阿爾克那 ${sel.num}`:`${sel.S.zh}（${sel.S.el}）· ${sel.S.dom} · ${RANK_THEME[sel.r]}`}</p>
+      <div class="catgrid"><div class="catrow"><b>正位</b><span><b>${sel.kwU}</b><br>${sel.up}</span></div><div class="catrow"><b>逆位</b><span>${sel.major?`<b>${sel.kwR}</b><br>`:''}${sel.rev}</span></div>
+      ${sel.major?`<div class="catrow"><b>感情</b><span>${sel.love}</span></div><div class="catrow"><b>工作</b><span>${sel.work}</span></div><div class="catrow"><b>建議</b><span>${sel.adv}</span></div>`:`<div class="catrow"><b>感情</b><span>${TD.lens.感情[sel.suit][0]}</span></div><div class="catrow"><b>工作</b><span>${TD.lens.事業[sel.suit][0]}</span></div>`}</div></div>`:'<p class="small muted">點任一張牌查看牌義。</p>'}</div></details>`;
 }
 function renderTarot(){
   const d=spreadDef(), need=d.pos.length, done=tPicked.length>=need;
@@ -726,17 +770,27 @@ function renderTarot(){
     <label class="f" for="tQ">想問的事<textarea id="tQ" maxlength="80" placeholder="例：這段關係接下來會怎麼發展？">${esc(tQ)}</textarea></label>
     <div class="chips" role="group" aria-label="問事類別">${CATS.map(c=>`<button type="button" class="chip" data-tcat="${c}" aria-pressed="${c===tCat}">${c}</button>`).join('')}</div>
   </div>
-  <div class="hscroll" role="group" aria-label="選擇牌陣">${TD.spreads.map(s=>`<button type="button" class="spread${s.k===tSpread?' on':''}" data-spread="${s.k}" aria-pressed="${s.k===tSpread}"><b>${s.n}</b><span>${s.pos.length} 張 · ${s.d}</span></button>`).join('')}</div>
-  <div class="card stack table">
+  <div class="hscroll" id="spreads" role="group" aria-label="選擇牌陣">${TD.spreads.map(s=>`<button type="button" class="spread${s.k===tSpread?' on':''}" data-spread="${s.k}" aria-pressed="${s.k===tSpread}"><b>${s.n}</b><span>${s.pos.length} 張 · ${s.d}</span></button>`).join('')}</div>
+  <div class="card stack table" id="ttable">
     <div class="row between"><div><div class="eyebrow">${d.n}</div><h3 class="h3">${!tDeck?'先靜心洗牌':done?(tFlipped?'牌已翻開':'點牌或一次翻開'):`憑直覺選 ${need-tPicked.length} 張`}</h3></div><span class="small muted num">${tPicked.length}/${need}</span></div>
     <div class="spreadbox ${tSpread}">${d.pos.map((p,k)=>slotHtml(k,d,p)).join('')}</div>
-    ${!tDeck?`<p class="ritual">心裡默想你的問題，按下洗牌。洗好後從牌堆中憑感覺抽牌，不必想太多。</p><button type="button" class="btn primary block" id="tShuffle">洗牌</button>`
-      :!done?`<div class="deck" id="deck">${tDeck.map((c,k)=>tPicked.some(p=>p.k===k)?'':`<button type="button" class="dc" data-dk="${k}" aria-label="抽這張" style="--k:${k}">${CARD_BACK}</button>`).join('')}</div><div class="grid2"><button type="button" class="btn" id="tAuto">幫我抽</button><button type="button" class="btn" id="tReshuffle">重新洗牌</button></div>`
+    ${!tDeck?`<p class="ritual">深呼吸，心裡默想你的問題，按下洗牌。洗好後從牌堆中憑感覺抽牌，不必想太多。</p><button type="button" class="btn primary block" id="tShuffle">洗牌</button>`
+      :!done?`<p class="ritual" style="text-align:center">左右滑動牌堆，被哪張吸引就點哪張</p><div class="deck" id="deck">${tDeck.map((c,k)=>tPicked.some(p=>p.k===k)?'':`<button type="button" class="dc" data-dk="${k}" aria-label="抽這張" style="--k:${k}">${CARD_BACK}</button>`).join('')}</div><div class="grid2"><button type="button" class="btn" id="tAuto">幫我抽</button><button type="button" class="btn" id="tReshuffle">重新洗牌</button></div>`
       :`<div class="grid2">${tFlipped?'':`<button type="button" class="btn primary" id="tFlip">全部翻開</button>`}<button type="button" class="btn${tFlipped?' block':''}" id="tReshuffle" ${tFlipped?'style="grid-column:1 / -1"':''}>再抽一次</button></div>`}
   </div>
   <div id="tResult" class="stack">${tFlipped&&tReading?tarotReadingHtml(tReading):''}</div>
-  ${hist.length?`<div class="card stack"><div class="row between"><h3 class="h3">抽牌紀錄</h3><button type="button" class="btn sm ghost" id="tClear">清除</button></div><div class="list">${hist.map((h,k)=>`<button type="button" class="li" data-thist="${k}"><span class="q">${esc(h.q||'（未寫問題）')}</span><span class="small muted">${esc(h.t)} · ${esc(TD.spreads.find(s=>s.k===h.s).n)}</span><span class="small muted">${h.c.map(x=>tcard(x.i).zh+(x.rev?'逆':'')).join('、')}</span><span class="chev" aria-hidden="true"></span></button>`).join('')}</div></div>`:''}
+  ${hist.length?`<div class="card stack"><div class="row between"><h3 class="h3">抽牌紀錄</h3><button type="button" class="btn sm ghost" id="tClear">清除</button></div><div class="list">${hist.map((h,k)=>`<button type="button" class="li" data-thist="${k}"><span class="q">${esc(h.q||'（未寫問題）')}</span><span class="small muted">${esc(h.t)} · ${esc(TD.spreads.find(s=>s.k===h.s).n)} · ${h.c.map(x=>tcard(x.i).zh+(x.rev?'(逆)':'')).join('、')}</span><span class="chev" aria-hidden="true"></span></button>`).join('')}</div></div>`:''}
+  ${libHtml()}
   ${helpBox('tarot')}`;
+  const sp=$('#spreads'), on=sp&&sp.querySelector('.on');if(on)sp.scrollLeft=on.offsetLeft-(sp.clientWidth-on.clientWidth)/2;
+}
+function lensOf(c,cat){
+  if(c.major){if(cat==='感情')return c.love;if(cat==='事業'||cat==='學業')return c.work;return c.adv}
+  const L=TD.lens[cat];return L?L[c.suit][c.R?1:0]:null;
+}
+function shareText(R){
+  const d=TD.spreads.find(s=>s.k===R.s);
+  return `【觀象閣・塔羅】${R.q||'塔羅占卜'}\n牌陣：${d.n}\n`+R.c.map((x,k)=>{const c=tcard(x.i);return `${d.pos[k]}：${c.zh}${x.rev?'（逆位）':'（正位）'}— ${x.rev?c.rev:c.up}`}).join('\n');
 }
 function tarotReadingHtml(R){
   const d=TD.spreads.find(s=>s.k===R.s), cards=R.c.map(x=>({...tcard(x.i),R:x.rev}));
@@ -746,29 +800,38 @@ function tarotReadingHtml(R){
   const dom=Object.entries(sc).sort((a,b)=>b[1]-a[1])[0];
   const domS=dom&&dom[1]>=2?TD.suits.find(s=>s.k===dom[0]):null;
   const tone=score>=1.5?['good','整體偏正向']:score>-1?['mid','吉凶參半']:['bad','需要謹慎'];
-  const key=cards[cards.length-1];
-  let yn='';
-  if(d.k==='yesno'){const c=cards[0],s=cardScore(c,c.R);yn=`<div class="answer ${s>0?'good':s<0?'bad':'mid'}"><b>${s>0?'是':s<0?'否':'還不確定'}</b><span>${s>0?'牌面支持這件事，可以去做。':s<0?'牌面不支持，先暫緩或換個方式。':'條件還沒成熟，答案取決於你接下來的行動。'}</span></div>`}
-  const cat=R.cat||'綜合';
-  const per=cards.map((c,k)=>`<div class="tread"><div class="mini${c.R?' rev':''}">${cardFace(c.i)}</div><div class="stack" style="gap:4px;min-width:0">
-    <div class="eyebrow">${k+1}. ${d.pos[k]}</div><h4>${c.zh}<span class="pill ${c.R?'mid':'good'}">${c.R?'逆位':'正位'}</span></h4>
-    <p class="small muted">${c.en} · ${c.major?`大阿爾克那 ${c.num}`:`${c.S.zh}（${c.S.el}）· ${c.S.dom}`}</p>
+  const key=cards[cards.length-1], cat=R.cat||'綜合';
+  let verdict='';
+  if(d.k==='yesno'){const c=cards[0],s=cardScore(c,c.R);verdict=`<div class="answer ${s>0?'good':s<0?'bad':'mid'}"><b>${s>0?'是':s<0?'否':'未定'}</b><span>${s>0?'牌面支持這件事，可以去做。':s<0?'牌面不支持，先暫緩或換個方式。':'條件還沒成熟，答案取決於你接下來的行動。'}</span></div>`}
+  if(d.k==='choice'){const a=cardScore(cards[1],cards[1].R)+cardScore(cards[2],cards[2].R)*1.5,b=cardScore(cards[3],cards[3].R)+cardScore(cards[4],cards[4].R)*1.5;const w=Math.abs(a-b)<1?'mid':a>b?'A':'B';verdict=`<div class="answer ${w==='mid'?'mid':'good'}"><b>${w==='mid'?'兩者相近':`選 ${w}`}</b><span>${w==='mid'?'兩個選擇的能量差不多，回到你真正在乎的價值做決定。':`選擇 ${w} 的過程與結果牌都比較順，${w==='A'?cards[2].zh:cards[4].zh}是你會得到的結果。`}</span></div>`}
+  if(d.k==='love'){const me=cardScore(cards[0],cards[0].R),you=cardScore(cards[1],cards[1].R);verdict=`<div class="answer ${me>0&&you>0?'good':me<0&&you<0?'bad':'mid'}"><b>${me>0&&you>0?'兩情相悅':me>0&&you<=0?'你較投入':me<=0&&you>0?'對方較投入':'都有保留'}</b><span>${me>0&&you>0?'雙方心意都是正向的，關係有發展空間。':me>0?'你的心意比較積極，對方還在觀望或有顧慮。':you>0?'對方比你更積極，你可以想想自己真正的感受。':'兩個人都還沒完全打開心，需要更多時間與信任。'}</span></div>`}
+  const keyLens=lensOf(key,cat==='綜合'?'事業':cat);
+  const oneLine=`${tone[0]==='good'?'牌面整體是支持你的':tone[0]==='mid'?'事情有機會，但需要條件配合':'牌面提醒你先停下來想清楚'}。關鍵落在「${d.pos[cards.length-1]}」的<b>${key.zh}${key.R?'逆位':''}</b>：${key.major?key.adv:(key.R?key.rev:key.up)}`;
+  const per=cards.map((c,k)=>{const lz=cat!=='綜合'?lensOf(c,cat):null;return `<div class="tread"><div class="mini${c.R?' rev':''}">${cardFace(c.i)}</div><div class="stack" style="gap:4px;min-width:0">
+    <div class="eyebrow">${k+1}. ${d.pos[k]} · ${TD.posd[d.pos[k]]}</div><h4>${c.zh}<span class="pill ${c.R?'mid':'good'}">${c.R?'逆位':'正位'}</span></h4>
+    <p class="small muted">${c.en} · ${c.major?`大阿爾克那 ${c.num}`:`${c.S.zh}（${c.S.el}）· ${RANK_THEME[c.r]}`}</p>
     <p class="small"><b>${c.R?c.kwR:c.kwU}</b></p>
     <p>${c.R?c.rev:c.up}</p>
-    ${c.major?`<p class="small muted">感情：${c.love}　工作：${c.work}</p>`:`<p class="small muted">${TD.ranks[c.r]}代表${RANK_THEME[c.r]}，落在${c.S.dom}的領域。</p>`}
-  </div></div>`).join('');
+    ${lz?`<p class="small lens"><b>就${esc(cat)}而言</b>　${lz}</p>`:c.major?`<p class="small muted">感情：${c.love}　工作：${c.work}</p>`:`<p class="small muted">${TD.ranks[c.r]}落在${c.S.dom}的領域。</p>`}
+  </div></div>`}).join('');
   const tips=[
-    ['趨吉',key.major?key.adv:`把力氣放在${key.S.dom}上，${key.R?'先修正方向再前進':'順著這股能量行動'}。`],
-    ['避凶',revs>=Math.ceil(cards.length/2)?'逆位牌偏多，代表內在阻力或時機未到：放慢腳步、先處理情緒與卡住的環節。':cards.some(c=>HARD_CARDS.has(c.i)&&c.major)?'牌陣中有轉變型的大牌，抗拒改變反而受傷，主動調整比被動接受好。':'留意牌面中逆位或困難牌提到的狀況，提前做好準備。'],
-    ['行動',domS?`${domS.zh}牌最多，問題核心在「${domS.dom}」；${{wands:'用行動與熱情推進',cups:'先照顧感受與關係',swords:'理清思緒、把話說清楚',pentacles:'從實際的錢與時間規劃著手'}[domS.k]}。`:majors>=Math.ceil(cards.length/2)?'大阿爾克那佔多數，這件事牽動人生方向，值得認真看待、謹慎決定。':'牌面分布平均，按部就班處理即可，不必過度焦慮。']];
+    ['趨吉',key.major?key.adv:`${keyLens||`把力氣放在${key.S.dom}上`}${key.R?'先修正方向再前進。':''}`],
+    ['避凶',revs>=Math.ceil(cards.length/2)?'逆位牌偏多，代表內在阻力或時機未到：放慢腳步，先處理情緒與卡住的環節。':cards.some(c=>HARD_CARDS.has(c.i)&&c.major)?'牌陣中有轉變型的大牌，抗拒改變反而受傷，主動調整比被動接受好。':'留意逆位或困難牌提到的狀況，提前準備就能避開。'],
+    ['行動',domS?`${domS.zh}牌最多，問題核心在「${domS.dom}」，${{wands:'用行動與熱情推進',cups:'先照顧感受與關係',swords:'理清思緒、把話說清楚',pentacles:'從實際的錢與時間規劃著手'}[domS.k]}。`:majors>=Math.ceil(cards.length/2)?'大阿爾克那佔多數，這件事牽動人生方向，值得認真看待、謹慎決定。':'牌面分布平均，按部就班處理即可，不必過度焦慮。']];
   return `<div class="card stack">
-    <div class="row between"><div><div class="eyebrow">${esc(R.t)} · ${d.n}${R.q?'':''}</div><h3 class="h3">${R.q?esc(R.q):'塔羅解讀'}</h3></div><span class="pill ${tone[0]}">${tone[1]}</span></div>
-    ${yn}
-    <p>${cards.length>1?`這次抽到 ${cards.length} 張牌，其中大阿爾克那 ${majors} 張、逆位 ${revs} 張。${majors>=2?'多張大牌出現，代表這件事受較大的命運力量推動。':''}${domS?`${domS.zh}牌最多，重點落在${domS.dom}。`:''}最關鍵的「${d.pos[cards.length-1]}」是<b>${key.zh}${key.R?'逆位':'正位'}</b>：${key.R?key.rev:key.up}`:`${key.zh}${key.R?'逆位':'正位'}：${key.R?key.rev:key.up}`}</p>
-    ${cat!=='綜合'&&key.major?`<p class="small"><b>針對${esc(cat)}</b>　${cat==='感情'?key.love:cat==='事業'||cat==='學業'?key.work:key.adv}</p>`:''}
+    <div class="row between"><div><div class="eyebrow">${esc(R.t)} · ${d.n}</div><h3 class="h3">${R.q?esc(R.q):'塔羅解讀'}</h3></div><span class="pill ${tone[0]}">${tone[1]}</span></div>
+    ${verdict}
+    <div class="reader"><div class="seal" aria-hidden="true">言</div><p>${oneLine}</p></div>
+    ${cards.length>1?`<p class="small muted">共 ${cards.length} 張：大阿爾克那 ${majors} 張、逆位 ${revs} 張。${majors>=2?'多張大牌出現，這件事受較大的命運力量推動。':''}${domS?`${domS.zh}牌最多，重點落在${domS.dom}。`:''}</p>`:''}
   </div>
   <div class="card stack"><h3 class="h3">逐張解讀</h3>${per}</div>
-  <div class="card stack"><h3 class="h3">趨吉避凶</h3><div class="checks">${tips.map(([k,t])=>`<div class="check static"><span class="ct"><b>${k}</b>${t}</span></div>`).join('')}</div><p class="small muted">塔羅反映的是此刻的能量與可能性，結果會隨你的選擇而改變。同一件事建議隔一段時間、情況有變化後再問。</p></div>`;
+  <div class="card stack"><h3 class="h3">趨吉避凶</h3><div class="checks">${tips.map(([k,t])=>`<div class="check static"><span class="ct"><b>${k}</b>${t}</span></div>`).join('')}</div>
+    <button type="button" class="btn block" id="tShare">分享這次解讀</button>
+    <p class="small muted">塔羅反映的是此刻的能量與可能性，結果會隨你的選擇而改變。同一件事建議隔一段時間、情況有變化後再問。</p></div>`;
+}
+async function shareOut(text){
+  try{if(navigator.share){await navigator.share({title:'觀象閣',text});return}}catch(e){if(e&&e.name==='AbortError')return}
+  try{await navigator.clipboard.writeText(text);toast('已複製，可以貼到 LINE')}catch(e){toast('無法自動複製，請長按選取文字')}
 }
 function tarotFinish(){
   const now=new Date();
@@ -934,7 +997,7 @@ function renderQian(){
   const seg=`<div class="seg" role="group" aria-label="求籤或擲筊"><button type="button" data-qm="qian" aria-pressed="${qMode==='qian'}">求籤詩</button><button type="button" data-qm="jiao" aria-pressed="${qMode==='jiao'}">擲筊問事</button></div>`;
   let body='';
   if(qMode==='jiao'){
-    body=`<div class="card stack">
+    body=`<div class="card stack" id="jcard">
       <label class="f" for="jQ">想請示的事（用「是／否」能回答的問法）<textarea id="jQ" maxlength="60" placeholder="例：這個月適合搬家嗎？">${esc(jQ)}</textarea></label>
       <p class="ritual">雙手合十，在心中稟告姓名、生日與所問之事。筊杯合起放在掌心，於胸前誠心默念後輕輕擲下。</p>
       <div class="jstage">${jiaoStage(qLast)}</div>
@@ -968,34 +1031,57 @@ function renderQian(){
         ${qLast?`<p class="${qLast.r==='sheng'?'good-t':'bad-t'}">${qLast.r==='sheng'?(qStreak>=need?'確認完成，這就是恩主公賜給你的籤。':'聖筊，請再擲。'):'不是聖筊，這支籤不是給你的，請重新抽籤。'}</p>`:''}
         ${qLast&&qLast.r==='sheng'&&qStreak>=need?`<button type="button" class="btn primary block" id="qNext3">看籤詩</button>`:qLast&&qLast.r!=='sheng'?`<button type="button" class="btn primary block" id="qRedraw">重新抽籤</button>`:`<button type="button" class="btn primary block" id="qConfirm">擲筊</button>`}</div>`;
     }else st=qianResult(qNo,qCat,qQ);
-    body=`<div class="card stack">${steps}${st}</div>`;
+    body=`<div class="card stack" id="qcard">${steps}${st}</div>`;
   }
   const hist=store.get('gx_qian',[]);
   $('#v-qian').innerHTML=`
-  <div class="card shrine-card">${SHRINE}<p class="shrine-cap">恩主公・協天大帝</p></div>
+  <div class="card shrine-card${qMode==='jiao'||qStep>0?' compact':''}">${SHRINE}<p class="shrine-cap">恩主公・協天大帝</p></div>
   ${seg}${body}
   ${qMode==='qian'&&hist.length?`<div class="card stack"><div class="row between"><h3 class="h3">求籤紀錄</h3><button type="button" class="btn sm ghost" id="qClear">清除</button></div><div class="list">${hist.map((h,k)=>`<button type="button" class="li" data-qhist="${k}"><span class="q">第 ${h.n} 籤 · ${QD[h.n-1][1]}籤</span><span class="small muted">${esc(h.t)}</span><span class="small muted">${esc(h.cat)}${h.q?' · '+esc(h.q):''}</span><span class="chev" aria-hidden="true"></span></button>`).join('')}</div></div>`:''}
-  <p class="small muted note">本頁為個人參考工具，並非行天宮或任何宮廟的官方服務。籤詩採用民間流傳的六十甲子籤，用字可能與廟方籤紙略有出入；正式求籤請親赴宮廟。</p>
+  ${qMode==='jiao'?'':''}<p class="small muted note">本頁為個人參考工具，並非行天宮或任何宮廟的官方服務。籤詩採用民間流傳的六十甲子籤，用字可能與廟方籤紙略有出入；正式求籤請親赴宮廟。</p>
   ${helpBox('qian')}`;
+  if(qScroll){qScroll=false;const c=$(qMode==='jiao'?'#jcard':'#qcard');if(c)requestAnimationFrame(()=>c.scrollIntoView({behavior:'smooth',block:'start'}))}
 }
-function tubeSVG(n){return `<svg viewBox="0 0 120 170" class="tube${n?' out':''}" aria-hidden="true">
-  <g class="sticks">${Array.from({length:9},(_,k)=>`<rect x="${30+k*7}" y="${14+(k%3)*5}" width="4" height="80" rx="2" fill="#D9A55C" stroke="#8A5A22" stroke-width=".6"/>`).join('')}</g>
-  <g class="pop"><rect x="56" y="-10" width="8" height="96" rx="3" fill="#E8BE76" stroke="#8A5A22" stroke-width=".8"/>${n?`<text x="60" y="30" text-anchor="middle" font-size="9" fill="#7A1E16" font-family="'Noto Serif TC',serif" writing-mode="tb">${n}</text>`:''}</g>
-  <path d="M24 56 L96 56 L90 166 L30 166 Z" fill="#B8322A" stroke="#7A1E16" stroke-width="2"/>
-  <path d="M24 56 L96 56" stroke="#E9C46A" stroke-width="5"/><path d="M28 150 L92 150" stroke="#E9C46A" stroke-width="3"/>
-  <text x="60" y="112" text-anchor="middle" font-size="20" fill="#F3D389" font-family="'Noto Serif TC',serif">籤</text></svg>`}
+let qScroll=false;
+function tubeSVG(n){return `<svg viewBox="0 0 120 180" class="tube${n?' out':''}" aria-hidden="true"><defs>
+  <linearGradient id="tb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7A4A22"/><stop offset=".35" stop-color="#C08850"/><stop offset=".6" stop-color="#A87038"/><stop offset="1" stop-color="#5E3616"/></linearGradient>
+  <linearGradient id="tg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9C6A1E"/><stop offset=".5" stop-color="#F3D389"/><stop offset="1" stop-color="#9C6A1E"/></linearGradient></defs>
+  <g class="sticks">${Array.from({length:11},(_,k)=>`<rect x="${31+k*5.6}" y="${16+(k*7%4)*5}" width="3.6" height="80" rx="1.8" fill="#E2B877" stroke="#8A5A22" stroke-width=".5"/><rect x="${31+k*5.6}" y="${16+(k*7%4)*5}" width="3.6" height="8" rx="1.8" fill="#B5322A"/>`).join('')}</g>
+  <g class="pop"><rect x="55" y="-8" width="10" height="100" rx="3" fill="#F0CC8A" stroke="#8A5A22" stroke-width=".8"/><rect x="55" y="-8" width="10" height="10" rx="3" fill="#B5322A"/>${n?`<text x="60" y="${n>9?20:22}" text-anchor="middle" font-size="7" fill="#7A1E16" font-weight="700" font-family="'Noto Serif TC',serif">第</text><text x="60" y="34" text-anchor="middle" font-size="${n>9?8:9}" fill="#7A1E16" font-weight="700" font-family="Georgia,serif">${n}</text><text x="60" y="44" text-anchor="middle" font-size="7" fill="#7A1E16" font-weight="700" font-family="'Noto Serif TC',serif">籤</text>`:''}</g>
+  <path d="M26 58 L94 58 L90 172 Q60 178 30 172 Z" fill="url(#tb)"/>
+  <path d="M34 70 C36 110 36 140 35 168 M46 64 C47 110 47 140 46 172 M74 64 C73 110 73 140 74 172 M86 70 C84 110 84 140 85 168" stroke="#5E3616" stroke-width=".8" opacity=".5" fill="none"/>
+  <ellipse cx="60" cy="58" rx="34" ry="6" fill="#4A2A10"/><path d="M26 58 A34 6 0 0 0 94 58" fill="none" stroke="url(#tg)" stroke-width="4"/>
+  <rect x="27" y="76" width="66" height="5" fill="url(#tg)"/><rect x="29" y="152" width="62" height="5" fill="url(#tg)"/>
+  <rect x="44" y="92" width="32" height="48" rx="3" fill="#B5322A" stroke="url(#tg)" stroke-width="1.5"/>
+  <text x="60" y="113" text-anchor="middle" font-size="15" fill="#F3D389" font-family="'Noto Serif TC',serif" font-weight="700">靈</text><text x="60" y="132" text-anchor="middle" font-size="15" fill="#F3D389" font-family="'Noto Serif TC',serif" font-weight="700">籤</text></svg>`}
+const QGUIDE={
+ 家運:['家宅平安、人和事順，可安排家庭聚會、添購家用或整修。','家中小事較多，多溝通、各退一步；注意長輩健康。','家運暫時起伏，凡事以和為貴，避免爭執與大筆支出。'],
+ 事業:['工作推進順利，可主動爭取機會、提出計畫。','先把手邊的事做好，穩定後再求表現；換工作宜再觀察。','暫不宜大變動，守住崗位、累積實力，等待時機。'],
+ 求財:['財運亨通，正財穩、可適度布局。','財來得慢，靠努力與累積；投資分批、不追高。','守財為上，不借貸、不擔保、不衝動投資。'],
+ 婚姻:['緣分到了，可以談感情、論婚嫁。','還需要時間培養與磨合，多些耐心與坦誠。','此時不宜勉強，先照顧好自己；舊事別再糾結。'],
+ 健康:['身體逐漸好轉，保持作息即可。','需要好好調養，配合醫囑、不可輕忽。','宜盡早就醫檢查，多休息，避免勞累。'],
+ 出行:['出行平安順利，可以安心出發。','可以出行，但行前多確認細節、預留時間。','能延則延；若必須出門，注意交通與財物安全。'],
+ 功名:['考試、升遷有望，努力會被看見。','需要再加把勁，穩紮穩打方能有成。','時機未到，充實自己，下一回更有把握。'],
+ 失物:['東西還在，往熟悉的地方或近處找，可尋回。','需要花點時間，可能在高處或被移動過。','較難尋回，就當作破財消災，提醒自己日後小心。'],
+ 訴訟:['理在你這方，可依理力爭，宜有貴人協助。','雙方各有道理，以協調和解為上策。','不宜興訟，退一步、尋求和解以免耗損。']};
+const QTIME=['近期即可見到轉機，大約在一個月內。','需要一段時間醞釀，約一至三個月逐漸明朗。','宜等過了這個時節（季節更替後）再行動。'];
+const QDO=[['積極行動','把握時機','行善回饋'],['守本分','多做準備','耐心等待'],['暫緩決定','守成保守','多行善事']];
+const QDONT=[['得意忘形','鬆懈怠慢'],['急躁冒進','聽信傳言'],['勉強硬來','借貸擔保']];
+function qianShareText(n,cat,q){const Q=QD[n-1];return `【觀象閣・求籤】第 ${n} 籤（${Q[0]}・${Q[1]}籤）\n${Q[2]}\n白話：${Q[3]}\n所問：${cat}${q?'——'+q:''}`}
 function qianResult(n,cat,q){
   const Q=QD[n-1], lines=Q[2].replace(/。$/,'').split('，');
-  const catIdx={事業:4,功名:4,求財:5,婚姻:6,健康:7,家運:8,出行:8,失物:8,訴訟:8}[cat]||8;
-  const lvCls=Q[1].startsWith('上')?'good':Q[1]==='中'?'mid':'bad';
-  const advice=Q[1].startsWith('上')?'這是一支好籤。順勢而為，但別因順利而鬆懈；得償所願後記得回宮謝神、行善回饋。':Q[1]==='中'?'吉凶參半，關鍵在你的作法：守本分、多準備，時機到了自然轉好。':'這支籤提醒你暫緩、守成。不必害怕，下籤是提早示警；照著籤意調整，可以避開損失。過一段時間、情況改變後可以再來請示。';
+  const lv=Q[1].startsWith('上')?0:Q[1]==='中'?1:2, lvCls=['good','mid','bad'][lv];
+  const FIELD={家運:8,事業:4,求財:5,婚姻:6,健康:7,出行:8,功名:4,失物:8,訴訟:8};
+  const advice=['這是一支好籤。順勢而為，但別因順利而鬆懈；得償所願後記得回宮謝神、行善回饋。','吉凶參半，關鍵在你的作法：守本分、多準備，時機到了自然轉好。','這支籤是提早示警，不必害怕。照著籤意調整，可以避開損失；情況改變後可以再來請示。'][lv];
   return `<div class="stack">
     <div class="slip"><div class="slip-h"><span>第 ${n} 籤</span><span>${Q[0]}</span><span class="pill ${lvCls}">${Q[1]}籤</span></div>
       <div class="poem">${lines.map(l=>`<span>${[...l].map(c=>`<i>${c}</i>`).join('')}</span>`).join('')}</div></div>
     <p><b>白話</b>　${Q[3]}</p>
-    <div class="catgrid">${[['事業・功名',4],['求財',5],['婚姻・感情',6],['健康',7],['平安・其他',8]].map(([k,i])=>`<div class="catrow${i===catIdx?' on':''}"><b>${k}</b><span>${Q[i]}</span></div>`).join('')}</div>
-    <div class="reader"><div class="seal" aria-hidden="true">籤</div><p>你問的是「${esc(cat)}」${q?`：${esc(q)}`:''}。${Q[catIdx]}${advice}</p></div>
-    <button type="button" class="btn block" id="qAgain">再求一籤</button></div>`;
+    <div class="reader"><div class="seal" aria-hidden="true">籤</div><p>你問的是「${esc(cat)}」${q?`：${esc(q)}`:''}。籤意說：<b>${Q[FIELD[cat]]}</b>${QGUIDE[cat][lv]}${advice}</p></div>
+    <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">宜</span><div class="chips">${QDO[lv].map(x=>`<span class="pill good">${x}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">忌</span><div class="chips">${QDONT[lv].map(x=>`<span class="pill bad">${x}</span>`).join('')}</div></div></div>
+    <p class="small"><b>應期</b>　${QTIME[lv]}</p>
+    <details class="disc"><summary>九類解籤</summary><div class="catgrid" style="margin-top:8px">${QCATS.map(c=>`<div class="catrow${c===cat?' on':''}"><b>${c}</b><span><b>${Q[FIELD[c]]}</b>${QGUIDE[c][lv]}</span></div>`).join('')}</div></details>
+    <div class="grid2"><button type="button" class="btn" id="qShare">分享籤詩</button><button type="button" class="btn" id="qAgain">再求一籤</button></div></div>`;
 }
 
 /* ---------- 導航 ---------- */
@@ -1038,12 +1124,21 @@ function updateHeader(){
 }
 
 /* ---------- 命主表單 ---------- */
-function openSheet(){
-  $('#pSur').value=P.sur;$('#pGiven').value=P.given;$('#pDate').value=P.date;
-  $('#pHour').innerHTML=HOURS.map((h,i)=>`<option value="${i}"${i===P.hour?' selected':''}>${h}</option>`).join('');
-  $$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.g===P.gender));
-  $('#sheetBack').hidden=false;setTimeout(()=>$('#pSur').focus(),80);
+function fillForm(x){
+  $('#pSur').value=x.sur||'';$('#pGiven').value=x.given||'';$('#pDate').value=x.date||'';
+  $('#pHour').innerHTML=HOURS.map((h,i)=>`<option value="${i}"${i===(x.hour??6)?' selected':''}>${h}</option>`).join('');
+  $$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.g===(x.gender||'女')));
 }
+function renderPeople(){
+  $('#people').innerHTML=PEOPLE.length?`<span class="eyebrow">已存的命盤（點名字切換）</span><div class="chips">${PEOPLE.map((x,i)=>`<button type="button" class="chip" data-person="${i}" aria-pressed="${i===curP}">${esc(x.sur+x.given)}</button>`).join('')}<button type="button" class="chip add" id="pAdd" aria-pressed="${edP===-1}">＋ 新增</button></div>`:'';
+  $('#pTitle').textContent=edP===-1?'新增命盤':PEOPLE.length?'編輯命盤':'命主資料';
+  const del=$('#pDel');del.hidden=!(edP>=0&&PEOPLE.length>1);del.dataset.sure='';del.textContent='刪除這個人';
+}
+function openSheet(){
+  edP=PEOPLE.length?curP:-1;fillForm(PEOPLE.length?P:{sur:'',given:'',gender:'女',date:'',hour:6});
+  renderPeople();$('#sheetBack').hidden=false;setTimeout(()=>$('#pSur').focus(),80);
+}
+function applyPerson(i){curP=i;P=PEOPLE[i];store.set('gx_cur',i);nameOverride=null;zwSel=null;$('#v-name').innerHTML='';nmOpt.res=null;derive();updateHeader();go(cur,false)}
 function closeSheet(){$('#sheetBack').hidden=true}
 const wait=ms=>new Promise(r=>setTimeout(r,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ms));
 async function animToss(){const j=$('#jiao');if(j){j.classList.remove('done');j.classList.add('tossing')}buzz();await wait(900)}
@@ -1056,39 +1151,47 @@ document.addEventListener('click',async e=>{
   if(t.dataset.go)return go(t.dataset.go);
   if(t.id==='whoBtn'||t.dataset.act==='profile')return openSheet();
   if(t.id==='pCancel')return closeSheet();
+  if(t.dataset.person!==undefined){const i=+t.dataset.person;applyPerson(i);closeSheet();toast(`已切換到 ${P.sur+P.given}`);return}
+  if(t.id==='pAdd'){edP=-1;fillForm({sur:'',given:'',gender:'女',date:'',hour:6});renderPeople();$('#pSur').focus();return}
+  if(t.id==='pDel'){const n=PEOPLE[edP].sur+PEOPLE[edP].given;if(t.dataset.sure!=='1'){t.dataset.sure='1';t.textContent=`確定刪除 ${n}？再按一次`;return}PEOPLE.splice(edP,1);store.set('gx_profiles',PEOPLE);applyPerson(0);closeSheet();toast(`已刪除 ${n}`);return}
   if(t.dataset.g){$$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b===t));return}
   // 今日
   if(t.dataset.day!==undefined){const n=+t.dataset.day,dir=n-dayOff;if(n===dayOff)return;dayOff=n;refreshDaily(dir);return}
   if(t.dataset.chk!==undefined){const i=+t.dataset.chk,k=dayKey();let c=store.get(k,[]);c=c.includes(i)?c.filter(x=>x!==i):[...c,i];store.set(k,c);t.classList.toggle('on',c.includes(i));t.setAttribute('aria-pressed',c.includes(i));const pill=$('#guide .pill');if(pill){pill.textContent=`${c.length}/5`;pill.className=`pill ${c.length>=5?'good':'mid'} num`}if(c.length===5)toast('今天的功課都完成了');buzz();return}
   if(t.dataset.ask){tCat=t.dataset.ask;tQ='';tDeck=null;tPicked=[];tFlipped=false;tReading=null;go('tarot');return}
-  if(t.id==='dailyCard'){t.classList.add('up');buzz();await wait(500);const r=$('#dailyMeaning'),h=$('#dailyHint');if(r)r.hidden=false;if(h)h.hidden=true;return}
+  if(t.id==='dailyCard'){if(t.classList.contains('up'))return;t.classList.add('up');store.set(t.dataset.dkey,true);buzz();await wait(500);const r=$('#dailyMeaning'),h=$('#dailyHint');if(r)r.hidden=false;if(h)h.hidden=true;return}
+  if(t.dataset.dtarot!==undefined){const now=new Date();tSpread='one';tQ='今日的提醒';tCat='綜合';tDeck=[];tPicked=[{k:-1,i:+t.dataset.dtarot,rev:t.dataset.drev==='1'}];tFlipped=true;tReading={s:'one',q:'今日的提醒',cat:'綜合',t:`${now.getMonth()+1}/${now.getDate()} 每日一牌`,c:[{i:+t.dataset.dtarot,rev:t.dataset.drev==='1'}]};go('tarot');setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),350);return}
   // 塔羅
   if(t.dataset.tcat){tCat=t.dataset.tcat;$$('[data-tcat]').forEach(c=>c.setAttribute('aria-pressed',c===t));return}
   if(t.dataset.spread){tQ=$('#tQ')?.value||tQ;tSpread=t.dataset.spread;tDeck=null;tPicked=[];tFlipped=false;tReading=null;renderTarot();return}
-  if(t.id==='tShuffle'||t.id==='tReshuffle'){tQ=$('#tQ')?.value||tQ;tPicked=[];tFlipped=false;tReading=null;tDeck=shuffleDeck();renderTarot();const d=$('#deck');if(d){d.classList.add('shuffling');buzz();setTimeout(()=>d.classList.remove('shuffling'),700)}return}
+  if(t.id==='tShuffle'||t.id==='tReshuffle'){tQ=$('#tQ')?.value||tQ;tPicked=[];tFlipped=false;tReading=null;tDeck=shuffleDeck();renderTarot();const d=$('#deck');if(d){d.classList.add('shuffling');buzz();d.scrollLeft=(d.scrollWidth-d.clientWidth)/2;setTimeout(()=>d.classList.remove('shuffling'),700);$('#ttable').scrollIntoView({behavior:'smooth',block:'start'})}return}
   if(t.dataset.dk!==undefined){const need=spreadDef().pos.length;if(tPicked.length>=need)return;const k=+t.dataset.dk;tPicked.push({k,...tDeck[k]});buzz();t.classList.add('taken');await wait(220);tQ=$('#tQ')?.value||tQ;if(tPicked.length>=need)tarotFinish();const sx=$('#deck')?.scrollLeft||0;renderTarot();const d=$('#deck');if(d)d.scrollLeft=sx;return}
   if(t.id==='tAuto'){tQ=$('#tQ')?.value||tQ;const need=spreadDef().pos.length;const free=tDeck.map((c,k)=>k).filter(k=>!tPicked.some(p=>p.k===k));while(tPicked.length<need){const k=free.splice(Math.floor(Math.random()*free.length),1)[0];tPicked.push({k,...tDeck[k]})}tarotFinish();renderTarot();return}
   if(t.id==='tFlip'||t.dataset.tslot!==undefined){if(!tReading)return;if(!tFlipped){tFlipped=true;$$('.spreadbox .tcard').forEach(c=>c.classList.add('up'));buzz();await wait(900);renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}else{const k=+t.dataset.tslot;const el=$$('.tread')[k];if(el)el.scrollIntoView({behavior:'smooth',block:'center'})}return}
   if(t.dataset.thist!==undefined){const h=store.get('gx_tarot',[])[+t.dataset.thist];if(h){tSpread=h.s;tQ=h.q;tCat=h.cat||'綜合';tDeck=[];tPicked=h.c.map((c,k)=>({k:-1-k,...c}));tFlipped=true;tReading=h;renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth'}),60)}return}
   if(t.id==='tClear'){store.set('gx_tarot',[]);renderTarot();toast('紀錄已清除');return}
+  if(t.id==='tShare'&&tReading){shareOut(shareText(tReading));return}
+  if(t.dataset.lib){tLib=t.dataset.lib;tLibSel=null;renderTarot();$('.lib')?.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(t.dataset.libc!==undefined){tLib=tLib||'major';tLibSel=+t.dataset.libc;renderTarot();$('#libd')?.scrollIntoView({block:'nearest',behavior:'smooth'});return}
   // 求籤
   if(t.dataset.qm){qMode=t.dataset.qm;qLast=null;renderQian();return}
   if(t.dataset.qcat){qCat=t.dataset.qcat;qQ=$('#qQ')?.value||qQ;renderQian();return}
-  if(t.id==='qNext0'){qQ=$('#qQ')?.value||'';qStrict=$('#qStrict')?.checked||false;qStep=1;qLast=null;qTries=0;renderQian();return}
-  if(t.id==='qAsk'){await animToss();qLast=tossJiao();qTries++;renderQian();return}
-  if(t.id==='qNext1'){qStep=2;qNo=null;qLast=null;renderQian();return}
+  if(t.id==='qNext0'){qScroll=true;qQ=$('#qQ')?.value||'';qStrict=$('#qStrict')?.checked||false;qStep=1;qLast=null;qTries=0;renderQian();return}
+  if(t.id==='qAsk'){qScroll=true;await animToss();qLast=tossJiao();qTries++;renderQian();return}
+  if(t.id==='qNext1'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}
   if(t.id==='qShake'){if(qNo)return;const s=t.querySelector('.tube');s.classList.add('shake');buzz();await wait(1200);qNo=1+Math.floor(Math.random()*60);renderQian();buzz();return}
-  if(t.id==='qNext2'){qStep=3;qLast=null;qStreak=0;renderQian();return}
-  if(t.id==='qConfirm'){await animToss();qLast=tossJiao();qStreak=qLast.r==='sheng'?qStreak+1:0;renderQian();return}
-  if(t.id==='qRedraw'){qStep=2;qNo=null;qLast=null;renderQian();return}
-  if(t.id==='qNext3'){qStep=4;const now=new Date();const h=store.get('gx_qian',[]);h.unshift({n:qNo,cat:qCat,q:qQ,t:`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`});store.set('gx_qian',h.slice(0,20));renderQian();return}
+  if(t.id==='qNext2'){qScroll=true;qStep=3;qLast=null;qStreak=0;renderQian();return}
+  if(t.id==='qConfirm'){qScroll=true;await animToss();qLast=tossJiao();qStreak=qLast.r==='sheng'?qStreak+1:0;renderQian();return}
+  if(t.id==='qRedraw'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}
+  if(t.id==='qNext3'){qScroll=true;qStep=4;const now=new Date();const h=store.get('gx_qian',[]);h.unshift({n:qNo,cat:qCat,q:qQ,t:`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`});store.set('gx_qian',h.slice(0,20));renderQian();return}
+  if(t.id==='qShare'){shareOut(qianShareText(qNo,qCat,qQ));return}
   if(t.id==='qAgain'){qStep=0;qNo=null;qLast=null;renderQian();window.scrollTo({top:0,behavior:'smooth'});return}
   if(t.dataset.qhist!==undefined){const h=store.get('gx_qian',[])[+t.dataset.qhist];if(h){qMode='qian';qStep=4;qNo=h.n;qCat=h.cat;qQ=h.q;renderQian()}return}
   if(t.id==='qClear'){store.set('gx_qian',[]);renderQian();toast('紀錄已清除');return}
-  if(t.id==='jToss'){jQ=$('#jQ')?.value||jQ;await animToss();qLast=tossJiao();jTally[qLast.r]++;renderQian();if(jTally.sheng>=3&&qLast.r==='sheng')toast('已得三個聖筊');return}
+  if(t.id==='jToss'){qScroll=true;jQ=$('#jQ')?.value||jQ;await animToss();qLast=tossJiao();jTally[qLast.r]++;renderQian();if(jTally.sheng>=3&&qLast.r==='sheng')toast('已得三個聖筊');return}
   if(t.id==='jReset'){jTally={sheng:0,xiao:0,yin:0};qLast=null;renderQian();return}
   // 命盤
-  if(t.dataset.pal!==undefined){zwSel=+t.dataset.pal;renderZiwei();return}
+  if(t.dataset.pal!==undefined){zwSel=+t.dataset.pal;renderZiwei();$('#zwDetail')?.scrollIntoView({behavior:'smooth',block:'start'});return}
   if(t.dataset.zy!==undefined){zwYearOn=t.dataset.zy==='1';renderZiwei();return}
   if(t.dataset.yr){lnYear=+t.dataset.yr;renderLiunian();return}
   // 奇門
@@ -1104,6 +1207,7 @@ document.addEventListener('click',async e=>{
   if(t.dataset.try){$('#nmGiven').value=t.dataset.try;renderName();window.scrollTo({top:0,behavior:'smooth'});return}
   if(t.dataset.tryfull){const f=t.dataset.tryfull,sl=[...($('#nmSur').value.trim()||P.sur)].length;$('#nmSur').value=[...f].slice(0,sl).join('');$('#nmGiven').value=[...f].slice(sl).join('');renderName();window.scrollTo({top:0,behavior:'smooth'});return}
   if(t.dataset.fav){const sur=$('#nmSur').value.trim(),n=sur+t.dataset.fav;let f=store.get('gx_fav',[]);f=f.includes(n)?f.filter(x=>x!==n):[n,...f].slice(0,30);store.set('gx_fav',f);t.textContent=f.includes(n)?'已收藏 ✓':'收藏';toast(f.includes(n)?'已加入收藏':'已取消收藏');return}
+  if(t.id==='genAgain'){nmOpt.seed=(nmOpt.seed||1)+7919;const sur=$('#nmSur').value.trim()||P.sur;nmOpt.res=genNames(sur);nmOpt.show=10;renderName();$('#genCard')?.scrollIntoView({behavior:'smooth',block:'start'});buzz();return}
   if(t.id==='genMore'){nmOpt.show+=10;renderName();return}
   if(t.id==='favClear'){store.set('gx_fav',[]);renderName();toast('收藏已清除');return}
 });
@@ -1124,8 +1228,8 @@ $('#pForm').addEventListener('submit',e=>{
   const np={sur:$('#pSur').value.trim(),given:$('#pGiven').value.trim(),gender:g?g.dataset.g:P.gender,date:$('#pDate').value,hour:+$('#pHour').value,sample:false};
   if(!np.sur||!np.given||!np.date){toast('請填寫姓名與生日');return}
   const yy=+np.date.slice(0,4);if(yy<1900||yy>2099){toast('生日請在 1900–2099 年之間');return}
-  P=np;store.set('gx_profile',P);nameOverride=null;zwSel=null;$('#v-name').innerHTML='';
-  derive();updateHeader();closeSheet();go(cur,false);toast('命盤已更新');
+  if(edP===-1){PEOPLE.push(np);edP=PEOPLE.length-1}else PEOPLE[edP]=np;
+  store.set('gx_profiles',PEOPLE);applyPerson(edP);closeSheet();toast(`已排好 ${np.sur+np.given} 的命盤`);
 });
 
 /* ---------- 手勢與捲動 ---------- */
