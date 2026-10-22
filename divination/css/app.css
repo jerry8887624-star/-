@@ -45,6 +45,14 @@ p{margin:0}
 .navbar #navTitle{grid-column:2;text-align:center;font-weight:600;font-size:17px;opacity:0;transform:translateY(4px);transition:opacity .25s var(--ease),transform .25s var(--ease)}
 .collapsed .navbar{background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);box-shadow:0 .5px 0 var(--line)}
 .collapsed .navbar #navTitle{opacity:1;transform:none}
+.aa{grid-column:1;justify-self:start;height:36px;min-width:44px;padding:0 9px;border-radius:18px;border:0;background:var(--tint-soft);color:var(--tint);cursor:pointer;display:flex;align-items:baseline;justify-content:center;gap:1px;font-weight:700;line-height:1}
+.aa span:first-child{font-size:13px}.aa span:last-child{font-size:19px}
+.fs-preview{background:var(--card2);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.fs-preview b{font-size:17px}
+.fs-seg button{padding:9px 2px;white-space:nowrap}
+html.boldtext body{font-weight:500}
+html.boldtext .small,html.boldtext .muted,html.boldtext p{font-weight:500}
+html.boldtext .muted{color:color-mix(in srgb,var(--muted) 70%,var(--ink))}
 .who{grid-column:3;justify-self:end;width:36px;height:36px;border-radius:50%;border:0;background:var(--tint-soft);color:var(--tint);font-weight:600;font-size:16px;cursor:pointer;display:grid;place-items:center}
 .largetitle{padding:2px 0 14px;display:flex;flex-direction:column;gap:2px}
 .largetitle small{font-size:13px;color:var(--muted);font-weight:500;letter-spacing:.01em}
