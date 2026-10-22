@@ -708,3 +708,4 @@ img.tface{display:block;width:100%;height:100%;object-fit:cover;background:#F4EE
 .jiao.tossing .bw i{opacity:0}
 .rv-art .bw i{background:rgba(255,255,255,.14);color:#F6E7C8}
 .sl .cn{display:block;color:var(--ink);font-weight:600;font-size:12.5px;margin-top:1px}
+html.narrow .rv-art .jiao{gap:12px}html.narrow .rv-art .bwei{width:56px}html.narrow .jiao{gap:14px}
