@@ -106,7 +106,7 @@ h4{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;flex-w
 .pill.good{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
 .pill.mid{color:var(--mid);background:color-mix(in srgb,var(--mid) 14%,transparent)}
 .pill.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
-.el{display:inline-grid;place-items:center;width:21px;height:21px;border-radius:6px;font-size:11.5px;font-weight:700;color:#fff;flex:none;vertical-align:-4px}
+.el{display:inline-grid;place-items:center;width:1.62em;height:1.62em;border-radius:.42em;font-size:.74em;line-height:1;font-weight:700;color:#fff;flex:none;vertical-align:.1em;margin-inline:.08em;position:relative;top:-.06em}
 .el.e0{background:var(--wood)}.el.e1{background:var(--fire)}.el.e2{background:var(--earth)}.el.e3{background:var(--metal)}.el.e4{background:var(--water)}
 .t0{color:var(--wood)}.t1{color:var(--fire)}.t2{color:var(--earth)}.t3{color:var(--metal)}.t4{color:var(--water)}
 .meter{display:inline-flex;gap:3px;vertical-align:middle}
@@ -757,3 +757,13 @@ html{scroll-padding-top:calc(64px + env(safe-area-inset-top,0px));scroll-padding
 #splash.waiting .sp-load{opacity:1}
 #splash.waiting .sp-skip{opacity:0!important;animation:none}
 #splash.out .sp-load{opacity:0}
+
+/* 八字詳解表：干支在上、十神在下，欄寬平均，不會把「日主」「霹靂火」拆成兩行 */
+.tbl.bz{table-layout:fixed}
+.tbl.bz th:first-child{width:3.4em;white-space:nowrap;padding-inline:2px 6px}
+.tbl.bz td{text-align:center;vertical-align:top}
+.tbl.bz td b{display:block;font-size:1.25em;font-weight:600;line-height:1.3}
+.tbl.bz td>.small{display:block;white-space:nowrap}
+.tbl.bz td.small{white-space:nowrap;line-height:1.6}
+.tbl.bz .hg{display:block}
+.tbl.bz tr:first-child th{text-align:center}

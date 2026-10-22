@@ -222,7 +222,7 @@ const zWx=z=>ZWX[ZHI.indexOf(z)];
 const elTag=e=>`<span class="el e${e}">${WX[e]}</span>`;
 function shishen(dm,g){const d=GAN.indexOf(dm),o=GAN.indexOf(g);const rel=(Math.floor(o/2)-Math.floor(d/2)+5)%5;return [['比肩','劫財'],['食神','傷官'],['偏財','正財'],['七殺','正官'],['偏印','正印']][rel][(d%2)===(o%2)?0:1]}
 function gzIdx(gz){const g=GAN.indexOf(gz[0]),z=ZHI.indexOf(gz[1]);for(let i=0;i<60;i++)if(i%10===g&&i%12===z)return i;return 0}
-const S2T=(()=>{const s='坏壞馀餘余餘诸諸动動门門开開盖蓋纳納财財会會亲親结結网網养養鸡雞讼訟疗療针針种種筑築竖豎经經络絡酝醞酿釀货貨订訂进進斋齋绘繪启啟钻鑽殓殮谢謝补補扫掃涂塗猎獵渔漁发髮医醫词詞机機仓倉习習艺藝学學饰飾墙牆归歸宁寧问問帐帳寿壽庙廟桥橋栖棲马馬椆稠礼禮远遠买買卖賣车車书書带帶断斷蚁蟻选選举舉庆慶赐賜应應运運处處树樹兴興产產业業场場灵靈体體头頭对對时時节節气氣惊驚蛰蟄谷穀满滿闭閉鱼魚挂掛厕廁坟墳丧喪硙磑猪豬东東龙龍腊臘无無佣傭';const m={};for(let i=0;i<s.length;i+=2)m[s[i]]=s[i+1];return t=>String(t).replace(/./g,c=>m[c]||c)})();
+const S2T=(()=>{const s='涧澗炉爐雳靂剑劍锋鋒杨楊长長灯燈驿驛钗釵钏釧闰閏蜡蠟坏壞馀餘余餘诸諸动動门門开開盖蓋纳納财財会會亲親结結网網养養鸡雞讼訟疗療针針种種筑築竖豎经經络絡酝醞酿釀货貨订訂进進斋齋绘繪启啟钻鑽殓殮谢謝补補扫掃涂塗猎獵渔漁发髮医醫词詞机機仓倉习習艺藝学學饰飾墙牆归歸宁寧问問帐帳寿壽庙廟桥橋栖棲马馬椆稠礼禮远遠买買卖賣车車书書带帶断斷蚁蟻选選举舉庆慶赐賜应應运運处處树樹兴興产產业業场場灵靈体體头頭对對时時节節气氣惊驚蛰蟄谷穀满滿闭閉鱼魚挂掛厕廁坟墳丧喪硙磑猪豬东東龙龍腊臘无無佣傭';const m={};for(let i=0;i<s.length;i+=2)m[s[i]]=s[i+1];return t=>String(t).replace(/./g,c=>m[c]||c)})();
 
 const CATS=['綜合','事業','財運','感情','健康','學業','出行'];
 /* ---------- 紫微資料 ---------- */
@@ -345,10 +345,10 @@ function baziDetail(){
   const adv=e=>{const a=GC.WX_ADV[e];return `<tr><th>${elTag(e)}</th><td>顏色：${a.c}<br>方位：${a.d}　數字：${a.n}<br>行業：${a.j}<br>生活：${a.l}</td></tr>`};
   const support=D.support, pct=Math.round(support/9*100);
   return `<details class="card more"><summary><div><h3 class="h3">八字詳解</h3><span class="small muted">日主強弱、十神、開運建議</span></div></summary><div class="stack" style="margin-top:12px">
-    <div class="tbl-wrap"><table class="tbl"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr>
-      <tr><th>天干</th>${D.pillars.map((p,i)=>`<td>${p[0]} <span class="small muted">${i===2?'日主':shishen(D.dm,p[0])}</span></td>`).join('')}</tr>
-      <tr><th>地支</th>${D.pillars.map(p=>`<td>${p[1]} <span class="small muted">${SX[ZHI.indexOf(p[1])]}</span></td>`).join('')}</tr>
-      <tr><th>藏干</th>${D.pillars.map(p=>`<td class="small">${[...ZHI_HIDE[p[1]]].map(g=>`${g}<span class="muted">${shishen(D.dm,g).slice(-1)}</span>`).join(' ')}</td>`).join('')}</tr>
+    <div class="tbl-wrap"><table class="tbl bz" data-fit="262"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr>
+      <tr><th>天干</th>${D.pillars.map((p,i)=>`<td><b>${p[0]}</b><span class="small muted">${i===2?'日主':shishen(D.dm,p[0])}</span></td>`).join('')}</tr>
+      <tr><th>地支</th>${D.pillars.map(p=>`<td><b>${p[1]}</b><span class="small muted">${SX[ZHI.indexOf(p[1])]}</span></td>`).join('')}</tr>
+      <tr><th>藏干</th>${D.pillars.map(p=>`<td class="small">${[...ZHI_HIDE[p[1]]].map(g=>`<span class="hg">${g}<span class="muted">${shishen(D.dm,g).slice(-1)}</span></span>`).join('')}</td>`).join('')}</tr>
       <tr><th>納音</th>${[D.ec.getYearNaYin(),D.ec.getMonthNaYin(),D.ec.getDayNaYin(),D.ec.getTimeNaYin()].map(n=>`<td class="small">${S2T(n)}</td>`).join('')}</tr></table></div>
     <p><b>日主強弱</b>　同類與生扶的力量約佔 ${pct}%（月令加倍計），判為<b>${D.strong?'身強':'身弱'}</b>。${D.strong?'身強的人能量充足、有主見，適合用「洩」與「耗」來平衡：發揮才華（食傷）、經營財富（財）、承擔責任（官殺）。':'身弱的人需要扶持，適合「生」與「助」：多學習、親近貴人（印）、與夥伴合作（比劫），量力而為。'}</p>
     <p><b>喜用神</b>　${D.xi.map(e=>elTag(e)+WX[e]).join('、')}　<b>忌神</b>　${D.ji.map(e=>elTag(e)+WX[e]).join('、')}</p>
