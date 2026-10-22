@@ -736,3 +736,4 @@ html.narrow .rv-art .jiao{gap:12px}html.narrow .rv-art .bwei{width:56px}html.nar
 .wel-how ol{gap:0}
 .wel-acts{padding:10px 22px calc(14px + env(safe-area-inset-bottom,0px))}
 .wel-in{padding-top:18px}@media (max-height:740px){.wel-list span,.wel-sub{display:none}.wel-list{gap:8px}}
+html{scroll-padding-top:calc(64px + env(safe-area-inset-top,0px));scroll-padding-bottom:96px}
