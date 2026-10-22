@@ -2,7 +2,11 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap">
+<!-- 字型改為非阻塞載入：字型伺服器慢時不會拖住整個 App，先用系統字，載好再換 -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap"></noscript>
+<link rel="preload" as="script" href="vendor/lunar.min.js">
+<link rel="preload" as="script" href="vendor/iztro.min.js">
 <style>
 /*APP_CSS*/
 </style>
@@ -55,7 +59,7 @@
 if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){s.classList.add('still')}
 else{var box=document.getElementById('spParts'),h='';for(var i=0;i<36;i++){var a=Math.random()*Math.PI*2,d=55+Math.random()*45,t=i/36*Math.PI*2-Math.PI/2;h+='<i style="--sx:'+(Math.cos(a)*d).toFixed(1)+'vmax;--sy:'+(Math.sin(a)*d).toFixed(1)+'vmax;--ex:'+(Math.cos(t)*.3223).toFixed(4)+';--ey:'+(Math.sin(t)*.3223).toFixed(4)+';--d:'+(.05+Math.random()*.4).toFixed(2)+'s;--z:'+(2+Math.random()*3).toFixed(1)+'px"></i>'}box.innerHTML=h}
 document.documentElement.classList.add('splashing');window.__spT0=performance.now();
-setTimeout(function(){if(!window.__gxBooted&&document.getElementById('splash'))s.classList.add('waiting')},3500);
+setTimeout(function(){if(!window.__gxBooted&&document.getElementById('splash')){s.classList.add('waiting');var sp=s.querySelector('.sp-load span'),iv=setInterval(function(){if(window.__gxBooted||!document.getElementById('splash'))return clearInterval(iv);sp.textContent=(window.__gxStage||'正在排盤')+'…'},200)}},3500);
 /* 保險：開場動畫絕不會卡住——點一下即可略過；10 秒後若程式仍未啟動，自動收起並提示重新載入 */
 var t0=Date.now();s.addEventListener('click',function(){if(Date.now()-t0>1200&&!window.__gxBooted&&window.__gxBail)window.__gxBail('仍在載入中…')});
 setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('載入時間比平常久')},10000);})();
@@ -124,9 +128,12 @@ addEventListener('error',function(e){var t=e.target;if(t&&t!==window&&t.tagName&
   if(!window.__gxBooted)setTimeout(function(){if(!window.__gxBooted)window.__gxBail('頁面載入發生問題')},1500)},true);
 addEventListener('unhandledrejection',function(e){window.__gxErr.push('Promise: '+(e.reason&&e.reason.message||e.reason))});
 </script>
+<script>window.__gxStage='載入萬年曆'</script>
 <script src="vendor/lunar.min.js"></script>
 <script>window.Solar||document.write('<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"><\/script>')</script>
+<script>window.__gxStage='載入紫微斗數'</script>
 <script src="vendor/iztro.min.js"></script>
+<script>window.__gxStage='排盤中'</script>
 <script>window.iztro||document.write('<script src="https://cdn.jsdelivr.net/npm/iztro@2.6.1/dist/iztro.min.js"><\/script>')</script>
 <script>/*KX_DATA*/</script>
 <script>/*CONTENT*/</script>
