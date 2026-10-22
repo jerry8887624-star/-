@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """組合 src.html、css/ 與 data/ 下的資料，輸出可直接部署的 index.html。
 
-用法：python3 divination/build.py [--fragment 輸出路徑]
+用法：python3 divination/build.py [--fragment 輸出路徑] [--standalone 輸出路徑]
   預設輸出 divination/index.html（完整 HTML，給 GitHub Pages）
   --fragment 另外輸出不含 <head> 骨架的片段（給 claude.ai Artifact）
+  --standalone 另外輸出完全離線的單一檔案（vendor 與圖片內嵌、不連外部字型，給 iOS App）
 """
-import pathlib, sys
+import base64, pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent
 src = (ROOT / 'src.html').read_text(encoding='utf-8')
@@ -55,3 +56,19 @@ page = f'''<!doctype html>
 '''
 (ROOT / 'index.html').write_text(page, encoding='utf-8')
 print('page ->', ROOT / 'index.html', len(page.encode()) // 1024, 'KB')
+
+if '--standalone' in sys.argv:
+    out = pathlib.Path(sys.argv[sys.argv.index('--standalone') + 1])
+    app = page
+    for line in [l for l in app.splitlines() if 'fonts.googleapis.com' in l or 'fonts.gstatic.com' in l or 'cdn.jsdelivr.net' in l]:
+        app = app.replace(line + '\n', '')
+    for name in ['lunar.js', 'iztro.min.js']:
+        tag = f'<script src="vendor/{name}"></script>'
+        assert tag in app, tag
+        app = app.replace(tag, '<script>' + (ROOT / 'vendor' / name).read_text(encoding='utf-8') + '</script>')
+    img = 'img/guangong.jpg'
+    assert img in app, img
+    app = app.replace(img, 'data:image/jpeg;base64,' + base64.b64encode((ROOT / img).read_bytes()).decode())
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(app, encoding='utf-8')
+    print('standalone ->', out, len(app.encode()) // 1024, 'KB')

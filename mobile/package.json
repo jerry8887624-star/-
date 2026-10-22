@@ -1,0 +1,27 @@
+{
+  "name": "guanxiangge",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "expo": "~58.0.17",
+    "expo-asset": "~58.0.18",
+    "expo-file-system": "~58.0.10",
+    "expo-haptics": "~58.0.7",
+    "expo-splash-screen": "~58.0.11",
+    "expo-status-bar": "~58.0.4",
+    "react": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-webview": "14.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "sync-web": "python3 ../divination/build.py --standalone assets/web/app.html",
+    "start": "expo start",
+    "ios": "expo start --ios",
+    "typecheck": "tsc --noEmit"
+  },
+  "private": true
+}
