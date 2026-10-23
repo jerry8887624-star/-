@@ -435,6 +435,7 @@ function baziDetail(){
       <tr><th>藏干</th>${D.pillars.map(p=>`<td class="small">${[...ZHI_HIDE[p[1]]].map(g=>`<span class="hg">${g}<span class="muted">${shishen(D.dm,g).slice(-1)}</span></span>`).join('')}</td>`).join('')}</tr>
       <tr><th>納音</th>${[D.ec.getYearNaYin(),D.ec.getMonthNaYin(),D.ec.getDayNaYin(),D.ec.getTimeNaYin()].map(n=>`<td class="small">${S2T(n)}</td>`).join('')}</tr></table></div>
     <p><b>日主強弱</b>　同類與生扶的力量約佔 ${pct}%（月令加倍計），判為<b>${D.strong?'身強':'身弱'}</b>。${D.strong?'身強的人能量充足、有主見，適合用「洩」與「耗」來平衡：發揮才華（食傷）、經營財富（財）、承擔責任（官殺）。':'身弱的人需要扶持，適合「生」與「助」：多學習、親近貴人（印）、與夥伴合作（比劫），量力而為。'}</p>
+    <div class="qstory"><span class="eyebrow">古籍原文・《滴天髓・天干論》論${D.dm}${WX[D.dmE]}</span><b>${DTS[D.dm][0]}</b><p class="small">${DTS[D.dm][1]}</p></div>
     <p><b>喜用神</b>　${D.xi.map(e=>elTag(e)+WX[e]).join('、')}　<b>忌神</b>　${D.ji.map(e=>elTag(e)+WX[e]).join('、')}</p>
     ${lack.length?`<p><b>五行缺${lack.map(e=>WX[e]).join('')}</b>　缺的五行不一定要補，關鍵看是否為喜用；${lack.filter(e=>D.xi.includes(e)).length?`其中${lack.filter(e=>D.xi.includes(e)).map(e=>WX[e]).join('')}正好是喜用，特別值得補強。`:'缺的不是喜用，不必刻意補。'}</p>`:''}
     <p><b>神煞</b>　<span class="small muted">依子平法通行查法，以日干、年干、年支、日支、月支查四柱。</span></p>
@@ -493,7 +494,7 @@ function dailyCard(){
       <div class="dial-wrap">${dial(F.total)}<div class="dial-num"><b class="num" data-count="${F.total}">${F.total}</b><span>${F.word}</span></div></div></div>
     <div class="days" data-fit="290" role="group" aria-label="選擇日期">${strip}</div>
     <p class="lead">${F.sum}</p>
-    <div class="reader pnote"><div class="seal" aria-hidden="true">言</div><p>${personalNote(F,date)}</p></div>
+    <div class="reader pnote"><div class="seal" aria-hidden="true">言</div><p>${personalNote(F,date)}${D.astro?`<span class="zwd">${zwDailyText(date)}</span>`:''}</p></div>
     <div class="areas">${F.areas.map(a=>`<div class="area"><span class="an">${a.n}</span><span class="ab"><i style="--w:${a.s/5*100}%"></i></span><span class="av num">${Math.round(a.s*20)}</span></div>`).join('')}</div>
     <p class="small">${F.note}</p>
     <div class="lucky">
@@ -646,6 +647,7 @@ function renderZiwei(){
   <p class="small muted">點任一宮看解讀；淡紅底為該宮的三方四正。${zwYearOn?'虛線框四化為流年四化，右上角為流年宮位。':''}</p>
   <div class="card stack" id="zwDetail">
     <div class="row between"><div><div class="eyebrow">${sel.heavenlyStem}${sel.earthlyBranch}宮 · 大限 ${sel.decadal.range[0]}–${sel.decadal.range[1]} 歲${dec.index===zwSel?' · 目前大限':''}</div><h3 class="h3">${sel.name}：${PALACE[sel.name]||''}</h3></div></div>
+    <div class="reader"><div class="seal" aria-hidden="true">批</div><p>${palaceReading(A,zwSel)}</p></div>
     ${borrowed?`<p class="small muted">本宮無主星，借對宮（${A.palaces[(zwSel+6)%12].name}）主星論斷，特質較不穩定、易受環境影響。</p>`:''}
     ${ownMaj.map(s=>`<p><b>${s.name}</b>${s.brightness?`<span class="pill ${['廟','旺'].includes(s.brightness)?'good':s.brightness==='陷'||s.brightness==='不'?'bad':'mid'}" style="margin-left:6px">${s.brightness}・${BRIGHT[s.brightness]||''}</span>`:''}　${MAJOR[s.name]||''}</p>${starDetail(s.name)}`).join('')}
     ${mutList.length?`<p>${mutList.map(s=>`<b>${s.name}化${s.mutagen}</b>：${MUT[s.mutagen]}`).join('；')}。</p>`:''}
@@ -656,6 +658,7 @@ function renderZiwei(){
     <p class="small muted">三方四正會照：${sfNames.join('、')}，主星有${sfStars.join('、')||'—'}。論一宮必看三方四正，代表這件事的外在助力與牽動。</p>
   </div>
   <div class="card stack"><h3 class="h3">命盤格局</h3>
+    ${(()=>{const ps=zwPatterns(A);return ps.length?ps.map(x=>`<div class="qstory"><span class="eyebrow">${x[0]}・《紫微斗數全書》</span><b>${x[1]}</b><p class="small">${x[2]}</p></div>`).join(''):''})()}
     <p>${(GC.WXJU||{})[A.fiveElementsClass]||A.fiveElementsClass}</p>
     <p><b>命主${A.soul}</b>：代表先天的性格本質與一生追求。<b>身主${A.body}</b>：代表後天的努力方向與中年後的重心。</p>
     <p>身宮在<b>${A.palaces.find(p=>p.isBodyPalace).name}</b>：中年以後，人生重心會放在${FOCUS[A.palaces.find(p=>p.isBodyPalace).name]}。</p>
@@ -2033,6 +2036,7 @@ function reportHtml(){
   <header class="rp-head"><div><div class="rp-k">靈犀 LINGXI ・ 命盤解說報告</div><h1>${esc(P.sur+P.given)}</h1><p>${P.gender==='男'?'乾造（男）':'坤造（女）'}・屬${SX[ZHI.indexOf(D.birthZ)]}・國曆 ${D.y}/${D.m}/${D.d}・農曆${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())}・${P.hour===13?'時辰不確定':HOURS[P.hour].split(' ')[0]}</p></div><div class="rp-seal" aria-hidden="true"><i>靈</i><i>犀</i></div></header>
   ${sec('一、八字四柱',`<table class="rp-t"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr><tr><th>天干</th>${D.pillars.map((p,i)=>`<td><b>${p[0]}</b><br><small>${i===2?'日主':shishen(D.dm,p[0])}</small></td>`).join('')}</tr><tr><th>地支</th>${D.pillars.map(p=>`<td><b>${p[1]}</b><br><small>${SX[ZHI.indexOf(p[1])]}</small></td>`).join('')}</tr><tr><th>納音</th>${[D.ec.getYearNaYin(),D.ec.getMonthNaYin(),D.ec.getDayNaYin(),D.ec.getTimeNaYin()].map(n=>`<td><small>${S2T(n)}</small></td>`).join('')}</tr></table>
     <p><b>日主${D.dm}${WX[D.dmE]}</b>，${DMTXT[D.dm]}命局${D.strong?'偏強':'偏弱'}；五行 ${D.cnt.map((c,e)=>WX[e]+c).join('、')}${D.cnt.some(c=>!c)?`，缺${D.cnt.map((c,e)=>c?'':WX[e]).join('')}`:''}。</p>
+    <p><b>《滴天髓》論${D.dm}</b>：${DTS[D.dm][0]}<br><small>${DTS[D.dm][1]}</small></p>
     <p><b>喜用神</b> ${D.xi.map(e=>WX[e]).join('、')}　<b>忌神</b> ${D.ji.map(e=>WX[e]).join('、')}</p>
     <p><b>主要十神</b>：${topSS.map(([k])=>`${k}——${GC.SS_TXT[k]}`).join('<br>')}</p>
     ${(()=>{const ss=bzShensha();return ss.length?`<p><b>神煞</b>：${ss.map(o=>`${o.n}（${o.w.map(i=>PILLAR_N[i]).join('、')}）`).join('、')}</p>`:''})()}
@@ -2040,6 +2044,8 @@ function reportHtml(){
   ${A?sec('二、紫微斗數',`<p>${A.fiveElementsClass}・命主${A.soul}・身主${A.body}</p>
     <p><b>命宮</b>（${ming.heavenlyStem}${ming.earthlyBranch}）：${ming.majorStars.length?ming.majorStars.map(s=>`<b>${s.name}</b>${s.brightness?`（${s.brightness}）`:''}——${MAJOR[s.name]||''}`).join('<br>'):'命無主星，借對宮論斷，個性較受環境影響、可塑性高。'}</p>
     <p><b>身宮</b>在${body.name}：中年以後重心在${FOCUS[body.name]}。</p>
+    ${zwPatterns(A).map(x=>`<p><b>${x[0]}</b>：「${x[1]}」（《紫微斗數全書》）${x[2]}</p>`).join('')}
+    <h3 class="rp-h3">十二宮逐宮詳批</h3>${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<p><b>${p.name}</b>（${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name).join('、')||'—'}）：${palaceReading(A,i)}</p>`).join('')}
     <table class="rp-t">${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<tr><th>${p.name}</th><td>${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name+(s.mutagen?'化'+s.mutagen:'')).join('、')||'—'}${p.majorStars.length?'':'<small>（借對宮）</small>'}</td><td><small>${PALACE[p.name]||''}</small></td></tr>`).join('')}</table>`):''}
   ${sec('三、大運與流年',`<div class="rp-dy">${D.yun.slice(0,8).map((x,i)=>`<span${i===curDy?' class="on"':''}><b>${x.getGanZhi()}</b><small>${x.getStartAge()}歲</small><small>${shishen(D.dm,x.getGanZhi()[0])}</small></span>`).join('')}</div>
     ${[Y0,Y1].map(Y=>`<p><b>${Y.y} ${Y.gz}年（${Y.ss}年）</b>：${'★'.repeat(Math.round(Y.score))}${'☆'.repeat(5-Math.round(Y.score))}　${YEARSS[Y.ss]}${Y.tai?`<b>犯太歲</b>（${Y.tai.detail}）。`:''}</p>`).join('')}`)}
@@ -2197,6 +2203,76 @@ function offerSheet(ts,n){
     ${notes.map(x=>`<p class="small">${x}</p>`).join('')}<p class="small muted">各地與各家習俗不同，以長輩或當地宮廟的習慣為準。</p></div>`);
   L.panel.addEventListener('change',e=>{const c=e.target.closest('[data-off]');if(!c)return;const S=store.get('gx_offer',{}),a=new Set(S[id]||[]);c.checked?a.add(+c.dataset.off):a.delete(+c.dataset.off);S[id]=[...a];store.set('gx_offer',S);buzz()});
 }
+
+/* ---------- 紫微十二宮逐宮詳批 ---------- */
+// 主星用於「人」的宮位（兄弟、夫妻、子女、僕役、父母）時的特質；疾厄宮對應的身體部位依傳統說法
+const ZW_PEOPLE={紫微:'有主見、自尊心強、有領導氣質',天機:'聰明靈活、想法多、善於出主意',太陽:'熱情大方、愛照顧人、重面子',武曲:'剛直務實、重視金錢與效率',天同:'溫和隨緣、好相處、重享受',廉貞:'個性鮮明、有原則也有脾氣',天府:'穩重寬厚、能包容、有能力',太陰:'溫柔細膩、重感情、心思敏感',貪狼:'多才多藝、交際廣、慾望強',巨門:'心直口快、分析力強，容易有口舌',天相:'忠厚講義氣、樂於協調',天梁:'成熟可靠、愛照顧人、有長輩風範',七殺:'果斷剛強、獨立有衝勁',破軍:'變化大、敢衝敢拚、不按牌理出牌'};
+const ZW_HEALTH={紫微:'脾胃、消化系統',天機:'肝膽、神經與四肢',太陽:'心血管、眼睛、血壓',武曲:'呼吸系統、肺與大腸',天同:'泌尿系統、腎與水分代謝',廉貞:'血液循環、心臟、婦科',天府:'脾胃、消化',太陰:'腎臟、婦科、內分泌',貪狼:'肝腎、生殖與內分泌',巨門:'消化道、口腔、腸胃',天相:'皮膚、泌尿系統',天梁:'胃、筋骨與老化',七殺:'呼吸系統、外傷',破軍:'生殖泌尿系統、外傷'};
+const ZW_COMBO={'紫微天府':'紫府同宮，穩重大器、福氣厚，做事有格局也守得住。','紫微天相':'紫相同宮，有威儀也懂協調，適合管理與服務大眾。','紫微七殺':'紫殺同宮，化殺為權，有魄力與企圖心，宜往大組織發展。','紫微破軍':'紫破同宮，敢於開創改革，但起伏較大，要有耐性。','紫微貪狼':'紫貪同宮，多才多藝、交際手腕好，需防慾望太多。',
+ '天機太陰':'機陰同宮，聰明細膩、善謀劃，情緒較易起伏。','天機天梁':'機梁同宮，善於分析、能出好主意，適合顧問、專業工作。','天機巨門':'機巨同宮，口才好、思考敏銳，宜從事研究、教學或說話相關工作。',
+ '太陽天梁':'陽梁同宮，熱心公益、有貴人，利考試與公職。','太陽巨門':'陽巨同宮，口才佳、名聲響，適合靠說話與專業吃飯。','太陽太陰':'日月同宮，陰陽調和，個性多面，宜動靜兼顧。',
+ '武曲天府':'武府同宮，財星與庫星相會，理財能力強，財運穩健。','武曲天相':'武相同宮，務實守信，適合財務、管理工作。','武曲七殺':'武殺同宮，剛毅果決，宜技術或軍警武職，忌衝動投資。','武曲破軍':'武破同宮，敢衝敢拚、財來財去，要學會守財。','武曲貪狼':'武貪同宮，大器晚成，三十歲後財運漸旺。',
+ '天同太陰':'同陰同宮，溫柔有福氣，重感情、生活有品味。','天同天梁':'同梁同宮，樂觀善良、有長輩緣，人生多貴人。','天同巨門':'同巨同宮，心思細、易操心，說話要多留意。',
+ '廉貞天府':'廉府同宮，有原則也有能力，做事穩健守成。','廉貞天相':'廉相同宮，講義氣、守規矩，適合公職與法務。','廉貞七殺':'廉殺同宮，有魄力與執行力，宜往技術、專業發展。','廉貞破軍':'廉破同宮，變動多、敢冒險，需防衝動行事。','廉貞貪狼':'廉貪同宮，交際廣、桃花多，宜修身養性。'};
+const ZW_PAL_PEOPLE={兄弟:'兄弟姊妹與同事',夫妻:'另一半',子女:'子女與晚輩',僕役:'朋友與部屬',父母:'父母與長輩'};
+function palaceReading(A,i){
+  const pl=A.palaces[i], own=pl.majorStars.length, ms=(own?pl.majorStars:A.palaces[(i+6)%12].majorStars), names=ms.map(s=>s.name), n=pl.name;
+  const out=[];
+  if(!own)out.push(`本宮無主星，借對宮${A.palaces[(i+6)%12].name}的${names.join('、')||'星曜'}來看，這方面的表現較受環境與他人影響，可塑性大。`);
+  const key=names.length>=2?(ZW_COMBO[names[0]+names[1]]||ZW_COMBO[names[1]+names[0]]):null;
+  if(key)out.push(key);
+  if(n==='命宮')out.push(`你的個性${names.map(x=>ZW_PEOPLE[x]).join('，又')}。`);
+  else if(ZW_PAL_PEOPLE[n.replace('宮','')]||ZW_PAL_PEOPLE[n])out.push(`你的${ZW_PAL_PEOPLE[n.replace('宮','')]||ZW_PAL_PEOPLE[n]}多半${names.map(x=>ZW_PEOPLE[x]).join('，或')}。`);
+  else if(n==='財帛')out.push(names.map(x=>GC.STAR&&GC.STAR[x]?GC.STAR[x][3]:'').filter(Boolean).join('；')+'。');
+  else if(n==='官祿')out.push(names.map(x=>GC.STAR&&GC.STAR[x]?GC.STAR[x][2]:'').filter(Boolean).join('；')+'。');
+  else if(n==='疾厄')out.push(`身體宜多留意${[...new Set(names.map(x=>ZW_HEALTH[x]))].join('、')}。`);
+  else if(n==='遷移')out.push(`出外的際遇帶有${names.map(x=>ZW_PEOPLE[x].split('、')[0]).join('、')}的色彩，${names.some(x=>['天機','天梁','太陽','天同'].includes(x))?'在外容易遇到貴人。':names.some(x=>['七殺','破軍','廉貞'].includes(x))?'在外打拚辛苦但有機會。':'出外發展各有得失。'}`);
+  else if(n==='田宅')out.push(`${names.some(x=>['天府','武曲','太陰','紫微'].includes(x))?'置產運不錯，有機會累積不動產。':names.some(x=>['破軍','七殺'].includes(x))?'住所或家庭變動較多，置產宜謹慎。':'家庭與不動產平穩。'}`);
+  else if(n==='福德')out.push(`精神上${names.some(x=>['天同','太陰','天府'].includes(x))?'懂得享受生活、福氣好':names.some(x=>['天機','巨門'].includes(x))?'想得多、容易操心，宜學會放鬆':names.some(x=>['七殺','破軍','廉貞'].includes(x))?'閒不下來、勞心勞力':'有自己的興趣與追求'}。`);
+  if(own)ms.forEach(s=>{if(['陷','不'].includes(s.brightness))out.push(`${s.name}${s.brightness==='陷'?'落陷':'不得地'}，力量較弱，這方面需要多花心思經營。`);else if(['廟','旺'].includes(s.brightness))out.push(`${s.name}${s.brightness}，星曜力量強，是你的優勢所在。`)});
+  [...pl.majorStars,...pl.minorStars].filter(s=>s.mutagen).forEach(s=>out.push({祿:`${s.name}化祿在此，這方面容易得到好處與機會。`,權:`${s.name}化權在此，你在這方面有主導力、想掌控。`,科:`${s.name}化科在此，這方面多貴人、名聲好。`,忌:`${s.name}化忌在此，是一生最需要用心、也最容易執著的地方。`}[s.mutagen]));
+  const lucky=pl.minorStars.filter(s=>LUCKY.has(s.name)).map(s=>s.name), sha=pl.minorStars.filter(s=>SHA.has(s.name)).map(s=>s.name);
+  if(lucky.length)out.push(`有${lucky.join('、')}等吉星同宮，增添助力。`);if(sha.length)out.push(`有${sha.join('、')}等煞星，多一分波折，宜耐心化解。`);
+  return out.join('');
+}
+
+/* ---------- 古籍原文對照 ---------- */
+// 《滴天髓・天干論》（劉基注本通行文字）
+const DTS={甲:['甲木參天，脫胎要火。春不容金，秋不容土。火熾乘龍，水宕騎虎。地潤天和，植立千古。','甲木像參天大樹，需要火（才華表現）來發揮；春天不喜金來砍伐，秋天不宜土太厚。火太旺要有辰（濕土）調和，水太多要有寅（木根）支撐；氣候平和，就能長久挺立。'],
+ 乙:['乙木雖柔，刲羊解牛。懷丁抱丙，跨鳳乘猴。虛濕之地，騎馬亦憂。藤蘿繫甲，可春可秋。','乙木雖然柔弱，卻能穿透未土、丑土扎根；有丙丁火相伴，即使身處酉、申（金地）也不怕。若環境過於潮濕，即使逢午火也難以溫暖。像藤蘿攀附大樹，有甲木依靠，四季都能生長——懂得借力，就能穩健。'],
+ 丙:['丙火猛烈，欺霜侮雪。能煅庚金，逢辛反怯。土眾成慈，水猖顯節。虎馬犬鄉，甲來成滅。','丙火像太陽，熱烈有力，不怕寒冷；能鍛鍊剛強的庚金，遇到柔和的辛金反而合而減弱。土多時溫和慈愛，水多時更顯氣節。若寅午戌火局已旺，再加甲木生火，反而過猶不及。'],
+ 丁:['丁火柔中，內性昭融。抱乙而孝，合壬而忠。旺而不烈，衰而不窮。如有嫡母，可秋可冬。','丁火像燈燭，外柔內明；得乙木相生如孝順，與壬水相合如忠誠。旺時不會過烈，弱時也不會熄滅；只要有甲木（嫡母）生扶，秋冬也不怕。'],
+ 戊:['戊土固重，既中且正。靜翕動辟，萬物司命。水潤物生，火燥物病。若在艮坤，怕沖宜靜。','戊土像高山厚土，穩重中正；靜時收斂、動時開展，是萬物生長的根本。有水滋潤則萬物生長，火太燥則萬物枯病。若坐寅、申（艮坤之位），最怕沖動，宜安靜守成。'],
+ 己:['己土卑濕，中正蓄藏。不愁木盛，不畏水狂。火少火晦，金多金光。若要物旺，宜助宜幫。','己土像田園濕土，能蓄藏萬物；不怕木多，也不怕水大。火少時能收斂火氣，金多時能讓金更有光澤。想要成就萬物，需要火土來幫扶。'],
+ 庚:['庚金帶煞，剛健為最。得水而清，得火而銳。土潤則生，土乾則脆。能贏甲兄，輸於乙妹。','庚金剛強帶殺氣；有水洩秀則清明，有火鍛鍊則鋒利。遇潤土能生，遇乾土反而變脆。能剋制甲木，卻會被乙木合住——剛中要懂柔。'],
+ 辛:['辛金軟弱，溫潤而清。畏土之疊，樂水之盈。能扶社稷，能救生靈。熱則喜母，寒則喜丁。','辛金像珠玉，溫潤清秀；怕土太多被埋沒，喜歡水來洗淨顯光彩。生於夏天燥熱時喜土（母）來護，生於冬天寒冷時喜丁火來暖。'],
+ 壬:['壬水通河，能洩金氣。剛中之德，周流不滯。通根透癸，沖天奔地。化則有情，從則相濟。','壬水像江河，能流通金氣；剛中有德，流動不停。若根深又見癸水，力量如洪水奔騰；與丁合化則有情，順從局勢則能相互成就。'],
+ 癸:['癸水至弱，達於天津。得龍而運，功化斯神。不愁火土，不論庚辛。合戊見火，化象斯真。','癸水最為柔弱，像雨露能上達天際；得辰（龍）則能運化、神妙有功。不怕火土，也不必依賴庚辛金生；與戊合又見火，化火之象才真。']};
+// 《紫微斗數全書》格局（只收錄條件明確、可直接判斷者）
+function zwPatterns(A){
+  const out=[], mi=A.palaces.findIndex(p=>p.name==='命宮'), M=A.palaces[mi], has=(p,n)=>[...p.majorStars,...p.minorStars].some(s=>s.name===n);
+  const sf=[mi,(mi+4)%12,(mi+8)%12,(mi+6)%12].map(i=>A.palaces[i]), sfHas=n=>sf.some(p=>has(p,n));
+  const br=M.earthlyBranch;
+  if(has(M,'紫微')&&has(M,'天府'))out.push(['紫府同宮格','紫府同宮，終身福厚。','紫微、天府同在命宮，一生福氣深厚、衣食無憂。']);
+  if(['天機','太陰','天同','天梁'].every(sfHas))out.push(['機月同梁格','機月同梁作吏人。','天機、太陰、天同、天梁會照命宮，適合在公家機關、大企業任職，穩定發展。']);
+  if(has(M,'七殺')&&'寅申子午'.includes(br))out.push(['七殺朝斗格','七殺朝斗，爵祿榮昌。','七殺坐命於寅申子午，紫微、天府來朝，有魄力能成大事。']);
+  if(has(M,'巨門')&&'子午'.includes(br))out.push(['石中隱玉格','巨門子午科權祿，石中隱玉福興隆。','巨門坐命子午，如美玉藏於石中，宜先低調累積，後勁十足；逢化科、權、祿更佳。']);
+  if(has(M,'紫微')&&br==='午'&&!has(M,'擎羊')&&!has(M,'陀羅'))out.push(['極向離明格','紫微居午無刑忌，甲丁己人位至公卿。','紫微坐命午宮，無擎羊、陀羅同宮，地位尊貴，甲、丁、己年生人尤佳。']);
+  if(has(M,'左輔')&&has(M,'右弼'))out.push(['左右同宮格','左右同宮，披羅衣紫。','左輔、右弼同在命宮，一生多得助力，易得地位與名望。']);
+  if(has(M,'貪狼')&&has(M,'火星')&&M.majorStars.some(s=>s.name==='貪狼'&&['廟','旺'].includes(s.brightness)))out.push(['火貪格','貪狼火星居廟旺，名鎮諸邦。','貪狼與火星同在命宮且廟旺，常有突發的好運與成就。']);
+  return out;
+}
+
+/* ---------- 紫微流日 ---------- */
+function zwDaily(date){
+  const A=D.astro;if(!A)return null;
+  try{const H=A.horoscope(date).daily, mi=H.index, where=s=>A.palaces.findIndex(p=>[...p.majorStars,...p.minorStars].some(x=>x.name===s));
+    const w=H.mutagen.map(where), pn=i=>i>=0?A.palaces[i].name:'—';
+    return {ming:A.palaces[mi].name, mut:H.mutagen, w:w.map(pn), stem:H.heavenlyStem};
+  }catch(e){return null}
+}
+function zwDailyText(date){const Z=zwDaily(date);if(!Z)return '';
+  return `紫微流日命宮在本命${Z.ming}，今天心思多放在${FOCUS[Z.ming]||Z.ming}。流日${Z.stem}干四化：${Z.mut[0]}化祿入${Z.w[0]}${FOCUS[Z.w[0]]?`（${FOCUS[Z.w[0]]}有好處）`:''}，${Z.mut[3]}化忌入${Z.w[3]}${FOCUS[Z.w[3]]?`（${FOCUS[Z.w[3]]}要多留意）`:''}。`}
 
 /* ---------- 各頁小提示 ---------- */
 // 第一次進入每一頁時，用一個小氣泡指出最常用的按鈕；點任何地方就收起，不會擋住操作
