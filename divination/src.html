@@ -488,6 +488,7 @@ function dailyCard(){
       <div class="dial-wrap">${dial(F.total)}<div class="dial-num"><b class="num" data-count="${F.total}">${F.total}</b><span>${F.word}</span></div></div></div>
     <div class="days" data-fit="290" role="group" aria-label="選擇日期">${strip}</div>
     <p class="lead">${F.sum}</p>
+    <div class="reader pnote"><div class="seal" aria-hidden="true">言</div><p>${personalNote(F,date)}</p></div>
     <div class="areas">${F.areas.map(a=>`<div class="area"><span class="an">${a.n}</span><span class="ab"><i style="--w:${a.s/5*100}%"></i></span><span class="av num">${Math.round(a.s*20)}</span></div>`).join('')}</div>
     <p class="small">${F.note}</p>
     <div class="lucky">
@@ -558,6 +559,7 @@ function renderOverview(){
   ${sampleBanner()}
   ${festBanner()}
   ${homeOrder().filter(b=>b.on).map((b,k)=>BLK[b.k]()+(k===0?installCard():'')).join('')}
+  <button type="button" class="btn block rpbtn" data-act="report">📜 產生我的命盤解說報告</button>
   ${simple?'':'<button type="button" class="btn ghost block" data-act="home">自訂首頁</button>'}
   ${helpBox('overview')}`;
   countUp();
@@ -635,6 +637,7 @@ function renderZiwei(){
     <div class="center"><div class="nm">${esc(P.sur+P.given)}</div><div>${P.gender==='男'?'陽':'陰'}${P.gender} · ${A.zodiac} · ${A.sign}</div><div>${S2T(A.lunarDate)}</div><div>${A.chineseDate}</div><div>${A.fiveElementsClass} · 命主${A.soul} · 身主${A.body}</div>
     ${zwYearOn?`<div class="small" style="margin-top:4px"><b>${lnYear} ${Y.heavenlyStem}${Y.earthlyBranch}年</b><br>${Y.mutagen.map((s,i)=>`${s}<i class="mu ${'祿權科忌'[i]}">${'祿權科忌'[i]}</i>`).join(' ')}</div>`:''}</div>
   </div></div>
+  <button type="button" class="btn block rpbtn" data-act="report">📜 產生命盤解說報告（可列印、存 PDF）</button>
   <p class="small muted">點任一宮看解讀；淡紅底為該宮的三方四正。${zwYearOn?'虛線框四化為流年四化，右上角為流年宮位。':''}</p>
   <div class="card stack" id="zwDetail">
     <div class="row between"><div><div class="eyebrow">${sel.heavenlyStem}${sel.earthlyBranch}宮 · 大限 ${sel.decadal.range[0]}–${sel.decadal.range[1]} 歲${dec.index===zwSel?' · 目前大限':''}</div><h3 class="h3">${sel.name}：${PALACE[sel.name]||''}</h3></div></div>
@@ -721,9 +724,11 @@ function renderLiunian(){
   <div class="card stack">
     <div class="row between"><h3 class="h3">${I.y} 流月</h3><span class="small muted">以節氣換月</span></div>
     <svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="流月運勢，1 到 5 分">${grid}${bars}</svg><div class="legend"><span><i style="background:var(--good)"></i>順</span><span><i style="background:var(--tint)"></i>平</span><span><i style="background:var(--bad)"></i>留意</span></div>
+    <div class="stack" style="gap:8px"><b>今年重點月份</b>${keyMonths(months)}</div>
     <details class="disc"><summary>每月詳解</summary><div class="tbl-wrap" style="margin-top:8px"><table class="tbl">${months.map((m,k)=>`<tr${k===curM?' style="background:color-mix(in srgb,var(--seal) 8%,transparent)"':''}><th>${m.n}月<br><span class="small">${m.jie}起</span></th><td><b>${m.gz}・${m.ss}</b> ${meter(m.s)}<br><span class="small">${GC.MONTH_SS[m.ss]}</span></td></tr>`).join('')}</table></div></details>
     <p class="small"><span class="good-t">較順：</span>${best.map(m=>`${m.n}月（${m.jie}起，${m.ss}）`).join('、')}　<span class="bad-t">留意：</span>${worst.map(m=>`${m.n}月（${m.jie}起，${m.ss}）`).join('、')}</p>
   </div>
+  <div class="card stack" id="dcalCard"><div class="row between"><h3 class="h3">流日月曆</h3><span class="small muted">點日期看當天運勢</span></div>${dayCalHtml()}</div>
   <div class="card stack">
     <h3 class="h3">八字大運</h3>
     <div class="dayun" tabindex="0" role="region" aria-label="大運，可左右滑動">${D.yun.map((x,i)=>`<div class="dy${i===curDy?' on':''}" title="${shishen(D.dm,x.getGanZhi()[0])}運"><div class="a num">${x.getStartAge()}歲</div><div class="g">${x.getGanZhi()}</div><div class="a num">${x.getStartYear()}</div></div>`).join('')}</div>
@@ -1616,7 +1621,7 @@ const spkHtml=k=>canSpeak?`<button type="button" class="btn sm spk" data-speak="
 const shrHtml=k=>`<button type="button" class="btn sm spk" data-card="${k}">${SHR_IC}<span>分享圖卡</span></button>`;
 function speakText(k){
   if(k==='daily'){const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+dayOff);const F=fortune(date);
-    return `${P.given}，${dayOff===0?'今天':dayOff===1?'明天':''}${date.getMonth()+1}月${date.getDate()}日，星期${WEEK[date.getDay()]}，農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())}。整體運勢${F.total}分，${F.word}。${F.sum}${F.areas.map(a=>`${a.n}${Math.round(a.s*20)}分`).join('，')}。${F.note}幸運色是${F.la.c.split('、')[0]}，幸運數字${F.la.n}，財喜方位在${F.la.d.split('、')[0]}。吉時有${F.good.map(x=>ZHI[x.k]+'時').join('、')}。今天宜${F.yi.slice(0,5).join('、')}；忌${F.ji.slice(0,5).join('、')}。`}
+    return `${P.given}，${dayOff===0?'今天':dayOff===1?'明天':''}${date.getMonth()+1}月${date.getDate()}日，星期${WEEK[date.getDay()]}，農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())}。整體運勢${F.total}分，${F.word}。${F.sum}${personalNote(F,date).replace(/<[^>]+>/g,'')}${F.areas.map(a=>`${a.n}${Math.round(a.s*20)}分`).join('，')}。${F.note}幸運色是${F.la.c.split('、')[0]}，幸運數字${F.la.n}，財喜方位在${F.la.d.split('、')[0]}。吉時有${F.good.map(x=>ZHI[x.k]+'時').join('、')}。今天宜${F.yi.slice(0,5).join('、')}；忌${F.ji.slice(0,5).join('、')}。`}
   if(k==='qian'&&qNo){const Q=QD[qNo-1];return `第${qNo}籤，${Q[0]}，${Q[1]}籤。籤詩：${Q[2]}白話：${Q[3]}${typeof qianStory==='function'?qianStory(qNo):''}${$('#v-qian .reader p')?$('#v-qian .reader p').textContent:''}`}
   if(k==='tarot'&&tReading){const d=TD.spreads.find(s=>s.k===tReading.s);return `${tReading.q||'塔羅解讀'}，${d.n}。`+tReading.c.map((x,i)=>{const c=tcard(x.i);return `第${i+1}張，${d.pos[i]}：${c.zh}，${x.rev?'逆位':'正位'}。${x.rev?c.rev:c.up}`}).join('')+($('#v-tarot .reader p')?$('#v-tarot .reader p').textContent:'')}
   return '';
@@ -1957,6 +1962,96 @@ function renderFengshui(){
   ${helpBox('fengshui')}`;
 }
 
+/* ---------- 個人化的每日一段話 ---------- */
+const AREA_DO={事業:'推進手上的工作、和主管或客戶溝通',財運:'處理帳務、談價錢或規劃理財',感情:'約會、陪家人好好聊聊',健康:'運動、早點休息',人際:'聯絡老朋友、拜訪貴人'};
+function personalNote(F,date){
+  const g=F.gz[0], z=F.gz[1], ge=gWx(g), bz=ZHI.indexOf(D.birthZ), dz=ZHI.indexOf(z);
+  const parts=[];
+  parts.push(`${esc(P.given)}，你是${D.dm}${WX[D.dmE]}日主，命局${D.strong?'偏強':'偏弱'}。${date.getMonth()+1}月${date.getDate()}日是${F.gz}日，天干${g}屬${WX[ge]}，${D.xi.includes(ge)?'正是你的喜用神，做事較有助力，適合主動出擊。':D.ji.includes(ge)?'是你的忌神，能量較消耗，重要的事放慢腳步、多想一步。':'對你而言中性，按部就班就好。'}`);
+  if((dz-bz+12)%12===6)parts.push(`今日${z}沖你的生肖（屬${SX[bz]}），農民曆說「沖日」不宜辦大事、簽約、遠行，能延就延。`);
+  else if(LIUHE[bz]===dz||(dz!==bz&&dz%4===bz%4))parts.push(`今日${z}與你的生肖${LIUHE[bz]===dz?'六合':'三合'}，貴人運較好，適合拜訪、談事情。`);
+  const mg=F.L.getMonthInGanZhiExact(), ms=gzScore(mg), mss=shishen(D.dm,mg[0]);
+  parts.push(`這個月是${mg}月（${mss}），${ms>=4?'整體順，有想做的事可以把握。':ms>=3?'平穩，穩中求進。':'較辛苦，以守成為主。'}`);
+  const yi=yearInfo(date.getFullYear());if(yi.tai)parts.push(`今年你犯太歲（${yi.tai.short}），凡事多留餘地。`);
+  const best=F.areas.reduce((a,b)=>b.s>a.s?b:a);
+  parts.push(`今天最適合${AREA_DO[best.n]}；好時辰是${F.good.map(x=>ZHI[x.k]+'時').join('、')}。`);
+  return parts.join('');
+}
+
+/* ---------- 重點月份與流日 ---------- */
+let lnCal=null;
+function keyMonths(months){
+  const bz=ZHI.indexOf(D.birthZ), rz=ZHI.indexOf(D.pillars[2][1]);
+  const grpOf=z=>['申子辰','寅午戌','巳酉丑','亥卯未'].findIndex(g=>g.includes(z));
+  const tao='酉卯午子'[grpOf(D.birthZ)], ma='寅申亥巳'[grpOf(D.birthZ)];
+  const love=P.gender==='男'?['正財','偏財']:['正官','七殺'];
+  const T=[['換工作・升遷',m=>['正官','七殺','正印'].includes(m.ss)?1.5:0],['投資・加薪',m=>['正財','偏財','食神'].includes(m.ss)?1.5:0],
+    ['感情・桃花',m=>(love.includes(m.ss)?1.2:0)+(m.gz[1]===tao?1:0)+(LIUHE[rz]===ZHI.indexOf(m.gz[1])?1:0)],['讀書・考試',m=>['正印','偏印'].includes(m.ss)?1.5:0],['搬家・出遠門',m=>(m.gz[1]===ma?1.5:0)+((ZHI.indexOf(m.gz[1])-bz+12)%12===6?.8:0)]];
+  const rows=T.map(([n,f])=>{const r=months.map((m,k)=>({k,m,v:f(m)+m.s*.4})).filter(x=>f(x.m)>0&&x.m.s>=3).sort((a,b)=>b.v-a.v).slice(0,2).sort((a,b)=>a.k-b.k);return [n,r]});
+  const hl=months.map((m,k)=>({k,m,bad:(ZHI.indexOf(m.gz[1])-rz+12)%12===6||(ZHI.indexOf(m.gz[1])-bz+12)%12===6||m.s<=2})).filter(x=>x.bad).slice(0,3);
+  return `<div class="kmon">${rows.map(([n,r])=>`<div class="km"><b>${n}</b><span>${r.length?r.map(x=>`<span class="pill good">${x.m.n}月</span>`).join(''):'<span class="small muted">今年沒有特別突出的月份</span>'}</span></div>`).join('')}
+    <div class="km"><b>健康・平安留意</b><span>${hl.length?hl.map(x=>`<span class="pill bad">${x.m.n}月</span>`).join(''):'<span class="small muted">沒有特別需要留意的月份</span>'}</span></div></div>`;
+}
+function dayCalHtml(){
+  const now=new Date();const c=lnCal||{y:now.getFullYear(),m:now.getMonth()};
+  const first=new Date(c.y,c.m,1,12), days=new Date(c.y,c.m+1,0).getDate(), lead=first.getDay(), opt=festOpt();
+  let cells='';for(let i=0;i<lead;i++)cells+='<span></span>';
+  for(let d=1;d<=days;d++){const dt=new Date(c.y,c.m,d,12), F=fortune(dt), L=F.L, fs=festOn(dt,{y:true,z:false}), isT=dt.toDateString()===now.toDateString();
+    const lab=fs.length?fs[0].n.replace(/（.*/,'').replace('農曆','').replace('拜拜',''):(L.getDay()===1?S2T(L.getMonthInChinese())+'月':S2T(L.getDayInChinese()));
+    cells+=`<button type="button" class="dc2${isT?' today':''}" data-dday="${+dt}" aria-label="${c.m+1}月${d}日 ${F.total}分 ${F.word}"><b class="num">${d}</b><i class="${F.total>=70?'g':F.total>=55?'m':'b'}"></i><span${fs.length?' class="fx"':''}>${lab}</span></button>`}
+  return `<div class="row between"><button type="button" class="btn sm ghost" data-calm="-1" aria-label="上個月">‹</button><b>${c.y} 年 ${c.m+1} 月</b><button type="button" class="btn sm ghost" data-calm="1" aria-label="下個月">›</button></div>
+    <div class="dcal"><span class="wk">日</span><span class="wk">一</span><span class="wk">二</span><span class="wk">三</span><span class="wk">四</span><span class="wk">五</span><span class="wk">六</span>${cells}</div>
+    <div class="legend"><span><i style="background:var(--good)"></i>吉（70 分以上）</span><span><i style="background:var(--tint)"></i>平</span><span><i style="background:var(--bad)"></i>宜守</span></div>`;
+}
+function daySheet(ts){
+  const dt=new Date(+ts), F=fortune(dt), fs=festOn(dt,festOpt());
+  sheet(`${dt.getMonth()+1}月${dt.getDate()}日 週${WEEK[dt.getDay()]}`,`<div class="card stack">
+    <div class="row between"><div><div class="small muted">農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())} · ${F.gz}日 · ${F.ss}當值</div><h3 class="h3">${F.total} 分・${F.word}</h3></div></div>
+    ${fs.length?`<p class="small"><b class="tint-t">${fs.map(f=>f.n).join('、')}</b>　${fs[0].t}</p>`:''}
+    <p>${F.sum}</p>
+    <div class="chips">${F.areas.map(a=>`<span class="pill ${a.s>=4?'good':a.s>=3?'mid':'bad'}">${a.n} ${Math.round(a.s*20)}</span>`).join('')}</div>
+    <p class="small">${F.note}</p>
+    <p class="small">吉時 ${F.good.map(x=>`${ZHI[x.k]}時 ${x.r}`).join('、')}</p>
+    <div class="yiji"><b class="y">宜</b><span>${F.yi.join('、')||'—'}</span><b class="j">忌</b><span>${F.ji.join('、')||'—'}</span></div></div>`);
+}
+
+/* ---------- 命盤解說報告 ---------- */
+function reportHtml(){
+  const A=D.astro, cy=new Date().getFullYear(), Y0=yearInfo(cy), Y1=yearInfo(cy+1), nm=nameAnalysis(P.sur,P.given), g=mingGua(P,D);
+  const ssCnt={};D.pillars.forEach((p,i)=>{if(i!==2){const t=shishen(D.dm,p[0]);ssCnt[t]=(ssCnt[t]||0)+1}const t=shishen(D.dm,ZHI_HIDE[p[1]][0]);ssCnt[t]=(ssCnt[t]||0)+1});
+  const topSS=Object.entries(ssCnt).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const ming=A&&A.palaces.find(p=>p.name==='命宮'), body=A&&A.palaces.find(p=>p.isBodyPalace);
+  const curDy=D.yun.findIndex(x=>cy>=x.getStartYear()&&cy<=x.getEndYear());
+  const sec=(t,h)=>`<section class="rp-sec"><h2>${t}</h2>${h}</section>`;
+  const now=new Date();
+  return `<div class="rp">
+  <header class="rp-head"><div><div class="rp-k">靈犀 LINGXI ・ 命盤解說報告</div><h1>${esc(P.sur+P.given)}</h1><p>${P.gender==='男'?'乾造（男）':'坤造（女）'}・屬${SX[ZHI.indexOf(D.birthZ)]}・國曆 ${D.y}/${D.m}/${D.d}・農曆${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())}・${P.hour===13?'時辰不確定':HOURS[P.hour].split(' ')[0]}</p></div><div class="rp-seal" aria-hidden="true"><i>靈</i><i>犀</i></div></header>
+  ${sec('一、八字四柱',`<table class="rp-t"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr><tr><th>天干</th>${D.pillars.map((p,i)=>`<td><b>${p[0]}</b><br><small>${i===2?'日主':shishen(D.dm,p[0])}</small></td>`).join('')}</tr><tr><th>地支</th>${D.pillars.map(p=>`<td><b>${p[1]}</b><br><small>${SX[ZHI.indexOf(p[1])]}</small></td>`).join('')}</tr><tr><th>納音</th>${[D.ec.getYearNaYin(),D.ec.getMonthNaYin(),D.ec.getDayNaYin(),D.ec.getTimeNaYin()].map(n=>`<td><small>${S2T(n)}</small></td>`).join('')}</tr></table>
+    <p><b>日主${D.dm}${WX[D.dmE]}</b>，${DMTXT[D.dm]}命局${D.strong?'偏強':'偏弱'}；五行 ${D.cnt.map((c,e)=>WX[e]+c).join('、')}${D.cnt.some(c=>!c)?`，缺${D.cnt.map((c,e)=>c?'':WX[e]).join('')}`:''}。</p>
+    <p><b>喜用神</b> ${D.xi.map(e=>WX[e]).join('、')}　<b>忌神</b> ${D.ji.map(e=>WX[e]).join('、')}</p>
+    <p><b>主要十神</b>：${topSS.map(([k])=>`${k}——${GC.SS_TXT[k]}`).join('<br>')}</p>
+    ${(()=>{const ss=bzShensha();return ss.length?`<p><b>神煞</b>：${ss.map(o=>`${o.n}（${o.w.map(i=>PILLAR_N[i]).join('、')}）`).join('、')}</p>`:''})()}
+    ${(()=>{const rs=bzRelations();return rs.length?`<p><b>刑沖合害</b>：${rs.map(r=>`${r.k}（${r.who}）`).join('、')}</p>`:''})()}`)}
+  ${A?sec('二、紫微斗數',`<p>${A.fiveElementsClass}・命主${A.soul}・身主${A.body}</p>
+    <p><b>命宮</b>（${ming.heavenlyStem}${ming.earthlyBranch}）：${ming.majorStars.length?ming.majorStars.map(s=>`<b>${s.name}</b>${s.brightness?`（${s.brightness}）`:''}——${MAJOR[s.name]||''}`).join('<br>'):'命無主星，借對宮論斷，個性較受環境影響、可塑性高。'}</p>
+    <p><b>身宮</b>在${body.name}：中年以後重心在${FOCUS[body.name]}。</p>
+    <table class="rp-t">${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<tr><th>${p.name}</th><td>${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name+(s.mutagen?'化'+s.mutagen:'')).join('、')||'—'}${p.majorStars.length?'':'<small>（借對宮）</small>'}</td><td><small>${PALACE[p.name]||''}</small></td></tr>`).join('')}</table>`):''}
+  ${sec('三、大運與流年',`<table class="rp-t"><tr><th>大運</th>${D.yun.slice(0,8).map((x,i)=>`<td${i===curDy?' class="on"':''}><b>${x.getGanZhi()}</b><br><small>${x.getStartAge()}歲・${shishen(D.dm,x.getGanZhi()[0])}</small></td>`).join('')}</tr></table>
+    ${[Y0,Y1].map(Y=>`<p><b>${Y.y} ${Y.gz}年（${Y.ss}年）</b>：${'★'.repeat(Math.round(Y.score))}${'☆'.repeat(5-Math.round(Y.score))}　${YEARSS[Y.ss]}${Y.tai?`<b>犯太歲</b>（${Y.tai.detail}）。`:''}</p>`).join('')}`)}
+  ${nm.ok?sec('四、姓名',`<p>五格：天格${nm.g.tian}・人格${nm.g.ren}・地格${nm.g.di}・外格${nm.g.wai}${nm.fixWai?'（單名固定）':''}・總格${nm.g.zong}　三才 ${nm.e.map(e=>WX[e]).join('')}</p><p>姓名評分 <b>${nm.score} 分</b>；人格五行${WX[nm.e[1]]}${D.xi.includes(nm.e[1])?'，正好補到喜用。':D.ji.includes(nm.e[1])?'，屬忌神，可考慮字號或暱稱補強。':'。'}</p>`):''}
+  ${sec('五、居家風水',`<p>命卦 <b>${GUA[g][0]}卦</b>（${GUA[g][2]}四命）。吉方：${STARS.slice(0,4).map((s,k)=>`${s[0]}${BZ[g][k]}`).join('、')}；凶方：${STARS.slice(4).map((s,k)=>`${s[0]}${BZ[g][k+4]}`).join('、')}。</p><p>床頭朝${BZ[g][1]}或${BZ[g][2]}，書桌面向${BZ[g][0]}。</p>`)}
+  ${sec('六、開運建議',`${D.xi.map(e=>{const a=GC.WX_ADV[e];return `<p><b>${WX[e]}</b>　顏色：${a.c}；方位：${a.d}；數字：${a.n}<br>適合行業：${a.j}<br>生活：${a.l}</p>`}).join('')}`)}
+  <footer class="rp-foot">製表日期 ${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ・ 命理是看清自己的一面鏡子，結果僅供參考。</footer>
+  </div>`;
+}
+function openReport(){
+  if(!D.astro&&zwState!=='fail'){zwLoad().then(openReport);toast('正在準備紫微命盤…','info');return}
+  const el=document.createElement('div');el.id='report';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','命盤解說報告');
+  el.innerHTML=`<div class="rp-bar"><button type="button" class="btn sm" data-rp="close">關閉</button><span>命盤解說報告</span><button type="button" class="btn sm primary" data-rp="print">列印／存 PDF</button></div><div class="rp-scroll">${reportHtml()}</div>`;
+  document.body.appendChild(el);document.documentElement.classList.add('reporting');
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-rp]');if(!b)return;if(b.dataset.rp==='close'){el.remove();document.documentElement.classList.remove('reporting')}else window.print()});
+}
+
 /* ---------- 各頁小提示 ---------- */
 // 第一次進入每一頁時，用一個小氣泡指出最常用的按鈕；點任何地方就收起，不會擋住操作
 const TIPS={overview:['#daily .days','左右滑動或點日期，可以看未來七天的運勢'],tarot:['#tShuffle,#deck','先在心裡默想問題，再按「洗牌」開始抽牌'],qian:['#qcard .btn.primary,#qNext0','照著步驟：稟告 → 擲筊請示 → 抽籤 → 確認'],
@@ -2178,6 +2273,9 @@ document.addEventListener('click',async e=>{
   if(t.dataset.fsp!==undefined){fsP=+t.dataset.fsp;renderFengshui();return}
   if(t.dataset.dcat){dCat=dCat===t.dataset.dcat?null:t.dataset.dcat;dQ='';renderQian();$('#dres')?.scrollIntoView({behavior:'smooth',block:'start'});return}
   if(t.dataset.act==='dream'){if(qMode!=='dream'){qMode='dream';go('qian');return}dQ=($('#dQ')?.value||'').trim();dCat=null;if(!dQ){toast('先寫下夢到的東西','info');$('#dQ')?.focus();return}renderQian();const r=$('#dres');r&&r.scrollIntoView({behavior:'smooth',block:'start'});return}
+  if(t.dataset.calm){const n=new Date(),c=lnCal||{y:n.getFullYear(),m:n.getMonth()};const d=new Date(c.y,c.m+(+t.dataset.calm),1);lnCal={y:d.getFullYear(),m:d.getMonth()};const k=$('#dcalCard');if(k)k.innerHTML=`<div class="row between"><h3 class="h3">流日月曆</h3><span class="small muted">點日期看當天運勢</span></div>${dayCalHtml()}`;return}
+  if(t.dataset.dday){daySheet(t.dataset.dday);return}
+  if(t.dataset.act==='report')return openReport();
   if(t.dataset.act==='home')return openHome();
   if(t.dataset.act==='simpleoff'){setSimple(false);toast('已回到完整功能，左上角「Aa」可再切回簡易模式','check');return}
   if(t.dataset.act==='remind')return addReminder();

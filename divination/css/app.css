@@ -993,3 +993,55 @@ html.simple .tabbar nav{grid-template-columns:repeat(3,1fr)}
 .fsrow:first-of-type{border-top:0}
 .fsrow>b{color:var(--tint)}
 html.vw400 .fsrow{grid-template-columns:1fr;gap:2px}
+
+/* ===== 個人化一段話 ===== */
+.reader.pnote p{font-size:15.5px;line-height:1.7}
+/* ===== 重點月份 ===== */
+.kmon{display:flex;flex-direction:column;gap:6px}
+.km{display:grid;grid-template-columns:7.5em 1fr;gap:8px;align-items:center;padding:6px 0;border-top:1px dashed var(--line)}
+.km:first-child{border-top:0}
+.km>b{font-size:14px}.km>span{display:flex;gap:6px;flex-wrap:wrap}
+html.vw400 .km{grid-template-columns:1fr;gap:4px}
+/* ===== 流日月曆 ===== */
+.dcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dcal .wk{text-align:center;font-size:12px;color:var(--muted);padding:2px 0}
+.dc2{display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 0 4px;border:0;border-radius:10px;background:transparent;color:var(--ink);cursor:pointer;min-width:0}
+.dc2 b{font-size:15px;line-height:1.2}
+.dc2 i{width:7px;height:7px;border-radius:50%}
+.dc2 i.g{background:var(--good)}.dc2 i.m{background:var(--tint)}.dc2 i.b{background:var(--bad)}
+.dc2 span{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.dc2 span.fx{color:#B3261E;font-weight:600}
+.dc2.today{background:var(--tint-soft);box-shadow:inset 0 0 0 1.5px var(--tint)}
+.dc2:active{background:var(--fill)}
+/* ===== 命盤報告 ===== */
+.rpbtn{background:var(--tint-soft)}
+#report{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;background-color:var(--bg);background-image:var(--tex);background-size:260px 260px}
+.rp-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;border-bottom:1px solid var(--edge)}
+.rp-bar span{font-weight:600}
+.rp-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:16px}
+.rp{max-width:720px;margin:0 auto;background-color:var(--card);background-image:var(--tex-paper);background-size:260px 260px;color:#2A251F;border:1px solid rgba(120,90,45,.25);border-radius:6px;padding:28px 22px;box-shadow:var(--shadow);font-size:15px;line-height:1.75}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .rp{background-color:#FBF7EE}}
+.rp-head{display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid #7E5B18;padding-bottom:12px;margin-bottom:8px}
+.rp-head h1{font-family:var(--f-brush);font-size:34px;color:#2A251F}
+.rp-head p{font-size:14px;color:#5E5545}
+.rp-k{font-size:12px;letter-spacing:.2em;color:#7E5B18}
+.rp-seal{flex:none;display:grid;grid-template-columns:1fr;width:48px;height:60px;place-items:center;background:#B3261E;color:#F6E7DA;border-radius:4px;font-family:var(--f-brush);font-weight:700;font-size:20px;line-height:1;transform:rotate(-4deg)}
+.rp-seal i{font-style:normal}
+.rp-sec{padding:14px 0;border-bottom:1px dashed rgba(120,90,45,.35);break-inside:avoid-page}
+.rp-sec h2{font-family:var(--f-serif);font-size:19px;color:#7E5B18;margin-bottom:8px}
+.rp-sec p{margin:6px 0}
+.rp-t{width:100%;border-collapse:collapse;margin:6px 0;font-size:14px}
+.rp-t th,.rp-t td{border:1px solid rgba(120,90,45,.25);padding:5px 6px;text-align:center;vertical-align:middle}
+.rp-t th{background:rgba(126,91,24,.08);font-weight:600;white-space:nowrap}
+.rp-t td.on{background:rgba(126,91,24,.14)}
+.rp-t small{color:#5E5545}
+.rp-foot{padding-top:14px;font-size:12px;color:#5E5545;text-align:center}
+html.reporting{overflow:hidden}
+@media print{
+  @page{margin:12mm}
+  html.reporting body>*:not(#report){display:none!important}
+  html.reporting,html.reporting body{background:#fff!important;overflow:visible!important;zoom:1!important}
+  #report{position:static;background:#fff}
+  .rp-bar{display:none}.rp-scroll{overflow:visible;padding:0}
+  .rp{box-shadow:none;border:0;max-width:none;background:#fff}
+}
