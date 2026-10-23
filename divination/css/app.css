@@ -940,3 +940,28 @@ html.narrow .lt-doodle{opacity:.5}
 #splash.out .sp-doodle{opacity:0;transition:opacity .4s}
 #splash.out .sp-seal{opacity:0!important;transition:opacity .3s;animation:none}
 #splash.still .sp-seal{opacity:.92!important;transform:rotate(-6deg)!important}
+
+/* ===== 簡易模式 ===== */
+.bigacts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bigact{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:18px 16px;border-radius:18px;border:1px solid var(--edge);background-color:var(--card);background-image:var(--tex);background-size:260px 260px;box-shadow:var(--shadow);color:var(--ink);text-align:left;cursor:pointer;min-height:132px}
+.bigact svg{width:36px;height:36px;fill:none;stroke:var(--tint);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:url(#crayon);margin-bottom:4px}
+.bigact b{font-family:var(--f-serif);font-size:21px}
+.bigact span{font-size:14px;color:var(--muted)}
+.bigact:active{transform:scale(.97)}
+html.simple .tab{font-size:13.5px;font-weight:600}
+html.simple .tab svg{width:32px;height:32px}
+
+/* ===== 小提示氣泡 ===== */
+.tipbub{position:absolute;z-index:40;max-width:min(300px,86vw);display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--ink);color:var(--bg);font-size:15px;line-height:1.45;box-shadow:0 10px 28px rgba(0,0,0,.25);animation:tipin .35s var(--spring)}
+.tipbub b{flex:none;font-size:14px;color:var(--tint);color:color-mix(in srgb,var(--bg) 70%,var(--tint))}
+.tipbub::after{content:"";position:absolute;left:calc(var(--ax,50%) - 8px);width:16px;height:16px;background:var(--ink);transform:rotate(45deg);border-radius:3px}
+.tipbub.dn::after{top:-6px}.tipbub.up::after{bottom:-6px}
+@keyframes tipin{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:none}}
+/* ===== 語音輸入 ===== */
+.taw{position:relative;display:block}
+.taw textarea{width:100%;padding-right:52px}
+.mic{position:absolute;right:8px;bottom:8px;width:40px;height:40px;border-radius:50%;border:0;background:var(--tint-soft);color:var(--tint);display:grid;place-items:center;cursor:pointer}
+.mic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+.mic.on{background:#B3261E;color:#fff;animation:micp 1.2s ease-in-out infinite}
+@keyframes micp{0%,100%{box-shadow:0 0 0 0 rgba(179,38,30,.45)}50%{box-shadow:0 0 0 8px rgba(179,38,30,0)}}
+html.simple .tabbar nav{grid-template-columns:repeat(3,1fr)}

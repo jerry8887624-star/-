@@ -543,11 +543,16 @@ function renderOverview(){
     <div class="wxbar" role="img" aria-label="五行分布：${D.cnt.map((c,e)=>"木火土金水"[e]+c).join("、")}">${D.cnt.map((c,e)=>c?`<span style="flex:${c};background:var(--${['wood','fire','earth','metal','water'][e]})"></span>`:'').join('')}</div>
     <div class="legend">${D.cnt.map((c,e)=>`<span><i style="background:var(--${['wood','fire','earth','metal','water'][e]})"></i>${WX[e]} ${c}</span>`).join('')}</div>
     <p><b>日主${D.dm}${WX[D.dmE]}</b>，${DMTXT[D.dm]}命局${D.strong?'偏強':'偏弱'}，喜用 ${D.xi.map(elTag).join(' ')}，${D.cnt.some(c=>!c)?`五行缺${D.cnt.map((c,e)=>c?'':WX[e]).join('')}。`:'五行俱全。'}</p>
-  </div>`,family:()=>familyMini(),bazi:()=>baziDetail()};
+  </div>`,family:()=>familyMini(),bazi:()=>baziDetail(),simple:()=>`<div class="bigacts">
+    <button type="button" class="bigact" data-go="qian"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/></svg><b>求一支籤</b><span>向恩主公請示</span></button>
+    <button type="button" class="bigact" data-go="family"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.5" cy="8" r="3"/><circle cx="16" cy="9" r="2.4"/><path d="M3 19c.6-3.4 2.9-5.2 5.5-5.2s4.9 1.8 5.5 5.2M13.6 14.2c.8-.6 1.6-.8 2.4-.8 2.2 0 3.9 1.5 4.4 4.6"/></svg><b>全家運勢</b><span>家人今天好不好</span></button>
+    ${canSpeak?`<button type="button" class="bigact" data-speak="daily"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><b>唸給我聽</b><span>朗讀今日運勢</span></button>`:''}
+    <button type="button" class="bigact" data-act="simpleoff"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><b>完整功能</b><span>塔羅、命盤、開運</span></button>
+  </div>`};
   $('#v-overview').innerHTML=`
   ${sampleBanner()}
   ${homeOrder().filter(b=>b.on).map((b,k)=>BLK[b.k]()+(k===0?installCard():'')).join('')}
-  <button type="button" class="btn ghost block" data-act="home">自訂首頁</button>
+  ${simple?'':'<button type="button" class="btn ghost block" data-act="home">自訂首頁</button>'}
   ${helpBox('overview')}`;
   countUp();
 }
@@ -1007,7 +1012,7 @@ function renderTarot(){
   const hist=store.get('gx_tarot',[]);
   $('#v-tarot').innerHTML=`
   <div class="card stack">
-    <label class="f" for="tQ">想問的事<textarea id="tQ" maxlength="80" placeholder="例：這段關係接下來會怎麼發展？">${esc(tQ)}</textarea></label>
+    <label class="f" for="tQ">想問的事<span class="taw"><textarea id="tQ" maxlength="80" placeholder="例：這段關係接下來會怎麼發展？">${esc(tQ)}</textarea>${micHtml('tQ')}</span></label>
     <div class="chips" role="group" aria-label="問事類別">${CATS.map(c=>`<button type="button" class="chip" data-tcat="${c}" aria-pressed="${c===tCat}">${c}</button>`).join('')}</div>
   </div>
   <div class="hscroll" id="spreads" role="group" aria-label="選擇牌陣">${TD.spreads.map(s=>`<button type="button" class="spread${s.k===tSpread?' on':''}" data-spread="${s.k}" aria-pressed="${s.k===tSpread}"><b>${s.n}</b><span>${s.pos.length} 張 · ${s.d}</span></button>`).join('')}</div>
@@ -1279,7 +1284,7 @@ function renderQian(){
   let body='';
   if(qMode==='jiao'){
     body=`<div class="card stack" id="jcard">
-      <label class="f" for="jQ">想請示的事（用「是／否」能回答的問法）<textarea id="jQ" maxlength="60" placeholder="例：這個月適合搬家嗎？">${esc(jQ)}</textarea></label>
+      <label class="f" for="jQ">想請示的事（用「是／否」能回答的問法）<span class="taw"><textarea id="jQ" maxlength="60" placeholder="例：這個月適合搬家嗎？">${esc(jQ)}</textarea>${micHtml('jQ')}</span></label>
       <p class="ritual">雙手合十，在心中稟告姓名、生日與所問之事。筊杯合起放在掌心，於胸前誠心默念後輕輕擲下。</p>
       <div class="jstage">${jiaoStage(qLast)}</div>
       ${qLast?`<p>${JIAO[qLast.r][2]}</p>`:''}
@@ -1294,7 +1299,7 @@ function renderQian(){
       const name=esc(P.sur+P.given);
       st=`<div class="stack">
         <div class="chips" role="group" aria-label="所求之事">${QCATS.map(c=>`<button type="button" class="chip" data-qcat="${c}" aria-pressed="${c===qCat}">${c}</button>`).join('')}</div>
-        <label class="f" for="qQ">想請示的事<textarea id="qQ" maxlength="80" placeholder="例：今年轉換工作是否順利？">${esc(qQ)}</textarea></label>
+        <label class="f" for="qQ">想請示的事<span class="taw"><textarea id="qQ" maxlength="80" placeholder="例：今年轉換工作是否順利？">${esc(qQ)}</textarea>${micHtml('qQ')}</span></label>
         <label class="f" for="qAddr">居住地（可不填）<input id="qAddr" maxlength="30" placeholder="例：台北市中山區" value="${esc(store.get('gx_addr',''))}"></label>
         <div class="pray"><span class="eyebrow">稟告詞（依你的命主資料自動帶入，可在心中默念）</span><p id="prayP">${prayText()}</p>${P.sample?`<p class="small" style="margin-top:6px">目前是範例命主，<button type="button" class="linkbtn" data-act="profile">輸入你的姓名與生辰</button>後稟告詞會自動換成你的資料。</p>`:''}</div>
         <label class="toggle"><input type="checkbox" id="qStrict"${qStrict?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>嚴謹模式：確認籤詩需連續三個聖筊</span></label>
@@ -1697,6 +1702,7 @@ async function shareCard(k){
 /* ---------- 首頁自訂 ---------- */
 const HOME_BLK=[['daily','每日運勢'],['guide','趨吉避凶指南'],['family','全家今日運勢'],['tiles','紫微・姓名・求籤捷徑'],['year','今年流年'],['chart','我的命盤'],['bazi','八字詳解']];
 function homeOrder(){
+  if(simple)return [{k:'daily',on:true},{k:'simple',on:true},{k:'family',on:PEOPLE.length>1}];
   const saved=store.get('gx_home',null), def=HOME_BLK.map(([k])=>({k,on:k!=='family'||PEOPLE.length>1}));
   if(!Array.isArray(saved))return def;
   const ok=saved.filter(b=>HOME_BLK.some(([k])=>k===b.k));
@@ -1800,18 +1806,66 @@ function addReminder(){
   toast('已產生提醒，請在行事曆按「加入」','check');
 }
 
+/* ---------- 各頁小提示 ---------- */
+// 第一次進入每一頁時，用一個小氣泡指出最常用的按鈕；點任何地方就收起，不會擋住操作
+const TIPS={overview:['#daily .days','左右滑動或點日期，可以看未來七天的運勢'],tarot:['#tShuffle,#deck','先在心裡默想問題，再按「洗牌」開始抽牌'],qian:['#qcard .btn.primary,#qNext0','照著步驟：稟告 → 擲筊請示 → 抽籤 → 確認'],
+  ziwei:['.board .cell','點任何一個宮位，下面會出現詳細解讀'],liunian:['.yr','點年份可以看那一年的運勢'],hehun:['#hhB,[data-act="addp"]','選兩個人，看生肖八字合不合'],name:['#genBtn','按這裡，自動找出筆畫都吉利的好名字'],
+  qimen:['.qm .qc','點任一方位，看這個方向適不適合'],zeri:['[data-zev]','先選要辦的事，下面就會列出好日子'],family:['.fam [data-fam],[data-act="addp"]','點這裡切換成家人的命盤'],journal:['[data-jv]','事情有了結果，按「回顧」記下有沒有應驗']};
+let tipEl=null;
+function hideTip(){if(tipEl){tipEl.remove();tipEl=null}}
+function showTip(v){
+  hideTip();const T=TIPS[v];if(!T)return;const seen=store.get('gx_tips',{});if(seen[v])return;
+  if($('#splash')||$('#welcome')||$('.layer.show')||!$('#sheetBack').hidden)return;
+  const el=[...document.querySelectorAll(T[0])].find(e=>e.offsetParent&&!e.closest('[hidden]'));if(!el)return;
+  const r=el.getBoundingClientRect();if(r.top<60||r.bottom>innerHeight-110)return;
+  seen[v]=1;store.set('gx_tips',seen);
+  const z=parseFloat(getComputedStyle(document.documentElement).zoom)||1;
+  tipEl=document.createElement('div');tipEl.className='tipbub';tipEl.setAttribute('role','status');
+  tipEl.innerHTML=`<span>${T[1]}</span><b>知道了</b>`;document.body.appendChild(tipEl);
+  const below=r.bottom+tipEl.offsetHeight*z+16<innerHeight-90;
+  tipEl.classList.add(below?'dn':'up');
+  const top=(below?r.bottom+10:r.top-tipEl.offsetHeight*z-10)/z+scrollY/z;
+  const cx=(r.left+r.width/2)/z, w=tipEl.offsetWidth, vw=document.documentElement.clientWidth;
+  const left=Math.max(12,Math.min(vw-w-12,cx-w/2));
+  tipEl.style.top=top+'px';tipEl.style.left=left+'px';tipEl.style.setProperty('--ax',(cx-left)+'px');
+}
+document.addEventListener('pointerdown',e=>{if(tipEl&&!e.target.closest('.tipbub'))hideTip();else if(tipEl)hideTip()},true);
+
+/* ---------- 用說的輸入 ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let recog=null;
+const micHtml=id=>`<button type="button" class="mic" data-mic="${id}" aria-label="用說的輸入"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>`;
+function micStart(id,btn){
+  const ta=$('#'+id);if(!ta)return;
+  if(recog){recog.stop();return}
+  if(!SR){ta.focus();toast('請點鍵盤上的麥克風圖示，就能用說的輸入','info');return}
+  try{recog=new SR()}catch(e){ta.focus();toast('請點鍵盤上的麥克風圖示，就能用說的輸入','info');return}
+  recog.lang='zh-TW';recog.interimResults=true;recog.continuous=false;
+  const base=ta.value.trim();btn.classList.add('on');btn.setAttribute('aria-label','停止收音');toast('請說出你想問的事','info');
+  recog.onresult=e=>{let t='';for(const r of e.results)t+=r[0].transcript;ta.value=(base?base+' ':'')+S2T(t);ta.dispatchEvent(new Event('input',{bubbles:true}))};
+  recog.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed')toast('需要允許使用麥克風；也可以點鍵盤上的麥克風用說的','warn');else if(e.error!=='aborted'&&e.error!=='no-speech')toast('沒有聽清楚，請再試一次','warn')};
+  recog.onend=()=>{btn.classList.remove('on');btn.setAttribute('aria-label','用說的輸入');recog=null};
+  try{recog.start()}catch(e){recog=null;btn.classList.remove('on')}
+}
+
 /* ---------- 導航 ---------- */
-const GROUPS=[
+const ALL_GROUPS=[
  {k:'today',n:'今日',views:['overview','family','journal'],sub:['今日運勢','全家','占卜日記'],icon:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>'},
  {k:'tarot',n:'塔羅',views:['tarot'],icon:'<rect x="4" y="5" width="10" height="15" rx="2" transform="rotate(-10 9 12.5)"/><rect x="10" y="4" width="10" height="15" rx="2" transform="rotate(8 15 11.5)"/>'},
  {k:'qian',n:'求籤',views:['qian'],icon:'<path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/>'},
  {k:'chart',n:'命盤',views:['ziwei','liunian','hehun'],sub:['紫微斗數','流年運勢','合婚配對'],icon:'<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/>'},
  {k:'tools',n:'開運',views:['name','qimen','zeri'],sub:['姓名改名','奇門方位','擇日'],icon:'<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>'}];
-const VIEWS=GROUPS.flatMap(g=>g.views);
+const VIEWS=ALL_GROUPS.flatMap(g=>g.views);
+/* 簡易模式：只留今日運勢、求籤、全家三個大分頁，給長輩用 */
+const SIMPLE_GROUPS=[{...ALL_GROUPS[0],views:['overview'],sub:null},ALL_GROUPS[2],{k:'fam',n:'全家',views:['family'],icon:'<circle cx="8.5" cy="8" r="3"/><circle cx="16" cy="9" r="2.4"/><path d="M3 19c.6-3.4 2.9-5.2 5.5-5.2s4.9 1.8 5.5 5.2M13.6 14.2c.8-.6 1.6-.8 2.4-.8 2.2 0 3.9 1.5 4.4 4.6"/>'}];
+let simple=!!store.get('gx_simple',false), GROUPS=simple?SIMPLE_GROUPS:ALL_GROUPS;
+function setSimple(on){simple=on;store.set('gx_simple',on);GROUPS=on?SIMPLE_GROUPS:ALL_GROUPS;document.documentElement.classList.toggle('simple',on);
+  if(on){const o=fsGet();if(o.z<1.15){o.z=1.15;fsApply(o)}}
+  go(on&&!SIMPLE_GROUPS.some(g=>g.views.includes(cur))?'overview':cur,false)}
 const TITLES={overview:'今日',family:'今日',journal:'今日',tarot:'塔羅',qian:'求籤',ziwei:'命盤',liunian:'命盤',name:'開運',qimen:'開運',hehun:'命盤',zeri:'開運'};
 const SUBTITLE={overview:'',family:'全家人的今日運勢與太歲',journal:'求籤・塔羅・擲筊紀錄與應驗',tarot:'78 張牌 · 10 種牌陣',qian:'六十甲子籤 · 擲筊',ziwei:'紫微斗數十二宮',liunian:'八字 × 紫微 流年',name:'五格剖象 · 改名建議',qimen:'時家奇門 · 方位',hehun:'生肖 × 八字 × 紫微夫妻宮',zeri:'依農民曆宜忌 · 不沖生肖'};
 let cur='overview';
-const groupOf=v=>GROUPS.find(g=>g.views.includes(v));
+const groupOf=v=>GROUPS.find(g=>g.views.includes(v))||ALL_GROUPS.find(g=>g.views.includes(v));
 function buzz(){try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}}
 function renderTabs(){
   $('#tabs').innerHTML=GROUPS.map(g=>`<button class="tab" data-tab="${g.k}" aria-current="${groupOf(cur)===g?'page':'false'}"><svg viewBox="0 0 24 24" aria-hidden="true">${g.icon}</svg><span>${g.n}</span></button>`).join('');
@@ -1820,15 +1874,16 @@ function renderTitle(){
   const g=groupOf(cur), now=new Date(), L=Solar.fromDate(now).getLunar();
   $('#ltDate').textContent=cur==='overview'?`${now.getMonth()+1}月${now.getDate()}日 星期${WEEK[now.getDay()]} · 農曆${S2T(L.getMonthInChinese())}月${S2T(L.getDayInChinese())}`:SUBTITLE[cur];
   $('#ltTitle').textContent=TITLES[cur];$('#navTitle').textContent=TITLES[cur];
-  $('#subnav').innerHTML=g.sub?`<div class="seg" role="group" aria-label="切換">${g.views.map((v,k)=>`<button type="button" data-sub="${v}" aria-pressed="${v===cur}">${g.sub[k]}</button>`).join('')}</div>`:'';
-  $('#subnav').hidden=!g.sub;
+  const sub=g.sub&&!simple?g.sub:null;
+  $('#subnav').innerHTML=sub?`<div class="seg" role="group" aria-label="切換">${g.views.map((v,k)=>`<button type="button" data-sub="${v}" aria-pressed="${v===cur}">${g.sub[k]}</button>`).join('')}</div>`:'';
+  $('#subnav').hidden=!sub;
 }
 function go(v,push=true){
   if(!VIEWS.includes(v))v='overview';
   speakStop();
   const swap=()=>{cur=v;
     $$('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
-    renderTabs();renderTitle();render(v);window.scrollTo({top:0});};
+    renderTabs();renderTitle();render(v);window.scrollTo({top:0});hideTip();setTimeout(()=>{if(cur===v)showTip(v)},700);};
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(push&&document.startViewTransition&&!reduce&&v!==cur){buzz();document.startViewTransition(swap)}else swap();
   if(push)try{history.replaceState(null,'','#'+v)}catch(e){}
@@ -1848,12 +1903,12 @@ function fitAll(){
 let fitRaf=0;const fitSoon=()=>{cancelAnimationFrame(fitRaf);fitRaf=requestAnimationFrame(fitAll)};
 new MutationObserver(fitSoon).observe(document.body,{childList:true,subtree:true});
 addEventListener('resize',fitSoon);
-function fsSheetBody(){const o=fsGet();return `<div class="card stack">
+function fsSheetBody(){const o=fsGet();return `<div class="card stack"><label class="toggle"><input type="checkbox" id="simpleT"${simple?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span><b>簡易模式</b><br><span class="small muted">只留今日運勢、求籤、全家三大功能，字更大、更好按</span></span></label></div><div class="card stack">
     <div class="fs-preview"><span class="eyebrow">預覽</span><b>今天整體平穩，財運最好。</b><p>子時 23–01　宜：祭祀、會親友</p></div>
     <div class="f"><span>文字大小</span><div class="seg fs-seg" role="group" aria-label="文字大小">${FS_STEPS.map(([z,n])=>`<button type="button" data-fs="${z}" aria-pressed="${o.z===z}">${n}</button>`).join('')}</div></div>
     <label class="toggle"><input type="checkbox" id="fsBold"${o.b?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>粗體文字，看得更清楚</span></label>
-    <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canSpeak?`<div class="card stack"><div class="f"><span>朗讀速度</span><div class="seg" role="group" aria-label="朗讀速度">${RATES.map(([r,n])=>`<button type="button" data-rate="${r}" aria-pressed="${store.get('gx_rate',.9)===r}">${n}</button>`).join('')}</div></div><button type="button" class="btn sm" data-rtest style="align-self:flex-start">${SPK_IC}<span>試聽</span></button></div>`:''}${reminderHtml()}${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
-function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
+    <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canSpeak?`<div class="card stack"><div class="f"><span>朗讀速度</span><div class="seg" role="group" aria-label="朗讀速度">${RATES.map(([r,n])=>`<button type="button" data-rate="${r}" aria-pressed="${store.get('gx_rate',.9)===r}">${n}</button>`).join('')}</div></div><button type="button" class="btn sm" data-rtest style="align-self:flex-start">${SPK_IC}<span>試聽</span></button></div>`:''}<div class="card stack"><b>操作提示</b><span class="small muted">每一頁第一次打開時，會用小氣泡提示怎麼用。</span><button type="button" class="btn sm" data-act="tipsreset" style="align-self:flex-start">重新顯示所有提示</button></div>${reminderHtml()}${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
+function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
 function updateHeader(){
   $('#whoAv').textContent=SX[ZHI.indexOf(D.birthZ)];
   $('#whoBtn').setAttribute('aria-label',`命主：${P.sur}${P.given}${P.sample?'（範例）':''}，點此編輯`);
@@ -1966,7 +2021,10 @@ document.addEventListener('click',async e=>{
   if(t.dataset.zw!==undefined){const i=+t.dataset.zw,w=[...(zrWho||[curP])];const k=w.indexOf(i);if(k>=0){if(w.length>1)w.splice(k,1)}else w.push(i);zrWho=w;renderZeri();return}
   if(t.dataset.zr){zrSheet(t.dataset.zr);return}
   if(t.dataset.act==='addp'){openSheet();setTimeout(()=>{const a=$('#pAdd');a&&a.click()},60);return}
+  if(t.dataset.mic){e.preventDefault();micStart(t.dataset.mic,t);return}
+  if(t.dataset.act==='tipsreset'){store.set('gx_tips',{});toast('切換頁面時會重新顯示操作提示','check');return}
   if(t.dataset.act==='home')return openHome();
+  if(t.dataset.act==='simpleoff'){setSimple(false);toast('已回到完整功能，左上角「Aa」可再切回簡易模式','check');return}
   if(t.dataset.act==='remind')return addReminder();
   if(t.dataset.fam!==undefined){const i=+t.dataset.fam;if(i!==curP)applyPerson(i);go('overview');return}
   if(t.dataset.jnf){jnF=t.dataset.jnf;renderJournal();return}
@@ -2143,6 +2201,7 @@ function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protoco
 
 /* ---------- 啟動 ---------- */
 function boot(){
+  document.documentElement.classList.toggle('simple',simple);
   spReady=true;
   if(!window.Solar){hideSplash(true);$('#boot').innerHTML='<b>命理曆法元件載入失敗</b><br><span style="font-size:13px">'+(window.__gxErr.join('；')||'程式庫未載入')+'<br>請確認網路後重新整理，或改用 Safari／Chrome 開啟。</span>';return}
   try{
