@@ -10,7 +10,7 @@
 /*APP_CSS*/
 </style>
 
-<script>try{var fs=JSON.parse(localStorage.getItem('gx_fs')||'null');if(fs){if(fs.z>1)document.documentElement.style.zoom=fs.z;if(fs.b)document.documentElement.classList.add('boldtext')}var w=innerWidth/((fs&&fs.z)||1);document.documentElement.classList.toggle('vw400',w<=400);document.documentElement.classList.toggle('narrow',w<340)}catch(e){}</script>
+<script>try{var th=JSON.parse(localStorage.getItem('gx_theme')||'null');if(th==='light'||th==='dark')document.documentElement.setAttribute('data-theme',th)}catch(e){}try{var fs=JSON.parse(localStorage.getItem('gx_fs')||'null');if(fs){if(fs.z>1)document.documentElement.style.zoom=fs.z;if(fs.b)document.documentElement.classList.add('boldtext')}var w=innerWidth/((fs&&fs.z)||1);document.documentElement.classList.toggle('vw400',w<=400);document.documentElement.classList.toggle('narrow',w<340)}catch(e){}</script>
 <div id="splash" aria-hidden="true">
   <div class="sp-sky"><i class="sp-stars s1"></i><i class="sp-stars s2"></i><i class="sp-stars s3"></i><i class="sp-neb"></i></div>
   <svg class="sp-doodle" viewBox="0 0 400 260" aria-hidden="true"><g filter="url(#crayonFill)"><path class="d1" d="M300 30a62 62 0 1 0 42 106 52 52 0 1 1-42-106z" fill="var(--sp-gold)"/><path class="d2" d="M90 70l5 15 15 5-15 5-5 15-5-15-15-5 15-5z" fill="var(--sp-gold)"/><path class="d3" d="M30 120l3.6 10.4 10.4 3.6-10.4 3.6L30 148l-3.6-10.4-10.4-3.6 10.4-3.6z" fill="var(--sp-sage)"/><path class="d4" d="M370 200l3 8.6 8.6 3-8.6 3-3 8.6-3-8.6-8.6-3 8.6-3z" fill="var(--sp-ink)"/><circle class="d5" cx="160" cy="40" r="4" fill="var(--sp-sage)"/><circle class="d6" cx="40" cy="190" r="3.4" fill="var(--sp-gold)"/></g></svg>
@@ -1649,7 +1649,7 @@ function crayonShape(x,draw,color,rnd,w,h,ox,oy){
 const star4=(g,cx,cy,r)=>{g.beginPath();g.moveTo(cx,cy-r);g.lineTo(cx+r*.28,cy-r*.28);g.lineTo(cx+r,cy);g.lineTo(cx+r*.28,cy+r*.28);g.lineTo(cx,cy+r);g.lineTo(cx-r*.28,cy+r*.28);g.lineTo(cx-r,cy);g.lineTo(cx-r*.28,cy-r*.28);g.closePath();g.fill()};
 async function makeCard(spec){
   const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
-  const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  const dark=isDark();
   const T=dark?{bg:'#1C2849',ink:'#F3EBDA',sub:'rgba(243,235,218,.82)',gold:'#E7C27A',line:'rgba(231,194,122,.55)',line2:'rgba(231,194,122,.25)',sage:'#9CC2AE',muted:'rgba(243,235,218,.55)'}
                 :{bg:'#F1EADB',ink:'#2A251F',sub:'rgba(42,37,31,.82)',gold:'#8A6420',line:'rgba(126,91,24,.5)',line2:'rgba(126,91,24,.22)',sage:'#6F937F',muted:'rgba(42,37,31,.55)'};
   const SERIF='"Noto Serif TC","Songti TC","PMingLiU",serif', SANS='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif', BRUSH='"LXGW WenKai TC","Kaiti TC","STKaiti","BiauKai",'+SERIF;
@@ -2151,12 +2151,12 @@ function fitAll(){
 let fitRaf=0;const fitSoon=()=>{cancelAnimationFrame(fitRaf);fitRaf=requestAnimationFrame(fitAll)};
 new MutationObserver(fitSoon).observe(document.body,{childList:true,subtree:true});
 addEventListener('resize',fitSoon);
-function fsSheetBody(){const o=fsGet();return `<div class="card stack"><label class="toggle"><input type="checkbox" id="simpleT"${simple?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span><b>簡易模式</b><br><span class="small muted">只留今日運勢、求籤、全家三大功能，字更大、更好按</span></span></label></div><div class="card stack">
+function fsSheetBody(){const o=fsGet(),th=store.get('gx_theme','auto');return `<div class="card stack"><div class="f"><span>外觀</span><div class="seg" role="group" aria-label="外觀">${[['auto','跟隨系統'],['light','淺色'],['dark','深色']].map(([v,n])=>`<button type="button" data-theme-v="${v}" aria-pressed="${th===v}">${n}</button>`).join('')}</div></div></div><div class="card stack"><label class="toggle"><input type="checkbox" id="simpleT"${simple?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span><b>簡易模式</b><br><span class="small muted">只留今日運勢、求籤、全家三大功能，字更大、更好按</span></span></label></div><div class="card stack">
     <div class="fs-preview"><span class="eyebrow">預覽</span><b>今天整體平穩，財運最好。</b><p>子時 23–01　宜：祭祀、會親友</p></div>
     <div class="f"><span>文字大小</span><div class="seg fs-seg" role="group" aria-label="文字大小">${FS_STEPS.map(([z,n])=>`<button type="button" data-fs="${z}" aria-pressed="${o.z===z}">${n}</button>`).join('')}</div></div>
     <label class="toggle"><input type="checkbox" id="fsBold"${o.b?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>粗體文字，看得更清楚</span></label>
     <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canSpeak?`<div class="card stack"><div class="f"><span>朗讀速度</span><div class="seg" role="group" aria-label="朗讀速度">${RATES.map(([r,n])=>`<button type="button" data-rate="${r}" aria-pressed="${store.get('gx_rate',.9)===r}">${n}</button>`).join('')}</div></div><button type="button" class="btn sm" data-rtest style="align-self:flex-start">${SPK_IC}<span>試聽</span></button></div>`:''}<div class="card stack"><b>操作提示</b><span class="small muted">每一頁第一次打開時，會用小氣泡提示怎麼用。</span><button type="button" class="btn sm" data-act="tipsreset" style="align-self:flex-start">重新顯示所有提示</button></div>${reminderHtml()}${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
-function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
+function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const tv=e.target.closest('[data-theme-v]');if(tv){setTheme(tv.dataset.themeV);L.panel.querySelectorAll('[data-theme-v]').forEach(x=>x.setAttribute('aria-pressed',x===tv));buzz();return}const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
 function updateHeader(){
   $('#whoAv').textContent=SX[ZHI.indexOf(D.birthZ)];
   $('#whoBtn').setAttribute('aria-label',`命主：${P.sur}${P.given}${P.sample?'（範例）':''}，點此編輯`);
@@ -2452,10 +2452,17 @@ async function doInstall(){
   if(instEvt){instEvt.prompt();const r=await instEvt.userChoice.catch(()=>null);instEvt=null;if(r&&r.outcome==='accepted')store.set('gx_inst',1);if(cur==='overview')render('overview');return}
   sheet('加到主畫面',`<div class="card stack">${installSteps()}<p class="small muted">加好之後，從桌面圖示開啟就是全螢幕，也能離線使用。</p></div>`);
 }
-function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protocol==='https:'||location.hostname==='localhost'))return;navigator.serviceWorker.register('sw.js').catch(e=>console.warn('sw',e))}
+/* 深淺色：跟隨系統／淺色／深色 */
+const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+function setTheme(v,re=true){const r=document.documentElement;if(v==='light'||v==='dark')r.setAttribute('data-theme',v);else r.removeAttribute('data-theme');store.set('gx_theme',v);
+  $$('meta[name="theme-color"]').forEach(m=>{m.setAttribute('content',isDark()?'#1C2849':'#F1EADB');m.removeAttribute('media')});if(re&&D)render(cur)}
+/* 新版本提示：背景下載到新版後，請使用者點一下重新整理 */
+function showUpdate(){if($('#upd'))return;const b=document.createElement('button');b.id='upd';b.type='button';b.className='updbar';b.innerHTML='<b>靈犀有新版本</b><span>點這裡更新</span>';b.onclick=()=>location.reload();document.body.appendChild(b)}
+function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protocol==='https:'||location.hostname==='localhost'))return;(navigator.serviceWorker.controller&&navigator.serviceWorker.addEventListener('controllerchange',showUpdate),document.addEventListener('visibilitychange',()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})}),navigator.serviceWorker.register('sw.js')).catch(e=>console.warn('sw',e))}
 
 /* ---------- 啟動 ---------- */
 function boot(){
+  {const th=store.get('gx_theme','auto');if(th!=='auto')setTheme(th,false)}
   document.documentElement.classList.toggle('simple',simple);
   spReady=true;
   if(!window.Solar){hideSplash(true);$('#boot').innerHTML='<b>命理曆法元件載入失敗</b><br><span style="font-size:13px">'+(window.__gxErr.join('；')||'程式庫未載入')+'<br>請確認網路後重新整理，或改用 Safari／Chrome 開啟。</span>';return}

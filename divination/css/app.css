@@ -913,7 +913,8 @@ html.narrow .lt-doodle{opacity:.5}
 
 /* ===== 開場：紙本風（米白紙／藏青紙、墨線眼睛、書法字、朱紅印章、蠟筆月亮星星） ===== */
 #splash{--sp-bg:#F1EADB;--sp-ink:#2A251F;--sp-gold:#B07F2A;--sp-sage:#6F937F;--sp-muted:rgba(42,37,31,.62);background-color:var(--sp-bg);background-image:var(--tex-paper);background-size:260px 260px;color:var(--sp-ink)}
-@media (prefers-color-scheme: dark){#splash{--sp-bg:#1C2849;--sp-ink:#F3EBDA;--sp-gold:#E2B862;--sp-sage:#9CC2AE;--sp-muted:rgba(243,235,218,.62);background-image:var(--tex)}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #splash{--sp-bg:#1C2849;--sp-ink:#F3EBDA;--sp-gold:#E2B862;--sp-sage:#9CC2AE;--sp-muted:rgba(243,235,218,.62);background-image:var(--tex)}}
+:root[data-theme="dark"] #splash{--sp-bg:#1C2849;--sp-ink:#F3EBDA;--sp-gold:#E2B862;--sp-sage:#9CC2AE;--sp-muted:rgba(243,235,218,.62);background-image:var(--tex)}
 #splash .sp-sky,#splash .sp-parts,#splash .sp-shine,#splash .sp-flash,#splash .sp-tshine,#splash .sp-halo,#splash .sp-dash{display:none}
 #splash .sp-logo{filter:url(#crayon)}
 #splash .sp-ring,#splash .sp-ticks{stroke:var(--sp-ink)}
@@ -1021,6 +1022,7 @@ html.vw400 .km{grid-template-columns:1fr;gap:4px}
 .rp-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:16px}
 .rp{max-width:720px;margin:0 auto;background-color:var(--card);background-image:var(--tex-paper);background-size:260px 260px;color:#2A251F;border:1px solid rgba(120,90,45,.25);border-radius:6px;padding:28px 22px;box-shadow:var(--shadow);font-size:15px;line-height:1.75}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .rp{background-color:#FBF7EE}}
+:root[data-theme="dark"] .rp{background-color:#FBF7EE}
 .rp-head{display:flex;justify-content:space-between;gap:12px;border-bottom:2px solid #7E5B18;padding-bottom:12px;margin-bottom:8px}
 .rp-head h1{font-family:var(--f-brush);font-size:34px;color:#2A251F}
 .rp-head p{font-size:14px;color:#5E5545}
@@ -1075,3 +1077,7 @@ html.reporting{overflow:hidden}
 .sp-sub{animation-delay:2.7s}
 .sp-seal{animation-delay:2.95s}
 .sp-star{animation-delay:2.8s}
+
+/* ===== 新版本提示 ===== */
+.updbar{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:70;display:flex;gap:10px;align-items:center;padding:10px 16px;border-radius:999px;border:0;background:var(--ink);color:var(--bg);font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.25);cursor:pointer;animation:tipin .4s var(--spring)}
+.updbar span{color:color-mix(in srgb,var(--bg) 70%,var(--tint))}
