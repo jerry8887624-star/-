@@ -1127,6 +1127,18 @@ html.reporting{overflow:hidden}
 .lr.pass{box-shadow:inset 0 0 0 1px var(--edge);color:var(--ink)}
 .lr.on{background:var(--tint);color:var(--tint-ink);font-weight:700}
 html.vw400 .lr{font-size:13px}
+
+/* ===== 穿搭飲食・供品清單 ===== */
+.sty{display:grid;grid-template-columns:3.2em 1fr;gap:10px;padding:6px 0;border-top:1px dashed var(--line)}
+.sty:first-of-type{border-top:0}
+.sty>b{color:var(--tint)}
+.offbtn{align-self:flex-start;margin-top:4px}
+label.offck{display:flex;gap:12px;align-items:flex-start;padding:10px 4px;border-top:1px dashed var(--line);cursor:pointer}
+label.offck:first-child{border-top:0}
+label.offck input{width:22px;height:22px;accent-color:var(--good);flex:none;margin-top:2px}
+label.offck .ct{display:flex;flex-direction:column}
+label.offck .ct b{font-size:12.5px;color:var(--muted);font-weight:600}
+label.offck input:checked+.ct{color:var(--muted);text-decoration:line-through}
 </style>
 </head>
 <body>
@@ -2303,7 +2315,7 @@ function renderOverview(){
     <div class="wxbar" role="img" aria-label="五行分布：${D.cnt.map((c,e)=>"木火土金水"[e]+c).join("、")}">${D.cnt.map((c,e)=>c?`<span style="flex:${c};background:var(--${['wood','fire','earth','metal','water'][e]})"></span>`:'').join('')}</div>
     <div class="legend">${D.cnt.map((c,e)=>`<span><i style="background:var(--${['wood','fire','earth','metal','water'][e]})"></i>${WX[e]} ${c}</span>`).join('')}</div>
     <p><b>日主${D.dm}${WX[D.dmE]}</b>，${DMTXT[D.dm]}命局${D.strong?'偏強':'偏弱'}，喜用 ${D.xi.map(elTag).join(' ')}，${D.cnt.some(c=>!c)?`五行缺${D.cnt.map((c,e)=>c?'':WX[e]).join('')}。`:'五行俱全。'}</p>
-  </div>`,family:()=>familyMini(),bazi:()=>baziDetail(),simple:()=>`<div class="bigacts">
+  </div>`,family:()=>familyMini(),style:()=>styleCard(),bazi:()=>baziDetail(),simple:()=>`<div class="bigacts">
     <button type="button" class="bigact" data-go="qian"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/></svg><b>求一支籤</b><span>向恩主公請示</span></button>
     <button type="button" class="bigact" data-go="family"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.5" cy="8" r="3"/><circle cx="16" cy="9" r="2.4"/><path d="M3 19c.6-3.4 2.9-5.2 5.5-5.2s4.9 1.8 5.5 5.2M13.6 14.2c.8-.6 1.6-.8 2.4-.8 2.2 0 3.9 1.5 4.4 4.6"/></svg><b>全家運勢</b><span>家人今天好不好</span></button>
     ${canSpeak?`<button type="button" class="bigact" data-speak="daily"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><b>唸給我聽</b><span>朗讀今日運勢</span></button>`:''}
@@ -3468,7 +3480,7 @@ async function shareCard(k){
 }
 
 /* ---------- 首頁自訂 ---------- */
-const HOME_BLK=[['daily','每日運勢'],['guide','趨吉避凶指南'],['family','全家今日運勢'],['tiles','紫微・姓名・求籤捷徑'],['year','今年流年'],['chart','我的命盤'],['bazi','八字詳解']];
+const HOME_BLK=[['daily','每日運勢'],['guide','趨吉避凶指南'],['style','開運穿搭・飲食'],['family','全家今日運勢'],['tiles','紫微・姓名・求籤捷徑'],['year','今年流年'],['chart','我的命盤'],['bazi','八字詳解']];
 function homeOrder(){
   if(simple)return [{k:'daily',on:true},{k:'simple',on:true},{k:'family',on:PEOPLE.length>1}];
   const saved=store.get('gx_home',null), def=HOME_BLK.map(([k])=>({k,on:k!=='family'||PEOPLE.length>1}));
@@ -3634,7 +3646,7 @@ function renderFestival(){
   </div>
   <div class="card stack"><h3 class="h3">未來 90 天</h3>
     ${list.length?`<div class="flist">${list.map(f=>{const d=f.date,isT=d.toDateString()===today;return `<div class="fi${isT?' today':''}"><div class="fi-d"><b class="num">${d.getMonth()+1}/${d.getDate()}</b><span>${isT?'今天':'週'+WEEK[d.getDay()]}</span></div>
-      <div class="fi-m"><div class="row" style="gap:6px;flex-wrap:wrap"><b>${f.n}</b><span class="pill ${FKIND[f.k][1]}">${FKIND[f.k][0]}</span></div><span class="small muted">${ld(f.L)}</span><span class="small">${f.t}</span></div></div>`}).join('')}</div>`:'<p>未來 90 天沒有節日。</p>'}
+      <div class="fi-m"><div class="row" style="gap:6px;flex-wrap:wrap"><b>${f.n}</b><span class="pill ${FKIND[f.k][1]}">${FKIND[f.k][0]}</span></div><span class="small muted">${ld(f.L)}</span><span class="small">${f.t}</span><button type="button" class="btn sm offbtn" data-offer="${+d}" data-offn="${esc(f.n)}">準備清單</button></div></div>`}).join('')}</div>`:'<p>未來 90 天沒有節日。</p>'}
   </div>
   <div class="card flat stack"><b>安太歲、點光明燈</b><p class="small">民間習俗在農曆正月初一到元宵節（正月十五）之間到廟裡安太歲、點光明燈。今年犯太歲的家人，可在「全家」頁查看。</p></div>
   ${helpBox('festival')}`;
@@ -3905,6 +3917,50 @@ function renderStar(){
   ${helpBox('star')}`;
 }
 
+/* ---------- 今日開運穿搭與飲食 ---------- */
+// 依五行配五色、五味、五臟的傳統對應
+const WX_STYLE=[
+ {c:'綠色、青色',a:'木質手串、綠幽靈、翡翠',f:'青菜、芭樂、奇異果等綠色蔬果，略帶酸味（檸檬、梅子）',o:'肝膽'},
+ {c:'紅色、紫色、粉色',a:'紅瑪瑙、紅繩、石榴石',f:'番茄、紅棗、枸杞、紅豆，略帶苦味（苦瓜）',o:'心'},
+ {c:'黃色、咖啡色、米色',a:'黃水晶、虎眼石、陶瓷飾品',f:'地瓜、南瓜、小米、玉米，甘甜味',o:'脾胃'},
+ {c:'白色、金色、銀色',a:'金飾、銀飾、白水晶',f:'白蘿蔔、山藥、白木耳、豆腐，略帶辛味（薑、蔥）',o:'肺'},
+ {c:'黑色、深藍色、灰色',a:'黑曜石、珍珠、海藍寶',f:'黑豆、黑芝麻、木耳、海帶，鹹味適量',o:'腎'}];
+function styleCard(){
+  const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+dayOff);const F=fortune(date);
+  const e=F.le, S=WX_STYLE[e], ge=gWx(F.gz[0]), bad=D.ji[0], B=WX_STYLE[bad];
+  return `<div class="card stack"><div class="row between"><h3 class="h3">${dayOff===0?'今日':date.getMonth()+1+'/'+date.getDate()}開運穿搭・飲食</h3>${elTag(e)}</div>
+    <p class="small muted">你的喜用神是${D.xi.map(x=>WX[x]).join('、')}；${dayOff===0?'今天':'這天'}${F.gz}日天干屬${WX[ge]}${D.ji.includes(ge)?'，屬忌神，更需要用喜用五行來平衡':D.xi.includes(ge)?'，正是喜用，順勢加強':''}。</p>
+    <div class="sty"><b>穿搭</b><span>以<b class="tint-t">${S.c}</b>為主色，少穿${B.c.split('、')[0]}。</span></div>
+    <div class="sty"><b>飾品</b><span>${S.a}</span></div>
+    <div class="sty"><b>飲食</b><span>多吃${S.f}，照顧${S.o}。</span></div>
+    <p class="small muted">依五行配五色、五味的傳統說法，飲食以均衡為原則，有特殊體質或疾病請依醫囑。</p></div>`;
+}
+
+/* ---------- 拜拜供品清單 ---------- */
+// 台灣民間常見作法；各地與各家習俗不同，以長輩或當地宮廟習慣為準
+const OFFER={
+ 天公:{t:'初八晚上 11 點到初九凌晨（子時）最隆重，也可在初九上午拜',x:'3 柱（也有人用 9 柱或 12 柱）',i:['頂桌：素齋（六齋或五果六齋）','紅龜粿、壽麵（麵線塔）、糖塔','清茶 3 杯、鮮花一對','下桌：五牲（敬天公部屬）','燈座、燭台一對'],p:['天公金（頂極金、太極金）','壽金','刈金']},
+ 月:{t:'初一、十五上午',x:'3 柱',i:['鮮花','水果（避用番石榴、釋迦、番茄）','餅乾或糕點','清茶 3 杯'],p:['壽金','刈金','拜祖先另備銀紙（大銀、小銀）']},
+ 土地:{t:'上午，或商家做牙多在下午',x:'3 柱',i:['三牲或四果','紅龜粿、發粿','潤餅（尾牙、清明）','酒、清茶','鮮花'],p:['福金（土地公金）','壽金','刈金']},
+ 觀音:{t:'上午',x:'3 柱',i:['素果（全素）','鮮花','清茶','素齋或素餅'],p:['佛菩薩一般不燒金紙，可誦經迴向']},
+ 文昌:{t:'上午',x:'3 柱',i:['蔥（聰明）、芹菜（勤學）、蒜（會算）、菜頭（好彩頭）','包子、粽子（包中）','准考證影本','清茶、鮮花'],p:['文昌金','壽金']},
+ 神:{t:'上午',x:'3 柱',i:['壽麵、壽桃','鮮花','水果','清茶、酒','糕餅'],p:['壽金','刈金']},
+ 普渡:{t:'下午到傍晚前（避免入夜）',x:'每樣供品插 1 柱香',i:['飯菜、泡麵','餅乾零食、飲料','水果（部分地區避用鳳梨）','臉盆、清水、毛巾（讓好兄弟洗手）','普渡燈'],p:['普渡公金','銀紙（大銀、小銀）','經衣、更衣']},
+ 祖:{t:'中午前後',x:'3 柱（或依家中習俗）',i:['祖先愛吃的飯菜','四果','清茶、酒','碗筷'],p:['大銀、小銀（銀紙）']},
+ 送神:{t:'上午',x:'3 柱',i:['甜湯圓、麥芽糖（請灶君上天言好事）','甜粿','四果','清茶'],p:['壽金','刈金','甲馬（雲馬，給神明當坐騎）']},
+ 接神:{t:'下午或傍晚',x:'3 柱',i:['四果','糕點、甜品','清茶'],p:['壽金','刈金','甲馬（雲馬）']},
+ 七夕:{t:'傍晚',x:'3 柱',i:['七娘媽亭','胭脂、白粉、鏡子、梳子','圓仔花、雞冠花','麻油雞、油飯、湯圓'],p:['壽金','刈金','燒七娘媽亭']},
+ 清明:{t:'清明前後的上午',x:'3 柱',i:['墓紙（古仔紙）壓在墳上','潤餅、紅龜粿','四果、酒'],p:['銀紙','拜后土（土地公）用壽金、刈金']}};
+function offerKey(n){if(/天公/.test(n))return '天公';if(/初一|十五/.test(n))return '月';if(/土地|頭牙|尾牙|做牙|中秋/.test(n))return '土地';if(/觀世音|浴佛/.test(n))return '觀音';if(/文昌/.test(n))return '文昌';if(/中元|鬼門/.test(n))return '普渡';if(/送神/.test(n))return '送神';if(/接神/.test(n))return '接神';if(/七夕/.test(n))return '七夕';if(/清明/.test(n))return '清明';if(/春節|除夕|冬至|端午|重陽/.test(n))return '祖';return '神'}
+function offerSheet(ts,n){
+  const k=offerKey(n), O=OFFER[k], id=`${ts}|${n}`, done=store.get('gx_offer',{})[id]||[];
+  const notes=O.p.filter(x=>/不燒/.test(x)), all=[...O.i.map(x=>['供品',x]),...O.p.filter(x=>!/不燒/.test(x)).map(x=>['金紙',x])];
+  const L=sheet(`${n}・準備清單`,`<div class="card stack"><div class="sty"><b>時間</b><span>${O.t}</span></div><div class="sty"><b>香</b><span>${O.x}</span></div></div>
+    <div class="card stack"><span class="eyebrow">點一下打勾，準備好了就勾起來</span><div class="checks">${all.map(([g,x],i)=>`<label class="check offck"><input type="checkbox" data-off="${i}"${done.includes(i)?' checked':''}><span class="ct"><b>${g}</b>${x}</span></label>`).join('')}</div>
+    ${notes.map(x=>`<p class="small">${x}</p>`).join('')}<p class="small muted">各地與各家習俗不同，以長輩或當地宮廟的習慣為準。</p></div>`);
+  L.panel.addEventListener('change',e=>{const c=e.target.closest('[data-off]');if(!c)return;const S=store.get('gx_offer',{}),a=new Set(S[id]||[]);c.checked?a.add(+c.dataset.off):a.delete(+c.dataset.off);S[id]=[...a];store.set('gx_offer',S);buzz()});
+}
+
 /* ---------- 各頁小提示 ---------- */
 // 第一次進入每一頁時，用一個小氣泡指出最常用的按鈕；點任何地方就收起，不會擋住操作
 const TIPS={overview:['#daily .days','左右滑動或點日期，可以看未來七天的運勢'],tarot:['#tShuffle,#deck','先在心裡默想問題，再按「洗牌」開始抽牌'],qian:['#qcard .btn.primary,#qNext0','照著步驟：稟告 → 擲筊請示 → 抽籤 → 確認'],
@@ -4131,6 +4187,7 @@ document.addEventListener('click',async e=>{
   if(t.dataset.act==='report')return openReport();
   if(t.dataset.mhm){mhMode=t.dataset.mhm;mhRes=null;renderMeihua();return}
   if(t.dataset.act==='mhcast'){mhQ=($('#mhQ')?.value||'').trim();mhA=$('#mhA')?.value||mhA;mhB=$('#mhB')?.value||mhB;const r=mhCast();if(!r){toast('請輸入兩個正整數','info');return}mhRes=r;renderMeihua();$('#mhres')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});return}
+  if(t.dataset.offer){offerSheet(t.dataset.offer,t.dataset.offn);return}
   if(t.dataset.act==='home')return openHome();
   if(t.dataset.act==='simpleoff'){setSimple(false);toast('已回到完整功能，左上角「Aa」可再切回簡易模式','check');return}
   if(t.dataset.act==='remind')return addReminder();
