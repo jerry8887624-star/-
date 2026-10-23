@@ -1657,7 +1657,7 @@ async function shareCard(k){
   // 製圖耗時讓瀏覽器收回了分享權限時，改由預覽面板再按一次分享
   const url=URL.createObjectURL(blob);
   const L=sheet('分享圖卡',`<div class="stack"><img class="sharecard" src="${url}" alt="分享圖卡預覽"><p class="small muted" style="text-align:center">手機上長按圖片可以儲存或傳給朋友</p>
-    <div class="grid2">${canFile?'<button type="button" class="btn primary" data-sharefile>傳送圖片</button>':`<a class="btn primary" href="${url}" download="lingxi.png">下載圖片</a>`}<button type="button" class="btn" data-copytext>複製文字</button></div></div>`);
+    <div class="grid2">${canFile?'<button type="button" class="btn primary" data-sharefile>傳送圖片</button>':inFrame?'':`<a class="btn primary" href="${url}" download="lingxi.png">下載圖片</a>`}<button type="button" class="btn" data-copytext>複製文字</button></div></div>`);
   L.panel.addEventListener('click',e=>{if(e.target.closest('[data-copytext]'))shareOut(spec.text);if(e.target.closest('[data-sharefile]'))navigator.share({files:[file],text:spec.text}).catch(()=>{})});
 }
 
@@ -1756,7 +1756,7 @@ function reminderIcs(hh,mm){
   return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LINGXI//Daily//ZH-TW','CALSCALE:GREGORIAN','BEGIN:VEVENT',`UID:lingxi-daily-${Date.now()}@lingxi`,`DTSTAMP:${ds}T000000Z`,`DTSTART:${ds}T${pad(hh)}${pad(mm)}00`,'DURATION:PT10M','RRULE:FREQ=DAILY',
     'SUMMARY:靈犀・看今日運勢',`DESCRIPTION:打開靈犀看今天的運勢、吉時與宜忌：${url}`,`URL:${url}`,'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:靈犀・看今日運勢','TRIGGER:PT0M','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
 }
-function reminderHtml(){const r=store.get('gx_remind','07:30');return `<div class="card stack"><b>每日運勢提醒</b><span class="small muted">加到手機行事曆，每天這個時間跳出提醒，點一下就能打開靈犀。</span>
+function reminderHtml(){if(inFrame)return '';const r=store.get('gx_remind','07:30');return `<div class="card stack"><b>每日運勢提醒</b><span class="small muted">加到手機行事曆，每天這個時間跳出提醒，點一下就能打開靈犀。</span>
   <div class="row" style="gap:10px;align-items:center"><label class="f" for="rmT" style="flex:1"><span class="sr">提醒時間</span><input id="rmT" type="time" value="${r}"></label><button type="button" class="btn sm primary" data-act="remind">加到行事曆</button></div>
   <p class="small muted">iPhone 會打開行事曆，按「加入」即可；Android 選 Google 日曆開啟。不想要時，在行事曆刪除這個事件就好。</p></div>`}
 function addReminder(){
