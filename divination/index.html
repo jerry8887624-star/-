@@ -1147,6 +1147,11 @@ label.offck input:checked+.ct{color:var(--muted);text-decoration:line-through}
 
 p.story{line-height:1.85;margin:0}
 p.story b{color:var(--ink)}
+
+/* 右上角顯示命主名字（不含姓），名字長時縮成膠囊並截斷 */
+.who{width:auto;min-width:36px;max-width:7.5em;padding:0 12px;border-radius:999px;white-space:nowrap}
+#whoAv{display:block;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.navbar{grid-template-columns:minmax(44px,1fr) auto minmax(44px,1fr)}
 </style>
 </head>
 <body>
@@ -4634,7 +4639,7 @@ function fsSheetBody(){const o=fsGet(),th=store.get('gx_theme','auto');return `<
     <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canSpeak?`<div class="card stack"><div class="f"><span>朗讀速度</span><div class="seg" role="group" aria-label="朗讀速度">${RATES.map(([r,n])=>`<button type="button" data-rate="${r}" aria-pressed="${store.get('gx_rate',.9)===r}">${n}</button>`).join('')}</div></div><button type="button" class="btn sm" data-rtest style="align-self:flex-start">${SPK_IC}<span>試聽</span></button></div>`:''}<div class="card stack"><b>操作提示</b><span class="small muted">每一頁第一次打開時，會用小氣泡提示怎麼用。</span><button type="button" class="btn sm" data-act="tipsreset" style="align-self:flex-start">重新顯示所有提示</button></div>${reminderHtml()}${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
 function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const tv=e.target.closest('[data-theme-v]');if(tv){setTheme(tv.dataset.themeV);L.panel.querySelectorAll('[data-theme-v]').forEach(x=>x.setAttribute('aria-pressed',x===tv));buzz();return}const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
 function updateHeader(){
-  $('#whoAv').textContent=SX[ZHI.indexOf(D.birthZ)];
+  $('#whoAv').textContent=P.given||P.sur||'命';
   $('#whoBtn').setAttribute('aria-label',`命主：${P.sur}${P.given}${P.sample?'（範例）':''}，點此編輯`);
   $('#whoBtn').classList.toggle('nudge',!!P.sample);
 }
