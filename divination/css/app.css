@@ -784,3 +784,31 @@ ol.isteps{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:10p
 ol.isteps li{padding-left:.2em;font-size:16px}
 ol.isteps li::marker{color:var(--tint);font-weight:700}
 a.btn{display:block;text-align:center;text-decoration:none;box-sizing:border-box}
+
+/* 擇日 */
+.zrlist{display:flex;flex-direction:column}
+.zr{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;border:0;border-top:.5px solid var(--line);background:transparent;padding:12px 2px;cursor:pointer;color:var(--ink)}
+.zr:first-child{border-top:0}
+.zr.top{background:color-mix(in srgb,var(--good) 7%,transparent);border-radius:12px;padding-inline:8px;border-top-color:transparent}
+.zr-d{display:flex;flex-direction:column;align-items:center;min-width:3.4em}
+.zr-d b{font-size:20px;line-height:1.1}.zr-d span{font-size:12.5px;color:var(--muted)}
+.zr-m{display:flex;flex-direction:column;gap:3px;min-width:0}
+.zr-t{font-weight:600}
+.zr-s{color:var(--tint);letter-spacing:-1px;font-size:14px;white-space:nowrap}
+.zhs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.zh{display:flex;flex-direction:column;align-items:center;padding:8px 2px;border-radius:10px;background:var(--card2);font-size:13px;color:var(--muted)}
+.zh b{color:var(--ink);font-size:15px}
+.zh.g{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+.zh.g b{color:var(--good)}
+/* 合婚 */
+.hhitems{display:flex;flex-direction:column;gap:10px}
+.hhi{padding:12px;border-radius:12px;background:var(--card2);display:flex;flex-direction:column;gap:6px}
+.hhi .pill{white-space:normal;text-align:right}
+/* 朗讀・分享 */
+.row.acts{gap:8px;flex-wrap:wrap}
+.btn.spk{display:inline-flex;align-items:center;gap:6px}
+.btn.spk svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.btn.spk[aria-pressed="true"]{background:var(--tint);color:var(--tint-ink)}
+.btn[data-rtest]{display:inline-flex;align-items:center;gap:6px}.btn[data-rtest] svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+img.sharecard{width:100%;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.hhsel{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}.hhsel>span{color:var(--tint);font-weight:700}

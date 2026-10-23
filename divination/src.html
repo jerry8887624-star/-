@@ -77,6 +77,8 @@ setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('�
     <section class="view" id="v-liunian" hidden></section>
     <section class="view" id="v-name" hidden></section>
     <section class="view" id="v-qimen" hidden></section>
+    <section class="view" id="v-hehun" hidden></section>
+    <section class="view" id="v-zeri" hidden></section>
     <p class="foot">命理是看清自己的一面鏡子，結果僅供參考；重大決定請回到現實條件綜合判斷。</p>
   </main>
 </div>
@@ -218,7 +220,7 @@ const zWx=z=>ZWX[ZHI.indexOf(z)];
 const elTag=e=>`<span class="el e${e}">${WX[e]}</span>`;
 function shishen(dm,g){const d=GAN.indexOf(dm),o=GAN.indexOf(g);const rel=(Math.floor(o/2)-Math.floor(d/2)+5)%5;return [['比肩','劫財'],['食神','傷官'],['偏財','正財'],['七殺','正官'],['偏印','正印']][rel][(d%2)===(o%2)?0:1]}
 function gzIdx(gz){const g=GAN.indexOf(gz[0]),z=ZHI.indexOf(gz[1]);for(let i=0;i<60;i++)if(i%10===g&&i%12===z)return i;return 0}
-const S2T=(()=>{const s='涧澗炉爐雳靂剑劍锋鋒杨楊长長灯燈驿驛钗釵钏釧闰閏蜡蠟坏壞馀餘余餘诸諸动動门門开開盖蓋纳納财財会會亲親结結网網养養鸡雞讼訟疗療针針种種筑築竖豎经經络絡酝醞酿釀货貨订訂进進斋齋绘繪启啟钻鑽殓殮谢謝补補扫掃涂塗猎獵渔漁发髮医醫词詞机機仓倉习習艺藝学學饰飾墙牆归歸宁寧问問帐帳寿壽庙廟桥橋栖棲马馬椆稠礼禮远遠买買卖賣车車书書带帶断斷蚁蟻选選举舉庆慶赐賜应應运運处處树樹兴興产產业業场場灵靈体體头頭对對时時节節气氣惊驚蛰蟄谷穀满滿闭閉鱼魚挂掛厕廁坟墳丧喪硙磑猪豬东東龙龍腊臘无無佣傭';const m={};for(let i=0;i<s.length;i+=2)m[s[i]]=s[i+1];return t=>String(t).replace(/./g,c=>m[c]||c)})();
+const S2T=(()=>{const s='涧澗炉爐雳靂剑劍锋鋒杨楊长長灯燈驿驛钗釵钏釧闰閏蜡蠟坏壞馀餘余餘诸諸动動门門开開盖蓋纳納财財会會亲親结結网網养養鸡雞讼訟疗療针針种種筑築竖豎经經络絡酝醞酿釀货貨订訂进進斋齋绘繪启啟钻鑽殓殮谢謝补補扫掃涂塗猎獵渔漁发髮医醫词詞机機仓倉习習艺藝学學饰飾墙牆归歸宁寧问問帐帳寿壽庙廟桥橋栖棲马馬椆稠礼禮远遠买買卖賣车車书書带帶断斷蚁蟻选選举舉庆慶赐賜应應运運处處树樹兴興产產业業场場灵靈体體头頭对對时時节節气氣惊驚蛰蟄谷穀满滿闭閉鱼魚挂掛厕廁坟墳丧喪硙磑猪豬东東龙龍腊臘无無佣傭祸禍匮匱鸣鳴厌厭触觸黄黃见見灾災阴陰将將护護宝寶虚虛复復织織张張仪儀摇搖酱醬败敗执執难難击擊敌敵强強药藥肠腸阳陽离離陈陳颠顛圣聖续續阵陣贼賊废廢专專冲沖错錯风風愿願穷窮单單鸟鳥岁歲绝絕纯純还還乡鄉尝嘗疮瘡';const m={};for(let i=0;i<s.length;i+=2)m[s[i]]=s[i+1];return t=>String(t).replace(/./g,c=>m[c]||c)})();
 
 const CATS=['綜合','事業','財運','感情','健康','學業','出行'];
 /* ---------- 紫微資料 ---------- */
@@ -307,7 +309,9 @@ let yjCat='綜合', yjMethod='coin', tossLines=[], lastReading=null;
 let zwSel=null, zwYearOn=true, lnYear=new Date().getFullYear(), qmCat='綜合', qmTime=null;
 let nameOverride=null, qmSel=null, dayOff=0;
 
-function derive(){
+function derive(){D=calc(P)}
+/* 依命主資料排出八字、紫微等；合婚時也用它來排另一個人 */
+function calc(P){
   const [y,m,d]=P.date.split('-').map(Number);
   const hr=P.hour===13?6:P.hour, hh=hr===0?0:hr===12?23:hr*2-1;
   const solar=Solar.fromYmdHms(y,m,d,hh,30,0), lunar=solar.getLunar(), ec=lunar.getEightChar();
@@ -323,7 +327,7 @@ function derive(){
   const astro=zwChart(P);
   // 生肖與犯太歲依公廟慣例以農曆正月初一換年；八字年柱依子平法以立春換年，兩者在「立春後、春節前」出生者會不同
   const birthZ=lunar.getYearZhi(), lcZ=pillars[0][1];
-  D={y,m,d,solar,lunar,ec,pillars,dm,dmE,cnt,support,strong,xi,ji,yun,astro,birthZ,lcZ,zNote:birthZ!==lcZ?`生肖依農曆正月初一換年，屬${SX[ZHI.indexOf(birthZ)]}；八字年柱依立春換年，為${pillars[0]}（${SX[ZHI.indexOf(lcZ)]}）。`:''};
+  return {y,m,d,solar,lunar,ec,pillars,dm,dmE,cnt,support,strong,xi,ji,yun,astro,birthZ,lcZ,zNote:birthZ!==lcZ?`生肖依農曆正月初一換年，屬${SX[ZHI.indexOf(birthZ)]}；八字年柱依立春換年，為${pillars[0]}（${SX[ZHI.indexOf(lcZ)]}）。`:''};
 }
 /* 紫微元件（約 780KB）改為首頁顯示後才在背景載入，開啟速度更快；載好後自動補上紫微相關內容 */
 let zwState=window.iztro?'ok':'idle';const zwWait=[];
@@ -428,6 +432,7 @@ function dailyCard(){
       ${dayOff===0?`<div class="nowhour"><span class="dot ${F.now.s>=4?'good':F.now.s>=3?'mid':'bad'}"></span><span>現在是<b>${ZHI[F.now.k]}時</b>（${F.now.r}）${F.now.s>=4?'，正是好時辰，適合處理重要的事。':F.now.s>=3?'，時運平穩，按部就班即可。':'，時運稍弱，重要決定可以等下一個吉時。'}</span></div>`:''}</div>
     <div class="yiji"><b class="y">宜</b><span>${F.yi.join('、')||'—'}</span><b class="j">忌</b><span>${F.ji.join('、')||'—'}</span></div>
     <details class="disc"><summary>五大面向詳解</summary><div class="tbl-wrap" style="margin-top:8px"><table class="tbl">${F.areas.map(a=>`<tr><th>${a.n}</th><td>${meter(a.s)} <span class="small muted">${a.d}</span><br><span class="small">${areaTxt(a.n,a.s)}</span></td></tr>`).join('')}</table></div></details>
+    <div class="row acts">${spkHtml('daily')}${shrHtml('daily')}</div>
     ${dailyTarotHtml(date)}
   </section>`;
 }
@@ -993,7 +998,7 @@ function tarotReadingHtml(R){
   </div>
   <div class="card stack"><h3 class="h3">逐張解讀</h3>${per}</div>
   <div class="card stack"><h3 class="h3">趨吉避凶</h3><div class="checks">${tips.map(([k,t])=>`<div class="check static"><span class="ct"><b>${k}</b>${t}</span></div>`).join('')}</div>
-    <button type="button" class="btn block" id="tShare">分享這次解讀</button>
+    <div class="row acts">${spkHtml('tarot')}${shrHtml('tarot')}<button type="button" class="btn sm" id="tShare"><span>分享文字</span></button></div>
     <p class="small muted">塔羅反映的是此刻的能量與可能性，結果會隨你的選擇而改變。同一件事建議隔一段時間、情況有變化後再問。</p></div>`;
 }
 async function shareOut(text){
@@ -1271,7 +1276,8 @@ function qianResult(n,cat,q){
     <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">宜</span><div class="chips">${QDO[lv].map(x=>`<span class="pill good">${x}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">忌</span><div class="chips">${QDONT[lv].map(x=>`<span class="pill bad">${x}</span>`).join('')}</div></div></div>
     <p class="small"><b>應期</b>　${QTIME[lv]}</p>
     <details class="disc"><summary>九類解籤</summary><div class="catgrid" style="margin-top:8px">${QCATS.map(c=>`<div class="catrow${c===cat?' on':''}"><b>${c}</b><span><b>${Q[FIELD[c]]}</b>${QGUIDE[c][lv]}</span></div>`).join('')}</div></details>
-    <div class="grid2"><button type="button" class="btn" id="qShare">分享籤詩</button><button type="button" class="btn" id="qAgain">再求一籤</button></div></div>`;
+    <div class="row acts">${spkHtml('qian')}${shrHtml('qian')}</div>
+    <div class="grid2"><button type="button" class="btn" id="qShare">分享文字</button><button type="button" class="btn" id="qAgain">再求一籤</button></div></div>`;
 }
 
 /* ---------- 揭曉與詳解面板 ---------- */
@@ -1302,16 +1308,281 @@ function cardSheet(i,rev,pos,cat){
     <div class="catgrid">${c.major?`<div class="catrow"><b>感情</b><span>${c.love}</span></div><div class="catrow"><b>工作</b><span>${c.work}</span></div><div class="catrow"><b>建議</b><span>${c.adv}</span></div>`:['感情','事業','財運','健康'].map(k=>`<div class="catrow"><b>${k}</b><span>${TD.lens[k][c.suit][rev?1:0]}</span></div>`).join('')}</div></div>`);
 }
 
+/* ---------- 擇日 ---------- */
+// 依農民曆（協紀辨方書）每日宜忌：所求之事須列在「宜」、不在「忌」，且當日不沖當事人生肖；再以黃道日、建除吉日與吉神排序
+const ZR_EV=[
+  ['入宅','搬新家・入厝',['入宅'],'新屋第一次搬入看「入宅」'],
+  ['移徙','搬家・遷移',['移徙'],'租屋、換地方住看「移徙」'],
+  ['開市','開業・開幕',['开市'],'開店、公司開張看「開市」'],
+  ['嫁娶','結婚',['嫁娶'],'迎娶、登記、宴客看「嫁娶」'],
+  ['納采','訂婚・提親',['纳采','订盟'],'訂婚、送聘看「納采」「訂盟」'],
+  ['動土','動土・裝修',['动土','修造'],'破土開工看「動土」，室內裝修看「修造」'],
+  ['立券','簽約・交易',['立券','交易'],'簽約、買賣房車看「立券」「交易」'],
+  ['出行','出遠門・旅遊',['出行'],'遠行、出國看「出行」'],
+  ['安床','安床',['安床'],'新婚、搬家放床看「安床」'],
+  ['安香','安神位',['安香'],'安奉神明、祖先牌位看「安香」'],
+  ['祈福','祭祀・祈福',['祈福','祭祀'],'拜拜、祈福、還願看「祈福」「祭祀」'],
+  ['求醫','就醫・手術',['求医','治病'],'非急症的手術、療程看「求醫」「治病」']];
+const ZX_GOOD='除危定執成開';
+const GOOD_SHEN=['天德','月德','天德合','月德合','天赦','天愿','母仓','天恩','三合','六合'];
+// 嫁娶大利月（女命，以節氣月建論）：子午→六、十二月；丑未→五、十一；寅申→二、八；卯酉→正、七；辰戌→四、十；巳亥→三、九
+const DALI={子:'未丑',午:'未丑',丑:'午子',未:'午子',寅:'卯酉',申:'卯酉',卯:'寅申',酉:'寅申',辰:'巳亥',戌:'巳亥',巳:'辰戌',亥:'辰戌'};
+let zrEv='入宅', zrDays=60, zrWho=null, zrWkend=false;
+const hrRange=k=>{const a=(k*2+23)%24;return `${String(a).padStart(2,'0')}–${String((a+2)%24).padStart(2,'0')}`};
+function zrDay(date,who,ev){
+  const L=Solar.fromDate(date).getLunar(), yi=L.getDayYi(), ji=L.getDayJi(), keys=ev[2];
+  const dz=ZHI.indexOf(L.getDayZhi());
+  const r={date,L,yi,ji,ok:false,why:''};
+  if(yi.includes('诸事不宜')){r.why='諸事不宜';return r}
+  if(!keys.some(k=>yi.includes(k))){r.why='不在宜';return r}
+  if(keys.some(k=>ji.includes(k))){r.why='列在忌';return r}
+  const hit=who.find(x=>(dz-ZHI.indexOf(x.z)+12)%12===6);
+  if(hit){r.why=`沖${hit.n}（屬${SX[ZHI.indexOf(hit.z)]}）`;return r}
+  r.ok=true;
+  const huang=L.getDayTianShenType()==='黄道', zx=S2T(L.getZhiXing()), zxOk=ZX_GOOD.includes(zx);
+  const shen=L.getDayJiShen().filter(x=>GOOD_SHEN.includes(x));
+  let sc=(huang?2:0)+(zxOk?1:0)+Math.min(2,shen.length);
+  const bride=ev[0]==='嫁娶'&&who.find(x=>x.g==='女');
+  r.dali=bride&&DALI[bride.z].includes(L.getMonthZhi());if(r.dali)sc+=1;
+  r.sc=sc;r.huang=huang;r.ts=S2T(L.getDayTianShen());r.zx=zx;r.zxOk=zxOk;r.shen=shen.map(S2T);
+  r.hours=L.getTimes().slice(0,12).map((t,k)=>({k,g:t.getTianShenType()==='黄道'&&!who.some(x=>(k-ZHI.indexOf(x.z)+12)%12===6)})).filter(h=>h.g);
+  return r;
+}
+function zrWhoList(){
+  const sel=zrWho||[curP];
+  return sel.filter(i=>PEOPLE[i]||(i===curP&&P)).map(i=>{const x=PEOPLE[i]||P, c=i===curP?D:calc(x);return {n:x.sur+x.given,z:c.birthZ,g:x.gender}});
+}
+function renderZeri(){
+  const ev=ZR_EV.find(e=>e[0]===zrEv), who=zrWhoList();
+  const t0=new Date();t0.setHours(12,0,0,0);
+  const res=[];let skip={};
+  for(let i=1;i<=zrDays;i++){const d=new Date(t0);d.setDate(t0.getDate()+i);if(zrWkend&&d.getDay()%6)continue;
+    const r=zrDay(d,who,ev);if(r.ok)res.push(r);else skip[r.why.replace(/（.*/,'')]=(skip[r.why.replace(/（.*/,'')]||0)+1}
+  const best=[...res].sort((a,b)=>b.sc-a.sc||a.date-b.date).slice(0,3);
+  const row=r=>{const d=r.date, top=best.includes(r);
+    return `<button type="button" class="zr${top?' top':''}" data-zr="${+d}">
+      <span class="zr-d"><b class="num">${d.getMonth()+1}/${d.getDate()}</b><span>週${WEEK[d.getDay()]}</span></span>
+      <span class="zr-m"><span class="zr-t">農曆${S2T(r.L.getMonthInChinese())}月${S2T(r.L.getDayInChinese())} · ${r.L.getDayInGanZhi()}日${top?' <span class="pill good">推薦</span>':''}</span>
+        <span class="small">${r.huang?`<b class="good-t">黃道・${r.ts}</b>`:`<span class="muted">黑道・${r.ts}</span>`} · 建除「${r.zx}」${r.zxOk?'':'（平）'}${r.shen.length?` · ${r.shen.join('、')}`:''}${r.dali?' · <b class="good-t">大利月</b>':''}</span>
+        <span class="small muted">吉時 ${r.hours.slice(0,4).map(h=>ZHI[h.k]).join('、')||'—'}　沖${S2T(r.L.getDayChongDesc()).replace(/^\(.*?\)/,'')}</span></span>
+      <span class="zr-s" aria-label="${r.sc} 顆星">${'★'.repeat(Math.max(1,Math.min(5,r.sc)))}</span></button>`};
+  $('#v-zeri').innerHTML=`
+  <div class="card stack">
+    <span class="eyebrow">想挑好日子做什麼？</span>
+    <div class="chips" role="group" aria-label="事項">${ZR_EV.map(e=>`<button type="button" class="chip" data-zev="${e[0]}" aria-pressed="${e[0]===zrEv}">${e[1]}</button>`).join('')}</div>
+    <p class="small muted">${ev[3]}。</p>
+    <div class="f"><span>範圍</span><div class="seg" role="group" aria-label="範圍">${[30,60,90].map(n=>`<button type="button" data-zd="${n}" aria-pressed="${n===zrDays}">${n} 天內</button>`).join('')}</div></div>
+    ${PEOPLE.length>1?`<div class="f"><span>當事人（不沖他們的生肖）</span><div class="chips" role="group" aria-label="當事人">${PEOPLE.map((x,i)=>`<button type="button" class="chip" data-zw="${i}" aria-pressed="${(zrWho||[curP]).includes(i)}">${esc(x.sur+x.given)}</button>`).join('')}</div></div>`:`<p class="small">當事人：<b>${esc(P.sur+P.given)}</b>（屬${SX[ZHI.indexOf(D.birthZ)]}）。結婚、搬家要一起看另一半或家人，先到右上角新增他們的命盤。</p>`}
+    <label class="toggle"><input type="checkbox" id="zrWk"${zrWkend?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>只看週末</span></label>
+  </div>
+  <div class="card stack">
+    <div class="row between"><h3 class="h3">${ev[1]}的好日子</h3><span class="pill ${res.length?'good':'mid'}">${res.length} 天</span></div>
+    <p class="small muted">已排除：所求之事不在「宜」或列在「忌」、諸事不宜，以及沖 ${who.map(w=>`${esc(w.n)}（屬${SX[ZHI.indexOf(w.z)]}）`).join('、')} 的日子。★ 越多越好：黃道日、建除吉日、天德月德等吉神${ev[0]==='嫁娶'?'、女命大利月':''}。</p>
+    ${res.length?`<div class="zrlist">${res.map(row).join('')}</div>`:'<p>這段期間沒有合適的日子，試著把範圍拉長，或取消「只看週末」。</p>'}
+  </div>
+  <div class="card flat stack"><b>擇日的規矩</b><p class="small">本頁依農民曆（協紀辨方書）每日宜忌為準，先看「宜」不看「吉」：所辦之事要在當日「宜」裡、不能在「忌」裡，再避開沖當事人生肖的日子，最後選黃道吉日與好時辰。結婚、入宅、動土等人生大事，建議再請擇日老師依雙方八字細合。</p></div>
+  ${helpBox('zeri')}`;
+}
+function zrSheet(ts){
+  const date=new Date(+ts), who=zrWhoList(), r=zrDay(date,who,ZR_EV.find(e=>e[0]===zrEv)), L=r.L;
+  const times=L.getTimes().slice(0,12).map((t,k)=>{const huang=t.getTianShenType()==='黄道', ch=who.find(x=>(k-ZHI.indexOf(x.z)+12)%12===6);
+    return `<div class="zh${huang&&!ch?' g':''}"><b>${ZHI[k]}時</b><span class="num">${hrRange(k)}</span><span>${huang?'黃道':'黑道'}${ch?`・沖${esc(ch.n)}`:''}</span></div>`}).join('');
+  sheet(`${date.getMonth()+1}月${date.getDate()}日 週${WEEK[date.getDay()]}`,`<div class="card stack">
+    <div class="small muted">農曆${S2T(L.getMonthInChinese())}月${S2T(L.getDayInChinese())} · ${L.getYearInGanZhi()}年 ${L.getMonthInGanZhi()}月 ${L.getDayInGanZhi()}日 · ${S2T(L.getDayNaYin())}</div>
+    <div class="yiji"><b class="y">宜</b><span>${S2T(L.getDayYi().join('、'))}</span><b class="j">忌</b><span>${S2T(L.getDayJi().join('、'))}</span></div>
+    <div class="tbl-wrap"><table class="tbl"><tr><th>值神</th><td>${S2T(L.getDayTianShen())}（${S2T(L.getDayTianShenType())}）</td></tr><tr><th>建除</th><td>${S2T(L.getZhiXing())}日</td></tr><tr><th>沖煞</th><td>沖${S2T(L.getDayChongDesc())} 煞${S2T(L.getDaySha())}</td></tr><tr><th>吉神</th><td>${S2T(L.getDayJiShen().join('、'))}</td></tr><tr><th>凶煞</th><td>${S2T(L.getDayXiongSha().join('、'))}</td></tr><tr><th>彭祖百忌</th><td>${S2T(L.getPengZuGan())}　${S2T(L.getPengZuZhi())}</td></tr></table></div>
+    <span class="eyebrow">十二時辰（綠色為可用吉時）</span><div class="zhs">${times}</div></div>`);
+}
+/* ---------- 合婚配對 ---------- */
+// 依民間合婚常用的五項：生肖（年支，農曆正月初一換年）、日干（本人）、日支（夫妻宮）、五行喜用互補、年命納音
+const LIUHE_P=['子丑','寅亥','卯戌','辰酉','巳申','午未'], HAI_P=['子未','丑午','寅巳','卯辰','申亥','酉戌'], PO_P=['子酉','卯午','巳申','寅亥','丑辰','戌未'];
+const XING_G=[['寅巳','巳申','寅申'],['丑戌','戌未','丑未'],['子卯']], ZIXING='辰午酉亥';
+const pairIn=(arr,a,b)=>arr.includes(a+b)||arr.includes(b+a);
+function zhiRel(a,b){ // a、b 為地支字
+  const out=[], ia=ZHI.indexOf(a), ib=ZHI.indexOf(b);
+  if(pairIn(LIUHE_P,a,b))out.push('六合');
+  if(a!==b&&ia%4===ib%4)out.push('三合');
+  if(Math.abs(ia-ib)===6)out.push('六沖');
+  if(pairIn(HAI_P,a,b))out.push('六害');
+  if(XING_G.some(g=>pairIn(g,a,b)))out.push('相刑');
+  if(a===b&&ZIXING.includes(a))out.push('自刑');
+  if(pairIn(PO_P,a,b))out.push('相破');
+  if(a===b&&!out.length)out.push('同支');
+  return out;
+}
+const GAN_HE=['甲己','乙庚','丙辛','丁壬','戊癸'];
+const SHENG=(x,y)=>(x+1)%5===y, KE=(x,y)=>(x+2)%5===y;
+const NAYIN_WX=n=>'木火土金水'.indexOf(n.slice(-1));
+let hhA=null, hhB=null;
+function hhPick(){
+  const n=PEOPLE.length;if(n<2)return null;
+  let a=hhA??curP, b=hhB??(a===0?1:0);if(a>=n)a=0;if(b>=n||b===a)b=a===0?1:0;hhA=a;hhB=b;return [a,b];
+}
+function hehun(A,B,pa,pb){
+  const items=[];let score=60;
+  const add=(k,rel,pts,txt)=>{score+=pts;items.push({k,rel,pts,txt})};
+  // 1. 生肖
+  const zr=zhiRel(A.birthZ,B.birthZ), sxA=SX[ZHI.indexOf(A.birthZ)], sxB=SX[ZHI.indexOf(B.birthZ)];
+  if(zr.includes('六合'))add('生肖',`${sxA}${sxB}六合`,12,'生肖六合，是傳統最看好的配對，彼此吸引、互相包容。'+(zr.includes('相破')||zr.includes('相刑')?'雖同時帶「'+zr.filter(x=>x!=='六合').join('、')+'」，以合為主，小摩擦多溝通即可。':''));
+  else if(zr.includes('三合'))add('生肖',`${sxA}${sxB}三合`,10,'生肖三合，志同道合，做事有默契，適合一起打拚。');
+  else if(zr.includes('六沖'))add('生肖',`${sxA}${sxB}相沖`,-12,'生肖相沖，個性與步調差異大，容易各持己見；民間化解方式是多體諒、遇事先冷靜再談。');
+  else if(zr.includes('六害'))add('生肖',`${sxA}${sxB}相害`,-8,'生肖相害，容易因小事誤會或被外人挑撥，信任與坦白是關鍵。');
+  else if(zr.includes('相刑'))add('生肖',`${sxA}${sxB}相刑`,-6,'生肖相刑，相處時容易用言語刺傷對方，說話留口德就能化解大半。');
+  else if(zr.includes('自刑'))add('生肖',`同屬${sxA}（自刑）`,-3,'同生肖且為自刑之支，太像反而容易互相鑽牛角尖，要給彼此空間。');
+  else if(zr.includes('相破'))add('生肖',`${sxA}${sxB}相破`,-2,'生肖相破，影響輕微，多半是生活習慣上的小不合。');
+  else add('生肖',`${sxA}${sxB}${A.birthZ===B.birthZ?'同屬':'無沖無合'}`,2,'生肖之間沒有沖剋，屬平穩的配對，感情好壞看後天經營。');
+  // 2. 日干（本人）
+  const ga=A.dm, gb=B.dm, ea=gWx(ga), eb=gWx(gb);
+  if(pairIn(GAN_HE,ga,gb))add('日干',`${ga}${gb}相合`,10,'兩人日干天合，是八字合婚最重視的「天合」，心意相通、一見如故。');
+  else if(ea===eb)add('日干',`同為${WX[ea]}`,2,'日主五行相同（比和），觀念相近，像朋友也像夥伴；要注意誰都不想讓。');
+  else if(SHENG(ea,eb)||SHENG(eb,ea)){const [x,y]=SHENG(ea,eb)?[pa,pb]:[pb,pa];add('日干',`${WX[ea]}${WX[eb]}相生`,5,`日主相生，${esc(x.given)}比較會照顧、付出，${esc(y.given)}受到滋養，互動溫和。`)}
+  else{const [x,y]=KE(ea,eb)?[pa,pb]:[pb,pa];add('日干',`${WX[ea]}${WX[eb]}相剋`,-3,`日主相剋，${esc(x.given)}較強勢主導，${esc(y.given)}容易覺得被管；剋中有制，彼此尊重反而能互補。`)}
+  // 3. 日支＝夫妻宮
+  const da=A.pillars[2][1], db=B.pillars[2][1], dr=zhiRel(da,db);
+  if(dr.includes('六合')||dr.includes('三合'))add('夫妻宮',`日支${da}${db}${dr.includes('六合')?'六合':'三合'}`,dr.includes('六合')?8:6,'日支是夫妻宮，兩人夫妻宮相合，婚後生活容易同步，家庭氣氛和諧。');
+  else if(dr.includes('六沖'))add('夫妻宮',`日支${da}${db}相沖`,-8,'夫妻宮相沖，婚後作息、生活方式差異大，聚少離多反而相安；同住要多協調分工。');
+  else if(dr.includes('六害')||dr.includes('相刑'))add('夫妻宮',`日支${da}${db}${dr.includes('六害')?'相害':'相刑'}`,-4,'夫妻宮有刑害，居家瑣事容易起口角，建立固定的溝通時間會很有幫助。');
+  else add('夫妻宮',`日支${da}${db}`,1,'夫妻宮之間沒有明顯沖合，平穩為主。');
+  // 4. 五行喜用互補
+  const give=(X,Y)=>X.xi.reduce((s,e)=>s+Y.cnt[e],0)/8;
+  const comp=(give(A,B)+give(B,A))/2, cp=Math.round(Math.max(-6,Math.min(8,(comp-.3)*30)));
+  add('五行互補',`互補度 ${Math.round(comp*100)}%`,cp,cp>=4?`對方八字裡正好有你需要的「${A.xi.map(e=>WX[e]).join('、')}」，你也補了對方的「${B.xi.map(e=>WX[e]).join('、')}」，在一起會互相旺。`:cp>=0?'五行有部分互補，彼此能提供對方需要的能量。':`雙方喜用的五行（${esc(pa.given)}喜${A.xi.map(e=>WX[e]).join('')}、${esc(pb.given)}喜${B.xi.map(e=>WX[e]).join('')}）對方八字裡比較少，可以從居家佈置、共同興趣上補足。`);
+  // 5. 年命納音
+  const na=S2T(A.lunar.getYearNaYin()), nb=S2T(B.lunar.getYearNaYin()), wa=NAYIN_WX(na), wb=NAYIN_WX(nb);
+  if(wa===wb)add('年命納音',`${na}・${nb}`,2,`年命同屬${WX[wa]}，比和。`);
+  else if(SHENG(wa,wb)||SHENG(wb,wa))add('年命納音',`${na}・${nb}`,4,`年命${WX[wa]}${WX[wb]}相生，老一輩合婚看的「命」相生，屬吉。`);
+  else add('年命納音',`${na}・${nb}`,-3,`年命${WX[wa]}${WX[wb]}相剋；納音相剋在民間有「剋中帶制」的說法，多屬小節。`);
+  score=Math.max(38,Math.min(98,score));
+  return {score,items,word:score>=85?'上上婚':score>=72?'上等婚':score>=60?'中等婚':'需用心經營'};
+}
+function renderHehun(){
+  const pk=hhPick();
+  if(!pk){$('#v-hehun').innerHTML=`<div class="card stack" style="align-items:flex-start"><h3 class="h3">合婚需要兩個人的生辰</h3><p>先把另一半（或想配對的人）的姓名、生日、時辰存進來，就能看兩人的生肖、八字是否相合。</p><button class="btn primary" data-act="addp">新增對方資料</button></div>
+    <div class="card stack"><h3 class="h3">生肖速查</h3><div class="tbl-wrap"><table class="tbl">${[...ZHI].map(z=>{const i=ZHI.indexOf(z);const he=LIUHE_P.find(p=>p.includes(z)).replace(z,'');const san=[...ZHI].filter((y,j)=>j!==i&&j%4===i%4);const ch=ZHI[(i+6)%12];return `<tr><th>${SX[i]}</th><td><span class="good-t">六合${SX[ZHI.indexOf(he)]}・三合${san.map(y=>SX[ZHI.indexOf(y)]).join('')}</span>　<span class="bad-t">沖${SX[ZHI.indexOf(ch)]}</span></td></tr>`}).join('')}</table></div></div>${helpBox('hehun')}`;return}
+  const [ia,ib]=pk, pa=PEOPLE[ia], pb=PEOPLE[ib], A=ia===curP?D:calc(pa), B=ib===curP?D:calc(pb), R=hehun(A,B,pa,pb);
+  const lv=R.score>=72?'good':R.score>=60?'mid':'bad';
+  const zw=(X,p)=>{const pal=X.astro&&X.astro.palaces.find(q=>q.name==='夫妻');if(!pal)return '';const st=pal.majorStars.map(s=>s.name);
+    return `<div class="stack" style="gap:4px"><b>${esc(p.sur+p.given)}的夫妻宮：${st.length?st.join('、'):'無主星（借對宮）'}</b><span class="small">${st.length?st.map(s=>MAJOR[s]?`${s}——${MAJOR[s]}`:'').filter(Boolean).join('<br>'):'夫妻宮無主星，感情觀較受環境與對方影響，伴侶類型看對宮（官祿宮）。'}</span></div>`};
+  const sel=(id,v)=>`<label class="f" for="${id}"><select id="${id}">${PEOPLE.map((x,i)=>`<option value="${i}"${i===v?' selected':''}>${esc(x.sur+x.given)}・${SX[ZHI.indexOf((i===curP?D:calc(x)).birthZ)]}</option>`).join('')}</select></label>`;
+  $('#v-hehun').innerHTML=`
+  <div class="card stack"><div class="hhsel">${sel('hhA',ia)}<span aria-hidden="true">×</span>${sel('hhB',ib)}</div>
+    ${pa.gender===pb.gender?'<p class="small muted">兩人同性別：以下以八字五行互動參考，傳統合婚的男女條例不適用。</p>':''}</div>
+  <div class="card stack">
+    <div class="row between"><div><div class="eyebrow">${esc(pa.sur+pa.given)} × ${esc(pb.sur+pb.given)}</div><h2 class="h2">${R.word}</h2></div>
+      <div class="dial-wrap">${dial(R.score)}<div class="dial-num"><b class="num">${R.score}</b><span>契合度</span></div></div></div>
+    <div class="hhitems">${R.items.map(x=>`<div class="hhi"><div class="row between"><b>${x.k}</b><span class="pill ${x.pts>=4?'good':x.pts>=0?'mid':'bad'}">${x.rel}</span></div><p class="small">${x.txt}</p></div>`).join('')}</div>
+  </div>
+  ${A.astro&&B.astro?`<div class="card stack"><h3 class="h3">紫微夫妻宮：各自期待的伴侶</h3>${zw(A,pa)}${zw(B,pb)}</div>`:''}
+  <div class="card stack"><h3 class="h3">相處建議</h3><div class="reader"><div class="seal" aria-hidden="true">合</div><p>${R.score>=72?'兩人先天條件相當好，珍惜這份緣分，別把對方的好當成理所當然。':R.score>=60?'先天條件中上，有合也有需要磨合的地方；把上面標黃、紅的項目當成提醒，提早溝通就不會變成心結。':'先天差異較大，但這只代表「需要多用心」，不是不能在一起。很多感情好的夫妻生肖相沖，關鍵在包容與溝通。'}${R.items.some(x=>x.pts<0)?'特別留意：'+R.items.filter(x=>x.pts<0).map(x=>x.k).join('、')+'。':''}</p></div>
+    <p class="small muted">合婚是傳統的參考方法，真正決定感情的是兩個人的品格、價值觀與經營。</p></div>
+  ${helpBox('hehun')}`;
+}
+/* ---------- 語音朗讀 ---------- */
+const canSpeak='speechSynthesis' in window&&'SpeechSynthesisUtterance' in window;
+let spkBtn=null;
+const RATES=[[.75,'慢'],[.9,'標準'],[1.05,'快']];
+function zhVoice(){const vs=speechSynthesis.getVoices();return vs.find(v=>/zh[-_]TW/i.test(v.lang))||vs.find(v=>/zh[-_](HK|Hant)/i.test(v.lang))||vs.find(v=>/^(zh|cmn)/i.test(v.lang))}
+function speakStop(){if(!canSpeak)return;try{speechSynthesis.cancel()}catch(e){}if(spkBtn){spkBtn.setAttribute('aria-pressed','false');const s=spkBtn.querySelector('span');if(s)s.textContent='朗讀'}spkBtn=null}
+function speak(text,btn){
+  if(!canSpeak)return toast('這支手機不支援語音朗讀','warn');
+  if(btn&&spkBtn===btn){speakStop();return}
+  speakStop();
+  // 分句排隊朗讀：iOS 遇到太長的句子會中途停止
+  const parts=String(text).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').split(/(?<=[。！？；\n])/).map(x=>x.trim()).filter(Boolean);
+  if(!parts.length)return;
+  spkBtn=btn||null;if(btn){btn.setAttribute('aria-pressed','true');const s=btn.querySelector('span');if(s)s.textContent='停止'}
+  const v=zhVoice(), rate=store.get('gx_rate',.9);
+  parts.forEach((t,i)=>{const u=new SpeechSynthesisUtterance(t);u.lang=v?v.lang:'zh-TW';if(v)u.voice=v;u.rate=rate;
+    if(i===parts.length-1)u.onend=()=>{if(spkBtn===btn)speakStop()};speechSynthesis.speak(u)});
+}
+if(canSpeak){try{speechSynthesis.getVoices();speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{})}catch(e){}}
+const SPK_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
+const SHR_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M6 11H5v9.5h14V11h-1"/></svg>';
+const spkHtml=k=>canSpeak?`<button type="button" class="btn sm spk" data-speak="${k}" aria-pressed="false">${SPK_IC}<span>朗讀</span></button>`:'';
+const shrHtml=k=>`<button type="button" class="btn sm spk" data-card="${k}">${SHR_IC}<span>分享圖卡</span></button>`;
+function speakText(k){
+  if(k==='daily'){const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+dayOff);const F=fortune(date);
+    return `${P.given}，${dayOff===0?'今天':dayOff===1?'明天':''}${date.getMonth()+1}月${date.getDate()}日，星期${WEEK[date.getDay()]}，農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())}。整體運勢${F.total}分，${F.word}。${F.sum}${F.areas.map(a=>`${a.n}${Math.round(a.s*20)}分`).join('，')}。${F.note}幸運色是${F.la.c.split('、')[0]}，幸運數字${F.la.n}，財喜方位在${F.la.d.split('、')[0]}。吉時有${F.good.map(x=>ZHI[x.k]+'時').join('、')}。今天宜${F.yi.slice(0,5).join('、')}；忌${F.ji.slice(0,5).join('、')}。`}
+  if(k==='qian'&&qNo){const Q=QD[qNo-1];return `第${qNo}籤，${Q[0]}，${Q[1]}籤。籤詩：${Q[2]}白話：${Q[3]}${typeof qianStory==='function'?qianStory(qNo):''}${$('#v-qian .reader p')?$('#v-qian .reader p').textContent:''}`}
+  if(k==='tarot'&&tReading){const d=TD.spreads.find(s=>s.k===tReading.s);return `${tReading.q||'塔羅解讀'}，${d.n}。`+tReading.c.map((x,i)=>{const c=tcard(x.i);return `第${i+1}張，${d.pos[i]}：${c.zh}，${x.rev?'逆位':'正位'}。${x.rev?c.rev:c.up}`}).join('')+($('#v-tarot .reader p')?$('#v-tarot .reader p').textContent:'')}
+  return '';
+}
+
+/* ---------- 分享圖卡 ---------- */
+function wrapLines(ctx,text,w){const out=[];let line='';for(const ch of String(text)){if(ch==='\n'){out.push(line);line='';continue}const t=line+ch;if(ctx.measureText(t).width>w&&line){
+  // 標點不放行首
+  if(/[，。、；：！？」）]/.test(ch)){out.push(t);line='';continue}out.push(line);line=ch}else line=t}if(line)out.push(line);return out}
+const loadImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
+async function makeCard(spec){
+  const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const SERIF='"Noto Serif TC","Songti TC","PMingLiU",serif', SANS='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+  try{await Promise.race([Promise.all([document.fonts.load(`700 60px "Noto Serif TC"`),document.fonts.load(`500 36px "Noto Sans TC"`)]),new Promise(r=>setTimeout(r,1500))])}catch(e){}
+  const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#0A0F22');g.addColorStop(1,'#1B2246');x.fillStyle=g;x.fillRect(0,0,W,H);
+  // 星點
+  let seed=spec.seed||7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  for(let i=0;i<90;i++){x.fillStyle=`rgba(255,240,200,${.15+rnd()*.5})`;x.beginPath();x.arc(rnd()*W,rnd()*H,rnd()*2.2+.4,0,7);x.fill()}
+  const gold=x.createLinearGradient(0,0,W,0);gold.addColorStop(0,'#F5DB9A');gold.addColorStop(.5,'#E2BA68');gold.addColorStop(1,'#B98A33');
+  x.strokeStyle='rgba(226,186,104,.55)';x.lineWidth=3;x.beginPath();x.roundRect(40,40,W-80,H-80,36);x.stroke();
+  x.strokeStyle='rgba(226,186,104,.25)';x.lineWidth=1.5;x.beginPath();x.roundRect(56,56,W-112,H-112,28);x.stroke();
+  const logo=await loadImg('icons/icon-192.png');if(logo){x.save();x.beginPath();x.roundRect(96,96,84,84,20);x.clip();x.drawImage(logo,96,96,84,84);x.restore()}
+  x.fillStyle=gold;x.font=`700 44px ${SERIF}`;x.textBaseline='middle';x.fillText('靈犀',200,124);
+  x.fillStyle='rgba(245,219,154,.7)';x.font=`500 24px ${SANS}`;x.fillText('LINGXI · 心有靈犀 一點通',200,162);
+  x.textAlign='right';x.fillStyle='rgba(245,245,247,.75)';x.font=`500 28px ${SANS}`;x.fillText(spec.tag||'',W-96,138);x.textAlign='left';
+  let y=250;
+  if(spec.big){x.textAlign='center';x.fillStyle=gold;x.font=`700 ${spec.bigSize||200}px ${SERIF}`;x.fillText(spec.big,W/2,y+90);y+=spec.bigSize?spec.bigSize+40:240;x.textAlign='left'}
+  x.textAlign='center';x.fillStyle='#F5F5F7';x.font=`700 60px ${SERIF}`;for(const l of wrapLines(x,spec.title,W-200)){x.fillText(l,W/2,y);y+=78}
+  if(spec.sub){x.fillStyle='rgba(245,219,154,.9)';x.font=`500 32px ${SANS}`;x.fillText(spec.sub,W/2,y);y+=56}
+  if(spec.poem){y+=10;x.fillStyle='#FFF3D6';x.font=`600 54px ${SERIF}`;for(const l of spec.poem){x.fillText(l,W/2,y+10);y+=80}y+=10}
+  if(spec.imgs&&spec.imgs.length){const n=spec.imgs.length,iw=Math.min(220,(W-200-(n-1)*24)/n),ih=iw*457/260;let ix=(W-(n*iw+(n-1)*24))/2;
+    for(const s of spec.imgs){const im=await loadImg(s.src);x.save();x.translate(ix+iw/2,y+ih/2);if(s.rev)x.rotate(Math.PI);x.beginPath();x.roundRect(-iw/2,-ih/2,iw,ih,14);x.clip();if(im)x.drawImage(im,-iw/2,-ih/2,iw,ih);else{x.fillStyle='#2A3260';x.fill()}x.restore();
+      x.strokeStyle='rgba(226,186,104,.6)';x.lineWidth=2;x.beginPath();x.roundRect(ix,y,iw,ih,14);x.stroke();ix+=iw+24}y+=ih+40}
+  x.textAlign='left';
+  for(const b of spec.body||[]){if(y>H-230)break;
+    if(b.k){x.fillStyle='#E2BA68';x.font=`700 32px ${SANS}`;x.fillText(b.k,110,y);y+=48}
+    x.fillStyle='rgba(245,245,247,.92)';x.font=`500 ${b.size||32}px ${SANS}`;
+    for(const l of wrapLines(x,b.t,W-220)){if(y>H-230){break}x.fillText(l,110,y);y+=(b.size||32)*1.5}y+=18}
+  x.textAlign='center';x.fillStyle='rgba(226,186,104,.85)';x.font=`500 26px ${SANS}`;x.fillText('jerry8887624-star.github.io/-/divination',W/2,H-110);
+  x.fillStyle='rgba(245,245,247,.5)';x.font=`400 22px ${SANS}`;x.fillText('命理是看清自己的一面鏡子，結果僅供參考',W/2,H-72);
+  return c;
+}
+function cardSpec(k){
+  if(k==='daily'){const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+dayOff);const F=fortune(date);
+    return {tag:`${date.getMonth()+1}月${date.getDate()}日 週${WEEK[date.getDay()]}`,big:String(F.total),bigSize:220,title:`${P.given}的每日運勢・${F.word}`,sub:`農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())} · ${F.gz}日`,seed:date.getDate(),
+      body:[{t:F.sum},{k:'五大面向',t:F.areas.map(a=>`${a.n} ${Math.round(a.s*20)}`).join('　')},{k:'開運',t:`幸運色 ${F.la.c.split('、')[0]}　幸運數字 ${F.la.n}　財喜方位 ${F.la.d.split('、')[0]}`},{k:'宜',t:F.yi.slice(0,8).join('、')||'—'},{k:'忌',t:F.ji.slice(0,8).join('、')||'—'}],
+      text:`【靈犀・每日運勢】${date.getMonth()+1}/${date.getDate()} ${F.total}分 ${F.word}\n${F.sum}`}}
+  if(k==='qian'&&qNo){const Q=QD[qNo-1];
+    return {tag:'六十甲子籤',title:`第 ${qNo} 籤・${Q[1]}籤`,sub:`${Q[0]}　所問：${qCat}`,seed:qNo,poem:Q[2].replace(/。$/,'').split('，'),
+      body:[{k:'白話',t:Q[3]},...(typeof qianStory==='function'&&qianStory(qNo)?[{k:'典故',t:qianStory(qNo)}]:[])],text:qianShareText(qNo,qCat,qQ)}}
+  if(k==='tarot'&&tReading){const d=TD.spreads.find(s=>s.k===tReading.s), few=tReading.c.length<=5;
+    return {tag:d.n,title:tReading.q||'塔羅解讀',seed:tReading.c[0].i+3,imgs:few?tReading.c.map(c=>({src:`img/tarot/${c.i}.jpg`,rev:c.rev})):null,
+      body:tReading.c.map((c,i)=>{const t=tcard(c.i);return {k:`${d.pos[i]}：${t.zh}${c.rev?'（逆位）':''}`,t:few?(c.rev?t.kwR:t.kwU):(c.rev?t.kwR:t.kwU),size:few?30:28}}),text:shareText(tReading)}}
+  return null;
+}
+async function shareCard(k){
+  const spec=cardSpec(k);if(!spec)return;
+  hud('製作圖卡中','star');
+  let blob=null,canvas=null;try{canvas=await makeCard(spec);blob=await new Promise(r=>canvas.toBlob(r,'image/png'))}catch(e){console.error(e)}
+  if(!blob){shareOut(spec.text);return}
+  const file=new File([blob],'lingxi.png',{type:'image/png'});
+  const canFile=!!(navigator.canShare&&navigator.canShare({files:[file]}));
+  try{if(canFile){await navigator.share({files:[file],text:spec.text});return}}catch(e){if(e&&e.name==='AbortError')return}
+  // 製圖耗時讓瀏覽器收回了分享權限時，改由預覽面板再按一次分享
+  const url=URL.createObjectURL(blob);
+  const L=sheet('分享圖卡',`<div class="stack"><img class="sharecard" src="${url}" alt="分享圖卡預覽"><p class="small muted" style="text-align:center">手機上長按圖片可以儲存或傳給朋友</p>
+    <div class="grid2">${canFile?'<button type="button" class="btn primary" data-sharefile>傳送圖片</button>':`<a class="btn primary" href="${url}" download="lingxi.png">下載圖片</a>`}<button type="button" class="btn" data-copytext>複製文字</button></div></div>`);
+  L.panel.addEventListener('click',e=>{if(e.target.closest('[data-copytext]'))shareOut(spec.text);if(e.target.closest('[data-sharefile]'))navigator.share({files:[file],text:spec.text}).catch(()=>{})});
+}
+
 /* ---------- 導航 ---------- */
 const GROUPS=[
  {k:'today',n:'今日',views:['overview'],icon:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>'},
  {k:'tarot',n:'塔羅',views:['tarot'],icon:'<rect x="4" y="5" width="10" height="15" rx="2" transform="rotate(-10 9 12.5)"/><rect x="10" y="4" width="10" height="15" rx="2" transform="rotate(8 15 11.5)"/>'},
  {k:'qian',n:'求籤',views:['qian'],icon:'<path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/>'},
- {k:'chart',n:'命盤',views:['ziwei','liunian'],sub:['紫微斗數','流年運勢'],icon:'<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/>'},
- {k:'tools',n:'開運',views:['name','qimen'],sub:['姓名改名','奇門方位'],icon:'<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>'}];
+ {k:'chart',n:'命盤',views:['ziwei','liunian','hehun'],sub:['紫微斗數','流年運勢','合婚配對'],icon:'<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/>'},
+ {k:'tools',n:'開運',views:['name','qimen','zeri'],sub:['姓名改名','奇門方位','擇日'],icon:'<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>'}];
 const VIEWS=GROUPS.flatMap(g=>g.views);
-const TITLES={overview:'今日',tarot:'塔羅',qian:'求籤',ziwei:'命盤',liunian:'命盤',name:'開運',qimen:'開運'};
-const SUBTITLE={overview:'',tarot:'78 張牌 · 6 種牌陣',qian:'六十甲子籤 · 擲筊',ziwei:'紫微斗數十二宮',liunian:'八字 × 紫微 流年',name:'五格剖象 · 改名建議',qimen:'時家奇門 · 方位'};
+const TITLES={overview:'今日',tarot:'塔羅',qian:'求籤',ziwei:'命盤',liunian:'命盤',name:'開運',qimen:'開運',hehun:'命盤',zeri:'開運'};
+const SUBTITLE={overview:'',tarot:'78 張牌 · 6 種牌陣',qian:'六十甲子籤 · 擲筊',ziwei:'紫微斗數十二宮',liunian:'八字 × 紫微 流年',name:'五格剖象 · 改名建議',qimen:'時家奇門 · 方位',hehun:'生肖 × 八字 × 紫微夫妻宮',zeri:'依農民曆宜忌 · 不沖生肖'};
 let cur='overview';
 const groupOf=v=>GROUPS.find(g=>g.views.includes(v));
 function buzz(){try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}}
@@ -1327,6 +1598,7 @@ function renderTitle(){
 }
 function go(v,push=true){
   if(!VIEWS.includes(v))v='overview';
+  speakStop();
   const swap=()=>{cur=v;
     $$('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
     renderTabs();renderTitle();render(v);window.scrollTo({top:0});};
@@ -1335,7 +1607,7 @@ function go(v,push=true){
   if(push)try{history.replaceState(null,'','#'+v)}catch(e){}
   store.set('gx_tab',v);
 }
-function render(v){({overview:renderOverview,tarot:renderTarot,qian:renderQian,ziwei:renderZiwei,liunian:renderLiunian,name:renderName,qimen:renderQimen})[v]()}
+function render(v){({overview:renderOverview,tarot:renderTarot,qian:renderQian,ziwei:renderZiwei,liunian:renderLiunian,name:renderName,qimen:renderQimen,hehun:renderHehun,zeri:renderZeri})[v]()}
 /* ---------- 文字大小 ---------- */
 const FS_STEPS=[[1,'標準'],[1.15,'大'],[1.3,'特大'],[1.45,'超大']];
 function fsGet(){return store.get('gx_fs',{z:1,b:false})}
@@ -1353,8 +1625,8 @@ function fsSheetBody(){const o=fsGet();return `<div class="card stack">
     <div class="fs-preview"><span class="eyebrow">預覽</span><b>今天整體平穩，財運最好。</b><p>子時 23–01　宜：祭祀、會親友</p></div>
     <div class="f"><span>文字大小</span><div class="seg fs-seg" role="group" aria-label="文字大小">${FS_STEPS.map(([z,n])=>`<button type="button" data-fs="${z}" aria-pressed="${o.z===z}">${n}</button>`).join('')}</div></div>
     <label class="toggle"><input type="checkbox" id="fsBold"${o.b?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>粗體文字，看得更清楚</span></label>
-    <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
-function openFs(){const L=sheet('文字大小',fsSheetBody());L.panel.addEventListener('click',e=>{const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
+    <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canSpeak?`<div class="card stack"><div class="f"><span>朗讀速度</span><div class="seg" role="group" aria-label="朗讀速度">${RATES.map(([r,n])=>`<button type="button" data-rate="${r}" aria-pressed="${store.get('gx_rate',.9)===r}">${n}</button>`).join('')}</div></div><button type="button" class="btn sm" data-rtest style="align-self:flex-start">${SPK_IC}<span>試聽</span></button></div>`:''}${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
+function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
 function updateHeader(){
   $('#whoAv').textContent=SX[ZHI.indexOf(D.birthZ)];
   $('#whoBtn').setAttribute('aria-label',`命主：${P.sur}${P.given}${P.sample?'（範例）':''}，點此編輯`);
@@ -1460,6 +1732,13 @@ document.addEventListener('click',async e=>{
   if(t.dataset.sub){store.set('gx_sub_'+groupOf(t.dataset.sub).k,t.dataset.sub);return go(t.dataset.sub)}
   if(t.dataset.go)return go(t.dataset.go);
   if(t.id==='fsBtn')return openFs();
+  if(t.dataset.speak){speak(speakText(t.dataset.speak),t);return}
+  if(t.dataset.card){shareCard(t.dataset.card);return}
+  if(t.dataset.zev){zrEv=t.dataset.zev;renderZeri();return}
+  if(t.dataset.zd){zrDays=+t.dataset.zd;renderZeri();return}
+  if(t.dataset.zw!==undefined){const i=+t.dataset.zw,w=[...(zrWho||[curP])];const k=w.indexOf(i);if(k>=0){if(w.length>1)w.splice(k,1)}else w.push(i);zrWho=w;renderZeri();return}
+  if(t.dataset.zr){zrSheet(t.dataset.zr);return}
+  if(t.dataset.act==='addp'){openSheet();setTimeout(()=>{const a=$('#pAdd');a&&a.click()},60);return}
   if(t.dataset.act==='install')return doInstall();
   if(t.dataset.act==='instoff'){store.set('gx_inst',1);const c=t.closest('.inst');c&&c.remove();toast('之後也可以在左上角「Aa」設定裡加到主畫面','info');return}
   if(t.dataset.act==='zwretry'){zwState='idle';render('ziwei');return}
@@ -1538,7 +1817,7 @@ document.addEventListener('input',e=>{
   if(t.id==='nmSur'||t.id==='nmGiven'){clearTimeout(renderName.t);renderName.t=setTimeout(()=>{const id=t.id,pos=t.selectionStart;renderName();const el=$('#'+id);el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}},350)}
   if(t.dataset&&t.dataset.ch){nameOverride=nameOverride||{};nameOverride[t.dataset.ch]=+t.value||0;clearTimeout(renderName.t);renderName.t=setTimeout(()=>{const ch=t.dataset.ch;renderName();const el=$(`input[data-ch="${CSS.escape(ch)}"]`);if(el)el.focus()},500)}
 });
-document.addEventListener('change',e=>{if(e.target.id==='qmT'&&e.target.value){const d=new Date(e.target.value);if(!isNaN(d)){qmTime=d;renderQimen()}}if(e.target.id==='qStrict')qStrict=e.target.checked});
+document.addEventListener('change',e=>{if(e.target.id==='zrWk'){zrWkend=e.target.checked;renderZeri();return}if(e.target.id==='hhA'||e.target.id==='hhB'){const a=+$('#hhA').value,b=+$('#hhB').value;if(a===b){toast('請選兩個不同的人','info');renderHehun();return}hhA=a;hhB=b;renderHehun();return}if(e.target.id==='qmT'&&e.target.value){const d=new Date(e.target.value);if(!isNaN(d)){qmTime=d;renderQimen()}}if(e.target.id==='qStrict')qStrict=e.target.checked});
 $('#pForm').addEventListener('input',markSteps);
 $('#pForm').addEventListener('change',e=>{const id=e.target.id;if(id==='pLy'||id==='pLm'){const v={y:+$('#pLy').value,m:+$('#pLm').value,d:+$('#pLd').value};
   if(id==='pLy'&&v.y&&!lunarMonths(v.y).some(([x])=>x===v.m))v.m=0;if(v.y&&v.m)v.d=Math.min(v.d,LunarMonth.fromYm(v.y,v.m).getDayCount());fillLunar(v.y||0,v.m||0,v.d||0)}
