@@ -1,10 +1,10 @@
 /* Layout: iOS 式單欄（最寬 600px）。大標題隨捲動收合成導覽列，底部半透明分頁列；內容以圓角分組卡片承載。 */
 :root{
   --bg:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --fill:rgba(118,118,128,.12); --seg-on:#FFFFFF; --field:#F2F2F7; --field-line:rgba(60,60,67,.18);
-  --ink:#1C1C1E; --muted:#6C6C70; --line:#E5E5EA;
-  --tint:#9A7124; --tint-ink:#FFFFFF; --tint-soft:rgba(154,113,36,.12);
+  --ink:#1C1C1E; --muted:#636366; --line:#E5E5EA;
+  --tint:#86621C; --tint-ink:#FFFFFF; --tint-soft:rgba(134,98,28,.12);
   --navy:#141B33;
-  --good:#248A3D; --mid:#B25000; --bad:#D70015;
+  --good:#1D7533; --mid:#9A4500; --bad:#C00012;
   --wood:#2F8A57; --fire:#D9472F; --earth:#B07D12; --metal:#7C7C84; --water:#2F6DB0;
   --lu:#248A3D; --quan:#D9472F; --ke:#2F6DB0; --ji:#8E44AD;
   --shadow:0 1px 2px rgba(0,0,0,.04);
@@ -17,15 +17,15 @@
   --surface:var(--card); --surface-2:var(--card2); --paper:var(--bg); --seal:var(--tint); --seal-ink:var(--tint-ink); --brass:var(--tint);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--seg-on:#636366;--field:#2C2C2E;--field-line:rgba(235,235,245,.16);--ink:#F5F5F7;--muted:#98989F;--line:#38383A;
+  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--seg-on:#636366;--field:#2C2C2E;--field-line:rgba(235,235,245,.16);--ink:#F5F5F7;--muted:#A5A5AC;--line:#38383A;
   --tint:#E2BA68;--tint-ink:#1C1C1E;--tint-soft:rgba(226,186,104,.16);--navy:#0E1428;
-  --good:#30D158;--mid:#FF9F0A;--bad:#FF453A;
+  --good:#30D158;--mid:#FF9F0A;--bad:#FF6B62;
   --wood:#4CC07F;--fire:#FF6B52;--earth:#E0B040;--metal:#A1A1AA;--water:#5AA2E8;
   --lu:#30D158;--quan:#FF6B52;--ke:#5AA2E8;--ji:#BF7AF0;--shadow:none;color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--seg-on:#636366;--field:#2C2C2E;--field-line:rgba(235,235,245,.16);--ink:#F5F5F7;--muted:#98989F;--line:#38383A;
+  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--seg-on:#636366;--field:#2C2C2E;--field-line:rgba(235,235,245,.16);--ink:#F5F5F7;--muted:#A5A5AC;--line:#38383A;
   --tint:#E2BA68;--tint-ink:#1C1C1E;--tint-soft:rgba(226,186,104,.16);--navy:#0E1428;
-  --good:#30D158;--mid:#FF9F0A;--bad:#FF453A;
+  --good:#30D158;--mid:#FF9F0A;--bad:#FF6B62;
   --wood:#4CC07F;--fire:#FF6B52;--earth:#E0B040;--metal:#A1A1AA;--water:#5AA2E8;
   --lu:#30D158;--quan:#FF6B52;--ke:#5AA2E8;--ji:#BF7AF0;--shadow:none;color-scheme:dark}
 
@@ -100,7 +100,7 @@ h4{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;flex-w
 .chip:active{transform:scale(.95)}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
-.seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:7px 6px;cursor:pointer;font-size:14px;font-weight:500;transition:background .25s var(--ease),box-shadow .25s}
+.seg button{flex:1;border:0;background:transparent;color:var(--ink);border-radius:8px;padding:7px 6px;cursor:pointer;font-size:14px;font-weight:500;transition:background .25s var(--ease),box-shadow .25s}
 .seg button[aria-pressed="true"]{background:var(--seg-on);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04);font-weight:600}
 .pill{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;padding:2px 9px;border-radius:999px;line-height:1.6;white-space:nowrap}
 .pill.good{color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
@@ -308,7 +308,7 @@ details.more[open]>summary::after{transform:rotate(225deg);margin-top:4px}
 .dy{flex:none;width:62px;text-align:center;border-radius:12px;padding:7px 2px;background:var(--card2)}
 .dy.on{background:var(--tint-soft);box-shadow:inset 0 0 0 1.5px var(--tint)}
 .dy .g{font-family:var(--f-serif);font-size:18px;line-height:1.2;font-weight:600}
-.dy .a{font-size:11px;color:var(--muted)}
+.dy .a{font-size:12px;color:var(--muted)}.dy.on .a{color:var(--ink)}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:14.5px;margin:0}
 .kv dt{color:var(--muted)}
 .kv dd{margin:0;min-width:0}
@@ -354,6 +354,8 @@ svg text{font-family:var(--f-ui)}
 .qc.sel{box-shadow:inset 0 0 0 2px var(--ink)}
 .qc .flag{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;padding:1px 7px;border-radius:6px;background:var(--tint);color:var(--tint-ink);white-space:nowrap;font-family:var(--f-ui)}
 .qc .flag.g{background:var(--good);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .qc .flag.g{color:#000}}
+:root[data-theme="dark"] .qc .flag.g{color:#000}
 .qc .kong{font-size:10px;color:var(--bad);font-family:var(--f-ui)}
 .qc.c5{background:var(--card2);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px;cursor:default;box-shadow:none}
 
@@ -773,3 +775,12 @@ html{scroll-padding-top:calc(64px + env(safe-area-inset-top,0px));scroll-padding
 .card .f input,.card .f select,.card .f textarea,.sheet .card .f input,.sheet .card .f select,.sheet .card .f textarea{background:var(--field);box-shadow:inset 0 0 0 1px var(--field-line)}
 .f input:focus,.f select:focus,.f textarea:focus{box-shadow:inset 0 0 0 1px transparent}
 .f input::placeholder,.f textarea::placeholder{color:var(--muted)}
+
+/* 加到主畫面 */
+.inst{display:flex;gap:14px;align-items:flex-start}
+.inst-ic img{width:52px;height:52px;border-radius:12px;display:block;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+ol.isteps{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:10px;line-height:1.6}
+.ico-in{width:1.15em;height:1.15em;vertical-align:-.2em;color:var(--tint)}
+ol.isteps li{padding-left:.2em;font-size:16px}
+ol.isteps li::marker{color:var(--tint);font-weight:700}
+a.btn{display:block;text-align:center;text-decoration:none;box-sizing:border-box}

@@ -6,7 +6,6 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap"></noscript>
 <link rel="preload" as="script" href="vendor/lunar.min.js">
-<link rel="preload" as="script" href="vendor/iztro.min.js">
 <style>
 /*APP_CSS*/
 </style>
@@ -131,10 +130,7 @@ addEventListener('unhandledrejection',function(e){window.__gxErr.push('Promise: 
 <script>window.__gxStage='載入萬年曆'</script>
 <script src="vendor/lunar.min.js"></script>
 <script>window.Solar||document.write('<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"><\/script>')</script>
-<script>window.__gxStage='載入紫微斗數'</script>
-<script src="vendor/iztro.min.js"></script>
 <script>window.__gxStage='排盤中'</script>
-<script>window.iztro||document.write('<script src="https://cdn.jsdelivr.net/npm/iztro@2.6.1/dist/iztro.min.js"><\/script>')</script>
 <script>/*KX_DATA*/</script>
 <script>/*CONTENT*/</script>
 <script>/*TAROT_DATA*/</script>
@@ -210,7 +206,7 @@ function reveal({tone='gold',art='',kicker='',big,sub='',body='',actions=[]}){
 document.addEventListener('click',e=>{if(e.target.closest('[data-close]')){closeLayer();e.stopPropagation()}},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&layers.length){const L=layers[layers.length-1];if(L.kind!=='alert')closeLayer(L)}});
 
-const meter=(s,big)=>`<span class="meter${big?' big':''}" aria-label="${s} / 5">${[1,2,3,4,5].map(i=>`<i class="${i<=Math.round(s)?'on':''}"></i>`).join('')}</span>`;
+const meter=(s,big)=>`<span class="meter${big?' big':''}" role="img" aria-label="${s} 分（滿分 5）">${[1,2,3,4,5].map(i=>`<i class="${i<=Math.round(s)?'on':''}"></i>`).join('')}</span>`;
 const lv=s=>s>=4?['good','吉']:s>=3?['mid','平']:['bad','慎'];
 
 /* ---------- 干支五行 ---------- */
@@ -324,10 +320,25 @@ function derive(){
   const xi=strong?[(dmE+2)%5,(dmE+1)%5]:[(dmE+4)%5,dmE];
   const ji=strong?[(dmE+4)%5,dmE]:[(dmE+3)%5,(dmE+2)%5];
   const yun=ec.getYun(P.gender==='男'?1:0).getDaYun().filter(x=>x.getGanZhi());
-  let astro=null;try{astro=iztro.astro.bySolar(`${y}-${m}-${d}`,hr,P.gender,true,'zh-TW')}catch(e){console.error(e)}
+  const astro=zwChart(P);
   // 生肖與犯太歲依公廟慣例以農曆正月初一換年；八字年柱依子平法以立春換年，兩者在「立春後、春節前」出生者會不同
   const birthZ=lunar.getYearZhi(), lcZ=pillars[0][1];
   D={y,m,d,solar,lunar,ec,pillars,dm,dmE,cnt,support,strong,xi,ji,yun,astro,birthZ,lcZ,zNote:birthZ!==lcZ?`生肖依農曆正月初一換年，屬${SX[ZHI.indexOf(birthZ)]}；八字年柱依立春換年，為${pillars[0]}（${SX[ZHI.indexOf(lcZ)]}）。`:''};
+}
+/* 紫微元件（約 780KB）改為首頁顯示後才在背景載入，開啟速度更快；載好後自動補上紫微相關內容 */
+let zwState=window.iztro?'ok':'idle';const zwWait=[];
+function zwChart(p){if(!window.iztro)return null;const [y,m,d]=p.date.split('-').map(Number);const hr=p.hour===13?6:p.hour;
+  try{return iztro.astro.bySolar(`${y}-${m}-${d}`,hr,p.gender,true,'zh-TW')}catch(e){console.error(e);return null}}
+function zwLoad(){
+  if(zwState==='ok')return Promise.resolve();
+  if(zwState==='loading')return new Promise(r=>zwWait.push(r));
+  zwState='loading';
+  return new Promise(res=>{zwWait.push(res);
+    const add=(src,next)=>{const sc=document.createElement('script');sc.src=src;sc.async=true;
+      sc.onload=()=>window.iztro?done('ok'):next();sc.onerror=next;document.head.appendChild(sc)};
+    const done=st=>{zwState=st;if(st==='ok'&&D&&P){D.astro=zwChart(P);if(['overview','ziwei','liunian'].includes(cur)){const y=scrollY;render(cur);scrollTo(0,y)}}zwWait.splice(0).forEach(f=>f())};
+    add('vendor/iztro.min.js',()=>add('https://cdn.jsdelivr.net/npm/iztro@2.6.1/dist/iztro.min.js',()=>{done('fail');if(cur==='ziwei')render('ziwei')}));
+  });
 }
 function gzScore(gz){let s=3;const a=gWx(gz[0]),b=zWx(gz[1]);if(D.xi.includes(a))s+=1;if(D.ji.includes(a))s-=1;if(D.xi.includes(b))s+=.5;if(D.ji.includes(b))s-=.5;return Math.max(1,Math.min(5,s))}
 function hash(str){let h=2166136261;for(const c of str){h^=c.codePointAt(0);h=Math.imul(h,16777619)}return h>>>0}
@@ -445,6 +456,7 @@ function renderOverview(){
   $('#v-overview').innerHTML=`
   ${sampleBanner()}
   ${dailyCard()}
+  ${installCard()}
   ${guideCard()}
   <div class="grid3">
     <button class="tile" data-go="ziwei"><span class="stat"><span class="k">紫微命宮</span><span class="v">${mStars}</span><span class="s">${A?A.fiveElementsClass:''}${dec?` · 大限${A.palaces[dec.index].name}`:''}</span></span></button>
@@ -462,7 +474,7 @@ function renderOverview(){
       <div class="small muted" style="text-align:right">國曆 ${D.y}/${D.m}/${D.d}<br>農曆 ${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())} ${P.hour===13?'時辰不確定':HOURS[P.hour].split(' ')[0]}</div></div>
     ${D.zNote?`<p class="small muted" style="margin-top:-4px">${D.zNote}</p>`:''}
     <div class="pillars">${['年柱','月柱','日柱','時柱'].map((lb,i)=>{const p=D.pillars[i];return `<div class="pillar${i===2?' dm':''}"><div class="lb">${lb}</div><div class="gz"><span class="t${gWx(p[0])}">${p[0]}</span><span class="t${zWx(p[1])}">${p[1]}</span></div><div class="ss">${i===2?'日主':shishen(D.dm,p[0])}</div></div>`}).join('')}</div>
-    <div class="wxbar" aria-label="五行分布">${D.cnt.map((c,e)=>c?`<span style="flex:${c};background:var(--${['wood','fire','earth','metal','water'][e]})"></span>`:'').join('')}</div>
+    <div class="wxbar" role="img" aria-label="五行分布：${D.cnt.map((c,e)=>"木火土金水"[e]+c).join("、")}">${D.cnt.map((c,e)=>c?`<span style="flex:${c};background:var(--${['wood','fire','earth','metal','water'][e]})"></span>`:'').join('')}</div>
     <div class="legend">${D.cnt.map((c,e)=>`<span><i style="background:var(--${['wood','fire','earth','metal','water'][e]})"></i>${WX[e]} ${c}</span>`).join('')}</div>
     <p><b>日主${D.dm}${WX[D.dmE]}</b>，${DMTXT[D.dm]}命局${D.strong?'偏強':'偏弱'}，喜用 ${D.xi.map(elTag).join(' ')}，${D.cnt.some(c=>!c)?`五行缺${D.cnt.map((c,e)=>c?'':WX[e]).join('')}。`:'五行俱全。'}</p>
   </div>
@@ -512,7 +524,7 @@ function guideCard(){
 /* ---------- 視圖：紫微 ---------- */
 function starDetail(n){const d=GC.STAR&&GC.STAR[n];if(!d)return'';return `<div class="tbl-wrap"><table class="tbl">${['優點','提醒','事業','財運','感情'].map((k,i)=>`<tr><th>${k}</th><td>${d[i]}</td></tr>`).join('')}</table></div>`}
 function renderZiwei(){
-  const A=D.astro;if(!A){$('#v-ziwei').innerHTML='<div class="card">紫微命盤暫時無法排出，請確認生日與時辰。</div>';return}
+  const A=D.astro;if(!A){$('#v-ziwei').innerHTML=zwState==='fail'?'<div class="card">紫微元件載入失敗，請確認網路後<button class="btn sm" data-act="zwretry">重試</button></div>':zwState!=='ok'?'<div class="card loading" role="status">紫微命盤排盤中…</div>':'<div class="card">紫微命盤暫時無法排出，請確認生日與時辰。</div>';if(zwState==='idle')zwLoad();return}
   const now=new Date(), H=A.horoscope(new Date(lnYear,6,1)), Y=H.yearly, dec=A.horoscope(now).decadal;
   const yMut={};['祿','權','科','忌'].forEach((k,i)=>{yMut[Y.mutagen[i]]=k});
   const mingIdx=A.palaces.findIndex(p=>p.name==='命宮');
@@ -633,7 +645,7 @@ function renderLiunian(){
   </div>
   <div class="card stack">
     <h3 class="h3">八字大運</h3>
-    <div class="dayun">${D.yun.map((x,i)=>`<div class="dy${i===curDy?' on':''}" title="${shishen(D.dm,x.getGanZhi()[0])}運"><div class="a num">${x.getStartAge()}歲</div><div class="g">${x.getGanZhi()}</div><div class="a num">${x.getStartYear()}</div></div>`).join('')}</div>
+    <div class="dayun" tabindex="0" role="region" aria-label="大運，可左右滑動">${D.yun.map((x,i)=>`<div class="dy${i===curDy?' on':''}" title="${shishen(D.dm,x.getGanZhi()[0])}運"><div class="a num">${x.getStartAge()}歲</div><div class="g">${x.getGanZhi()}</div><div class="a num">${x.getStartYear()}</div></div>`).join('')}</div>
     ${dyHere?`<p class="small"><b>目前 ${dyHere.getGanZhi()} 大運（${shishen(D.dm,dyHere.getGanZhi()[0])}運）</b>　${GC.SS_TXT[shishen(D.dm,dyHere.getGanZhi()[0])]}${D.xi.includes(gWx(dyHere.getGanZhi()[0]))?'大運天干為喜用，這十年整體助力較多。':D.ji.includes(gWx(dyHere.getGanZhi()[0]))?'大運天干為忌神，這十年宜穩紮穩打。':''}</p>`:''}
     <p class="small muted">大運十年一換，決定一段時期的大環境；流年是每年的天氣。兩者同喜，最好用力。</p>
   </div>
@@ -1179,7 +1191,7 @@ function renderQian(){
       <p class="small muted">重要的事，民間習慣以「連續三個聖筊」為確定的答案。</p>
     </div>`;
   }else{
-    const steps=`<ol class="steps">${QSTEPS.map((s,k)=>`<li class="${k<qStep?'ok':k===qStep?'on':''}"><i>${k<qStep?'':k+1}</i><span>${s}</span></li>`).join('')}</ol>`;
+    const steps=`<ol class="isteps">${QSTEPS.map((s,k)=>`<li class="${k<qStep?'ok':k===qStep?'on':''}"><i>${k<qStep?'':k+1}</i><span>${s}</span></li>`).join('')}</ol>`;
     let st='';
     if(qStep===0){
       const name=esc(P.sur+P.given);
@@ -1310,7 +1322,7 @@ function renderTitle(){
   const g=groupOf(cur), now=new Date(), L=Solar.fromDate(now).getLunar();
   $('#ltDate').textContent=cur==='overview'?`${now.getMonth()+1}月${now.getDate()}日 星期${WEEK[now.getDay()]} · 農曆${S2T(L.getMonthInChinese())}月${S2T(L.getDayInChinese())}`:SUBTITLE[cur];
   $('#ltTitle').textContent=TITLES[cur];$('#navTitle').textContent=TITLES[cur];
-  $('#subnav').innerHTML=g.sub?`<div class="seg" role="tablist">${g.views.map((v,k)=>`<button type="button" role="tab" data-sub="${v}" aria-pressed="${v===cur}">${g.sub[k]}</button>`).join('')}</div>`:'';
+  $('#subnav').innerHTML=g.sub?`<div class="seg" role="group" aria-label="切換">${g.views.map((v,k)=>`<button type="button" data-sub="${v}" aria-pressed="${v===cur}">${g.sub[k]}</button>`).join('')}</div>`:'';
   $('#subnav').hidden=!g.sub;
 }
 function go(v,push=true){
@@ -1341,7 +1353,7 @@ function fsSheetBody(){const o=fsGet();return `<div class="card stack">
     <div class="fs-preview"><span class="eyebrow">預覽</span><b>今天整體平穩，財運最好。</b><p>子時 23–01　宜：祭祀、會親友</p></div>
     <div class="f"><span>文字大小</span><div class="seg fs-seg" role="group" aria-label="文字大小">${FS_STEPS.map(([z,n])=>`<button type="button" data-fs="${z}" aria-pressed="${o.z===z}">${n}</button>`).join('')}</div></div>
     <label class="toggle"><input type="checkbox" id="fsBold"${o.b?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>粗體文字，看得更清楚</span></label>
-    <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>`}
+    <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
 function openFs(){const L=sheet('文字大小',fsSheetBody());L.panel.addEventListener('click',e=>{const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
 function updateHeader(){
   $('#whoAv').textContent=SX[ZHI.indexOf(D.birthZ)];
@@ -1448,6 +1460,9 @@ document.addEventListener('click',async e=>{
   if(t.dataset.sub){store.set('gx_sub_'+groupOf(t.dataset.sub).k,t.dataset.sub);return go(t.dataset.sub)}
   if(t.dataset.go)return go(t.dataset.go);
   if(t.id==='fsBtn')return openFs();
+  if(t.dataset.act==='install')return doInstall();
+  if(t.dataset.act==='instoff'){store.set('gx_inst',1);const c=t.closest('.inst');c&&c.remove();toast('之後也可以在左上角「Aa」設定裡加到主畫面','info');return}
+  if(t.dataset.act==='zwretry'){zwState='idle';render('ziwei');return}
   if(t.id==='whoBtn'||t.dataset.act==='profile')return openSheet();
   if(t.id==='pCancel')return closeSheet();
   if(t.dataset.person!==undefined){const i=+t.dataset.person;applyPerson(i);closeSheet();toast(`已切換到 ${P.sur+P.given}`,'check');return}
@@ -1593,16 +1608,38 @@ function needProfile(){return !PEOPLE.length}
 function maybeWelcome(){let seen=false;try{seen=sessionStorage.getItem('gx_wel')==='1'}catch(e){}if(needProfile()&&!seen)showWelcome()}
 const sampleBanner=()=>P.sample?`<div class="banner"><span>目前顯示<b>範例命主</b>，輸入你的姓名與生辰才是你的盤。</span><button class="btn sm primary" data-act="profile">輸入生辰</button></div>`:'';
 
+/* ---------- 加到主畫面與離線 ---------- */
+let instEvt=null;
+const inFrame=(()=>{try{return window.self!==window.top}catch(e){return true}})();
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const UA=navigator.userAgent, isIOS=/iPhone|iPad|iPod/.test(UA)||(/Macintosh/.test(UA)&&navigator.maxTouchPoints>1), inApp=/\bLine\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(UA);
+const canInstall=()=>!inFrame&&!isStandalone()&&(location.protocol==='https:'||location.hostname==='localhost');
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEvt=e});
+addEventListener('appinstalled',()=>{instEvt=null;store.set('gx_inst',1);toast('已加到主畫面','check')});
+function installCard(){
+  if(!canInstall()||P.sample||store.get('gx_inst',0))return '';
+  return `<div class="card inst"><div class="inst-ic" aria-hidden="true"><img src="icons/icon-192.png" alt=""></div><div class="stack" style="gap:6px;min-width:0"><b>把靈犀加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能看今日運勢、求籤。</span>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn sm primary" data-act="install">${instEvt?'立即安裝':'教我怎麼加'}</button><button class="btn sm ghost" data-act="instoff">不用了</button></div></div></div>`}
+function installSteps(){
+  if(inApp)return `<ol class="isteps"><li>你現在是在 LINE／Facebook 裡面開啟，這裡沒辦法加到主畫面。</li><li>點下面的按鈕，改用手機瀏覽器開啟。</li><li>開啟後再點一次「加到主畫面」照著做。</li></ol><a class="btn primary block" href="${location.href.split('#')[0].split('?')[0]}?openExternalBrowser=1">用瀏覽器開啟</a>`;
+  if(isIOS)return `<ol class="isteps"><li>請用 <b>Safari</b> 開啟本頁。</li><li>點畫面下方的<b>「分享」</b>圖示 <svg class="ico-in" viewBox="0 0 24 24" aria-label="分享圖示"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M6 11H5v9.5h14V11h-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>（新版 iPhone 在右下角「⋯」裡面）。</li><li>往下滑，點<b>「加入主畫面」</b>。</li><li>右上角點<b>「加入」</b>，桌面就會出現靈犀圖示。</li></ol>`;
+  return `<ol class="isteps"><li>用 <b>Chrome</b> 開啟本頁。</li><li>點右上角<b>「⋮」</b>。</li><li>點<b>「加到主畫面」</b>或<b>「安裝應用程式」</b>。</li><li>按<b>「安裝」</b>，桌面就會出現靈犀圖示。</li></ol>`}
+async function doInstall(){
+  if(instEvt){instEvt.prompt();const r=await instEvt.userChoice.catch(()=>null);instEvt=null;if(r&&r.outcome==='accepted')store.set('gx_inst',1);if(cur==='overview')render('overview');return}
+  sheet('加到主畫面',`<div class="card stack">${installSteps()}<p class="small muted">加好之後，從桌面圖示開啟就是全螢幕，也能離線使用。</p></div>`);
+}
+function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protocol==='https:'||location.hostname==='localhost'))return;navigator.serviceWorker.register('sw.js').catch(e=>console.warn('sw',e))}
+
 /* ---------- 啟動 ---------- */
 function boot(){
   spReady=true;
-  if(!window.Solar||!window.iztro){hideSplash(true);$('#boot').innerHTML='<b>命理曆法元件載入失敗</b><br><span style="font-size:13px">'+(window.__gxErr.join('；')||'程式庫未載入')+'<br>請確認網路後重新整理，或改用 Safari／Chrome 開啟。</span>';return}
+  if(!window.Solar){hideSplash(true);$('#boot').innerHTML='<b>命理曆法元件載入失敗</b><br><span style="font-size:13px">'+(window.__gxErr.join('；')||'程式庫未載入')+'<br>請確認網路後重新整理，或改用 Safari／Chrome 開啟。</span>';return}
   try{
   try{derive()}catch(err){console.error(err);P=SAMPLE;derive()}
   $('#boot').hidden=true;updateHeader();
   const h=(location.hash||'').slice(1);go(VIEWS.includes(h)?h:store.get('gx_tab','overview'),false);
   hideSplash();
-  booted=true;window.__gxBooted=true;if(!$('#splash'))setTimeout(maybeWelcome,300);
+  booted=true;window.__gxBooted=true;setTimeout(zwLoad,cur==='ziwei'?0:400);setTimeout(regSW,1500);if(!$('#splash'))setTimeout(maybeWelcome,300);
   }catch(err){hideSplash(true);$('#boot').hidden=false;$('#boot').innerHTML='<b>頁面啟動失敗</b><br><span style="font-size:13px">'+esc(err&&err.message||err)+'</span>';throw err}
 }
 boot();

@@ -54,4 +54,8 @@ page = f'''<!doctype html>
 </html>
 '''
 (ROOT / 'index.html').write_text(page, encoding='utf-8')
+import hashlib
+ver = hashlib.sha1(page.encode() + (ROOT / 'sw.src.js').read_bytes()).hexdigest()[:10]
+(ROOT / 'sw.js').write_text((ROOT / 'sw.src.js').read_text(encoding='utf-8').replace('__VERSION__', ver), encoding='utf-8')
+print('sw ->', ver)
 print('page ->', ROOT / 'index.html', len(page.encode()) // 1024, 'KB')
