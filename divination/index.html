@@ -28,8 +28,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- 字型改為非阻塞載入：字型伺服器慢時不會拖住整個 App，先用系統字，載好再換 -->
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap"></noscript>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=LXGW+WenKai+TC:wght@400;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=LXGW+WenKai+TC:wght@400;700&display=swap"></noscript>
 <link rel="preload" as="script" href="vendor/lunar.min.js">
 <style>
 /* Layout: iOS 式單欄（最寬 600px）。大標題隨捲動收合成導覽列，底部半透明分頁列；內容以圓角分組卡片承載。 */
@@ -910,6 +910,70 @@ h1,h2,h3{font-family:var(--f-serif);font-weight:700;letter-spacing:.01em}
 .tcard.empty{background-color:transparent}
 /* 手繪感分隔線 */
 .tbl tr+tr th,.tbl tr+tr td{border-top-style:dashed}
+
+/* ===== 籤紙：仿廟宇紅籤紙，直式書法字 ===== */
+:root{--tex-paper:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .27 0 0 0 0 .15 0 0 0 .26 0'/%3E%3C/filter%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .4 0 0 0 0 .25 0 0 0 .17 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");--f-brush:"LXGW WenKai TC","Kaiti TC","STKaiti","BiauKai","DFKai-SB",var(--f-serif)}
+.slip{--sred:#9B2A1C;container-type:inline-size;position:relative;align-self:center;width:min(330px,100%);padding:12px 12px 14px;border-radius:3px;color:#2B1A14;
+  background-color:#F2D3C4;background-image:var(--tex-paper),linear-gradient(180deg,rgba(255,255,255,.25),rgba(155,42,28,.06));background-size:260px 260px,100% 100%;
+  box-shadow:0 14px 28px -14px rgba(60,20,10,.5),0 2px 4px rgba(60,20,10,.12);display:flex;flex-direction:column;gap:10px;gap:0;transform:rotate(-.6deg)}
+.slip::before{content:"";position:absolute;inset:6px;border:2px solid var(--sred);outline:1px solid var(--sred);outline-offset:-6px;pointer-events:none;border-radius:2px}
+.slip-top{text-align:center;font-family:var(--f-brush);font-weight:700;color:var(--sred);letter-spacing:.25em;font-size:min(14px,4.2cqw);white-space:nowrap;padding:8px 0 6px;border-bottom:1px solid rgba(155,42,28,.45);margin:4px 10px 0}
+.slip-body{writing-mode:vertical-rl;display:block;position:relative;height:calc(8cqw * 8.4 + 26px);margin:4px auto 0;padding-block:6px;font-family:var(--f-brush);text-align:center;width:max-content;max-width:100%}
+.slip-no{display:block;position:relative;padding-block:2px 10px;margin-block-end:10px;border-left:1px solid rgba(155,42,28,.35)}
+.slip-no b{display:block;font-size:6.2cqw;padding-bottom:58px;color:var(--sred);letter-spacing:.12em;margin-block-end:6px}
+.slip-gz{display:block;font-size:9cqw;font-weight:700;letter-spacing:.1em}
+.slip-poem{display:block}
+.slip-poem p{font-size:8cqw;line-height:1.5;letter-spacing:.14em;font-weight:700;margin:0}
+.slip-seal{writing-mode:horizontal-tb;display:flex;position:absolute;left:50%;bottom:2px;margin-left:-23px;flex-direction:column;align-items:center;justify-content:center;width:46px;padding:5px 0;border-radius:6px;border:2px solid var(--sred);color:var(--sred);font-weight:700;font-size:17px;line-height:1.05;transform:rotate(-8deg);opacity:.9;box-shadow:inset 0 0 0 2px rgba(242,211,196,.6)}
+.slip-seal.good{background:var(--sred);color:#F8E3D8}
+.slip-jie{margin:2px 14px 6px;padding-top:8px;border-top:1px solid rgba(155,42,28,.45);font-size:13.5px;line-height:1.45;display:flex;gap:8px}
+.slip-jie>b{writing-mode:vertical-rl;font-family:var(--f-brush);color:var(--sred);font-size:16px;letter-spacing:.2em}
+.slip-jie>div{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;flex:1}
+.slip-jie span{display:block}
+.slip-jie em{font-style:normal;font-weight:700;color:var(--sred);margin-right:4px}
+@container (max-width:290px){.slip-jie>div{grid-template-columns:1fr}.slip-seal{width:38px;font-size:14px;margin-left:-19px}}
+
+/* ===== 手繪感：蠟筆圖示與小插畫 ===== */
+:root{--doodle-moon:#C9973A;--doodle-star:#C9973A;--doodle-sage:#7E9F8C;--doodle-ink:#3A3A3A}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--doodle-moon:#E2B862;--doodle-star:#E2B862;--doodle-sage:#9CC2AE;--doodle-ink:#D9CDB6}}
+:root[data-theme="dark"]{--doodle-moon:#E2B862;--doodle-star:#E2B862;--doodle-sage:#9CC2AE;--doodle-ink:#D9CDB6}
+.largetitle{position:relative}
+.lt-doodle{position:absolute;right:2px;bottom:12px;width:128px;height:74px;pointer-events:none;opacity:.95}
+.tab svg{stroke-width:1.9;filter:url(#crayon)}
+.tab[aria-current="page"] svg{filter:url(#crayon) drop-shadow(0 0 0 currentColor)}
+.largetitle small,.largetitle h1{position:relative;z-index:1}
+html.vw400 .lt-doodle{width:104px;height:60px;bottom:22px}
+html.narrow .lt-doodle{opacity:.5}
+
+/* ===== 開場：紙本風（米白紙／藏青紙、墨線眼睛、書法字、朱紅印章、蠟筆月亮星星） ===== */
+#splash{--sp-bg:#F1EADB;--sp-ink:#2A251F;--sp-gold:#B07F2A;--sp-sage:#6F937F;--sp-muted:rgba(42,37,31,.62);background-color:var(--sp-bg);background-image:var(--tex-paper);background-size:260px 260px;color:var(--sp-ink)}
+@media (prefers-color-scheme: dark){#splash{--sp-bg:#1C2849;--sp-ink:#F3EBDA;--sp-gold:#E2B862;--sp-sage:#9CC2AE;--sp-muted:rgba(243,235,218,.62);background-image:var(--tex)}}
+#splash .sp-sky,#splash .sp-parts,#splash .sp-shine,#splash .sp-flash,#splash .sp-tshine,#splash .sp-halo,#splash .sp-dash{display:none}
+#splash .sp-logo{filter:url(#crayon)}
+#splash .sp-ring,#splash .sp-ticks{stroke:var(--sp-ink)}
+#splash .sp-lid{stroke:var(--sp-ink);fill:var(--sp-bg)}
+#splash .sp-pupil path:first-child{fill:var(--sp-ink)}
+#splash .sp-fiber{stroke:var(--sp-ink);stroke-opacity:.35}
+#splash .sp-star{fill:var(--sp-gold)}
+#splash .sp-glint{fill:var(--sp-bg)}
+.sp-title{overflow:visible;font-family:var(--f-brush);align-items:center}
+.sp-title span{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:var(--sp-ink);-webkit-text-fill-color:var(--sp-ink);filter:blur(6px);transform:translateY(6px) scale(1.04)}
+.sp-seal{display:grid;grid-template-columns:1fr 1fr;width:1em;height:1em;margin-left:.25em;padding:.06em;border-radius:.08em;background:#B3261E;color:#F6E7DA;font-family:var(--f-brush);font-size:.62em;font-weight:700;line-height:1;opacity:0;transform:scale(1.6) rotate(-14deg);animation:sp-stamp .38s 3s cubic-bezier(.2,1.4,.4,1) forwards;box-shadow:inset 0 0 0 .05em rgba(246,231,218,.75)}
+.sp-seal i{font-style:normal;font-size:.4em;display:flex;align-items:center;justify-content:center}
+.sp-seal i:nth-child(1){order:2}.sp-seal i:nth-child(2){order:4}.sp-seal i:nth-child(3){order:1}.sp-seal i:nth-child(4){order:3}
+@keyframes sp-stamp{0%{opacity:0;transform:scale(1.6) rotate(-14deg)}70%{opacity:1;transform:scale(.94) rotate(-6deg)}100%{opacity:.92;transform:scale(1) rotate(-6deg)}}
+#splash .sp-en{color:var(--sp-gold)}
+#splash .sp-sub{color:var(--sp-muted);font-family:var(--f-brush)}
+#splash .sp-skip,#splash .sp-load{color:var(--sp-muted)}
+#splash .sp-load i{background:linear-gradient(90deg,transparent,var(--sp-gold),transparent) -120px 0/120px 100% no-repeat,color-mix(in srgb,var(--sp-gold) 20%,transparent)}
+.sp-doodle{position:absolute;top:max(6vh,calc(env(safe-area-inset-top,0px) + 20px));left:50%;width:min(92vw,420px);margin-left:calc(min(92vw,420px) / -2);pointer-events:none}
+.sp-doodle path,.sp-doodle circle{opacity:0;transform-box:fill-box;transform-origin:center;animation:sp-doodle .6s cubic-bezier(.34,1.56,.64,1) forwards}
+.sp-doodle .d1{animation-delay:.25s}.sp-doodle .d2{animation-delay:.55s}.sp-doodle .d3{animation-delay:.75s}.sp-doodle .d4{animation-delay:.9s}.sp-doodle .d5{animation-delay:1.05s}.sp-doodle .d6{animation-delay:1.2s}
+@keyframes sp-doodle{from{opacity:0;transform:scale(.4) rotate(-20deg)}to{opacity:1;transform:none}}
+#splash.out .sp-mark{transform:scale(1.15);opacity:0}
+#splash.out .sp-doodle{opacity:0;transition:opacity .4s}
+#splash.out .sp-seal{opacity:0!important;transition:opacity .3s;animation:none}
+#splash.still .sp-seal{opacity:.92!important;transform:rotate(-6deg)!important}
 </style>
 </head>
 <body>
@@ -918,6 +982,7 @@ h1,h2,h3{font-family:var(--f-serif);font-weight:700;letter-spacing:.01em}
 <script>try{var fs=JSON.parse(localStorage.getItem('gx_fs')||'null');if(fs){if(fs.z>1)document.documentElement.style.zoom=fs.z;if(fs.b)document.documentElement.classList.add('boldtext')}var w=innerWidth/((fs&&fs.z)||1);document.documentElement.classList.toggle('vw400',w<=400);document.documentElement.classList.toggle('narrow',w<340)}catch(e){}</script>
 <div id="splash" aria-hidden="true">
   <div class="sp-sky"><i class="sp-stars s1"></i><i class="sp-stars s2"></i><i class="sp-stars s3"></i><i class="sp-neb"></i></div>
+  <svg class="sp-doodle" viewBox="0 0 400 260" aria-hidden="true"><g filter="url(#crayonFill)"><path class="d1" d="M300 30a62 62 0 1 0 42 106 52 52 0 1 1-42-106z" fill="var(--sp-gold)"/><path class="d2" d="M90 70l5 15 15 5-15 5-5 15-5-15-15-5 15-5z" fill="var(--sp-gold)"/><path class="d3" d="M30 120l3.6 10.4 10.4 3.6-10.4 3.6L30 148l-3.6-10.4-10.4-3.6 10.4-3.6z" fill="var(--sp-sage)"/><path class="d4" d="M370 200l3 8.6 8.6 3-8.6 3-3 8.6-3-8.6-8.6-3 8.6-3z" fill="var(--sp-ink)"/><circle class="d5" cx="160" cy="40" r="4" fill="var(--sp-sage)"/><circle class="d6" cx="40" cy="190" r="3.4" fill="var(--sp-gold)"/></g></svg>
   <div class="sp-stage">
     <div class="sp-mark" id="spMark">
       <svg class="sp-logo" viewBox="0 0 1024 1024">
@@ -950,7 +1015,7 @@ h1,h2,h3{font-family:var(--f-serif);font-weight:700;letter-spacing:.01em}
       <i class="sp-shine"></i>
       <div class="sp-parts" id="spParts"></div>
     </div>
-    <div class="sp-title"><span style="--i:0">靈</span><span style="--i:1">犀</span><i class="sp-tshine"></i></div>
+    <div class="sp-title"><span style="--i:0">靈</span><span style="--i:1">犀</span><i class="sp-tshine"></i><b class="sp-seal" aria-hidden="true"><i>心</i><i>有</i><i>靈</i><i>犀</i></b></div>
     <div class="sp-en">LINGXI</div>
     <div class="sp-sub">心有靈犀 ・ 一點通</div>
   </div>
@@ -969,9 +1034,13 @@ var t0=Date.now();s.addEventListener('click',function(){if(Date.now()-t0>1200&&!
 setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('載入時間比平常久')},10000);})();
 </script>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <filter id="crayon" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <filter id="crayonFill" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="7" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.4 0 0 0 1.75" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in" result="t"/><feDisplacementMap in="t" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
+</defs></svg>
 <div class="app">
   <header class="navbar"><button class="aa" id="fsBtn" aria-label="文字大小與粗細"><span>A</span><span>A</span></button><span id="navTitle" aria-hidden="true">今日</span><button class="who" id="whoBtn" aria-label="編輯命主資料"><span id="whoAv">命</span></button></header>
-  <div class="largetitle"><small id="ltDate">　</small><h1 id="ltTitle">今日</h1></div>
+  <div class="largetitle"><small id="ltDate">　</small><h1 id="ltTitle">今日</h1><svg class="lt-doodle" viewBox="0 0 140 80" aria-hidden="true"><g filter="url(#crayonFill)"><path d="M104 8a24 24 0 1 0 16 41 20 20 0 1 1-16-41z" fill="var(--doodle-moon)"/><path d="M30 20l2.2 6.8 6.8 2.2-6.8 2.2L30 38l-2.2-6.8L21 29l6.8-2.2z" fill="var(--doodle-star)"/><path d="M70 50l1.6 4.6 4.6 1.6-4.6 1.6L70 62.4l-1.6-4.6-4.6-1.6 4.6-1.6z" fill="var(--doodle-sage)"/><path d="M128 62l1.3 3.7 3.7 1.3-3.7 1.3-1.3 3.7-1.3-3.7-3.7-1.3 3.7-1.3z" fill="var(--doodle-ink)"/><circle cx="56" cy="14" r="2" fill="var(--doodle-sage)"/><circle cx="12" cy="58" r="1.6" fill="var(--doodle-star)"/></g></svg></div>
   <div id="subnav" hidden></div>
   <main>
     <div id="boot" class="loading">正在排盤…</div>
@@ -2701,8 +2770,14 @@ function qianResult(n,cat,q){
   const FIELD={家運:8,事業:4,求財:5,婚姻:6,健康:7,出行:8,功名:4,失物:8,訴訟:8};
   const advice=['這是一支好籤。順勢而為，但別因順利而鬆懈；得償所願後記得回宮謝神、行善回饋。','吉凶參半，關鍵在你的作法：守本分、多準備，時機到了自然轉好。','這支籤是提早示警，不必害怕。照著籤意調整，可以避開損失；情況改變後可以再來請示。'][lv];
   return `<div class="stack">
-    <div class="slip"><div class="slip-h"><span>第 ${n} 籤</span><span>${Q[0]}</span><span class="pill ${lvCls}">${Q[1]}籤</span></div>
-      <div class="poem">${lines.map(l=>`<span>${[...l].map(c=>`<i>${c}</i>`).join('')}</span>`).join('')}</div></div>
+    <div class="slip" aria-label="第 ${n} 籤，${Q[0]}，${Q[1]}籤：${Q[2]}">
+      <div class="slip-top" aria-hidden="true">靈犀 ・ 六十甲子籤</div>
+      <div class="slip-body" aria-hidden="true">
+        <div class="slip-no"><b>第${cnNum(n)}籤</b><span class="slip-gz">${Q[0]}</span><div class="slip-seal ${lvCls}"><span>${Q[1]}</span><span>籤</span></div></div>
+        <div class="slip-poem">${lines.map(l=>`<p>${l}</p>`).join('')}</div>
+      </div>
+      <div class="slip-jie" aria-hidden="true"><b>解曰</b><div>${[['事業',4],['求財',5],['婚姻',6],['健康',7],['平安',8]].map(([k,i])=>`<span><em>${k}</em>${Q[i]}</span>`).join('')}</div></div>
+    </div>
     <p><b>白話</b>　${Q[3]}</p>
     <details class="disc" open><summary>逐句解</summary><div class="qlines">${lines.map((l,k)=>`<div class="ql"><b>${l}</b><span>${(window.QIAN_LINES||[])[n-1]?.[k]||''}</span></div>`).join('')}</div></details>
     ${QS[n]?`<div class="qstory"><span class="eyebrow">典故</span><b>${QS[n][0]}</b><p class="small">${QS[n][1]}</p><p class="small muted">各廟配用的故事版本不一，此為常見版本之一。</p></div>`:''}
@@ -2947,36 +3022,55 @@ function wrapLines(ctx,text,w){const out=[];let line='';for(const ch of String(t
   // 標點不放行首
   if(/[，。、；：！？」）]/.test(ch)){out.push(t);line='';continue}out.push(line);line=ch}else line=t}if(line)out.push(line);return out}
 const loadImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
+/* 圖卡跟著 App 主題：淺色＝米白紙、深色＝藏青紙；紙紋與蠟筆月亮星星都用程式繪製，不依賴外部圖檔 */
+function paperGrain(x,W,H,dark,rnd){
+  const n=document.createElement('canvas');n.width=n.height=256;const g=n.getContext('2d'),im=g.createImageData(256,256);
+  for(let i=0;i<im.data.length;i+=4){const v=rnd();im.data[i]=im.data[i+1]=im.data[i+2]=dark?255:70;im.data[i+3]=v<.5?0:(v-.5)*(dark?40:56)}
+  g.putImageData(im,0,0);x.fillStyle=x.createPattern(n,'repeat');x.fillRect(0,0,W,H);
+  for(let i=0;i<14;i++){const cx=rnd()*W,cy=rnd()*H,r=120+rnd()*260,gr=x.createRadialGradient(cx,cy,0,cx,cy,r);gr.addColorStop(0,dark?'rgba(0,0,20,.12)':'rgba(150,120,70,.06)');gr.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=gr;x.fillRect(cx-r,cy-r,2*r,2*r)}
+}
+function crayonShape(x,draw,color,rnd,w,h,ox,oy){
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.fillStyle=color;draw(g);
+  const im=g.getImageData(0,0,w,h);for(let i=3;i<im.data.length;i+=4)if(im.data[i]&&rnd()<.38)im.data[i]=Math.round(im.data[i]*rnd()*.6);
+  g.putImageData(im,0,0);x.drawImage(c,ox,oy);
+}
+const star4=(g,cx,cy,r)=>{g.beginPath();g.moveTo(cx,cy-r);g.lineTo(cx+r*.28,cy-r*.28);g.lineTo(cx+r,cy);g.lineTo(cx+r*.28,cy+r*.28);g.lineTo(cx,cy+r);g.lineTo(cx-r*.28,cy+r*.28);g.lineTo(cx-r,cy);g.lineTo(cx-r*.28,cy-r*.28);g.closePath();g.fill()};
 async function makeCard(spec){
   const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
-  const SERIF='"Noto Serif TC","Songti TC","PMingLiU",serif', SANS='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
-  try{await Promise.race([Promise.all([document.fonts.load(`700 60px "Noto Serif TC"`),document.fonts.load(`500 36px "Noto Sans TC"`)]),new Promise(r=>setTimeout(r,1500))])}catch(e){}
-  const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#0A0F22');g.addColorStop(1,'#1B2246');x.fillStyle=g;x.fillRect(0,0,W,H);
-  // 星點
+  const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  const T=dark?{bg:'#1C2849',ink:'#F3EBDA',sub:'rgba(243,235,218,.82)',gold:'#E7C27A',line:'rgba(231,194,122,.55)',line2:'rgba(231,194,122,.25)',sage:'#9CC2AE',muted:'rgba(243,235,218,.55)'}
+                :{bg:'#F1EADB',ink:'#2A251F',sub:'rgba(42,37,31,.82)',gold:'#8A6420',line:'rgba(126,91,24,.5)',line2:'rgba(126,91,24,.22)',sage:'#6F937F',muted:'rgba(42,37,31,.55)'};
+  const SERIF='"Noto Serif TC","Songti TC","PMingLiU",serif', SANS='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif', BRUSH='"LXGW WenKai TC","Kaiti TC","STKaiti","BiauKai",'+SERIF;
+  try{await Promise.race([Promise.all([document.fonts.load(`700 60px "Noto Serif TC"`),document.fonts.load(`500 36px "Noto Sans TC"`),document.fonts.load(`700 60px "LXGW WenKai TC"`)]),new Promise(r=>setTimeout(r,1500))])}catch(e){}
   let seed=spec.seed||7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
-  for(let i=0;i<90;i++){x.fillStyle=`rgba(255,240,200,${.15+rnd()*.5})`;x.beginPath();x.arc(rnd()*W,rnd()*H,rnd()*2.2+.4,0,7);x.fill()}
-  const gold=x.createLinearGradient(0,0,W,0);gold.addColorStop(0,'#F5DB9A');gold.addColorStop(.5,'#E2BA68');gold.addColorStop(1,'#B98A33');
-  x.strokeStyle='rgba(226,186,104,.55)';x.lineWidth=3;x.beginPath();x.roundRect(40,40,W-80,H-80,36);x.stroke();
-  x.strokeStyle='rgba(226,186,104,.25)';x.lineWidth=1.5;x.beginPath();x.roundRect(56,56,W-112,H-112,28);x.stroke();
+  x.fillStyle=T.bg;x.fillRect(0,0,W,H);paperGrain(x,W,H,dark,rnd);
+  // 蠟筆月亮與星星
+  crayonShape(x,g=>{g.beginPath();g.arc(90,90,72,0,7);g.fill();g.globalCompositeOperation='destination-out';g.beginPath();g.arc(122,70,64,0,7);g.fill()},dark?'#E2B862':'#C9973A',rnd,180,180,W-250,70);
+  crayonShape(x,g=>{star4(g,40,40,26)},dark?'#E2B862':'#C9973A',rnd,80,80,W-370,170);
+  crayonShape(x,g=>{star4(g,30,30,18)},T.sage,rnd,60,60,W-160,250);
+  crayonShape(x,g=>{star4(g,24,24,14)},T.sage,rnd,48,48,W-150,H-210);
+  crayonShape(x,g=>{g.beginPath();g.arc(10,10,6,0,7);g.fill()},T.gold,rnd,20,20,W-420,110);
+  x.strokeStyle=T.line;x.lineWidth=3;x.beginPath();x.roundRect(40,40,W-80,H-80,30);x.stroke();
+  x.strokeStyle=T.line2;x.lineWidth=1.5;x.beginPath();x.roundRect(56,56,W-112,H-112,22);x.stroke();
   const logo=await loadImg('icons/icon-192.png');if(logo){x.save();x.beginPath();x.roundRect(96,96,84,84,20);x.clip();x.drawImage(logo,96,96,84,84);x.restore()}
-  x.fillStyle=gold;x.font=`700 44px ${SERIF}`;x.textBaseline='middle';x.fillText('靈犀',200,124);
-  x.fillStyle='rgba(245,219,154,.7)';x.font=`500 24px ${SANS}`;x.fillText('LINGXI · 心有靈犀 一點通',200,162);
-  x.textAlign='right';x.fillStyle='rgba(245,245,247,.75)';x.font=`500 28px ${SANS}`;x.fillText(spec.tag||'',W-96,138);x.textAlign='left';
-  let y=250;
-  if(spec.big){x.textAlign='center';x.fillStyle=gold;x.font=`700 ${spec.bigSize||200}px ${SERIF}`;x.fillText(spec.big,W/2,y+90);y+=spec.bigSize?spec.bigSize+40:240;x.textAlign='left'}
-  x.textAlign='center';x.fillStyle='#F5F5F7';x.font=`700 60px ${SERIF}`;for(const l of wrapLines(x,spec.title,W-200)){x.fillText(l,W/2,y);y+=78}
-  if(spec.sub){x.fillStyle='rgba(245,219,154,.9)';x.font=`500 32px ${SANS}`;x.fillText(spec.sub,W/2,y);y+=56}
-  if(spec.poem){y+=10;x.fillStyle='#FFF3D6';x.font=`600 54px ${SERIF}`;for(const l of spec.poem){x.fillText(l,W/2,y+10);y+=80}y+=10}
+  x.fillStyle=T.ink;x.font=`700 46px ${BRUSH}`;x.textBaseline='middle';x.fillText('靈犀',200,122);
+  x.fillStyle=T.gold;x.font=`500 24px ${SANS}`;x.fillText('LINGXI · 心有靈犀 一點通',200,162);
+  if(spec.tag){x.fillStyle=T.sub;x.font=`500 28px ${SANS}`;x.fillText(spec.tag,96,222)}
+  let y=280;
+  if(spec.big){x.textAlign='center';x.fillStyle=T.gold;x.font=`700 ${spec.bigSize||200}px ${SERIF}`;x.fillText(spec.big,W/2,y+60);y+=(spec.bigSize||200)+10;x.textAlign='left'}
+  x.textAlign='center';x.fillStyle=T.ink;x.font=`700 60px ${BRUSH}`;for(const l of wrapLines(x,spec.title,W-200)){x.fillText(l,W/2,y);y+=78}
+  if(spec.sub){x.fillStyle=T.gold;x.font=`500 32px ${SANS}`;x.fillText(spec.sub,W/2,y);y+=56}
+  if(spec.poem){y+=10;x.fillStyle=T.ink;x.font=`700 56px ${BRUSH}`;for(const l of spec.poem){x.fillText(l,W/2,y+10);y+=80}y+=10}
   if(spec.imgs&&spec.imgs.length){const n=spec.imgs.length,iw=Math.min(220,(W-200-(n-1)*24)/n),ih=iw*457/260;let ix=(W-(n*iw+(n-1)*24))/2;
-    for(const s of spec.imgs){const im=await loadImg(s.src);x.save();x.translate(ix+iw/2,y+ih/2);if(s.rev)x.rotate(Math.PI);x.beginPath();x.roundRect(-iw/2,-ih/2,iw,ih,14);x.clip();if(im)x.drawImage(im,-iw/2,-ih/2,iw,ih);else{x.fillStyle='#2A3260';x.fill()}x.restore();
-      x.strokeStyle='rgba(226,186,104,.6)';x.lineWidth=2;x.beginPath();x.roundRect(ix,y,iw,ih,14);x.stroke();ix+=iw+24}y+=ih+40}
+    for(const s of spec.imgs){const im=await loadImg(s.src);x.save();x.translate(ix+iw/2,y+ih/2);if(s.rev)x.rotate(Math.PI);x.beginPath();x.roundRect(-iw/2,-ih/2,iw,ih,14);x.clip();if(im)x.drawImage(im,-iw/2,-ih/2,iw,ih);else{x.fillStyle=T.line2;x.fill()}x.restore();
+      x.strokeStyle=T.line;x.lineWidth=2;x.beginPath();x.roundRect(ix,y,iw,ih,14);x.stroke();ix+=iw+24}y+=ih+40}
   x.textAlign='left';
-  for(const b of spec.body||[]){if(y>H-230)break;
-    if(b.k){x.fillStyle='#E2BA68';x.font=`700 32px ${SANS}`;x.fillText(b.k,110,y);y+=48}
-    x.fillStyle='rgba(245,245,247,.92)';x.font=`500 ${b.size||32}px ${SANS}`;
-    for(const l of wrapLines(x,b.t,W-220)){if(y>H-230){break}x.fillText(l,110,y);y+=(b.size||32)*1.5}y+=18}
-  x.textAlign='center';x.fillStyle='rgba(226,186,104,.85)';x.font=`500 26px ${SANS}`;x.fillText('jerry8887624-star.github.io/-/divination',W/2,H-110);
-  x.fillStyle='rgba(245,245,247,.5)';x.font=`400 22px ${SANS}`;x.fillText('命理是看清自己的一面鏡子，結果僅供參考',W/2,H-72);
+  for(const b of spec.body||[]){if(y>H-200)break;
+    if(b.k){x.fillStyle=T.gold;x.font=`700 30px ${SANS}`;x.fillText(b.k,110,y);y+=44}
+    x.fillStyle=T.sub;x.font=`500 ${b.size||32}px ${SANS}`;
+    for(const l of wrapLines(x,b.t,W-220)){if(y>H-190){break}x.fillText(l,110,y);y+=(b.size||32)*1.45}y+=12}
+  x.textAlign='center';x.fillStyle=T.gold;x.font=`500 26px ${SANS}`;x.fillText('jerry8887624-star.github.io/-/divination',W/2,H-110);
+  x.fillStyle=T.muted;x.font=`400 22px ${SANS}`;x.fillText('命理是看清自己的一面鏡子，結果僅供參考',W/2,H-72);
   return c;
 }
 function cardSpec(k){
