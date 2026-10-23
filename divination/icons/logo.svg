@@ -1,29 +1,63 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
 <defs>
- <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#18213F"/><stop offset=".55" stop-color="#0D1329"/><stop offset="1" stop-color="#070A17"/></linearGradient>
- <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F3CF7E" stop-opacity=".32"/><stop offset=".55" stop-color="#C99636" stop-opacity=".08"/><stop offset="1" stop-color="#C99636" stop-opacity="0"/></radialGradient>
- <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF0C2"/><stop offset=".45" stop-color="#E9BE62"/><stop offset="1" stop-color="#A9761F"/></linearGradient>
- <radialGradient id="iris" cx="45%" cy="40%" r="65%"><stop offset="0" stop-color="#FFF3CC"/><stop offset=".5" stop-color="#E7B95A"/><stop offset="1" stop-color="#9A6A18"/></radialGradient>
+ <clipPath id="round"><rect width="1024" height="1024" rx="228"/></clipPath>
+ <radialGradient id="bg" cx="50%" cy="44%" r="72%"><stop offset="0" stop-color="#2A3A72"/><stop offset=".6" stop-color="#1B2650"/><stop offset="1" stop-color="#121A3A"/></radialGradient>
+ <radialGradient id="iris" cx="42%" cy="36%" r="70%"><stop offset="0" stop-color="#FFF4D2"/><stop offset=".42" stop-color="#F0C873"/><stop offset="1" stop-color="#B9852A"/></radialGradient>
+ <radialGradient id="halo" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F3CF7E" stop-opacity=".28"/><stop offset="1" stop-color="#F3CF7E" stop-opacity="0"/></radialGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7DE9C"/><stop offset="1" stop-color="#C9973A"/></linearGradient>
+ <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" seed="4" result="n"/><feColorMatrix in="n" values="0 0 0 0 .95  0 0 0 0 .92  0 0 0 0 .85  0 0 0 .09 0"/></filter>
+ <filter id="mottle" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="4" seed="9"/><feColorMatrix values="0 0 0 0 .02  0 0 0 0 .03  0 0 0 0 .1  0 0 0 .35 0"/></filter>
+ <filter id="rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter>
+ <filter id="crayon" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="7" result="n"/><feColorMatrix in="n" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1.5 0 0 0 1.55" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in" result="t"/><feDisplacementMap in="t" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/></filter>
+ <clipPath id="irisc"><circle cx="512" cy="520" r="132"/></clipPath>
+ <clipPath id="lid"><path d="M232 520C334 378 432 336 512 336C592 336 690 378 792 520C690 662 592 704 512 704C432 704 334 662 232 520Z"/></clipPath>
 </defs>
-<rect width="1024" height="1024" rx="228" fill="url(#bg)"/>
-<circle cx="512" cy="512" r="430" fill="url(#glow)"/>
-<!-- 星盤 -->
-<circle cx="512" cy="512" r="330" fill="none" stroke="url(#gold)" stroke-width="10"/>
-<circle cx="512" cy="512" r="300" fill="none" stroke="#E9BE62" stroke-opacity=".35" stroke-width="3" stroke-dasharray="4 14"/>
-<g stroke="url(#gold)" stroke-width="10" stroke-linecap="round">
- <line x1="512" y1="160" x2="512" y2="200"/><line x1="512" y1="824" x2="512" y2="864"/><line x1="160" y1="512" x2="200" y2="512"/><line x1="824" y1="512" x2="864" y2="512"/>
+<g clip-path="url(#round)">
+<rect width="1024" height="1024" fill="url(#bg)"/>
+<rect width="1024" height="1024" filter="url(#mottle)"/>
+<rect width="1024" height="1024" filter="url(#grain)"/>
+<circle cx="512" cy="520" r="400" fill="url(#halo)"/>
+<!-- 手繪星盤 -->
+<g filter="url(#rough)" fill="none" stroke="#F3EBDA" stroke-linecap="round">
+ <circle cx="512" cy="520" r="372" stroke-width="7" stroke-opacity=".9"/>
+ 
 </g>
-<g stroke="#E9BE62" stroke-opacity=".75" stroke-width="6" stroke-linecap="round">
- <line x1="688" y1="207" x2="676" y2="228"/><line x1="817" y1="336" x2="796" y2="348"/><line x1="817" y1="688" x2="796" y2="676"/><line x1="688" y1="817" x2="676" y2="796"/>
- <line x1="336" y1="817" x2="348" y2="796"/><line x1="207" y1="688" x2="228" y2="676"/><line x1="207" y1="336" x2="228" y2="348"/><line x1="336" y1="207" x2="348" y2="228"/>
+<g fill="#F3EBDA" fill-opacity=".85">
+ <circle cx="512" cy="148" r="11" fill="#E7C27A" fill-opacity="1"/>
+ <circle cx="698" cy="198" r="6"/><circle cx="834" cy="334" r="6"/><circle cx="884" cy="520" r="9"/><circle cx="834" cy="706" r="6"/><circle cx="698" cy="842" r="6"/>
+ <circle cx="512" cy="892" r="9"/><circle cx="326" cy="842" r="6"/><circle cx="190" cy="706" r="6"/><circle cx="140" cy="520" r="9"/><circle cx="190" cy="334" r="6"/><circle cx="326" cy="198" r="6"/>
+</g>
+<g transform="translate(512 520) scale(1.1) translate(-512 -520)">
+<!-- 靈光（上眼瞼的光芒） -->
+<g filter="url(#rough)" stroke="#E7C27A" stroke-width="10" stroke-linecap="round" opacity=".95">
+ <path d="M512 300V244"/><path d="M420 312l-18-48"/><path d="M604 312l18-48"/><path d="M338 346l-32-38"/><path d="M686 346l32-38"/>
 </g>
 <!-- 天眼 -->
-<path d="M262 512 C352 382 432 340 512 340 C592 340 672 382 762 512 C672 642 592 684 512 684 C432 684 352 642 262 512 Z" fill="#0A0F22" stroke="url(#gold)" stroke-width="26" stroke-linejoin="round"/>
-<circle cx="512" cy="512" r="112" fill="url(#iris)"/>
-<path d="M512 432 L530 494 L592 512 L530 530 L512 592 L494 530 L432 512 L494 494 Z" fill="#0D1329"/>
-<path d="M512 470 L520 504 L554 512 L520 520 L512 554 L504 520 L470 512 L504 504 Z" fill="#F7DFA0"/>
-<circle cx="474" cy="472" r="16" fill="#FFF8E6" opacity=".9"/>
-<!-- 星芒 -->
-<path d="M772 236 L782 270 L816 280 L782 290 L772 324 L762 290 L728 280 L762 270 Z" fill="url(#gold)"/>
-<circle cx="250" cy="770" r="9" fill="#E9BE62" opacity=".8"/>
+<g filter="url(#rough)"><path d="M232 520C334 378 432 336 512 336C592 336 690 378 792 520C690 662 592 704 512 704C432 704 334 662 232 520Z" fill="#0E1530" stroke="#F3EBDA" stroke-width="26" stroke-linejoin="round"/></g>
+<g clip-path="url(#lid)">
+ <circle cx="512" cy="520" r="132" fill="url(#iris)"/><g clip-path="url(#irisc)"><rect x="380" y="388" width="264" height="264" filter="url(#grain)"/></g>
+ <circle cx="512" cy="520" r="132" fill="none" stroke="#8A5E14" stroke-opacity=".45" stroke-width="5"/>
+ <circle cx="512" cy="520" r="104" fill="none" stroke="#8A5E14" stroke-opacity=".35" stroke-width="3" stroke-dasharray="2 10"/>
+ <path d="M512 430L533 499L602 520L533 541L512 610L491 541L422 520L491 499Z" fill="#0E1530"/>
+ <path d="M512 474L522 510L558 520L522 530L512 566L502 530L466 520L502 510Z" fill="#F7DFA0"/>
+ <circle cx="468" cy="474" r="18" fill="#FFF8E6"/><circle cx="552" cy="568" r="7" fill="#FFF8E6" opacity=".9"/>
+</g>
+</g>
+<!-- 蠟筆月亮與星星 -->
+<g filter="url(#crayon)">
+ <path d="M770 196a74 74 0 1 0 50 126a62 62 0 1 1-50-126z" fill="url(#gold)"/>
+ <path d="M236 232l9 27 27 9-27 9-9 27-9-27-27-9 27-9z" fill="#E7C27A"/>
+ <path d="M800 792l7 20 20 7-20 7-7 20-7-20-20-7 20-7z" fill="#9CC2AE"/>
+ <path d="M232 806l5 14 14 5-14 5-5 14-5-14-14-5 14-5z" fill="#F3EBDA"/>
+</g>
+<!-- 朱印 -->
+<g transform="translate(512 800) rotate(-5)">
+ <rect x="-52" y="-52" width="104" height="104" rx="10" fill="#B3261E"/>
+ <rect x="-44" y="-44" width="88" height="88" rx="6" fill="none" stroke="#F6E7DA" stroke-width="3" opacity=".8"/>
+ <text x="20" y="-4" font-family="LXGW WenKai TC,Kaiti TC,STKaiti,BiauKai,serif" font-weight="700" font-size="38" fill="#F6E7DA" text-anchor="middle" dominant-baseline="middle">心</text>
+ <text x="20" y="32" font-family="LXGW WenKai TC,Kaiti TC,STKaiti,BiauKai,serif" font-weight="700" font-size="38" fill="#F6E7DA" text-anchor="middle" dominant-baseline="middle">有</text>
+ <text x="-20" y="-4" font-family="LXGW WenKai TC,Kaiti TC,STKaiti,BiauKai,serif" font-weight="700" font-size="38" fill="#F6E7DA" text-anchor="middle" dominant-baseline="middle">靈</text>
+ <text x="-20" y="32" font-family="LXGW WenKai TC,Kaiti TC,STKaiti,BiauKai,serif" font-weight="700" font-size="38" fill="#F6E7DA" text-anchor="middle" dominant-baseline="middle">犀</text>
+</g>
+</g>
 </svg>
