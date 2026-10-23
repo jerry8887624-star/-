@@ -1997,7 +1997,7 @@ function dayCalHtml(){
   const first=new Date(c.y,c.m,1,12), days=new Date(c.y,c.m+1,0).getDate(), lead=first.getDay(), opt=festOpt();
   let cells='';for(let i=0;i<lead;i++)cells+='<span></span>';
   for(let d=1;d<=days;d++){const dt=new Date(c.y,c.m,d,12), F=fortune(dt), L=F.L, fs=festOn(dt,{y:true,z:false}), isT=dt.toDateString()===now.toDateString();
-    const lab=fs.length?fs[0].n.replace(/（.*/,'').replace('農曆','').replace('拜拜',''):(L.getDay()===1?S2T(L.getMonthInChinese())+'月':S2T(L.getDayInChinese()));
+    const lab=fs.length?fs[0].n.replace(/（.*/,'').replace('農曆','').replace('拜拜','').replace(/觀世音菩薩.*/,'觀音').replace(/.*鬼門.*/,'鬼門').replace(/・.*/,'').slice(0,2):(L.getDay()===1?S2T(L.getMonthInChinese())+'月':S2T(L.getDayInChinese()));
     cells+=`<button type="button" class="dc2${isT?' today':''}" data-dday="${+dt}" aria-label="${c.m+1}月${d}日 ${F.total}分 ${F.word}"><b class="num">${d}</b><i class="${F.total>=70?'g':F.total>=55?'m':'b'}"></i><span${fs.length?' class="fx"':''}>${lab}</span></button>`}
   return `<div class="row between"><button type="button" class="btn sm ghost" data-calm="-1" aria-label="上個月">‹</button><b>${c.y} 年 ${c.m+1} 月</b><button type="button" class="btn sm ghost" data-calm="1" aria-label="下個月">›</button></div>
     <div class="dcal"><span class="wk">日</span><span class="wk">一</span><span class="wk">二</span><span class="wk">三</span><span class="wk">四</span><span class="wk">五</span><span class="wk">六</span>${cells}</div>
@@ -2036,7 +2036,7 @@ function reportHtml(){
     <p><b>命宮</b>（${ming.heavenlyStem}${ming.earthlyBranch}）：${ming.majorStars.length?ming.majorStars.map(s=>`<b>${s.name}</b>${s.brightness?`（${s.brightness}）`:''}——${MAJOR[s.name]||''}`).join('<br>'):'命無主星，借對宮論斷，個性較受環境影響、可塑性高。'}</p>
     <p><b>身宮</b>在${body.name}：中年以後重心在${FOCUS[body.name]}。</p>
     <table class="rp-t">${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<tr><th>${p.name}</th><td>${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name+(s.mutagen?'化'+s.mutagen:'')).join('、')||'—'}${p.majorStars.length?'':'<small>（借對宮）</small>'}</td><td><small>${PALACE[p.name]||''}</small></td></tr>`).join('')}</table>`):''}
-  ${sec('三、大運與流年',`<table class="rp-t"><tr><th>大運</th>${D.yun.slice(0,8).map((x,i)=>`<td${i===curDy?' class="on"':''}><b>${x.getGanZhi()}</b><br><small>${x.getStartAge()}歲・${shishen(D.dm,x.getGanZhi()[0])}</small></td>`).join('')}</tr></table>
+  ${sec('三、大運與流年',`<div class="rp-dy">${D.yun.slice(0,8).map((x,i)=>`<span${i===curDy?' class="on"':''}><b>${x.getGanZhi()}</b><small>${x.getStartAge()}歲</small><small>${shishen(D.dm,x.getGanZhi()[0])}</small></span>`).join('')}</div>
     ${[Y0,Y1].map(Y=>`<p><b>${Y.y} ${Y.gz}年（${Y.ss}年）</b>：${'★'.repeat(Math.round(Y.score))}${'☆'.repeat(5-Math.round(Y.score))}　${YEARSS[Y.ss]}${Y.tai?`<b>犯太歲</b>（${Y.tai.detail}）。`:''}</p>`).join('')}`)}
   ${nm.ok?sec('四、姓名',`<p>五格：天格${nm.g.tian}・人格${nm.g.ren}・地格${nm.g.di}・外格${nm.g.wai}${nm.fixWai?'（單名固定）':''}・總格${nm.g.zong}　三才 ${nm.e.map(e=>WX[e]).join('')}</p><p>姓名評分 <b>${nm.score} 分</b>；人格五行${WX[nm.e[1]]}${D.xi.includes(nm.e[1])?'，正好補到喜用。':D.ji.includes(nm.e[1])?'，屬忌神，可考慮字號或暱稱補強。':'。'}</p>`):''}
   ${sec('五、居家風水',`<p>命卦 <b>${GUA[g][0]}卦</b>（${GUA[g][2]}四命）。吉方：${STARS.slice(0,4).map((s,k)=>`${s[0]}${BZ[g][k]}`).join('、')}；凶方：${STARS.slice(4).map((s,k)=>`${s[0]}${BZ[g][k+4]}`).join('、')}。</p><p>床頭朝${BZ[g][1]}或${BZ[g][2]}，書桌面向${BZ[g][0]}。</p>`)}
