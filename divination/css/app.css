@@ -427,9 +427,9 @@ svg text{font-family:var(--f-ui)}
 .plaque{font-family:var(--f-serif);font-weight:700;font-size:17px;letter-spacing:.5em;padding:6px 6px 6px 14px;color:#F3D389;background:linear-gradient(#3B0E0A,#250705);border-radius:6px;box-shadow:inset 0 0 0 1.5px #C9973F,0 4px 12px rgba(0,0,0,.4)}
 .niche{width:min(300px,86%);margin-top:6px;position:relative}
 .deity{display:block;width:100%;height:auto;filter:drop-shadow(0 12px 18px rgba(0,0,0,.5))}
-.deity .halo{animation:halo 5s ease-in-out infinite;transform-origin:120px 112px}
-.deity .rays{animation:spin 90s linear infinite;transform-origin:120px 112px}
-.deity .liu{animation:sway 4s ease-in-out infinite;transform-origin:120px 40px}
+.deity .halo{animation:halo 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.deity .rays{animation:spin 90s linear infinite;transform-box:fill-box;transform-origin:center}
+.deity .liu{animation:sway 4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes sway{0%,100%{transform:rotate(-.6deg)}50%{transform:rotate(.6deg)}}
 @keyframes halo{50%{opacity:.75;transform:scale(1.04)}}
@@ -601,32 +601,32 @@ html.splashing,html.splashing body{overflow:hidden}
 .sp-logo{width:100%;height:100%;overflow:visible;display:block}
 .sp-parts i{position:absolute;left:50%;top:50%;width:var(--z);height:var(--z);margin:calc(var(--z) / -2);border-radius:50%;background:#FFE7A8;box-shadow:0 0 10px 3px rgba(243,207,126,.85);opacity:0;animation:sp-gather 1.05s cubic-bezier(.22,1,.36,1) var(--d) forwards}
 @keyframes sp-gather{0%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(.4)}20%{opacity:1}80%{opacity:1;transform:translate(calc(var(--ex) * var(--logo)),calc(var(--ey) * var(--logo))) scale(1)}100%{opacity:0;transform:translate(calc(var(--ex) * var(--logo)),calc(var(--ey) * var(--logo))) scale(1.8)}}
-.sp-halo{opacity:0;transform-origin:512px 512px;animation:sp-in 1s 1.5s ease forwards,sp-breathe 2.6s 2.5s ease-in-out infinite}
+.sp-halo{opacity:0;transform-box:fill-box;transform-origin:center;animation:sp-in 1s 1.5s ease forwards,sp-breathe 2.6s 2.5s ease-in-out infinite}
 @keyframes sp-breathe{50%{transform:scale(1.1);opacity:.7}}
-.sp-ring{stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:512px 512px;animation:sp-draw .85s .45s cubic-bezier(.65,0,.35,1) forwards}
-.sp-dash{opacity:0;transform-origin:512px 512px;animation:sp-in .8s 1.2s ease forwards,sp-spin 40s linear infinite}
+.sp-ring{stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-box:fill-box;transform-origin:center;animation:sp-draw .85s .45s cubic-bezier(.65,0,.35,1) forwards}
+.sp-dash{opacity:0;transform-box:fill-box;transform-origin:center;animation:sp-in .8s 1.2s ease forwards,sp-spin 40s linear infinite}
 @keyframes sp-spin{to{transform:rotate(360deg)}}
 .sp-ticks line{opacity:0;animation:sp-tick .4s calc(.85s + var(--i) * 40ms) ease forwards}
 @keyframes sp-tick{0%{opacity:0}50%{opacity:1;filter:drop-shadow(0 0 12px #FFE7A8)}100%{opacity:1}}
 .sp-lid{stroke-dasharray:100;stroke-dashoffset:100;fill-opacity:0;animation:sp-draw .6s .95s cubic-bezier(.65,0,.35,1) forwards,sp-fill .4s 1.35s ease forwards}
 @keyframes sp-draw{to{stroke-dashoffset:0}}
 @keyframes sp-fill{to{fill-opacity:1}}
-.sp-eye{transform-origin:512px 512px;animation:sp-lids 2.1s 1.3s cubic-bezier(.3,.7,.3,1) both}
+.sp-eye{transform-box:fill-box;transform-origin:center;animation:sp-lids 2.1s 1.3s cubic-bezier(.3,.7,.3,1) both}
 /* 睜眼（帶一點回彈）→ 張望 → 眨一下 */
 @keyframes sp-lids{0%{transform:scaleY(.06)}14%{transform:scaleY(1.06)}22%{transform:scaleY(.98)}28%,80%{transform:none}85%{transform:scaleY(.07)}91%{transform:scaleY(1.03)}100%{transform:none}}
-.sp-iris{opacity:0;transform-origin:512px 512px;transform:scale(.3);animation:sp-pop .6s 1.45s cubic-bezier(.34,1.56,.64,1) forwards}
+.sp-iris{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(.3);animation:sp-pop .6s 1.45s cubic-bezier(.34,1.56,.64,1) forwards}
 .sp-look{animation:sp-look 1.25s 1.95s cubic-bezier(.45,0,.25,1) both}
 @keyframes sp-look{0%{transform:none}22%,40%{transform:translate(-64px,8px)}62%,78%{transform:translate(58px,-6px)}100%{transform:none}}
-.sp-pupil{transform-origin:512px 512px;animation:sp-dilate 2.2s 1.5s ease both}
+.sp-pupil{transform-box:fill-box;transform-origin:center;animation:sp-dilate 2.2s 1.5s ease both}
 @keyframes sp-dilate{0%{transform:scale(1.55)}35%{transform:scale(1.15)}72%{transform:scale(1.15)}82%{transform:scale(.78)}100%{transform:none}}
-.sp-fiber{transform-origin:512px 512px;animation:sp-spin 24s linear infinite}
+.sp-fiber{transform-box:fill-box;transform-origin:center;animation:sp-spin 24s linear infinite}
 .sp-glint{opacity:0;animation:sp-glint .5s 1.75s ease forwards,sp-glint2 .6s 3.1s ease}
 .sp-glint.g2{animation-delay:1.9s,3.15s}
 @keyframes sp-glint{to{opacity:.92}}
 @keyframes sp-glint2{40%{opacity:1;filter:drop-shadow(0 0 14px #FFF3CC)}}
 @keyframes sp-pop{to{opacity:1;transform:none}}
-.sp-core{transform-origin:512px 512px;animation:sp-spin 9s 2s linear infinite}
-.sp-star{opacity:0;transform-origin:772px 280px;transform:scale(0) rotate(-120deg);animation:sp-star .7s 3.05s cubic-bezier(.34,1.56,.64,1) forwards}
+.sp-core{transform-box:fill-box;transform-origin:center;animation:sp-spin 9s 2s linear infinite}
+.sp-star{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(0) rotate(-120deg);animation:sp-star .7s 3.05s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes sp-star{to{opacity:1;transform:none}}
 .sp-shine{position:absolute;inset:6%;border-radius:50%;overflow:hidden;pointer-events:none;mix-blend-mode:screen}
 .sp-shine::after{content:"";position:absolute;top:-20%;bottom:-20%;width:38%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,240,200,.55),transparent);transform:skewX(-18deg);animation:sp-sweep .9s 3.15s cubic-bezier(.65,0,.35,1) forwards}
@@ -1110,3 +1110,6 @@ label.offck input:checked+.ct{color:var(--muted);text-decoration:line-through}
 
 .ofsteps{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px;font-size:14.5px;line-height:1.6}
 .ofsteps li::marker{color:var(--seal);font-weight:700}
+
+p.story{line-height:1.85;margin:0}
+p.story b{color:var(--ink)}

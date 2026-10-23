@@ -461,9 +461,9 @@ svg text{font-family:var(--f-ui)}
 .plaque{font-family:var(--f-serif);font-weight:700;font-size:17px;letter-spacing:.5em;padding:6px 6px 6px 14px;color:#F3D389;background:linear-gradient(#3B0E0A,#250705);border-radius:6px;box-shadow:inset 0 0 0 1.5px #C9973F,0 4px 12px rgba(0,0,0,.4)}
 .niche{width:min(300px,86%);margin-top:6px;position:relative}
 .deity{display:block;width:100%;height:auto;filter:drop-shadow(0 12px 18px rgba(0,0,0,.5))}
-.deity .halo{animation:halo 5s ease-in-out infinite;transform-origin:120px 112px}
-.deity .rays{animation:spin 90s linear infinite;transform-origin:120px 112px}
-.deity .liu{animation:sway 4s ease-in-out infinite;transform-origin:120px 40px}
+.deity .halo{animation:halo 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.deity .rays{animation:spin 90s linear infinite;transform-box:fill-box;transform-origin:center}
+.deity .liu{animation:sway 4s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes sway{0%,100%{transform:rotate(-.6deg)}50%{transform:rotate(.6deg)}}
 @keyframes halo{50%{opacity:.75;transform:scale(1.04)}}
@@ -635,32 +635,32 @@ html.splashing,html.splashing body{overflow:hidden}
 .sp-logo{width:100%;height:100%;overflow:visible;display:block}
 .sp-parts i{position:absolute;left:50%;top:50%;width:var(--z);height:var(--z);margin:calc(var(--z) / -2);border-radius:50%;background:#FFE7A8;box-shadow:0 0 10px 3px rgba(243,207,126,.85);opacity:0;animation:sp-gather 1.05s cubic-bezier(.22,1,.36,1) var(--d) forwards}
 @keyframes sp-gather{0%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(.4)}20%{opacity:1}80%{opacity:1;transform:translate(calc(var(--ex) * var(--logo)),calc(var(--ey) * var(--logo))) scale(1)}100%{opacity:0;transform:translate(calc(var(--ex) * var(--logo)),calc(var(--ey) * var(--logo))) scale(1.8)}}
-.sp-halo{opacity:0;transform-origin:512px 512px;animation:sp-in 1s 1.5s ease forwards,sp-breathe 2.6s 2.5s ease-in-out infinite}
+.sp-halo{opacity:0;transform-box:fill-box;transform-origin:center;animation:sp-in 1s 1.5s ease forwards,sp-breathe 2.6s 2.5s ease-in-out infinite}
 @keyframes sp-breathe{50%{transform:scale(1.1);opacity:.7}}
-.sp-ring{stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:512px 512px;animation:sp-draw .85s .45s cubic-bezier(.65,0,.35,1) forwards}
-.sp-dash{opacity:0;transform-origin:512px 512px;animation:sp-in .8s 1.2s ease forwards,sp-spin 40s linear infinite}
+.sp-ring{stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-box:fill-box;transform-origin:center;animation:sp-draw .85s .45s cubic-bezier(.65,0,.35,1) forwards}
+.sp-dash{opacity:0;transform-box:fill-box;transform-origin:center;animation:sp-in .8s 1.2s ease forwards,sp-spin 40s linear infinite}
 @keyframes sp-spin{to{transform:rotate(360deg)}}
 .sp-ticks line{opacity:0;animation:sp-tick .4s calc(.85s + var(--i) * 40ms) ease forwards}
 @keyframes sp-tick{0%{opacity:0}50%{opacity:1;filter:drop-shadow(0 0 12px #FFE7A8)}100%{opacity:1}}
 .sp-lid{stroke-dasharray:100;stroke-dashoffset:100;fill-opacity:0;animation:sp-draw .6s .95s cubic-bezier(.65,0,.35,1) forwards,sp-fill .4s 1.35s ease forwards}
 @keyframes sp-draw{to{stroke-dashoffset:0}}
 @keyframes sp-fill{to{fill-opacity:1}}
-.sp-eye{transform-origin:512px 512px;animation:sp-lids 2.1s 1.3s cubic-bezier(.3,.7,.3,1) both}
+.sp-eye{transform-box:fill-box;transform-origin:center;animation:sp-lids 2.1s 1.3s cubic-bezier(.3,.7,.3,1) both}
 /* 睜眼（帶一點回彈）→ 張望 → 眨一下 */
 @keyframes sp-lids{0%{transform:scaleY(.06)}14%{transform:scaleY(1.06)}22%{transform:scaleY(.98)}28%,80%{transform:none}85%{transform:scaleY(.07)}91%{transform:scaleY(1.03)}100%{transform:none}}
-.sp-iris{opacity:0;transform-origin:512px 512px;transform:scale(.3);animation:sp-pop .6s 1.45s cubic-bezier(.34,1.56,.64,1) forwards}
+.sp-iris{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(.3);animation:sp-pop .6s 1.45s cubic-bezier(.34,1.56,.64,1) forwards}
 .sp-look{animation:sp-look 1.25s 1.95s cubic-bezier(.45,0,.25,1) both}
 @keyframes sp-look{0%{transform:none}22%,40%{transform:translate(-64px,8px)}62%,78%{transform:translate(58px,-6px)}100%{transform:none}}
-.sp-pupil{transform-origin:512px 512px;animation:sp-dilate 2.2s 1.5s ease both}
+.sp-pupil{transform-box:fill-box;transform-origin:center;animation:sp-dilate 2.2s 1.5s ease both}
 @keyframes sp-dilate{0%{transform:scale(1.55)}35%{transform:scale(1.15)}72%{transform:scale(1.15)}82%{transform:scale(.78)}100%{transform:none}}
-.sp-fiber{transform-origin:512px 512px;animation:sp-spin 24s linear infinite}
+.sp-fiber{transform-box:fill-box;transform-origin:center;animation:sp-spin 24s linear infinite}
 .sp-glint{opacity:0;animation:sp-glint .5s 1.75s ease forwards,sp-glint2 .6s 3.1s ease}
 .sp-glint.g2{animation-delay:1.9s,3.15s}
 @keyframes sp-glint{to{opacity:.92}}
 @keyframes sp-glint2{40%{opacity:1;filter:drop-shadow(0 0 14px #FFF3CC)}}
 @keyframes sp-pop{to{opacity:1;transform:none}}
-.sp-core{transform-origin:512px 512px;animation:sp-spin 9s 2s linear infinite}
-.sp-star{opacity:0;transform-origin:772px 280px;transform:scale(0) rotate(-120deg);animation:sp-star .7s 3.05s cubic-bezier(.34,1.56,.64,1) forwards}
+.sp-core{transform-box:fill-box;transform-origin:center;animation:sp-spin 9s 2s linear infinite}
+.sp-star{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(0) rotate(-120deg);animation:sp-star .7s 3.05s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes sp-star{to{opacity:1;transform:none}}
 .sp-shine{position:absolute;inset:6%;border-radius:50%;overflow:hidden;pointer-events:none;mix-blend-mode:screen}
 .sp-shine::after{content:"";position:absolute;top:-20%;bottom:-20%;width:38%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,240,200,.55),transparent);transform:skewX(-18deg);animation:sp-sweep .9s 3.15s cubic-bezier(.65,0,.35,1) forwards}
@@ -1144,6 +1144,9 @@ label.offck input:checked+.ct{color:var(--muted);text-decoration:line-through}
 
 .ofsteps{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px;font-size:14.5px;line-height:1.6}
 .ofsteps li::marker{color:var(--seal);font-weight:700}
+
+p.story{line-height:1.85;margin:0}
+p.story b{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -3000,7 +3003,8 @@ function tcard(i){
   const s=Math.floor((i-22)/14), r=(i-22)%14, S=TD.suits[s], M=TD.minor[S.k][r];
   return {i,major:false,suit:S.k,S,r,num:r===0?'A':r<10?String(r+1):['P','Kn','Q','K'][r-10],zh:`${S.zh}${TD.ranks[r]}`,en:`${RANK_EN[r]} of ${SUIT_EN[S.k]}`,kwU:RANK_THEME[r],kwR:RANK_THEME[r],up:M[0],rev:M[1],sym:S.icon};
 }
-function cardScore(c,rev){let s=rev?-1:1;if(c.major){if(GOOD_CARDS.has(c.i))s+=rev?0.5:1;if(HARD_CARDS.has(c.i))s-=1}else{const bad={swords:[2,4,7,8,9],pentacles:[4],cups:[4],wands:[9]};const good={cups:[1,2,8,9],wands:[5,2],pentacles:[5,8,9],swords:[0]};if((bad[c.suit]||[]).includes(c.r))s-=1;if((good[c.suit]||[]).includes(c.r))s+=.5}return s}
+// 困難牌逆位在塔羅慣例多解為「最壞的已過、開始復原」，因此逆位時減輕負面程度
+function cardScore(c,rev){let s=rev?-1:1;if(c.major){if(GOOD_CARDS.has(c.i))s+=rev?0.5:1;if(HARD_CARDS.has(c.i))s+=rev?1:-1}else{const bad={swords:[2,4,7,8,9],pentacles:[4],cups:[4],wands:[9]};const good={cups:[1,2,8,9],wands:[5,2],pentacles:[5,8,9],swords:[0]};if((bad[c.suit]||[]).includes(c.r))s+=rev?1:-1;if((good[c.suit]||[]).includes(c.r))s+=.5}return s}
 
 /* 牌面圖騰（線條式，金色） */
 function sym(k,col,cx,cy,sz){
@@ -3129,6 +3133,57 @@ function comboHtml(cards){
   out.push(`<b>首尾呼應</b>：${a.zh}（${el(a)}）與 ${z.zh}（${el(z)}）<span class="${r[0]}-t">${r[1]}</span>${r[0]==='bad'?'，起點與結果之間需要你主動調整。':r[0]==='good'?'，事情的發展與起點一脈相承。':'。'}`);
   return `<details class="disc" open><summary>牌與牌的對話</summary><div class="stack" style="gap:8px;margin-top:8px">${out.map(x=>`<p class="small">${x}</p>`).join('')}<p class="small muted">依塔羅數字學與四元素（黃金黎明元素尊嚴）解讀牌與牌之間的關係。</p></div></details>`;
 }
+/* ---------- 塔羅：來龍去脈（把牌串成一個完整的故事） ---------- */
+// 每個位置的讀法：[牌偏正向時, 牌偏負向時]
+const POSF={
+ 指引:['這張牌給你的提醒是正面的：方向對了，照著它的精神走。','這張牌是提醒而非壞消息：它點出你現在最需要調整的地方。'],
+ 答案:['牌面傾向「可以」。','牌面傾向「暫緩」。'],
+ 過去:['事情的起點是好的，過去打下的基礎現在仍是你的助力。','問題早有伏筆，過去沒處理好的部分，正在影響現在。'],
+ 現在:['你目前站在不錯的位置，這股能量值得好好把握。','你現在正處在這張牌描述的狀態裡，先承認它，才能往下走。'],
+ 未來:['照目前的方式走下去，事情會朝好的方向發展。','照目前的方式走下去會遇到這張牌的課題；好消息是，未來牌會隨你的選擇而改變。'],
+ 你的心意:['你對這段關係是真心而正向的。','你心裡其實有保留或不安。'],
+ 對方的心意:['對方對你是有好感、有意願的。','對方目前有顧慮，或還沒準備好。'],
+ 關係現況:['兩人之間的基礎是穩的。','兩人之間正卡在某個狀態，需要一起面對。'],
+ 阻礙:['阻礙位置出現正向牌，表示卡住你的反而是「太多」或「太順」──過度樂觀或選擇太多。','這就是需要克服的卡點，看清它，就解決了一半。'],
+ 未來發展:['照目前發展，關係會往好的方向走。','照目前發展會遇到考驗，及早溝通就能化解。'],
+ 現況:['問題的核心目前是穩定、可以掌握的。','問題的核心就在這張牌描述的狀態，先看清它，再決定怎麼做。'],
+ '選擇 A 的過程':['選 A 的過程相對順利。','選 A 的路上會遇到這張牌的考驗。'],'選擇 A 的結果':['選 A 的結果是正面的。','選 A 的結果不如預期。'],
+ '選擇 B 的過程':['選 B 的過程相對順利。','選 B 的路上會遇到這張牌的考驗。'],'選擇 B 的結果':['選 B 的結果是正面的。','選 B 的結果不如預期。'],
+ 根源:['事情的根本動機是健康的。','根本原因藏在這裡，處理表面不如處理根源。'],
+ 目標:['你追求的方向是對的。','你追求的目標可能不是真正想要的，值得再想一想。'],
+ 近未來:['短期內會有好的進展。','短期內會遇到這張牌的狀況，先做好準備。'],
+ 你的態度:['你在這件事裡的態度是助力。','你自己的態度可能是關鍵的卡點。'],
+ 外在環境:['周遭的人與環境是支持你的。','外在環境有阻力，不全是你的問題。'],
+ 希望與恐懼:['你心裡的期待是健康的。','這張牌點出你心裡最擔心的事──它不一定會發生。'],
+ 最終結果:['綜合所有牌，結果是正向的。','照目前的走向結果不理想，但這是「目前」的走向，調整就有轉機。'],
+ 身體:['身體狀況大致良好。','身體在提醒你要休息、調整作息。'],心理:['心理狀態平穩。','情緒與壓力需要被照顧。'],靈性:['內在方向清楚。','內在有迷惘，需要沉澱。'],
+ 你的感受:['你對這段關係的感受是正面的。','你在這段關係裡有委屈或不安。'],對方的感受:['對方對這段關係的感受是正面的。','對方在這段關係裡也有自己的難處。'],
+ 你們的連結:['你們之間有真實的牽繫。','你們之間的連結需要重新建立。'],優勢:['這是你們關係裡最大的助力。','優勢位置出現逆位，代表原本的優勢暫時沒有發揮。'],
+ 挑戰:['挑戰不大，屬於可以一起成長的課題。','這是你們需要一起面對的課題。'],建議:['照這張牌的方向做就對了。','這張牌提醒你，避免它描述的做法。'],
+ 隱藏的影響:['有你沒注意到的助力在背後。','有你沒注意到的因素在影響事情。'],年度主題:['這一年的核心課題是正向的成長。','這一年要學習面對這張牌的課題。']};
+const tEl=c=>c.major?MAJOR_EL[c.i]:SUIT_EL[c.suit];
+function tKw(c){return c.major?(c.R?c.kwR:c.kwU).split('・')[0]:(c.R?c.rev:c.up).split(/[、，。]/)[0]}
+function tCore(c){
+  return c.major?`${c.zh}（${c.en}）是大阿爾克那第 ${c.i} 張，代表人生的大課題；${c.R?'逆位':'正位'}的關鍵字是「${c.R?c.kwR:c.kwU}」。`
+    :`${c.zh}屬${c.S.zh}牌（${c.S.el}元素，掌管${c.S.dom}），「${TD.ranks[c.r]}」在塔羅數字學代表${RANK_THEME[c.r]}${c.R?'，逆位表示這股能量受阻、過度或轉向內在':''}。`;
+}
+function tPos(pos,c){const s=cardScore(c,c.R),f=POSF[pos];if(!s)return `這張牌在「${pos}」的能量正在轉換，好壞取決於你怎麼回應它。`;return f?f[s>0?0:1]:(s>0?`放在「${pos}」，是${TD.posd[pos]||'這件事'}裡的助力。`:`放在「${pos}」，提醒${TD.posd[pos]||'這件事'}有需要留意之處。`)}
+function tarotStory(R,cards,d,cat,tone){
+  if(cards.length>10)return '';
+  const P=[];
+  P.push(`${R.q?`你問的是「${esc(R.q)}」`:'這次沒有寫下具體問題，就當作請塔羅給你一個整體的指引'}${cat!=='綜合'?`，類別是「${esc(cat)}」`:''}。使用的牌陣是「${d.n}」──${d.d}${cards.length>1?`共 ${cards.length} 張牌，依序代表：${d.pos.join('、')}。`:'只抽一張牌，它就是此刻最重要的訊息。'}`);
+  cards.forEach((c,k)=>{
+    let tr='',el='';
+    if(k>0){const p=cards[k-1],ds=cardScore(c,c.R)-cardScore(p,p.R),er=elRel(tEl(p),tEl(c));
+      tr=ds>=1?'接著能量明顯轉強，':ds<=-1?'接著能量轉弱，':'接著，';
+      if(er[0]!=='mid')el=er[0]==='good'?`${p.zh}（${tEl(p)}）與${c.zh}（${tEl(c)}）元素相助，前後銜接順暢。`:`${p.zh}（${tEl(p)}）與${c.zh}（${tEl(c)}）元素相剋，兩個階段之間有拉扯，轉換時要多用心。`;}
+    P.push(`${tr}在「${d.pos[k]}」的位置出現<b>${c.zh}${c.R?'逆位':'正位'}</b>，象徵「${tKw(c)}」。${tPos(d.pos[k],c)}${el}`);
+  });
+  const avg=cards.reduce((a,c)=>a+cardScore(c,c.R),0)/cards.length;tone=avg>.4?['good']:avg<-.4?['bad']:['mid'];
+  const key=cards[cards.length-1], arc=cards.length>1?cards.map(c=>`${c.zh}${c.R?'(逆)':''}`).join(' → '):'';
+  P.push(`<b>綜合來看</b>：${arc?`這組牌的脈絡是「${arc}」，`:''}${tone[0]==='good'?'整體能量是支持你的，順勢而為、主動一點會有收穫。':tone[0]==='mid'?'好壞參半，結果取決於你接下來怎麼做；把力氣放在可以掌握的部分。':'牌面提醒你先停下來，不是不能做，而是要換個方式或等時機。'}最關鍵的是「${d.pos[cards.length-1]}」的${key.zh}${key.R?'逆位':''}：${key.major?(key.R?key.rev:key.adv):(cat!=='綜合'&&lensOf(key,cat))||(key.R?key.rev:key.up)}`);
+  return `<div class="card stack"><h3 class="h3">來龍去脈</h3>${P.map(x=>`<p class="story">${x}</p>`).join('')}</div>`;
+}
 function tarotReadingHtml(R){
   const d=TD.spreads.find(s=>s.k===R.s), cards=R.c.map(x=>({...tcard(x.i),R:x.rev}));
   const score=cards.reduce((a,c,k)=>a+cardScore(c,c.R)*(k===cards.length-1&&cards.length>1?1.5:1),0);
@@ -3143,16 +3198,18 @@ function tarotReadingHtml(R){
   if(d.k==='choice'){const a=cardScore(cards[1],cards[1].R)+cardScore(cards[2],cards[2].R)*1.5,b=cardScore(cards[3],cards[3].R)+cardScore(cards[4],cards[4].R)*1.5;const w=Math.abs(a-b)<1?'mid':a>b?'A':'B';verdict=`<div class="answer ${w==='mid'?'mid':'good'}"><b>${w==='mid'?'兩者相近':`選 ${w}`}</b><span>${w==='mid'?'兩個選擇的能量差不多，回到你真正在乎的價值做決定。':`選擇 ${w} 的過程與結果牌都比較順，${w==='A'?cards[2].zh:cards[4].zh}是你會得到的結果。`}</span></div>`}
   if(d.k==='love'){const me=cardScore(cards[0],cards[0].R),you=cardScore(cards[1],cards[1].R);verdict=`<div class="answer ${me>0&&you>0?'good':me<0&&you<0?'bad':'mid'}"><b>${me>0&&you>0?'兩情相悅':me>0&&you<=0?'你較投入':me<=0&&you>0?'對方較投入':'都有保留'}</b><span>${me>0&&you>0?'雙方心意都是正向的，關係有發展空間。':me>0?'你的心意比較積極，對方還在觀望或有顧慮。':you>0?'對方比你更積極，你可以想想自己真正的感受。':'兩個人都還沒完全打開心，需要更多時間與信任。'}</span></div>`}
   if(d.k==='year'){const ms=cards.slice(0,12).map((c,k)=>({k,s:cardScore(c,c.R),c}));const hi=[...ms].sort((a,b)=>b.s-a.s).slice(0,3).sort((a,b)=>a.k-b.k), lo=[...ms].sort((a,b)=>a.s-b.s).slice(0,3).filter(x=>x.s<0).sort((a,b)=>a.k-b.k);
-    verdict=`<div class="ytheme"><span class="eyebrow">年度主題</span><b>${cards[12].zh}${cards[12].R?'（逆位）':''}</b><span>${cards[12].major?cards[12].adv:(cards[12].R?cards[12].rev:cards[12].up)}</span></div>
+    verdict=`<div class="ytheme"><span class="eyebrow">年度主題</span><b>${cards[12].zh}${cards[12].R?'（逆位）':''}</b><span>${cards[12].major&&!cards[12].R?cards[12].adv:(cards[12].R?cards[12].rev:cards[12].up)}</span></div>
     <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">順風的月份</span><div class="chips">${hi.map(x=>`<span class="pill good">${x.k+1}月・${x.c.zh}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">需要留意</span><div class="chips">${lo.length?lo.map(x=>`<span class="pill bad">${x.k+1}月・${x.c.zh}</span>`).join(''):'<span class="pill good">沒有特別低的月份</span>'}</div></div></div>`}
   const keyLens=lensOf(key,cat==='綜合'?'事業':cat);
-  const oneLine=`${tone[0]==='good'?'牌面整體是支持你的':tone[0]==='mid'?'事情有機會，但需要條件配合':'牌面提醒你先停下來想清楚'}。關鍵落在「${d.pos[cards.length-1]}」的<b>${key.zh}${key.R?'逆位':''}</b>：${key.major?key.adv:(key.R?key.rev:key.up)}`;
+  const oneLine=`${tone[0]==='good'?'牌面整體是支持你的':tone[0]==='mid'?'事情有機會，但需要條件配合':'牌面提醒你先停下來想清楚'}。關鍵落在「${d.pos[cards.length-1]}」的<b>${key.zh}${key.R?'逆位':''}</b>：${key.major?(key.R?key.rev:key.adv):(key.R?key.rev:key.up)}`;
   const per=cards.map((c,k)=>{const lz=cat!=='綜合'?lensOf(c,cat):null;return `<div class="tread"><button type="button" class="mini${c.R?' rev':''}" data-tslot="${k}" aria-label="查看${c.zh}詳解">${cardFace(c.i)}</button><div class="stack" style="gap:4px;min-width:0">
     <div class="eyebrow">${k+1}. ${d.pos[k]} · ${TD.posd[d.pos[k]]}</div><h4>${c.zh}<span class="pill ${c.R?'mid':'good'}">${c.R?'逆位':'正位'}</span></h4>
     <p class="small muted">${c.en} · ${c.major?`大阿爾克那 ${c.num}`:`${c.S.zh}（${c.S.el}）· ${RANK_THEME[c.r]}`}</p>
-    <p class="small"><b>${c.R?c.kwR:c.kwU}</b></p>
+    ${c.major?`<p class="small"><b>${c.R?c.kwR:c.kwU}</b></p>`:''}
+    <p class="small">${tCore(c)}</p>
     <p>${c.R?c.rev:c.up}</p>
-    ${lz?`<p class="small lens"><b>就${esc(cat)}而言</b>　${lz}</p>`:c.major?`<p class="small muted"><b>感情</b>　${c.love}<br><b>工作</b>　${c.work}</p>`:`<p class="small muted">${TD.ranks[c.r]}落在${c.S.dom}的領域。</p>`}
+    <p class="small"><b>在這個位置</b>　${tPos(d.pos[k],c)}</p>
+    ${lz?`<p class="small lens"><b>就${esc(cat)}而言</b>　${lz}</p>`:c.major?`<p class="small muted"><b>感情</b>　${c.love}<br><b>工作</b>　${c.work}<br><b>建議</b>　${c.adv}</p>`:`<p class="small muted"><b>感情</b>　${TD.lens['感情'][c.suit][c.R?1:0]}<br><b>事業</b>　${TD.lens['事業'][c.suit][c.R?1:0]}</p>`}
   </div></div>`}).join('');
   const tips=[
     ['趨吉',key.major?key.adv:`${keyLens||`把力氣放在${key.S.dom}上`}${key.R?'先修正方向再前進。':''}`],
@@ -3165,7 +3222,8 @@ function tarotReadingHtml(R){
     ${comboHtml(cards)}
     ${cards.length>1?`<p class="small muted">共 ${cards.length} 張：大阿爾克那 ${majors} 張、逆位 ${revs} 張。${majors>=2?'多張大牌出現，這件事受較大的命運力量推動。':''}${domS?`${domS.zh}牌最多，重點落在${domS.dom}。`:''}</p>`:''}
   </div>
-  <div class="card stack"><h3 class="h3">逐張解讀</h3>${per}</div>
+  ${tarotStory(R,cards,d,cat,tone)}
+  <div class="card stack"><h3 class="h3">逐張解讀</h3><p class="small muted">點牌面可以看完整牌義。</p>${per}</div>
   <div class="card stack"><h3 class="h3">趨吉避凶</h3><div class="checks">${tips.map(([k,t])=>`<div class="check static"><span class="ct"><b>${k}</b>${t}</span></div>`).join('')}</div>
     <div class="row acts">${spkHtml('tarot')}${shrHtml('tarot')}<button type="button" class="btn sm" id="tShare"><span>分享文字</span></button></div>
     <p class="small muted">塔羅反映的是此刻的能量與可能性，結果會隨你的選擇而改變。同一件事建議隔一段時間、情況有變化後再問。</p></div>`;
@@ -3705,44 +3763,70 @@ function crayonShape(x,draw,color,rnd,w,h,ox,oy){
   const im=g.getImageData(0,0,w,h);for(let i=3;i<im.data.length;i+=4)if(im.data[i]&&rnd()<.38)im.data[i]=Math.round(im.data[i]*rnd()*.6);
   g.putImageData(im,0,0);x.drawImage(c,ox,oy);
 }
-const star4=(g,cx,cy,r)=>{g.beginPath();g.moveTo(cx,cy-r);g.lineTo(cx+r*.28,cy-r*.28);g.lineTo(cx+r,cy);g.lineTo(cx+r*.28,cy+r*.28);g.lineTo(cx,cy+r);g.lineTo(cx-r*.28,cy+r*.28);g.lineTo(cx-r,cy);g.lineTo(cx-r*.28,cy-r*.28);g.closePath();g.fill()};
 async function makeCard(spec){
-  const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
-  const dark=isDark();
-  const T=dark?{bg:'#1C2849',ink:'#F3EBDA',sub:'rgba(243,235,218,.82)',gold:'#E7C27A',line:'rgba(231,194,122,.55)',line2:'rgba(231,194,122,.25)',sage:'#9CC2AE',muted:'rgba(243,235,218,.55)'}
-                :{bg:'#F1EADB',ink:'#2A251F',sub:'rgba(42,37,31,.82)',gold:'#8A6420',line:'rgba(126,91,24,.5)',line2:'rgba(126,91,24,.22)',sage:'#6F937F',muted:'rgba(42,37,31,.55)'};
-  const SERIF='"Noto Serif TC","Songti TC","PMingLiU",serif', SANS='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif', BRUSH='"LXGW WenKai TC","Kaiti TC","STKaiti","BiauKai",'+SERIF;
-  try{await Promise.race([Promise.all([document.fonts.load(`700 60px "Noto Serif TC"`),document.fonts.load(`500 36px "Noto Sans TC"`),document.fonts.load(`700 60px "LXGW WenKai TC"`)]),new Promise(r=>setTimeout(r,1500))])}catch(e){}
+  const W=1080,dark=isDark();
+  const T=dark?{bg:'#1C2849',ink:'#F3EBDA',sub:'rgba(243,235,218,.86)',gold:'#E7C27A',line:'rgba(231,194,122,.55)',line2:'rgba(231,194,122,.25)',sage:'#9CC2AE',muted:'rgba(243,235,218,.55)',seal:'#C8463C'}
+                :{bg:'#F1EADB',ink:'#2A251F',sub:'rgba(42,37,31,.86)',gold:'#8A6420',line:'rgba(126,91,24,.5)',line2:'rgba(126,91,24,.22)',sage:'#6F937F',muted:'rgba(42,37,31,.55)',seal:'#A8322A'};
+  const SERIF='"Noto Serif TC","Songti TC","PMingLiU",serif', SANS='"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+  // Google Fonts 依字切分子集，帶上卡片上的文字才會載到需要的字形
+  const txt=[spec.tag,spec.title,spec.sub,spec.big,...(spec.poem||[]),...(spec.body||[]).flatMap(b=>[b.k,b.t]),'靈犀心有一點通命理是看清自己的面鏡子結果僅供參考LINGXI'].filter(Boolean).join('');
+  try{await Promise.race([Promise.all([document.fonts.load(`700 60px "Noto Serif TC"`,txt),document.fonts.load(`600 60px "Noto Serif TC"`,txt),document.fonts.load(`500 30px "Noto Serif TC"`,txt),document.fonts.load(`500 30px "Noto Sans TC"`,txt)]),new Promise(r=>setTimeout(r,2500))])}catch(e){}
   let seed=spec.seed||7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
-  x.fillStyle=T.bg;x.fillRect(0,0,W,H);paperGrain(x,W,H,dark,rnd);
-  // 蠟筆月亮與星星
-  crayonShape(x,g=>{g.beginPath();g.arc(90,90,72,0,7);g.fill();g.globalCompositeOperation='destination-out';g.beginPath();g.arc(122,70,64,0,7);g.fill()},dark?'#E2B862':'#C9973A',rnd,180,180,W-250,70);
-  crayonShape(x,g=>{star4(g,40,40,26)},dark?'#E2B862':'#C9973A',rnd,80,80,W-370,170);
-  crayonShape(x,g=>{star4(g,30,30,18)},T.sage,rnd,60,60,W-160,250);
-  crayonShape(x,g=>{star4(g,24,24,14)},T.sage,rnd,48,48,W-150,H-210);
-  crayonShape(x,g=>{g.beginPath();g.arc(10,10,6,0,7);g.fill()},T.gold,rnd,20,20,W-420,110);
-  x.strokeStyle=T.line;x.lineWidth=3;x.beginPath();x.roundRect(40,40,W-80,H-80,30);x.stroke();
-  x.strokeStyle=T.line2;x.lineWidth=1.5;x.beginPath();x.roundRect(56,56,W-112,H-112,22);x.stroke();
-  const logo=await loadImg('icons/icon-192.png');if(logo){x.save();x.beginPath();x.roundRect(96,96,84,84,20);x.clip();x.drawImage(logo,96,96,84,84);x.restore()}
-  x.fillStyle=T.ink;x.font=`700 46px ${BRUSH}`;x.textBaseline='middle';x.fillText('靈犀',200,122);
-  x.fillStyle=T.gold;x.font=`500 24px ${SANS}`;x.fillText('LINGXI · 心有靈犀 一點通',200,162);
-  if(spec.tag){x.fillStyle=T.sub;x.font=`500 28px ${SANS}`;x.fillText(spec.tag,96,222)}
-  let y=280;
-  if(spec.big){x.textAlign='center';x.fillStyle=T.gold;x.font=`700 ${spec.bigSize||200}px ${SERIF}`;x.fillText(spec.big,W/2,y+60);y+=(spec.bigSize||200)+10;x.textAlign='left'}
-  x.textAlign='center';x.fillStyle=T.ink;x.font=`700 60px ${BRUSH}`;for(const l of wrapLines(x,spec.title,W-200)){x.fillText(l,W/2,y);y+=78}
-  if(spec.sub){x.fillStyle=T.gold;x.font=`500 32px ${SANS}`;x.fillText(spec.sub,W/2,y);y+=56}
-  if(spec.poem){y+=10;x.fillStyle=T.ink;x.font=`700 56px ${BRUSH}`;for(const l of spec.poem){x.fillText(l,W/2,y+10);y+=80}y+=10}
+  // 先把內容畫在透明畫布上量出高度，再決定卡片高度並置中，避免下方大片留白
+  const MAXC=1920-380, cc=document.createElement('canvas');cc.width=W;cc.height=MAXC;const x=cc.getContext('2d');
+  x.textBaseline='middle';x.textAlign='center';let y=24;
+  const rule=(yy,w=120)=>{x.strokeStyle=T.line;x.lineWidth=1.5;x.beginPath();x.moveTo(W/2-w,yy);x.lineTo(W/2+w,yy);x.stroke();x.fillStyle=T.gold;x.save();x.translate(W/2,yy);x.rotate(Math.PI/4);x.fillRect(-5,-5,10,10);x.restore()};
+  if(spec.tag){x.font=`600 26px ${SERIF}`;const tw=x.measureText(spec.tag).width;x.fillStyle=T.gold;x.fillText(spec.tag,W/2,y);x.strokeStyle=T.line;x.lineWidth=1.5;x.beginPath();x.moveTo(W/2-tw/2-90,y);x.lineTo(W/2-tw/2-24,y);x.moveTo(W/2+tw/2+24,y);x.lineTo(W/2+tw/2+90,y);x.stroke();y+=62}
+  if(spec.big){x.fillStyle=T.gold;x.font=`700 ${spec.bigSize||200}px ${SERIF}`;x.fillText(spec.big,W/2,y+(spec.bigSize||200)*.42);y+=(spec.bigSize||200)+16}
+  x.fillStyle=T.ink;x.font=`700 64px ${SERIF}`;
+  if(spec.seal){
+    // 標題右側加朱紅籤等印，整組置中
+    const tw=x.measureText(spec.title).width, sw=[...spec.seal+'籤'].length>2?84:70, tot=tw+22+sw, sx=W/2-tot/2;
+    x.textAlign='left';x.fillText(spec.title,sx,y+16);x.textAlign='center';
+    const px=sx+tw+22, py=y+16-sw/2;x.fillStyle=T.seal;x.beginPath();x.roundRect(px,py,sw,sw,6);x.fill();
+    x.strokeStyle='rgba(255,240,225,.7)';x.lineWidth=2;x.beginPath();x.roundRect(px+5,py+5,sw-10,sw-10,4);x.stroke();
+    x.fillStyle='#FBEFE4';const cs=[...spec.seal+'籤'];x.font=`700 ${cs.length>2?24:28}px ${SERIF}`;
+    if(cs.length>2){x.fillText(cs[0]+cs[1],px+sw/2,py+sw*.33);x.fillText(cs[2],px+sw/2,py+sw*.7)}else{x.fillText(cs[0],px+sw/2,py+sw*.32);x.fillText(cs[1],px+sw/2,py+sw*.7)}
+    y+=82;
+  }else for(const l of wrapLines(x,spec.title,W-220)){x.fillText(l,W/2,y+16);y+=82}
+  if(spec.sub){x.fillStyle=T.gold;x.font=`500 30px ${SERIF}`;x.fillText(spec.sub,W/2,y+4);y+=58}
+  if(spec.poem){
+    // 籤詩直排、由右至左，外加雙線框，仿廟裡籤紙
+    const cols=spec.poem, n=Math.max(...cols.map(l=>[...l].length)), fs=54, lh=66, cw=104, bw=cols.length*cw+64, bh=n*lh+70, bx=(W-bw)/2, by=y+10;
+    x.strokeStyle=T.line;x.lineWidth=2.5;x.strokeRect(bx,by,bw,bh);x.strokeStyle=T.line2;x.lineWidth=1.2;x.strokeRect(bx+9,by+9,bw-18,bh-18);
+    for(let i=1;i<cols.length;i++){const lx=bx+32+i*cw;x.beginPath();x.moveTo(lx,by+26);x.lineTo(lx,by+bh-26);x.stroke()}
+    x.fillStyle=T.ink;x.font=`600 ${fs}px ${SERIF}`;
+    cols.forEach((l,i)=>{const cx=bx+bw-32-cw*i-cw/2;[...l].forEach((ch,j)=>x.fillText(ch,cx,by+35+lh/2+j*lh))});
+    y=by+bh+46;
+  }
   if(spec.imgs&&spec.imgs.length){const n=spec.imgs.length,iw=Math.min(220,(W-200-(n-1)*24)/n),ih=iw*457/260;let ix=(W-(n*iw+(n-1)*24))/2;
     for(const s of spec.imgs){const im=await loadImg(s.src);x.save();x.translate(ix+iw/2,y+ih/2);if(s.rev)x.rotate(Math.PI);x.beginPath();x.roundRect(-iw/2,-ih/2,iw,ih,14);x.clip();if(im)x.drawImage(im,-iw/2,-ih/2,iw,ih);else{x.fillStyle=T.line2;x.fill()}x.restore();
-      x.strokeStyle=T.line;x.lineWidth=2;x.beginPath();x.roundRect(ix,y,iw,ih,14);x.stroke();ix+=iw+24}y+=ih+40}
-  x.textAlign='left';
-  for(const b of spec.body||[]){if(y>H-200)break;
-    if(b.k){x.fillStyle=T.gold;x.font=`700 30px ${SANS}`;x.fillText(b.k,110,y);y+=44}
-    x.fillStyle=T.sub;x.font=`500 ${b.size||32}px ${SANS}`;
-    for(const l of wrapLines(x,b.t,W-220)){if(y>H-190){break}x.fillText(l,110,y);y+=(b.size||32)*1.45}y+=12}
-  x.textAlign='center';x.fillStyle=T.gold;x.font=`500 26px ${SANS}`;x.fillText('jerry8887624-star.github.io/-/divination',W/2,H-110);
-  x.fillStyle=T.muted;x.font=`400 22px ${SANS}`;x.fillText('命理是看清自己的一面鏡子，結果僅供參考',W/2,H-72);
-  return c;
+      x.strokeStyle=T.line;x.lineWidth=2;x.beginPath();x.roundRect(ix,y,iw,ih,14);x.stroke();ix+=iw+24}y+=ih+36}
+  if((spec.body||[]).length){if(spec.poem||spec.big){rule(y);y+=46}
+    x.textAlign='left';
+    for(const b of spec.body){
+      const fs=b.size||31;x.font=`500 ${fs}px ${SERIF}`;const ls=wrapLines(x,b.t,W-240);
+      // 整段放不下就不放，避免句子被截斷
+      if(y+(b.k?50:0)+ls.length*fs*1.62>MAXC)break;
+      if(b.k){x.fillStyle=T.gold;x.font=`700 30px ${SERIF}`;x.fillText(b.k,120,y+4);y+=50}
+      x.fillStyle=T.sub;x.font=`500 ${fs}px ${SERIF}`;
+      for(const l of ls){x.fillText(l,120,y+4);y+=fs*1.62}y+=18}
+    x.textAlign='center'}
+  const ch=Math.min(MAXC,y);
+  // 卡片高度：依內容在 1:1 到 9:16（手機限動尺寸）之間伸縮
+  const top=230, foot=150, H=Math.max(1080,Math.min(1920,top+ch+foot)), c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+  g.fillStyle=T.bg;g.fillRect(0,0,W,H);paperGrain(g,W,H,dark,rnd);
+  g.globalAlpha=.75;crayonShape(g,q=>{q.beginPath();q.arc(70,70,56,0,7);q.fill();q.globalCompositeOperation='destination-out';q.beginPath();q.arc(96,54,50,0,7);q.fill()},dark?'#E2B862':'#C9973A',rnd,140,140,W-220,82);g.globalAlpha=1;
+  g.strokeStyle=T.line;g.lineWidth=3;g.beginPath();g.roundRect(40,40,W-80,H-80,24);g.stroke();
+  g.strokeStyle=T.line2;g.lineWidth=1.5;g.beginPath();g.roundRect(54,54,W-108,H-108,18);g.stroke();
+  const logo=await loadImg('icons/icon-192.png');if(logo){g.save();g.beginPath();g.roundRect(100,100,76,76,18);g.clip();g.drawImage(logo,100,100,76,76);g.restore()}
+  g.textBaseline='middle';g.textAlign='left';g.fillStyle=T.ink;g.font=`700 42px ${SERIF}`;g.fillText('靈犀',196,122);
+  g.fillStyle=T.gold;g.font=`500 21px ${SERIF}`;g.fillText('LINGXI　心有靈犀一點通',197,160);
+  g.strokeStyle=T.line2;g.lineWidth=1.5;g.beginPath();g.moveTo(100,204);g.lineTo(W-100,204);g.stroke();
+  g.drawImage(cc,0,0,W,ch,0,top+Math.max(0,(H-top-foot-ch)/2),W,ch);
+  g.strokeStyle=T.line2;g.beginPath();g.moveTo(100,H-122);g.lineTo(W-100,H-122);g.stroke();
+  g.textAlign='center';g.fillStyle=T.muted;g.font=`500 22px ${SERIF}`;g.fillText('命理是看清自己的一面鏡子，結果僅供參考',W/2,H-88);
+  return g.canvas;
 }
 function cardSpec(k){
   if(k==='daily'){const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+dayOff);const F=fortune(date);
@@ -3750,8 +3834,9 @@ function cardSpec(k){
       body:[{t:F.sum},{k:'五大面向',t:F.areas.map(a=>`${a.n} ${Math.round(a.s*20)}`).join('　')},{k:'開運',t:`幸運色 ${F.la.c.split('、')[0]}　幸運數字 ${F.la.n}　財喜方位 ${F.la.d.split('、')[0]}`},{k:'宜',t:F.yi.slice(0,8).join('、')||'—'},{k:'忌',t:F.ji.slice(0,8).join('、')||'—'}],
       text:`【靈犀・每日運勢】${date.getMonth()+1}/${date.getDate()} ${F.total}分 ${F.word}\n${F.sum}`}}
   if(k==='qian'&&qNo){const Q=QD[qNo-1];
-    return {tag:'六十甲子籤',title:`第 ${qNo} 籤・${Q[1]}籤`,sub:`${Q[0]}　所問：${qCat}`,seed:qNo,poem:Q[2].replace(/。$/,'').split('，'),
-      body:[{k:'白話',t:Q[3]},...(typeof qianStory==='function'&&qianStory(qNo)?[{k:'典故',t:qianStory(qNo)}]:[])],text:qianShareText(qNo,qCat,qQ)}}
+    const FI={家運:8,事業:4,求財:5,婚姻:6,健康:7,出行:8,功名:4,失物:8,訴訟:8}, st=typeof qianStory==='function'?qianStory(qNo):'';
+    return {tag:'六十甲子籤',title:`第${cnNum(qNo)}籤`,seal:Q[1],sub:`${Q[0]}　所問：${qCat}${qQ?`・${qQ}`:''}`,seed:qNo,poem:Q[2].replace(/。$/,'').split('，'),
+      body:[{k:'白話',t:Q[3]},{k:`所問「${qCat}」`,t:Q[FI[qCat]||8]},{k:'解曰',t:[['事業',4],['求財',5],['婚姻',6],['健康',7],['平安',8]].map(([k,i])=>`${k}：${Q[i]}`).join('\n'),size:28},...(st?[{k:'典故',t:st,size:28}]:[])],text:qianShareText(qNo,qCat,qQ)}}
   if(k==='tarot'&&tReading){const d=TD.spreads.find(s=>s.k===tReading.s), few=tReading.c.length<=5;
     return {tag:d.n,title:tReading.q||'塔羅解讀',seed:tReading.c[0].i+3,imgs:few?tReading.c.map(c=>({src:`img/tarot/${c.i}.jpg`,rev:c.rev})):null,
       body:tReading.c.map((c,i)=>{const t=tcard(c.i);return {k:`${d.pos[i]}：${t.zh}${c.rev?'（逆位）':''}`,t:few?(c.rev?t.kwR:t.kwU):(c.rev?t.kwR:t.kwU),size:few?30:28}}),text:shareText(tReading)}}
@@ -4226,6 +4311,23 @@ function mhCast(){
   const a=parseInt(mhA,10), b=parseInt(mhB,10);if(!(a>0&&b>0))return null;
   return {...meihua(mod(a,8),mod(b,8),mod(a+b+hz,6)),how:`上卦 ${a}、下卦 ${b}，加${ZHI[hz-1]}時（${hz}）定動爻`};
 }
+// 八卦取象（《說卦傳》）與爻位（《繫辭下》：二多譽、三多凶、四多懼、五多功）
+const TRI_SYM={1:'乾為天，性剛健；象徵領導、父親、決斷與主動',2:'兌為澤，性喜悅；象徵口才、少女、溝通與享受',3:'離為火，性附麗；象徵光明、文書、名聲與中女',4:'震為雷，性動；象徵行動、長男、起步與突發',5:'巽為風，性入；象徵順從、長女、流通與商機',6:'坎為水，性陷；象徵險阻、中男、智慧與奔波',7:'艮為山，性止；象徵停止、少男、穩固與等待',8:'坤為地，性順；象徵包容、母親、土地與耐心'};
+const YAO_POS=['初爻是事情的起點、基層，動在這裡表示事情才剛開始，變數還很多。','二爻居下卦之中，《繫辭》說「二多譽」，動在這裡多有好評與助力，宜守中道。','三爻在下卦之末、進退之間，《繫辭》說「三多凶」，動在這裡要特別謹慎，不宜冒進。','四爻接近上位，《繫辭》說「四多懼」，動在這裡容易患得患失，宜小心應對上級與長輩。','五爻是尊位，《繫辭》說「五多功」，動在這裡最有機會成就功業，是好的時機。','上爻是事情的終點、過頭之處，動在這裡表示事情已到尾聲，物極必反，宜見好就收。'];
+function mhStory(R){
+  const h=hexOf(R.up,R.lo), hu=hexOf(R.hu[1],R.hu[0]), hb=hexOf(R.bu,R.bl), B=BAGUA, rr=MH_REL[R.r];
+  const relZh={sheng:'生扶',same:'比和',ke:'受體所剋',xie:'洩體之氣',beike:'剋制'};
+  const rh=(()=>{const x=WXI(B[R.ti][2]),t=[R.hu[0],R.hu[1]].map(k=>WXI(B[k][2]));const bad=t.some(y=>(y+2)%5===x),good=t.some(y=>(y+1)%5===x),same=t.includes(x);return bad?'互卦中有剋體之象，過程會遇到阻力或反覆，要多一點耐心。':good?'互卦中有生體之象，過程中會有人幫忙，越做越順。':same?'互卦與體卦五行相同（比和），過程中有志同道合的人一起努力。':'互卦對體卦沒有明顯生剋，過程大致平穩。'})();
+  const P=[
+   ['怎麼起的卦',`本卦上卦是${B[R.up][0]}（${B[R.up][1]}，屬${B[R.up][2]}），下卦是${B[R.lo][0]}（${B[R.lo][1]}，屬${B[R.lo][2]}），合成「${h[1]}」。動爻在第${'初二三四五上'[R.mv-1]}爻，位於${R.mv<=3?'下':'上'}卦，所以${R.mv<=3?'下':'上'}卦為「用」（所問之事），${R.mv<=3?'上':'下'}卦為「體」（你自己）。`],
+   ['體與用',`體卦${B[R.ti][0]}：${TRI_SYM[R.ti]}，代表你目前的立場。用卦${B[R.yong][0]}：${TRI_SYM[R.yong]}，代表你問的這件事。體屬${B[R.ti][2]}、用屬${B[R.yong][2]}，為「${rr[1]}」──${rr[2]}`],
+   ['現在（本卦）',`「${h[1]}」：${h[3]}`],
+   ['過程（互卦）',`「${hu[1]}」：${hu[3]}${rh}`],
+   ['動爻',YAO_POS[R.mv-1]],
+   ['結果（變卦）',`「${hb[1]}」：${hb[3]}變卦對體卦為${relZh[R.rb]}，${R.rb==='sheng'||R.rb==='same'?'結局偏向好的方向。':R.rb==='beike'?'結局有壓力，要提早準備備案。':'結局平穩，成敗看你投入多少。'}`],
+   ['總結與建議',`${rr[0]==='good'?'整體是順的，可以積極去做，':rr[0]==='mid'?'可以做，但要付出相應的努力，':'目前條件對你不利，建議暫緩或換個方式，'}${R.rb==='sheng'||R.rb==='same'?'而且結果會比現在更好。':R.rb==='beike'?'並留意後續的變化。':'結果取決於過程中的用心。'}梅花易數重在「當下的起心動念」，同一件事不宜反覆起卦；事情有新進展時再問即可。`]];
+  return `<div class="card stack"><h3 class="h3">完整解讀</h3>${P.map(([t,x])=>`<div class="sty"><b>${t}</b><span>${x}</span></div>`).join('')}<p class="small muted">取象依《說卦傳》，爻位依《繫辭下》，體用生剋依邵雍《梅花易數》。</p></div>`;
+}
 function meihuaHtml(){
   const R=mhRes;
   let res='';
@@ -4236,7 +4338,7 @@ function meihuaHtml(){
       <p class="small muted">本卦看現在，互卦看過程，變卦看結果。體卦（${BAGUA[R.ti][0]}・${BAGUA[R.ti][2]}）代表你，用卦（${BAGUA[R.yong][0]}・${BAGUA[R.yong][2]}）代表所問之事。</p>
       <div class="qstory"><span class="eyebrow">卦辭（《周易》）</span><b>${h[2]}</b><p class="small">${h[3]}</p></div>
       <div class="reader"><div class="seal" aria-hidden="true">易</div><p><b>${rr[1]}</b>：${rr[2]}結果看變卦「${hb[1]}」：${hb[3]}${R.rb==='beike'?'變卦剋體，後續要多留意。':R.rb==='sheng'||R.rb==='same'?'變卦生扶體卦，結局偏好。':''}</p></div>
-    </div>`}
+    </div>${mhStory(R)}`}
   return `<div class="card stack">
     <label class="f" for="mhQ">想問的事<span class="taw"><textarea id="mhQ" maxlength="60" placeholder="例：這次面試會順利嗎？">${esc(mhQ)}</textarea>${micHtml('mhQ')}</span></label>
     <div class="seg" role="group" aria-label="起卦方式"><button type="button" data-mhm="time" aria-pressed="${mhMode==='time'}">以現在時間起卦</button><button type="button" data-mhm="num" aria-pressed="${mhMode==='num'}">報兩個數字</button></div>
