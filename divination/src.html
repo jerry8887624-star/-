@@ -732,8 +732,10 @@ function nameAnalysis(sur,given){
   const r1=rel(e[0],e[1]), r2=rel(e[1],e[2]);
   const sc=r=>({生:100,被生:90,比和:85,剋:55,被剋:35}[r]);
   const sancai=Math.round((sc(r1)+sc(r2))/2);
-  let score=Math.round(pt(ren)*.3+pt(di)*.2+pt(zong)*.3+pt(wai)*.1+sancai*.1);
-  return {ok,S,G,g,e,r1,r2,sancai,score};
+  // 單姓單名的外格依公式恆為 2，不列入評分
+  const fixWai=S.length===1&&G.length===1;
+  let score=Math.round(fixWai?(pt(ren)*.3+pt(di)*.2+pt(zong)*.3+sancai*.1)/.9:pt(ren)*.3+pt(di)*.2+pt(zong)*.3+pt(wai)*.1+sancai*.1);
+  return {ok,S,G,g,e,r1,r2,sancai,score,fixWai};
 }
 const POOL=(GC.POOL||'').split('|').filter(Boolean).map(x=>({c:x[0],e:WX.indexOf(x[1]),g:x[2],m:x.slice(3)}));
 const POOLMAP=Object.fromEntries(POOL.map(x=>[x.c,x]));
@@ -764,7 +766,8 @@ function genNames(sur){
   const out=[];let seed=nmOpt.seed||1;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
   for(const cs of combos){
     const given=cs.map(x=>x.c).join('');const N=nameAnalysis(sur,given);if(!N.ok)continue;
-    const ks=['ren','di','wai','zong'].map(k=>n81(N.g[k])[0]);
+    // 單名的外格依五格公式固定為 2（凶數），論命慣例不以單名外格論吉凶，只看人格、地格、總格
+    const ks=(N.fixWai?['ren','di','zong']:['ren','di','wai','zong']).map(k=>n81(N.g[k])[0]);
     if(ks.includes('凶'))continue;
     let sc=N.score+(D.xi.includes(N.e[1])?6:D.ji.includes(N.e[1])?-6:0);
     cs.forEach(x=>{if(pref.includes(x.e))sc+=4;if(D.ji.includes(x.e))sc-=4});
@@ -780,7 +783,7 @@ function genNames(sur){
 function candHtml(o,sur,fav){
   return `<div class="cand"><div class="nm">${esc(sur)}${o.given}</div><div class="sc">${Math.min(100,o.N.score)}<span class="small muted"> 分</span></div>
     <div class="meta">${o.cs.map(x=>`<span>${x.c}${x.e>=0?elTag(x.e):''} ${strokesOf(x.c)}畫・${esc(x.m)}</span>`).join('')}</div>
-    <div class="meta"><span>人格${o.N.g.ren}</span><span>地格${o.N.g.di}</span><span>外格${o.N.g.wai}</span><span>總格${o.N.g.zong}</span><span>三才 ${o.N.e.map(e=>WX[e]).join('')}</span>${o.T?`<span>音律 ${o.T.pz}</span>`:''}${D.xi.includes(o.N.e[1])?'<span class="good-t">人格補喜用</span>':''}</div>
+    <div class="meta"><span>人格${o.N.g.ren}</span><span>地格${o.N.g.di}</span><span>外格${o.N.g.wai}${o.N.fixWai?'（單名固定）':''}</span><span>總格${o.N.g.zong}</span><span>三才 ${o.N.e.map(e=>WX[e]).join('')}</span>${o.T?`<span>音律 ${o.T.pz}</span>`:''}${D.xi.includes(o.N.e[1])?'<span class="good-t">人格補喜用</span>':''}</div>
     <div class="acts"><button type="button" class="btn sm" data-try="${o.given}">帶入詳細分析</button><button type="button" class="btn sm ghost" data-fav="${o.given}">${fav.includes(sur+o.given)?'已收藏 ✓':'收藏'}</button></div></div>`;
 }
 function renderName(){
@@ -800,7 +803,7 @@ function renderName(){
         <div class="stack" style="gap:4px;min-width:0"><div class="eyebrow">五格剖象 · 康熙筆畫</div><h3 class="h3">${esc(sur+given)}　${N.score>=80?'名字有助運勢':N.score>=60?'中上，可再加強':'建議參考改名或用字號'}</h3><p class="small muted">人格 30%、總格 30%、地格 20%、外格 10%、三才 10%。</p></div>
       </div>
       <div class="gridlist">${GE.map(([lb,sub,k])=>{const n=N.g[k];const [kk,ph]=n81(n);const c=kk==='吉'?'good':kk==='半'?'mid':'bad';const nn=((n-1)%80)+1;
-        return `<div class="ge"><div class="lb">${lb}<small>${sub}</small></div><div class="n">${n}</div><div class="d">${k==='tian'?'':`<b>${ph}</b><br>${GC.N81D[nn]}<br>`}<span class="muted small">${GC.GRID_TXT[k]}</span></div><div class="row" style="gap:4px;flex-wrap:nowrap">${elTag(numWx(n))}${k==='tian'?'':`<span class="pill ${c}">${kk==='半'?'半吉':kk}</span>`}</div></div>`}).join('')}</div>
+        return `<div class="ge"><div class="lb">${lb}<small>${sub}</small></div><div class="n">${n}</div><div class="d">${k==='tian'||(k==='wai'&&N.fixWai)?'':`<b>${ph}</b><br>${GC.N81D[nn]}<br>`}<span class="muted small">${k==='wai'&&N.fixWai?'單姓單名的外格依公式恆為 2，與名字好壞無關，論名時不看外格吉凶。':GC.GRID_TXT[k]}</span></div><div class="row" style="gap:4px;flex-wrap:nowrap">${elTag(numWx(n))}${k==='tian'?'':k==='wai'&&N.fixWai?'<span class="pill mid">單名固定</span>':`<span class="pill ${c}">${kk==='半'?'半吉':kk}</span>`}</div></div>`}).join('')}</div>
     </div>
     <div class="card stack">
       <h3 class="h3">三才配置　${N.e.map(elTag).join('')}</h3>
@@ -820,7 +823,7 @@ function renderName(){
   const gen=`
   <div class="card stack" id="genCard">
     <div><div class="eyebrow">改名建議</div><h3 class="h3">依「${esc(sur)}」姓與你的八字推薦好名</h3></div>
-    <p class="small muted">條件：人格、地格、外格、總格都不落凶數，再依三才相生、人格五行是否補喜用、用字五行排序。字庫共 ${POOL.length} 個常用好字。</p>
+    <p class="small muted">條件：人格、地格、外格、總格都不落凶數（單名的外格恆為 2，不論吉凶），再依三才相生、人格五行是否補喜用、用字五行排序。字庫共 ${POOL.length} 個常用好字。</p>
     <div class="grid2">
       <div class="f"><span>性別</span><div class="seg" role="group" aria-label="名字性別">${['男','女','不限'].map(x=>`<button type="button" data-ng="${x}" aria-pressed="${g===x}">${x}</button>`).join('')}</div></div>
       <div class="f"><span>字數</span><div class="seg" role="group" aria-label="名字字數"><button type="button" data-nl="1" aria-pressed="${nmOpt.len===1}">單名</button><button type="button" data-nl="2" aria-pressed="${nmOpt.len===2}">雙名</button></div></div>

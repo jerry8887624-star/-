@@ -27,8 +27,8 @@ page = f'''<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="靈犀：每日運勢、塔羅占卜、求籤擲筊、紫微斗數、八字流年、姓名學改名與奇門遁甲。">
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F1EADB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C2849" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="靈犀">

@@ -1,13 +1,16 @@
 /* Layout: iOS 式單欄（最寬 600px）。大標題隨捲動收合成導覽列，底部半透明分頁列；內容以圓角分組卡片承載。 */
 :root{
-  --bg:#F2F2F7; --card:#FFFFFF; --card2:#F2F2F7; --fill:rgba(118,118,128,.12); --seg-on:#FFFFFF; --field:#F2F2F7; --field-line:rgba(60,60,67,.18);
-  --ink:#1C1C1E; --muted:#636366; --line:#E5E5EA;
-  --tint:#86621C; --tint-ink:#FFFFFF; --tint-soft:rgba(134,98,28,.12);
+  --bg:#F1EADB; --card:#FBF7EE; --card2:#EFE7D5; --fill:rgba(120,95,55,.10); --seg-on:#FFFDF7; --field:#F4EDDF; --field-line:rgba(110,85,45,.24);
+  --ink:#2A251F; --muted:#5E5545; --line:#E2D6C0;
+  --tint:#7E5B18; --tint-ink:#FFFDF7; --tint-soft:rgba(126,91,24,.12);
   --navy:#141B33;
-  --good:#186A2E; --mid:#9A4500; --bad:#C00012;
+  --good:#2B6537; --mid:#8F4000; --bad:#A61F15;
   --wood:#2F8A57; --fire:#D9472F; --earth:#B07D12; --metal:#7C7C84; --water:#2F6DB0;
   --lu:#248A3D; --quan:#D9472F; --ke:#2F6DB0; --ji:#8E44AD;
-  --shadow:0 1px 2px rgba(0,0,0,.04);
+  --shadow:0 1px 0 rgba(255,255,255,.7) inset,0 1px 2px rgba(90,65,30,.06),0 4px 14px rgba(90,65,30,.05);
+  --edge:rgba(120,90,45,.13);
+  /* 紙紋：細顆粒＋大塊雲紋，兩層疊出手工紙的質感 */
+  --tex:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .27 0 0 0 0 .15 0 0 0 .26 0'/%3E%3C/filter%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .4 0 0 0 0 .25 0 0 0 .17 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
   --f-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
   --f-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang TC","Noto Sans TC",system-ui,sans-serif;
   --f-serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
@@ -17,17 +20,19 @@
   --surface:var(--card); --surface-2:var(--card2); --paper:var(--bg); --seal:var(--tint); --seal-ink:var(--tint-ink); --brass:var(--tint);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--seg-on:#636366;--field:#2C2C2E;--field-line:rgba(235,235,245,.16);--ink:#F5F5F7;--muted:#A5A5AC;--line:#38383A;
-  --tint:#E2BA68;--tint-ink:#1C1C1E;--tint-soft:rgba(226,186,104,.16);--navy:#0E1428;
-  --good:#30D158;--mid:#FF9F0A;--bad:#FF8178;
+  --bg:#1C2849;--card:#24315A;--card2:#2D3B68;--fill:rgba(230,215,185,.10);--seg-on:#3B4B7C;--field:#2A3762;--field-line:rgba(240,228,205,.2);--ink:#F3EBDA;--muted:#C9C1B0;--line:#36447A;
+  --tint:#E7C27A;--tint-ink:#1C2849;--tint-soft:rgba(231,194,122,.15);--navy:#0E1428;
+  --good:#A3D4AE;--mid:#F4BC75;--bad:#FFAAA1;--edge:rgba(240,225,195,.09);
+  --tex:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .92 0 0 0 0 .88 0 0 0 0 .8 0 0 0 .15 0'/%3E%3C/filter%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .02 0 0 0 0 .04 0 0 0 0 .12 0 0 0 .32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
   --wood:#4CC07F;--fire:#FF6B52;--earth:#E0B040;--metal:#A1A1AA;--water:#5AA2E8;
-  --lu:#30D158;--quan:#FF6B52;--ke:#5AA2E8;--ji:#BF7AF0;--shadow:none;color-scheme:dark}}
+  --lu:#7FD18F;--quan:#FF8A70;--ke:#7FB4EC;--ji:#C99AF0;--shadow:0 1px 0 rgba(255,255,255,.05) inset,0 2px 10px rgba(0,0,0,.18);color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#000000;--card:#1C1C1E;--card2:#2C2C2E;--fill:rgba(118,118,128,.24);--seg-on:#636366;--field:#2C2C2E;--field-line:rgba(235,235,245,.16);--ink:#F5F5F7;--muted:#A5A5AC;--line:#38383A;
-  --tint:#E2BA68;--tint-ink:#1C1C1E;--tint-soft:rgba(226,186,104,.16);--navy:#0E1428;
-  --good:#30D158;--mid:#FF9F0A;--bad:#FF8178;
+  --bg:#1C2849;--card:#24315A;--card2:#2D3B68;--fill:rgba(230,215,185,.10);--seg-on:#3B4B7C;--field:#2A3762;--field-line:rgba(240,228,205,.2);--ink:#F3EBDA;--muted:#C9C1B0;--line:#36447A;
+  --tint:#E7C27A;--tint-ink:#1C2849;--tint-soft:rgba(231,194,122,.15);--navy:#0E1428;
+  --good:#A3D4AE;--mid:#F4BC75;--bad:#FFAAA1;--edge:rgba(240,225,195,.09);
+  --tex:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .92 0 0 0 0 .88 0 0 0 0 .8 0 0 0 .15 0'/%3E%3C/filter%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .02 0 0 0 0 .04 0 0 0 0 .12 0 0 0 .32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
   --wood:#4CC07F;--fire:#FF6B52;--earth:#E0B040;--metal:#A1A1AA;--water:#5AA2E8;
-  --lu:#30D158;--quan:#FF6B52;--ke:#5AA2E8;--ji:#BF7AF0;--shadow:none;color-scheme:dark}
+  --lu:#7FD18F;--quan:#FF8A70;--ke:#7FB4EC;--ji:#C99AF0;--shadow:0 1px 0 rgba(255,255,255,.05) inset,0 2px 10px rgba(0,0,0,.18);color-scheme:dark}
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -850,3 +855,24 @@ html.vw400 .ql{grid-template-columns:1fr}
 .jnote{padding:8px 10px;border-radius:10px;background:var(--card2)}
 .tint-t{color:var(--tint)}
 .jstat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+
+/* ===== 紙質感 ===== */
+html,body{background-color:var(--bg);background-image:var(--tex);background-size:260px 260px}
+body::before{background-color:var(--bg);background-image:var(--tex);background-size:260px 260px}
+h1,h2,h3{font-family:var(--f-serif);font-weight:700;letter-spacing:.01em}
+.largetitle h1{font-weight:700;letter-spacing:.04em}
+.card,.spread,.tile{background-image:var(--tex);background-size:260px 260px;border:1px solid var(--edge)}
+.card.flat{background-image:none}
+.layer .panel,.sheet,#pForm{background-image:var(--tex);background-size:260px 260px}
+.tabbar{background-color:color-mix(in srgb,var(--bg) 86%,transparent);background-image:var(--tex);background-size:260px 260px;box-shadow:0 -1px 0 var(--edge)}
+.collapsed .navbar{background-color:color-mix(in srgb,var(--bg) 86%,transparent);background-image:var(--tex);background-size:260px 260px;box-shadow:0 1px 0 var(--edge)}
+.seg{background:var(--fill)}
+.seg button[aria-pressed="true"]{box-shadow:0 1px 2px rgba(90,65,30,.14),0 0 0 .5px var(--edge)}
+.btn{box-shadow:inset 0 0 0 1px var(--edge)}
+.btn.primary{box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 2px 6px rgba(90,65,30,.18)}
+.btn.ghost{box-shadow:none}
+.chip{border:1px solid var(--edge)}
+.pill{border:1px solid color-mix(in srgb,currentColor 18%,transparent)}
+.tcard.empty{background-color:transparent}
+/* 手繪感分隔線 */
+.tbl tr+tr th,.tbl tr+tr td{border-top-style:dashed}
