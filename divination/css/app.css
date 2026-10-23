@@ -1113,3 +1113,8 @@ label.offck input:checked+.ct{color:var(--muted);text-decoration:line-through}
 
 p.story{line-height:1.85;margin:0}
 p.story b{color:var(--ink)}
+
+/* 右上角顯示命主名字（不含姓），名字長時縮成膠囊並截斷 */
+.who{width:auto;min-width:36px;max-width:7.5em;padding:0 12px;border-radius:999px;white-space:nowrap}
+#whoAv{display:block;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.navbar{grid-template-columns:minmax(44px,1fr) auto minmax(44px,1fr)}
