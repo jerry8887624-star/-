@@ -227,6 +227,21 @@ const CATS=['綜合','事業','財運','感情','健康','學業','出行'];
 const MAJOR={紫微:'帝星，領導力強、自尊心高、重視被尊重；宜掌權管理，忌孤高獨斷。',天機:'智慧之星，思路靈活、善謀劃、好學多變；宜企劃顧問，忌想太多不行動。',太陽:'光明熱情，樂於付出、重名聲；宜公眾事業，忌過度操勞、愛面子。',武曲:'財星，剛毅果決、執行力強、重實際；宜金融財務，忌過剛寡情。',天同:'福星，溫和隨緣、重享受、人緣佳；宜服務與創意，忌安逸懶散。',廉貞:'個性鮮明、好勝、公關手腕佳；宜法政公關，忌情緒極端。',天府:'庫星，穩重保守、善守成理財、有包容力；宜管理行政，忌固執。',太陰:'細膩溫柔、重家庭、審美佳，主田宅與財；宜不動產與文創，忌多愁敏感。',貪狼:'慾望之星，多才多藝、交際廣、追求新鮮；宜業務娛樂，忌貪多分心。',巨門:'口才好、分析力強、善辯；宜教學、法律、傳播，忌口舌是非與多疑。',天相:'印星，正直公道、善協調、重形象；宜幕僚協調，忌優柔寡斷。',天梁:'蔭星，老成持重、愛照顧人、有原則；宜醫療教育公職，忌愛說教。',七殺:'將星，勇於開創、獨立果斷、不服輸；宜開創性工作，忌衝動冒進。',破軍:'耗星，破舊立新、敢衝敢變；宜變革創業，忌起伏過大。'};
 const PALACE={命宮:'個性、才華與一生格局',兄弟:'手足、同事與合夥關係',夫妻:'婚戀與伴侶互動',子女:'子女、晚輩、桃花與創作',財帛:'賺錢方式與理財態度',疾厄:'體質與健康',遷移:'外出、變動與外地際遇',僕役:'朋友、人脈與部屬',官祿:'事業發展與工作型態',田宅:'家庭、居所與置產',福德:'精神生活、興趣與福氣',父母:'長輩、主管與文書'};
 const FOCUS={命宮:'自我成長與個人形象',兄弟:'手足、同事與合夥',夫妻:'感情與伴侶',子女:'子女、晚輩與桃花',財帛:'收入與理財',疾厄:'身體健康與作息',遷移:'外出、變動與外地機會',僕役:'人脈與朋友',官祿:'工作與事業發展',田宅:'家庭、居所與置產',福德:'心情、興趣與精神生活',父母:'長輩、主管與文書'};
+// 十干四化（與 iztro 排盤相同，紫微斗數全書通行版）：祿、權、科、忌
+const SIHUA={甲:['廉貞','破軍','武曲','太陽'],乙:['天機','天梁','紫微','太陰'],丙:['天同','天機','文昌','廉貞'],丁:['太陰','天同','天機','巨門'],戊:['貪狼','太陰','右弼','天機'],己:['武曲','貪狼','天梁','文曲'],庚:['太陽','武曲','太陰','天同'],辛:['巨門','太陽','文曲','文昌'],壬:['天梁','紫微','左輔','武曲'],癸:['破軍','巨門','太陰','貪狼']};
+const FLY_TXT={祿:(a,b)=>`${a}的資源與緣分流向${b}，在${b}的事上容易得到好處、也樂於付出。`,權:(a,b)=>`${a}對${b}有主導欲，會想掌控、積極爭取${b}相關的事。`,科:(a,b)=>`${a}以理性、體面的方式照顧${b}，${b}的事多得貴人與好名聲。`,忌:(a,b)=>`${a}對${b}有執著與牽掛，${b}的事最容易讓你操心，也是功課所在。`};
+const SELF_TXT={祿:'自化祿：好處來得快也去得快，慷慨大方但不易守住。',權:'自化權：自主性強，不喜被干涉，有時流於固執。',科:'自化科：重面子與形象，表面風光，實質要再加強。',忌:'自化忌：容易自我消耗、有始無終，需要學習放下。'};
+const pn=n=>n.endsWith('宮')?n:n+'宮';
+function zwFly(A,i){
+  const pl=A.palaces[i], stars=SIHUA[pl.heavenlyStem];if(!stars)return '';
+  const where=s=>A.palaces.findIndex(p=>[...p.majorStars,...p.minorStars].some(x=>x.name===s));
+  const rows=stars.map((st,k)=>{const m='祿權科忌'[k], j=where(st);
+    if(j<0)return `<div class="fly"><span class="pill mid">${st}化${m}</span><span class="small">本盤未安此星。</span></div>`;
+    if(j===i)return `<div class="fly"><span class="pill ${m==='忌'?'bad':'mid'}">${st}自化${m}</span><span class="small">${SELF_TXT[m]}</span></div>`;
+    const tn=A.palaces[j].name, chong=m==='忌'&&j===(i+6)%12;
+    return `<div class="fly"><span class="pill ${m==='忌'?'bad':'good'}">${st}化${m} → ${pn(tn)}</span><span class="small">${FLY_TXT[m](pn(pl.name),pn(tn))}${chong?`忌入對宮，形成「忌沖${pn(pl.name)}」，${pn(pl.name)}的事要格外穩重。`:''}</span></div>`});
+  return `<div class="stack" style="gap:8px"><p><b>宮干四化（飛星）</b>　<span class="small muted">${pl.name}宮干${pl.heavenlyStem}，化出四顆星飛入各宮，看出這一宮與其他宮的互動。</span></p><div class="flys">${rows.join('')}</div></div>`;
+}
 const MUT={祿:'增添資源、順利與緣分',權:'掌控力、主導與競爭心',科:'名聲、貴人與文書順利',忌:'執著、阻礙，也是最需要用心之處'};
 const LUCKY=new Set(['左輔','右弼','文昌','文曲','天魁','天鉞','祿存','天馬']), SHA=new Set(['擎羊','陀羅','火星','鈴星','地空','地劫']);
 const BRIGHT={廟:'極強',旺:'強',得:'稍強',利:'稍強',平:'平',不:'稍弱',陷:'弱'};
@@ -352,6 +367,45 @@ const GC=window.GX_CONTENT||{};
 /* ---------- 視圖：總覽 ---------- */
 const helpBox=k=>GC.HELP&&GC.HELP[k]?`<details class="help"><summary>這頁怎麼看？</summary><p>${GC.HELP[k]}</p></details>`:'';
 const ZHI_HIDE={子:'癸',丑:'己癸辛',寅:'甲丙戊',卯:'乙',辰:'戊乙癸',巳:'丙庚戊',午:'丁己',未:'己丁乙',申:'庚壬戊',酉:'辛',戌:'戊辛丁',亥:'壬甲'};
+/* 八字神煞（子平法通行查法）與四柱刑沖合害 */
+const PILLAR_N=['年柱','月柱','日柱','時柱'], PILLAR_D=['祖上・早年','父母・青年','自己・配偶','子女・晚年'];
+const SHA_TXT={天乙貴人:'命中最大的吉神，遇難有人相助、逢凶化吉。',文昌:'聰明好學、文筆佳，利考試與讀書。',桃花:'人緣好、有魅力，異性緣佳；過旺則需防感情糾紛。',驛馬:'一生多走動、出差、遷移，動中求財。',華蓋:'有藝術、宗教、玄學天分，思想獨特，偶感孤高。',將星:'有領導統御之才，能服眾、掌權。',祿神:'衣食有祿、自力有成，代表穩定的收入。',羊刃:'個性剛強果決，衝勁大；宜化為專業與執行力，忌衝動。',紅鸞:'主婚戀喜事，逢流年引動易有姻緣。',天喜:'主喜慶，人緣和樂。',月德貴人:'心性慈和，一生少災，逢凶化吉。',天德貴人:'福德深厚，一生多得庇蔭，災厄減輕。',魁罡:'性格剛毅、聰明果斷，有領導力；行事宜留餘地。',空亡:'該柱力量虛而不實，所代表的六親或事情較難把握。'};
+function bzShensha(){
+  const pz=D.pillars.map(p=>p[1]), pg=D.pillars.map(p=>p[0]), dg=D.dm, out=[];
+  const merge=(name,zs,from)=>{const hit=pz.map((z,i)=>zs.includes(z)&&i!==from?i:-1).filter(i=>i>=0);if(!hit.length)return;const o=out.find(x=>x.n===name);if(o)o.w=[...new Set([...o.w,...hit])].sort();else out.push({n:name,w:hit})};
+  const GUI={甲:'丑未',戊:'丑未',庚:'丑未',乙:'子申',己:'子申',丙:'亥酉',丁:'亥酉',壬:'卯巳',癸:'卯巳',辛:'寅午'};
+  merge('天乙貴人',GUI[dg],-1);merge('天乙貴人',GUI[pg[0]],-1);
+  merge('文昌',{甲:'巳',乙:'午',丙:'申',丁:'酉',戊:'申',己:'酉',庚:'亥',辛:'子',壬:'寅',癸:'卯'}[dg],-1);
+  merge('祿神',{甲:'寅',乙:'卯',丙:'巳',丁:'午',戊:'巳',己:'午',庚:'申',辛:'酉',壬:'亥',癸:'子'}[dg],-1);
+  const yr={甲:'卯',丙:'午',戊:'午',庚:'酉',壬:'子'}[dg];if(yr)merge('羊刃',yr,-1);
+  const grp=z=>['申子辰','寅午戌','巳酉丑','亥卯未'].findIndex(g=>g.includes(z));
+  for(const from of [0,2]){const g=grp(pz[from]);
+    merge('桃花','酉卯午子'[g],from);merge('驛馬','寅申亥巳'[g],from);merge('華蓋','辰戌丑未'[g],from);merge('將星','子午酉卯'[g],from)}
+  const yi=ZHI.indexOf(pz[0]);merge('紅鸞',ZHI[(15-yi)%12],0);merge('天喜',ZHI[(21-yi)%12],0);
+  const mg=grp(pz[1]);const yd='壬丙庚甲'[mg];const ydHit=pg.map((g,i)=>g===yd?i:-1).filter(i=>i>=0);if(ydHit.length)out.push({n:'月德貴人',w:ydHit});
+  // 天德貴人（以月支查）：寅丁 卯申 辰壬 巳辛 午亥 未甲 申癸 酉寅 戌丙 亥乙 子巳 丑庚
+  const TD_={寅:'丁',卯:'申',辰:'壬',巳:'辛',午:'亥',未:'甲',申:'癸',酉:'寅',戌:'丙',亥:'乙',子:'巳',丑:'庚'}[pz[1]];
+  const tdHit=D.pillars.map((p,i)=>i!==1&&(p[0]===TD_||p[1]===TD_)?i:-1).filter(i=>i>=0);if(tdHit.length)out.push({n:'天德貴人',w:tdHit});
+  if(['庚辰','庚戌','壬辰','戊戌'].includes(D.pillars[2]))out.push({n:'魁罡',w:[2]});
+  const kong=D.ec.getDayXunKong();const kHit=pz.map((z,i)=>i!==2&&kong.includes(z)?i:-1).filter(i=>i>=0);if(kHit.length)out.push({n:'空亡',w:kHit,x:kong});
+  return out;
+}
+function bzRelations(){
+  const P_=D.pillars, out=[];
+  const GHE={甲己:'土',乙庚:'金',丙辛:'水',丁壬:'木',戊癸:'火'}, GCH=['甲庚','乙辛','丙壬','丁癸'];
+  for(let i=0;i<4;i++)for(let j=i+1;j<4;j++){
+    const a=P_[i][0],b=P_[j][0],x=P_[i][1],y=P_[j][1], who=`${PILLAR_N[i]}・${PILLAR_N[j]}`;
+    const he=GHE[a+b]||GHE[b+a];if(he)out.push({t:'good',k:`${a}${b}合${he}`,who,i,j,d:'天干五合：彼此吸引、有情，代表這兩個面向互相牽絆、合作。'});
+    if(pairIn(GCH,a,b))out.push({t:'bad',k:`${a}${b}相沖`,who,i,j,d:'天干相沖：想法與外在表現上的矛盾、拉扯。'});
+    for(const r of zhiRel(x,y)){if(r==='同支')continue;
+      const map={六合:['good','和合、助力'],三合:['good','同氣相求，形成一股合力（半合）'],六沖:['bad','變動、衝突、聚少離多'],六害:['bad','暗中損耗、被誤解'],相刑:['bad','摩擦、是非、自尋煩惱'],自刑:['bad','容易鑽牛角尖、自我消耗'],相破:['mid','小破損、計畫被打亂']};
+      const m=map[r];if(m)out.push({t:m[0],k:`${x}${y}${r==='三合'?'半合':r}`,who,i,j,d:`地支${r==='三合'?'半合':r}：${m[1]}。`})}
+  }
+  // 三合全局與三會
+  const zs=P_.map(p=>p[1]).join('');
+  ['申子辰水','亥卯未木','寅午戌火','巳酉丑金'].forEach(g=>{if([...g.slice(0,3)].every(z=>zs.includes(z)))out.unshift({t:'good',k:`${g.slice(0,3)}三合${g[3]}局`,who:'四柱',d:`地支三合成${g[3]}局，${g[3]}的力量大增${D.xi.includes(WX.indexOf(g[3]))?'，正好是喜用，大吉':D.ji.includes(WX.indexOf(g[3]))?'，但為忌神，需留意':''}。`})});
+  return out;
+}
 function baziDetail(){
   const ssSet={};
   D.pillars.forEach((p,i)=>{if(i!==2)ssSet[shishen(D.dm,p[0])]=(ssSet[shishen(D.dm,p[0])]||0)+1;[...ZHI_HIDE[p[1]]].forEach((g,k)=>{if(k===0){const t=shishen(D.dm,g);ssSet[t]=(ssSet[t]||0)+1}})});
@@ -359,7 +413,7 @@ function baziDetail(){
   const lack=D.cnt.map((c,e)=>c?null:e).filter(e=>e!==null);
   const adv=e=>{const a=GC.WX_ADV[e];return `<tr><th>${elTag(e)}</th><td>顏色：${a.c}<br>方位：${a.d}　數字：${a.n}<br>行業：${a.j}<br>生活：${a.l}</td></tr>`};
   const support=D.support, pct=Math.round(support/9*100);
-  return `<details class="card more"><summary><div><h3 class="h3">八字詳解</h3><span class="small muted">日主強弱、十神、開運建議</span></div></summary><div class="stack" style="margin-top:12px">
+  return `<details class="card more"><summary><div><h3 class="h3">八字詳解</h3><span class="small muted">日主強弱、神煞、刑沖合害、十神、開運建議</span></div></summary><div class="stack" style="margin-top:12px">
     <div class="tbl-wrap"><table class="tbl bz" data-fit="262"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr>
       <tr><th>天干</th>${D.pillars.map((p,i)=>`<td><b>${p[0]}</b><span class="small muted">${i===2?'日主':shishen(D.dm,p[0])}</span></td>`).join('')}</tr>
       <tr><th>地支</th>${D.pillars.map(p=>`<td><b>${p[1]}</b><span class="small muted">${SX[ZHI.indexOf(p[1])]}</span></td>`).join('')}</tr>
@@ -368,6 +422,10 @@ function baziDetail(){
     <p><b>日主強弱</b>　同類與生扶的力量約佔 ${pct}%（月令加倍計），判為<b>${D.strong?'身強':'身弱'}</b>。${D.strong?'身強的人能量充足、有主見，適合用「洩」與「耗」來平衡：發揮才華（食傷）、經營財富（財）、承擔責任（官殺）。':'身弱的人需要扶持，適合「生」與「助」：多學習、親近貴人（印）、與夥伴合作（比劫），量力而為。'}</p>
     <p><b>喜用神</b>　${D.xi.map(e=>elTag(e)+WX[e]).join('、')}　<b>忌神</b>　${D.ji.map(e=>elTag(e)+WX[e]).join('、')}</p>
     ${lack.length?`<p><b>五行缺${lack.map(e=>WX[e]).join('')}</b>　缺的五行不一定要補，關鍵看是否為喜用；${lack.filter(e=>D.xi.includes(e)).length?`其中${lack.filter(e=>D.xi.includes(e)).map(e=>WX[e]).join('')}正好是喜用，特別值得補強。`:'缺的不是喜用，不必刻意補。'}</p>`:''}
+    <p><b>神煞</b>　<span class="small muted">依子平法通行查法，以日干、年干、年支、日支、月支查四柱。</span></p>
+    ${(()=>{const ss=bzShensha();return ss.length?`<div class="tbl-wrap"><table class="tbl shas">${ss.map(o=>`<tr><th>${o.n}</th><td><span class="small muted">${o.w.map(i=>PILLAR_N[i]).join('、')}${o.x?`（旬空${o.x}）`:''}</span><br>${SHA_TXT[o.n]}</td></tr>`).join('')}</table></div>`:'<p class="small">四柱未見常見神煞。</p>'})()}
+    <p><b>四柱刑沖合害</b>　<span class="small muted">年柱＝祖上早年、月柱＝父母青年、日柱＝自己配偶、時柱＝子女晚年。</span></p>
+    ${(()=>{const rs=bzRelations();return rs.length?`<div class="rels">${rs.map(r=>`<div class="rel"><span class="pill ${r.t}">${r.k}</span><span class="small"><b>${r.who}</b>　${r.d}</span></div>`).join('')}</div>`:'<p class="small">四柱之間沒有明顯的刑沖合害，命局結構平穩。</p>'})()}
     <p><b>命局主要十神</b></p>
     ${top.map(([k,v])=>`<p class="small"><b>${k}</b>（${v}）　${GC.SS_TXT[k]}</p>`).join('')}
     <p><b>喜用開運建議</b></p>
@@ -569,6 +627,7 @@ function renderZiwei(){
     ${sel.minorStars.length?`<div class="stack" style="gap:4px">${sel.minorStars.map(s=>`<p class="small"><b class="${LUCKY.has(s.name)?'good-t':SHA.has(s.name)?'bad-t':''}">${s.name}</b>　${GC.MINOR[s.name]||''}</p>`).join('')}</div>`:''}
     ${lucky.length||sha.length?`<p>${lucky.length?`<span class="good-t">吉星 ${lucky.join('、')}</span>，增添助力。`:''}${sha.length?`<span class="bad-t">煞星 ${sha.join('、')}</span>，多一分波折，需要耐心化解。`:''}</p>`:''}
     ${sel.adjectiveStars.length?`<p class="small muted">雜曜：${sel.adjectiveStars.map(s=>s.name).join('、')}</p>`:''}
+    ${zwFly(A,zwSel)}
     <p class="small muted">三方四正會照：${sfNames.join('、')}，主星有${sfStars.join('、')||'—'}。論一宮必看三方四正，代表這件事的外在助力與牽動。</p>
   </div>
   <div class="card stack"><h3 class="h3">命盤格局</h3>
@@ -964,6 +1023,26 @@ function shareText(R){
   const d=TD.spreads.find(s=>s.k===R.s);
   return `【靈犀・塔羅】${R.q||'塔羅占卜'}\n牌陣：${d.n}\n`+R.c.map((x,k)=>{const c=tcard(x.i);return `${d.pos[k]}：${c.zh}${x.rev?'（逆位）':'（正位）'}— ${x.rev?c.rev:c.up}`}).join('\n');
 }
+/* 牌與牌的對話：數字重複（數字學）、宮廷牌人數、四元素分布與首尾牌元素關係（黃金黎明元素尊嚴） */
+const NUM_TXT=['新的開始、機會萌芽','選擇、平衡與合作','成長、創造與團隊','穩定、基礎與休整','衝突、變動與挑戰','和諧、修復與付出','評估、考驗與堅持','行動、轉變與力量','接近完成、獨立與收穫','圓滿結束、新循環將啟'];
+const SUIT_EL={wands:'火',cups:'水',swords:'風',pentacles:'土'};
+const MAJOR_EL=['風','風','水','土','火','土','風','水','火','土','火','風','水','水','火','土','火','風','水','火','火','土'];
+function elRel(a,b){if(a===b)return ['good','同元素，能量互相強化'];const f=new Set([a,b]);if((f.has('火')&&f.has('風'))||(f.has('水')&&f.has('土')))return ['good','元素相助，彼此成就'];if((f.has('火')&&f.has('水'))||(f.has('風')&&f.has('土')))return ['bad','元素相剋，力量互相抵消'];return ['mid','元素中性，各自運作']}
+function comboHtml(cards){
+  if(cards.length<3)return '';
+  const out=[];
+  const nums={};cards.filter(c=>!c.major&&c.r<10).forEach(c=>nums[c.r]=(nums[c.r]||0)+1);
+  Object.entries(nums).filter(([,n])=>n>=2).forEach(([r,n])=>out.push(`<b>${n} 張「${TD.ranks[r]}」</b>：數字 ${+r+1} 的主題被強調——${NUM_TXT[r]}。`));
+  const court=cards.filter(c=>!c.major&&c.r>=10).length;if(court>=2)out.push(`<b>${court} 張宮廷牌</b>：這件事牽涉好幾個人，別人的態度與互動是關鍵。`);
+  const el=c=>c.major?MAJOR_EL[c.i]:SUIT_EL[c.suit];
+  const cnt={火:0,水:0,風:0,土:0};cards.forEach(c=>cnt[el(c)]++);
+  const miss=Object.keys(cnt).filter(k=>!cnt[k]&&cards.length>=5), top=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+  const EL_D={火:'行動與熱情',水:'情感與關係',風:'思考與溝通',土:'金錢與現實'};
+  out.push(`<b>四元素</b>：${Object.entries(cnt).map(([k,v])=>`${k} ${v}`).join('、')}。${top[1]>=Math.ceil(cards.length/2)?`${top[0]}元素最多，重點在${EL_D[top[0]]}。`:''}${miss.length?`缺少${miss.join('、')}元素，${miss.map(k=>EL_D[k]).join('、')}是容易被忽略的面向。`:''}`);
+  const a=cards[0], z=cards[cards.length-1], r=elRel(el(a),el(z));
+  out.push(`<b>首尾呼應</b>：${a.zh}（${el(a)}）與 ${z.zh}（${el(z)}）<span class="${r[0]}-t">${r[1]}</span>${r[0]==='bad'?'，起點與結果之間需要你主動調整。':r[0]==='good'?'，事情的發展與起點一脈相承。':'。'}`);
+  return `<details class="disc" open><summary>牌與牌的對話</summary><div class="stack" style="gap:8px;margin-top:8px">${out.map(x=>`<p class="small">${x}</p>`).join('')}<p class="small muted">依塔羅數字學與四元素（黃金黎明元素尊嚴）解讀牌與牌之間的關係。</p></div></details>`;
+}
 function tarotReadingHtml(R){
   const d=TD.spreads.find(s=>s.k===R.s), cards=R.c.map(x=>({...tcard(x.i),R:x.rev}));
   const score=cards.reduce((a,c,k)=>a+cardScore(c,c.R)*(k===cards.length-1&&cards.length>1?1.5:1),0);
@@ -977,6 +1056,9 @@ function tarotReadingHtml(R){
   if(d.k==='yesno'){const c=cards[0],s=cardScore(c,c.R);verdict=`<div class="answer ${s>0?'good':s<0?'bad':'mid'}"><b>${s>0?'是':s<0?'否':'未定'}</b><span>${s>0?'牌面支持這件事，可以去做。':s<0?'牌面不支持，先暫緩或換個方式。':'條件還沒成熟，答案取決於你接下來的行動。'}</span></div>`}
   if(d.k==='choice'){const a=cardScore(cards[1],cards[1].R)+cardScore(cards[2],cards[2].R)*1.5,b=cardScore(cards[3],cards[3].R)+cardScore(cards[4],cards[4].R)*1.5;const w=Math.abs(a-b)<1?'mid':a>b?'A':'B';verdict=`<div class="answer ${w==='mid'?'mid':'good'}"><b>${w==='mid'?'兩者相近':`選 ${w}`}</b><span>${w==='mid'?'兩個選擇的能量差不多，回到你真正在乎的價值做決定。':`選擇 ${w} 的過程與結果牌都比較順，${w==='A'?cards[2].zh:cards[4].zh}是你會得到的結果。`}</span></div>`}
   if(d.k==='love'){const me=cardScore(cards[0],cards[0].R),you=cardScore(cards[1],cards[1].R);verdict=`<div class="answer ${me>0&&you>0?'good':me<0&&you<0?'bad':'mid'}"><b>${me>0&&you>0?'兩情相悅':me>0&&you<=0?'你較投入':me<=0&&you>0?'對方較投入':'都有保留'}</b><span>${me>0&&you>0?'雙方心意都是正向的，關係有發展空間。':me>0?'你的心意比較積極，對方還在觀望或有顧慮。':you>0?'對方比你更積極，你可以想想自己真正的感受。':'兩個人都還沒完全打開心，需要更多時間與信任。'}</span></div>`}
+  if(d.k==='year'){const ms=cards.slice(0,12).map((c,k)=>({k,s:cardScore(c,c.R),c}));const hi=[...ms].sort((a,b)=>b.s-a.s).slice(0,3).sort((a,b)=>a.k-b.k), lo=[...ms].sort((a,b)=>a.s-b.s).slice(0,3).filter(x=>x.s<0).sort((a,b)=>a.k-b.k);
+    verdict=`<div class="ytheme"><span class="eyebrow">年度主題</span><b>${cards[12].zh}${cards[12].R?'（逆位）':''}</b><span>${cards[12].major?cards[12].adv:(cards[12].R?cards[12].rev:cards[12].up)}</span></div>
+    <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">順風的月份</span><div class="chips">${hi.map(x=>`<span class="pill good">${x.k+1}月・${x.c.zh}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">需要留意</span><div class="chips">${lo.length?lo.map(x=>`<span class="pill bad">${x.k+1}月・${x.c.zh}</span>`).join(''):'<span class="pill good">沒有特別低的月份</span>'}</div></div></div>`}
   const keyLens=lensOf(key,cat==='綜合'?'事業':cat);
   const oneLine=`${tone[0]==='good'?'牌面整體是支持你的':tone[0]==='mid'?'事情有機會，但需要條件配合':'牌面提醒你先停下來想清楚'}。關鍵落在「${d.pos[cards.length-1]}」的<b>${key.zh}${key.R?'逆位':''}</b>：${key.major?key.adv:(key.R?key.rev:key.up)}`;
   const per=cards.map((c,k)=>{const lz=cat!=='綜合'?lensOf(c,cat):null;return `<div class="tread"><button type="button" class="mini${c.R?' rev':''}" data-tslot="${k}" aria-label="查看${c.zh}詳解">${cardFace(c.i)}</button><div class="stack" style="gap:4px;min-width:0">
@@ -994,6 +1076,7 @@ function tarotReadingHtml(R){
     <div class="row between"><div><div class="eyebrow">${esc(R.t)} · ${d.n}</div><h3 class="h3">${R.q?esc(R.q):'塔羅解讀'}</h3></div><span class="pill ${tone[0]}">${tone[1]}</span></div>
     ${verdict}
     <div class="reader"><div class="seal" aria-hidden="true">言</div><p>${oneLine}</p></div>
+    ${comboHtml(cards)}
     ${cards.length>1?`<p class="small muted">共 ${cards.length} 張：大阿爾克那 ${majors} 張、逆位 ${revs} 張。${majors>=2?'多張大牌出現，這件事受較大的命運力量推動。':''}${domS?`${domS.zh}牌最多，重點落在${domS.dom}。`:''}</p>`:''}
   </div>
   <div class="card stack"><h3 class="h3">逐張解讀</h3>${per}</div>
@@ -1262,6 +1345,8 @@ const QGUIDE={
 const QTIME=['近期即可見到轉機，大約在一個月內。','需要一段時間醞釀，約一至三個月逐漸明朗。','宜等過了這個時節（季節更替後）再行動。'];
 const QDO=[['積極行動','把握時機','行善回饋'],['守本分','多做準備','耐心等待'],['暫緩決定','守成保守','多行善事']];
 const QDONT=[['得意忘形','鬆懈怠慢'],['急躁冒進','聽信傳言'],['勉強硬來','借貸擔保']];
+const QS=window.QIAN_STORY||{};
+const qianStory=n=>QS[n]?`典故：${QS[n][0]}。${QS[n][1]}`:'';
 function qianShareText(n,cat,q){const Q=QD[n-1];return `【靈犀・求籤】第 ${n} 籤（${Q[0]}・${Q[1]}籤）\n${Q[2]}\n白話：${Q[3]}\n所問：${cat}${q?'——'+q:''}`}
 function qianResult(n,cat,q){
   const Q=QD[n-1], lines=Q[2].replace(/。$/,'').split('，');
@@ -1272,6 +1357,8 @@ function qianResult(n,cat,q){
     <div class="slip"><div class="slip-h"><span>第 ${n} 籤</span><span>${Q[0]}</span><span class="pill ${lvCls}">${Q[1]}籤</span></div>
       <div class="poem">${lines.map(l=>`<span>${[...l].map(c=>`<i>${c}</i>`).join('')}</span>`).join('')}</div></div>
     <p><b>白話</b>　${Q[3]}</p>
+    <details class="disc" open><summary>逐句解</summary><div class="qlines">${lines.map((l,k)=>`<div class="ql"><b>${l}</b><span>${(window.QIAN_LINES||[])[n-1]?.[k]||''}</span></div>`).join('')}</div></details>
+    ${QS[n]?`<div class="qstory"><span class="eyebrow">典故</span><b>${QS[n][0]}</b><p class="small">${QS[n][1]}</p><p class="small muted">各廟配用的故事版本不一，此為常見版本之一。</p></div>`:''}
     <div class="reader"><div class="seal" aria-hidden="true">籤</div><p>你問的是「${esc(cat)}」${q?`：${esc(q)}`:''}。籤意說：<b>${Q[FIELD[cat]]}</b>${QGUIDE[cat][lv]}${advice}</p></div>
     <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">宜</span><div class="chips">${QDO[lv].map(x=>`<span class="pill good">${x}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">忌</span><div class="chips">${QDONT[lv].map(x=>`<span class="pill bad">${x}</span>`).join('')}</div></div></div>
     <p class="small"><b>應期</b>　${QTIME[lv]}</p>
@@ -1582,7 +1669,7 @@ const GROUPS=[
  {k:'tools',n:'開運',views:['name','qimen','zeri'],sub:['姓名改名','奇門方位','擇日'],icon:'<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>'}];
 const VIEWS=GROUPS.flatMap(g=>g.views);
 const TITLES={overview:'今日',tarot:'塔羅',qian:'求籤',ziwei:'命盤',liunian:'命盤',name:'開運',qimen:'開運',hehun:'命盤',zeri:'開運'};
-const SUBTITLE={overview:'',tarot:'78 張牌 · 6 種牌陣',qian:'六十甲子籤 · 擲筊',ziwei:'紫微斗數十二宮',liunian:'八字 × 紫微 流年',name:'五格剖象 · 改名建議',qimen:'時家奇門 · 方位',hehun:'生肖 × 八字 × 紫微夫妻宮',zeri:'依農民曆宜忌 · 不沖生肖'};
+const SUBTITLE={overview:'',tarot:'78 張牌 · 10 種牌陣',qian:'六十甲子籤 · 擲筊',ziwei:'紫微斗數十二宮',liunian:'八字 × 紫微 流年',name:'五格剖象 · 改名建議',qimen:'時家奇門 · 方位',hehun:'生肖 × 八字 × 紫微夫妻宮',zeri:'依農民曆宜忌 · 不沖生肖'};
 let cur='overview';
 const groupOf=v=>GROUPS.find(g=>g.views.includes(v));
 function buzz(){try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}}
