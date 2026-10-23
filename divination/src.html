@@ -59,10 +59,12 @@
 if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){s.classList.add('still')}
 else{var box=document.getElementById('spParts'),h='';for(var i=0;i<36;i++){var a=Math.random()*Math.PI*2,d=55+Math.random()*45,t=i/36*Math.PI*2-Math.PI/2;h+='<i style="--sx:'+(Math.cos(a)*d).toFixed(1)+'vmax;--sy:'+(Math.sin(a)*d).toFixed(1)+'vmax;--ex:'+(Math.cos(t)*.3223).toFixed(4)+';--ey:'+(Math.sin(t)*.3223).toFixed(4)+';--d:'+(.05+Math.random()*.4).toFixed(2)+'s;--z:'+(2+Math.random()*3).toFixed(1)+'px"></i>'}box.innerHTML=h}
 document.documentElement.classList.add('splashing');window.__spT0=performance.now();
-setTimeout(function(){if(!window.__gxBooted&&document.getElementById('splash')){s.classList.add('waiting');var sp=s.querySelector('.sp-load span'),iv=setInterval(function(){if(window.__gxBooted||!document.getElementById('splash'))return clearInterval(iv);sp.textContent=(window.__gxStage||'正在排盤')+'…'},200)}},3500);
+/* 開場整體放慢約 1.5 倍，節奏更從容（減少動態效果的使用者不受影響） */
+if(!s.classList.contains('still')&&document.getAnimations)requestAnimationFrame(function(){document.getAnimations().forEach(function(a){var t=a.effect&&a.effect.target;if(t&&t.closest&&t.closest('#splash'))a.playbackRate=.65})});
+setTimeout(function(){if(!window.__gxBooted&&document.getElementById('splash')){s.classList.add('waiting');var sp=s.querySelector('.sp-load span'),iv=setInterval(function(){if(window.__gxBooted||!document.getElementById('splash'))return clearInterval(iv);sp.textContent=(window.__gxStage||'正在排盤')+'…'},200)}},5800);
 /* 保險：開場動畫絕不會卡住——點一下即可略過；10 秒後若程式仍未啟動，自動收起並提示重新載入 */
 var t0=Date.now();s.addEventListener('click',function(){if(Date.now()-t0>1200&&!window.__gxBooted&&window.__gxBail)window.__gxBail('仍在載入中…')});
-setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('載入時間比平常久')},10000);})();
+setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('載入時間比平常久')},12000);})();
 </script>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
@@ -2396,7 +2398,7 @@ document.addEventListener('touchend',e=>{if(tx===null)return;const dx=e.changedT
 let spReady=false,booted=false;
 function hideSplash(force){
   const sp=$('#splash');if(!sp||sp.classList.contains('out'))return;
-  const left=force?0:Math.max(0,(window.__spT0||0)+(sp.classList.contains('still')?700:3500)-performance.now());
+  const left=force?0:Math.max(0,(window.__spT0||0)+(sp.classList.contains('still')?700:5800)-performance.now());
   setTimeout(()=>{sp.classList.add('out');document.documentElement.classList.remove('splashing');if(booted)setTimeout(maybeWelcome,550);setTimeout(()=>sp.remove(),800)},left);
 }
 document.addEventListener('pointerdown',e=>{if(e.target.closest('#splash')&&spReady)hideSplash(true)},true);

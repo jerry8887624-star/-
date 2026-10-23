@@ -1051,3 +1051,27 @@ html.reporting{overflow:hidden}
 .rp-dy span{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border:1px solid rgba(120,90,45,.25);border-radius:6px;min-width:0}
 .rp-dy span.on{background:rgba(126,91,24,.14)}
 .rp-dy b{font-size:16px}.rp-dy small{font-size:12px;color:#5E5545}
+
+/* ===== 開場：更從容的節奏與細節 ===== */
+#splash{transition:opacity .9s cubic-bezier(.4,0,.2,1),transform .9s cubic-bezier(.4,0,.2,1),visibility 1s}
+#splash.out{transform:translateY(-10px) scale(1.01)}
+#splash::before{content:"";position:absolute;inset:0;background:var(--sp-bg);animation:sp-paper 1.1s ease forwards;pointer-events:none;z-index:0}
+@keyframes sp-paper{from{opacity:.85;filter:brightness(.9)}to{opacity:0}}
+#splash .sp-stage,#splash .sp-doodle{z-index:1}
+/* 書法字由上而下寫出 */
+.sp-title span{opacity:1;filter:none;transform:none;clip-path:inset(0 0 100% 0);animation:sp-brush 1.1s calc(2.2s + var(--i) * .42s) cubic-bezier(.5,0,.25,1) both}
+@keyframes sp-brush{0%{clip-path:inset(0 0 100% 0);filter:blur(1.5px)}70%{filter:blur(.4px)}100%{clip-path:inset(0 0 -10% 0);filter:none}}
+/* 星星輕輕閃爍 */
+.sp-doodle .d2,.sp-doodle .d3,.sp-doodle .d4{animation:sp-doodle .7s cubic-bezier(.34,1.56,.64,1) forwards,sp-twinkle 2.6s 1.6s ease-in-out infinite}
+.sp-doodle .d3{animation-delay:.75s,2.1s}.sp-doodle .d4{animation-delay:.9s,1.8s}
+@keyframes sp-twinkle{0%,100%{opacity:1;transform:none}50%{opacity:.55;transform:scale(.82) rotate(12deg)}}
+/* 月亮緩緩浮現 */
+.sp-doodle .d1{animation:sp-moon 1.2s .2s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes sp-moon{from{opacity:0;transform:translateY(8px) rotate(-8deg)}to{opacity:1;transform:none}}
+#splash.still .sp-title span{clip-path:none!important}
+/* 放慢後的時間表：所有元素在約 5.4 秒前完成，5.8 秒優雅離場 */
+.sp-title span{animation:sp-brush 1s calc(1.9s + var(--i) * .38s) cubic-bezier(.5,0,.25,1) both}
+.sp-en{animation-delay:2.4s}
+.sp-sub{animation-delay:2.7s}
+.sp-seal{animation-delay:2.95s}
+.sp-star{animation-delay:2.8s}
