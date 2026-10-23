@@ -747,7 +747,17 @@ function renderLiunian(){
 }
 
 /* ---------- 視圖：姓名 ---------- */
-function strokesOf(ch){return (nameOverride&&nameOverride[ch])||KX[ch]||0}
+// 姓名學慣例：一到十依數值計畫（四 4、五 5、六 6、七 7、八 8、九 9、十 10），不照字形筆畫
+const NUM_STK={一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10};
+function strokesOf(ch){return (nameOverride&&nameOverride[ch])||NUM_STK[ch]||KX[ch]||0}
+// 常見的不雅諧音：每格是「這個位置可能出現的字」，連續命中就提醒
+const BADSND=[['飯桶','范樊凡帆梵','桐彤童同通統'],['肚子疼','杜','子梓紫姿','騰藤滕'],['禽獸','秦琴勤芹','壽守首綬'],['陽痿','楊陽洋揚','偉威薇維緯葳'],['狐狸精','胡湖瑚','麗莉俐立利','晶靜菁婧精京'],['豬一群','朱諸珠','逸依怡宜奕億一','群'],['肚臍眼','杜','琦琪齊奇','燕晏妍艷彥'],['無德','吳武伍','德得'],['犯賤','范樊','劍建健堅'],['下賤','夏','劍建健堅'],['沒良心','梅眉玫湄','良亮','心欣馨新'],['流產','劉留柳','產燦'],['白痴','白柏','痴馳池遲'],['王八','王汪','八霸巴芭'],['屎真香','史施','珍真貞禎','香湘祥翔'],['無理','吳','理禮'],['廢物','費','物悟務'],['猴子','侯','子梓紫'],['賴皮','賴','皮'],['愛滋','艾','滋資姿'],['死','','死'],['衛生紙','魏衛韋','生聖昇','芷紙']];
+function soundCheck(full){
+  const a=[...full],hit=[];
+  for(const [w,...sets] of BADSND){const ss=sets.filter(Boolean);if(ss.length<2)continue;
+    for(let i=0;i+ss.length<=a.length;i++)if(ss.every((st,j)=>st.includes(a[i+j]))){hit.push(`「${a.slice(i,i+ss.length).join('')}」唸起來像「${w}」`);break}}
+  return hit;
+}
 function nameAnalysis(sur,given){
   const S=[...sur].map(strokesOf), G=[...given].map(strokesOf);
   const ok=S.length&&G.length&&[...S,...G].every(n=>n>0);
@@ -815,6 +825,22 @@ function candHtml(o,sur,fav){
     <div class="meta"><span>人格${o.N.g.ren}</span><span>地格${o.N.g.di}</span><span>外格${o.N.g.wai}${o.N.fixWai?'（單名固定）':''}</span><span>總格${o.N.g.zong}</span><span>三才 ${o.N.e.map(e=>WX[e]).join('')}</span>${o.T?`<span>音律 ${o.T.pz}</span>`:''}${D.xi.includes(o.N.e[1])?'<span class="good-t">人格補喜用</span>':''}</div>
     <div class="acts"><button type="button" class="btn sm" data-try="${o.given}">帶入詳細分析</button><button type="button" class="btn sm ghost" data-fav="${o.given}">${fav.includes(sur+o.given)?'已收藏 ✓':'收藏'}</button></div></div>`;
 }
+const REL_ZH={生:'相生',被生:'相生',比和:'比和',剋:'相剋',被剋:'相剋'};
+const GOOD_REL=r=>r==='生'||r==='被生'?'good':r==='比和'?'mid':'bad';
+function nameCheckHtml(sur,given,N){
+  const full=sur+given, items=[];
+  const snd=soundCheck(full);
+  items.push(snd.length?['bad','諧音',`${snd.join('；')}，容易被取綽號，建議換字。`]:['good','諧音','常見的不雅諧音都沒有出現。仍建議全名連著唸、快唸、用台語唸各一次，聽聽看有沒有怪怪的。']);
+  const heavy=[...full].filter(c=>strokesOf(c)>=20);
+  items.push(heavy.length?['mid','書寫',`「${heavy.join('、')}」筆畫多（20 畫以上），寫起來較費力，考試、簽名會比較辛苦。`]:['good','書寫','每個字筆畫適中，好寫好認。']);
+  const dup=[...given].find((c,i,a)=>a.indexOf(c)!==i);
+  if(dup)items.push(['mid','疊字','名字用疊字親切好記，但五格數理會比較集中，可多參考字義。']);
+  const nums=[...full].filter(c=>NUM_STK[c]&&NUM_STK[c]!==KX[c]);
+  if(nums.length)items.push(['mid','數字',`「${nums.join('、')}」是數字字，姓名學依數值計畫（例：四算 4 畫、十算 10 畫），與字形筆畫不同。`]);
+  if(N.fixWai)items.push(['mid','單名','單姓單名在五格裡外格固定，地格以「名＋1」計算；各派對單名看法不一，以人格、總格為主。']);
+  return `<div class="card stack"><h3 class="h3">用字檢查</h3>${items.map(([c,t,x])=>`<div class="sty"><b>${t}</b><span><span class="pill ${c}">${c==='good'?'OK':c==='bad'?'注意':'參考'}</span> ${x}</span></div>`).join('')}
+    <p class="small muted">好名字除了數理，也要字義正面、好唸好寫、沒有不雅諧音，並避開長輩、祖先的名字（傳統的「避諱」）。</p></div>`;
+}
 function renderName(){
   const sur=$('#nmSur')?.value??P.sur, given=$('#nmGiven')?.value??P.given;
   const N=nameAnalysis(sur,given);
@@ -836,11 +862,14 @@ function renderName(){
     </div>
     <div class="card stack">
       <h3 class="h3">三才配置　${N.e.map(elTag).join('')}</h3>
-      <p>天格${WX[N.e[0]]} → 人格${WX[N.e[1]]}　${GC.SANCAI_REL[N.r1]}這組代表你與長輩、上司、祖業的關係。</p>
-      <p>人格${WX[N.e[1]]} → 地格${WX[N.e[2]]}　${GC.SANCAI_REL[N.r2]}這組代表你與家庭、部屬、子女的關係與健康基礎。</p>
+      <p class="small muted">三才看天格、人格、地格數字的個位數：1、2 屬木，3、4 屬火，5、6 屬土，7、8 屬金，9、0 屬水。以相生為佳、比和次之、相剋較差。</p>
+      <div class="sty"><b>成功運</b><span>天格${WX[N.e[0]]}（${N.g.tian}）→ 人格${WX[N.e[1]]}（${N.g.ren}）　<span class="pill ${GOOD_REL(N.r1)}">${REL_ZH[N.r1]}</span><br>${GC.SANCAI_OK[N.r1]}</span></div>
+      <div class="sty"><b>基礎運</b><span>人格${WX[N.e[1]]}（${N.g.ren}）→ 地格${WX[N.e[2]]}（${N.g.di}）　<span class="pill ${GOOD_REL(N.r2)}">${REL_ZH[N.r2]}</span><br>${GC.SANCAI_BASE[N.r2]}</span></div>
       <p>${GC.REN_WX[N.e[1]]}</p>
+      <p class="small muted">三才吉凶表各派略有不同（有分 111 種或 125 種組合的說法），這裡只依五行生剋判斷大方向。</p>
     </div>
     ${(()=>{const T=toneInfo(sur+given);return T?`<div class="card stack"><h3 class="h3">音律　<span class="small muted">${[...(sur+given)].map((c,i)=>`${c}${TONE_ZH[T.t[i]]}`).join('・')}</span></h3><p>平仄：<b>${T.pz}</b>。${T.notes.join('；')}。</p><p class="small muted">名字天天被叫，好唸、好記、不拗口，和數理一樣重要。</p></div>`:''})()}
+    ${nameCheckHtml(sur,given,N)}
     <div class="card stack">
       <h3 class="h3">姓名 × 八字</h3>
       <p>你的八字喜用 ${D.xi.map(elTag).join(' ')}，忌 ${D.ji.map(elTag).join(' ')}。人格屬${elTag(renE)}，<span class="${match}-t">${match==='good'?'正好補到命局需要的五行，名字與命盤相輔相成。':match==='bad'?'屬於命局的忌神，名字對運勢的助力有限。':'不衝突也不特別補益。'}</span></p>
@@ -872,7 +901,7 @@ function renderName(){
   <div class="card stack">
     <div class="grid2"><label class="f" for="nmSur">姓<input id="nmSur" maxlength="2" value="${esc(sur)}"></label><label class="f" for="nmGiven">名<input id="nmGiven" maxlength="3" value="${esc(given)}"></label></div>
     <div class="namegrid">${[...sur].length===1?virt():''}${chars.map(x=>`<div class="ch"><div class="c">${esc(x.c)}</div><input type="number" min="1" max="64" aria-label="${esc(x.c)}的筆畫" data-ch="${esc(x.c)}" value="${x.n||''}" placeholder="?"><small>${x.t}</small></div>`).join('')}${[...given].length===1?virt():''}</div>
-    <p class="small muted">筆畫依康熙字典計算（氵算水4、艹算艸6、扌算手4、忄算心4、王旁算玉5、阝依阜8／邑7）。查無的字可自行填入。</p>
+    <p class="small muted">筆畫依康熙字典、部首還原計算（氵算水 4、扌算手 4、忄算心 4、犭算犬 4、王旁算玉 5、礻算示 5、艹算艸 6、衤算衣 6、辶算辵 7、阝左阜 8／右邑 7）；一到十的數字依數值計（四 4、五 5、十 10）。各派偶有出入，查無或想更正的字可自行填入。</p>
   </div>${body}${gen}
   ${helpBox('name')}`;
 }
@@ -1913,14 +1942,96 @@ function dreamFind(q){
 }
 const DTONE={g:['good','吉'],m:['mid','平'],b:['bad','凶']};
 function dreamCard(e){return `<div class="dream"><div class="row between"><b>夢見${e[0].split('|')[0]}</b><span class="pill ${DTONE[e[2]][0]}">${DTONE[e[2]][1]}</span></div><p>${e[3]}</p><p class="small muted"><b>心理角度</b>　${e[4]}</p></div>`}
+/* ---------- 多元素夢境綜合解讀 ---------- */
+// 從一句話裡找出不重疊的夢境元素（長關鍵字優先，例：「被狗咬」不會再拆出「狗」）
+function dreamParts(raw){
+  const c=[];for(const e of DREAM)for(const k of e[0].split('|')){let i=raw.indexOf(k);if(i>=0)c.push({e,k,i,n:k.length})}
+  c.sort((a,b)=>b.n-a.n||a.i-b.i);
+  const used=[],out=[];
+  for(const x of c){if(out.some(o=>o.e===x.e)||used.some(([s,t])=>x.i<t&&x.i+x.n>s))continue;used.push([x.i,x.i+x.n]);out.push(x);if(out.length>=3)break}
+  out.sort((a,b)=>a.i-b.i);
+  // 「被狗咬」這類條目是「自己被咬」；句中還有別的元素時（狗咬死蛇、蛇被狗咬），改用「狗」本身的條目
+  if(out.length>1)out.forEach((x,j)=>{if(!/^被/.test(dName(x))||raw[x.i-1]==='我'&&x.k[0]==='被')return;
+    const noun=x.k.replace(/^被|咬|追|壓|撞|打/g,''), e=noun&&DREAM.find(d=>d[0].split('|').includes(noun));
+    if(e&&!out.some(o=>o.e===e))out[j]={...x,e}});
+  return out;
+}
+const dName=x=>x.e[0].split('|')[0];
+// 民間象徵：取「主……」那一句，沒有就取第一句
+function dSym(e){const m=e[3].match(/主([^，；。]+)/);return m?m[1]:e[3].split(/[，；。]/)[0].replace(/^(民間說|民間認為|傳統說法)/,'').replace(/^夢見[^，；。]*?(多解為|解為|多是)/,'')}
+const dSay=e=>(/主[^，；。]/.test(e[3])?'主':'說法是')+dSym(e);
+function dPsy(e){const m=e[4].match(/(象徵|代表|反映)([^，。；]+)/);return m?m[1]+m[2]:e[4].replace(/。$/,'')}
+// 常見組合的傳統說法（依民間象徵推演）
+const DPAIR={
+ '狗+蛇':'狗主朋友、忠心之人，蛇主財運或桃花。兩者同時入夢，民間多解為「朋友與錢財（或感情）牽在一起」：可能透過朋友介紹得到財路、工作或對象；但也要留意朋友之間因為錢或感情起摩擦。',
+ '蛇+水':'蛇與水在民間都主財，蛇在清水中游是「財上加財、財源流動」的好兆頭；若是濁水、大水中的蛇，則是財來財去，投資宜保守。',
+ '魚+水':'魚得水是「如魚得水」，主事事順遂、人際與財運都通；水越清、魚越多越吉。',
+ '火+水':'水火同現，民間看是兩股力量相沖：生活中可能有理性與情緒、或兩件事互相拉扯；若水把火澆熄，主是非平息、怒氣消散。',
+ '狗+貓':'貓狗同夢，民間說是人際關係裡有忠心的朋友，也有心思多變的人，交友宜分辨真心。',
+ '蛇+龍':'龍蛇同現是「大小財同來」或貴人與機會並至的吉兆，但也提醒別貪多，專心把握一件事。',
+ '錢+水':'水主財，錢在水中或隨水而來，民間解為財源滾滾；被水沖走則防破財。'};
+const DACT=[
+ [/咬死|打死|殺死|殺了|吃掉|吃了|趕走|趕跑|踩死|斬/,'win'],
+ [/咬|追|打架|打|鬥|攻擊|撲|纏|嚇/,'fight'],
+ [/變成|變/,'turn'],
+ [/一起玩|玩|陪|保護|守|抱|親近|乖/,'peace']];
+function dreamFuse(raw){
+  const ps=dreamParts(raw);if(ps.length<2)return '';
+  const [A,B]=ps, nA=dName(A), nB=dName(B), tones=ps.map(x=>x.e[2]);
+  const key=[nA,nB].sort().join('+'), key2=[nA,nB].join('+'), key3=[nB,nA].join('+');
+  const pair=DPAIR[key2]||DPAIR[key3]||DPAIR[key];
+  const g=tones.filter(t=>t==='g').length, b=tones.filter(t=>t==='b').length;
+  const tone=b===0&&g>=2?['good','吉上加吉']:g===0&&b>=2?['bad','宜多留意']:g&&b?['mid','吉凶互見']:['mid','平穩參半'];
+  const P=[];
+  // 1. 合在一起看
+  let main=pair||`「${nA}」民間${dSay(A.e)}；「${nB}」${dSay(B.e)}。兩個意象同時出現，代表這兩件事在你近期的生活裡互相牽動。`;
+  if(!pair){
+    if(b===0&&g>=2)main+='兩者都是好兆頭，好事成雙，近期可以積極把握機會。';
+    else if(g===0&&b>=2)main+='兩者都帶有提醒意味，近期宜低調、凡事多想一步，先把小問題處理好。';
+    else if(g&&b){const gg=ps.filter(x=>x.e[2]==='g').map(dName).join('、'),bb=ps.filter(x=>x.e[2]==='b').map(dName).join('、');main+=`「${gg}」是好兆頭，「${bb}」則是提醒：好機會來的同時也伴隨變數，宜先守後攻、不要急。`}
+    else main+='整體吉凶不明顯，重點在夢裡兩者的互動與你當下的感受。';
+  }
+  P.push(['綜合看',main]);
+  // 2. 夢裡的互動：主詞在前、受詞在後；「被」字句反過來
+  const mid=raw.slice(A.i+A.n,B.i), ctx=raw.slice(A.i,B.i+B.n+3), act=DACT.find(([r])=>r.test(ctx));
+  if(act){
+    const [S,O]=/被/.test(mid)||/^被/.test(B.k)?[B,A]:[A,B];
+    const nS=dName(S),nO=dName(O),sS=dSym(S.e),sO=dSym(O.e),oBad=O.e[2]==='b';
+    const T={
+     win:`夢裡「${nS}」制伏了「${nO}」。民間看誰佔上風，就代表誰的意涵比較強、比較先到：${oBad?`「${nO}」原本是提醒，被制伏表示${sS}能幫你化解麻煩，轉危為安。`:S.e[2]==='b'?`「${nO}」原本主${sO}，被壓過表示要留意「${nS}」提醒的事，別讓它擋住好運。`:`兩者都是好兆頭，「${nS}」佔上風，表示${sS}會先應驗，「${nO}」的${sO}可能稍晚、或要透過前者而來。`}`,
+     fight:`夢裡「${nS}」與「${nO}」相鬥或追逐，民間看是兩股力量在拉扯：${sS}與${sO}之間可能有取捨，例如時間、金錢或人情要分配。誰佔上風、結果如何，就是事情的走向；醒來還記得結局的話，可以對照看看。`,
+     turn:`夢裡「${nS}」變成「${nO}」，表示情況正在轉變：從${sS}，轉向${sO}。${O.e[2]==='b'?'轉向提醒的一方，宜提早準備。':O.e[2]==='g'?'由此轉好，是漸入佳境的徵兆。':'變化本身就是重點，保持彈性。'}`,
+     peace:`夢裡「${nS}」與「${nO}」相安無事、甚至親近，代表這兩件事能夠互相配合：${sS}，也能帶來${sO}，是和諧的組合。`};
+    P.push(['夢中互動',T[act[1]]]);
+  }else if(ps.length===2)P.push(['夢中互動','夢裡兩者若沒有直接互動，可以回想：誰先出現、誰比較靠近你、你當下害怕還是安心──先出現、離你近的，通常是近期比較重要的那件事。']);
+  // 3. 細節
+  const det=[];
+  if(/很多|一群|好多|成群|滿地|一堆/.test(raw))det.push('數量多：民間說夢中東西越多，應驗的力道越強（好事更好、提醒也更要注意）。');
+  if(/大|巨/.test(raw.replace(/大水|大便|大樓|大門|大學/g,'')))det.push('體型大：代表這件事影響較大，或是你心裡很在意。');
+  if(/小/.test(raw.replace(/小孩|小偷|小人/g,'')))det.push('體型小：影響較小、或事情還在萌芽階段。');
+  const COL=[[/白/,'白色多主貴人、純淨，也有「白事」之說，要看夢裡氣氛'],[/黑/,'黑色多主暗中的事或隱憂，宜防小人'],[/金|黃/,'金黃色主財、主貴氣'],[/紅/,'紅色主喜事、熱情，也可能是口舌火氣'],[/青|綠/,'青綠色主生機、成長']];
+  COL.forEach(([r,t])=>{if(r.test(raw))det.push(t+'。')});
+  const SCN=[[/家裡|房間|床|客廳|廚房|屋/,'在家裡：多與家人、家庭或居住有關'],[/公司|辦公室|上班/,'在公司：多與工作、同事有關'],[/學校|教室|考試/,'在學校：多與學習、考試或過去的課題有關'],[/水裡|河|海|湖/,'在水邊或水裡：水主財也主情緒'],[/山|樹林|森林/,'在山林：象徵挑戰或想遠離壓力'],[/路上|馬路|街/,'在路上：與人生方向、外出交通有關']];
+  SCN.forEach(([r,t])=>{if(r.test(raw))det.push(t+'。')});
+  if(det.length)P.push(['細節',det.join('')]);
+  // 4. 心理角度
+  P.push(['心理',`從心理學看，夢會把白天的掛念拼在一起：「${nA}」${dPsy(A.e)}，「${nB}」${dPsy(B.e)}${ps[2]?`，「${dName(ps[2])}」${dPsy(ps[2].e)}`:''}。兩者一起出現，可能是你同時在意這兩件事，或其中一件正在影響另一件。`]);
+  // 5. 建議
+  P.push(['建議',tone[0]==='good'?'心情放輕鬆，把握近期的機會，可以主動一點。':tone[1]==='宜多留意'?'不必害怕，夢是提醒不是定局；近期說話、理財、出入多小心，睡前放鬆，有需要可到廟裡上香求個安心。':'好壞參半時，先處理讓你不安的那一件，再去追求好的那一件；凡事穩中求進。']);
+  return `<div class="card stack dfuse"><div class="row between"><div><div class="eyebrow">綜合解讀</div><h3 class="h3">${ps.map(dName).join(' ＋ ')}</h3></div><span class="pill ${tone[0]}">${tone[1]}</span></div>
+    ${P.map(([t,x])=>`<div class="sty"><b>${t}</b><span>${x}</span></div>`).join('')}
+    <p class="small muted">綜合解讀依各元素的民間象徵推演，下方是每個元素的個別說法。</p></div>`;
+}
 function dreamBody(){
-  const res=dCat?DREAM.filter(e=>e[1]===dCat):dreamFind(dQ);
+  let res=dCat?DREAM.filter(e=>e[1]===dCat):dreamFind(dQ);
+  // 多元素時，確保每個元素的個別解說都列出來
+  if(!dCat&&dQ){const ps=dreamParts(dQ).map(x=>x.e);if(ps.length>1)res=[...ps,...res.filter(e=>!ps.includes(e)&&!/^被/.test(e[0]))].slice(0,8)}
   return `<div class="card stack" id="dcard">
-    <label class="f" for="dQ">夢到了什麼？<span class="taw"><textarea id="dQ" maxlength="60" placeholder="例：夢見蛇、掉牙、過世的阿嬤">${esc(dQ)}</textarea>${micHtml('dQ')}</span></label>
+    <label class="f" for="dQ">夢到了什麼？<span class="taw"><textarea id="dQ" maxlength="100" placeholder="例：夢見狗在追蛇；掉牙；過世的阿嬤">${esc(dQ)}</textarea>${micHtml('dQ')}</span></label>
     <button type="button" class="btn primary block" data-act="dream">解夢</button>
     <div class="chips" role="group" aria-label="依類別瀏覽">${DCAT.map(c=>`<button type="button" class="chip" data-dcat="${c}" aria-pressed="${c===dCat}">${c}</button>`).join('')}</div>
   </div>
-  <div id="dres" class="stack">${dQ||dCat?(res.length?`<div class="card stack">${res.map(dreamCard).join('')}</div>`:`<div class="card"><p>找不到這個夢境。試著輸入一兩個字的關鍵字，例如「蛇」「掉牙」「水」，或從上面的類別瀏覽。</p></div>`):''}</div>
+  <div id="dres" class="stack">${dQ||dCat?(res.length?`${dCat?'':dreamFuse(dQ)}<div class="card stack">${res.map(dreamCard).join('')}</div>`:`<div class="card"><p>找不到這個夢境。試著輸入一兩個字的關鍵字，例如「蛇」「掉牙」「水」，或從上面的類別瀏覽。</p></div>`):''}</div>
   <p class="small muted" style="text-align:center">夢的解釋為民間流傳說法，僅供參考；反覆做惡夢、睡不好，建議多休息或尋求專業協助。</p>`;
 }
 
@@ -2181,26 +2292,45 @@ function styleCard(){
 
 /* ---------- 拜拜供品清單 ---------- */
 // 台灣民間常見作法；各地與各家習俗不同，以長輩或當地宮廟習慣為準
+// 供品清單：i 供品、p 金紙，「對象｜內容」可標出拜的對象；n 是這個節日的提醒
 const OFFER={
- 天公:{t:'初八晚上 11 點到初九凌晨（子時）最隆重，也可在初九上午拜',x:'3 柱（也有人用 9 柱或 12 柱）',i:['頂桌：素齋（六齋或五果六齋）','紅龜粿、壽麵（麵線塔）、糖塔','清茶 3 杯、鮮花一對','下桌：五牲（敬天公部屬）','燈座、燭台一對'],p:['天公金（頂極金、太極金）','壽金','刈金']},
- 月:{t:'初一、十五上午',x:'3 柱',i:['鮮花','水果（避用番石榴、釋迦、番茄）','餅乾或糕點','清茶 3 杯'],p:['壽金','刈金','拜祖先另備銀紙（大銀、小銀）']},
- 土地:{t:'上午，或商家做牙多在下午',x:'3 柱',i:['三牲或四果','紅龜粿、發粿','潤餅（尾牙、清明）','酒、清茶','鮮花'],p:['福金（土地公金）','壽金','刈金']},
- 觀音:{t:'上午',x:'3 柱',i:['素果（全素）','鮮花','清茶','素齋或素餅'],p:['佛菩薩一般不燒金紙，可誦經迴向']},
- 文昌:{t:'上午',x:'3 柱',i:['蔥（聰明）、芹菜（勤學）、蒜（會算）、菜頭（好彩頭）','包子、粽子（包中）','准考證影本','清茶、鮮花'],p:['文昌金','壽金']},
- 神:{t:'上午',x:'3 柱',i:['壽麵、壽桃','鮮花','水果','清茶、酒','糕餅'],p:['壽金','刈金']},
- 普渡:{t:'下午到傍晚前（避免入夜）',x:'每樣供品插 1 柱香',i:['飯菜、泡麵','餅乾零食、飲料','水果（部分地區避用鳳梨）','臉盆、清水、毛巾（讓好兄弟洗手）','普渡燈'],p:['普渡公金','銀紙（大銀、小銀）','經衣、更衣']},
- 祖:{t:'中午前後',x:'3 柱（或依家中習俗）',i:['祖先愛吃的飯菜','四果','清茶、酒','碗筷'],p:['大銀、小銀（銀紙）']},
- 送神:{t:'上午',x:'3 柱',i:['甜湯圓、麥芽糖（請灶君上天言好事）','甜粿','四果','清茶'],p:['壽金','刈金','甲馬（雲馬，給神明當坐騎）']},
- 接神:{t:'下午或傍晚',x:'3 柱',i:['四果','糕點、甜品','清茶'],p:['壽金','刈金','甲馬（雲馬）']},
- 七夕:{t:'傍晚',x:'3 柱',i:['七娘媽亭','胭脂、白粉、鏡子、梳子','圓仔花、雞冠花','麻油雞、油飯、湯圓'],p:['壽金','刈金','燒七娘媽亭']},
- 清明:{t:'清明前後的上午',x:'3 柱',i:['墓紙（古仔紙）壓在墳上','潤餅、紅龜粿','四果、酒'],p:['銀紙','拜后土（土地公）用壽金、刈金']}};
-function offerKey(n){if(/天公/.test(n))return '天公';if(/初一|十五/.test(n))return '月';if(/土地|頭牙|尾牙|做牙|中秋/.test(n))return '土地';if(/觀世音|浴佛/.test(n))return '觀音';if(/文昌/.test(n))return '文昌';if(/中元|鬼門/.test(n))return '普渡';if(/送神/.test(n))return '送神';if(/接神/.test(n))return '接神';if(/七夕/.test(n))return '七夕';if(/清明/.test(n))return '清明';if(/春節|除夕|冬至|端午|重陽/.test(n))return '祖';return '神'}
+ 天公:{t:'初八晚上 11 點到初九凌晨（子時）最隆重，也可在初九上午拜；在家門口或前庭朝外設「頂下桌」',x:'3 柱（也有人用 9 柱或 12 柱）',i:['頂桌｜燈座一對、燭台一對、香爐','頂桌｜素齋（六齋：金針、木耳、香菇、菜心、豆簽、麵筋）','頂桌｜五果（五種水果）','頂桌｜清茶 3 杯','頂桌｜糖塔、壽麵（麵線塔）、紅龜粿','下桌｜五牲（雞、鴨、魚、豬肉、豬肚或蛋，敬天公部屬）','下桌｜酒 3 杯、紅圓、發粿'],p:['天公金（頂極金、太極金）','壽金','刈金'],n:['頂桌供天公，必須全素；下桌敬天兵天將才可用葷。','拜天公面朝門外（天空）；全家依長幼輪流上香，誠心最重要。']},
+ 月:{t:'初一、十五上午',x:'神明 3 柱、祖先 3 柱',i:['神明｜鮮花一對','神明｜水果（3 或 5 樣）','神明｜餅乾或糕點','神明｜清茶 3 杯','祖先｜水果、糕點、清茶'],p:['神明｜壽金、刈金','祖先｜大銀、小銀'],n:['商家多在初二、十六「做牙」拜土地公；一般家庭初一、十五拜即可。']},
+ 土地:{t:'上午；商家做牙多在初二、十六下午',x:'3 柱',i:['三牲（雞、豬肉、魚或蛋）或素果','紅龜粿、發粿','潤餅（尾牙、清明習俗）','花生、糖果（土地公牙齒不好，傳統用軟甜的）','酒 3 杯、清茶 3 杯','鮮花一對'],p:['福金（土地公金）','壽金','刈金'],n:['尾牙常加「刈包」，取「包住財富」；頭牙、尾牙拜完可請員工吃。']},
+ 觀音:{t:'上午',x:'3 柱',i:['素果（全素，水果洗乾淨）','鮮花一對（蓮花、百合為佳）','清茶 3 杯','素齋或素餅、湯圓','供燈或蠟燭一對'],p:[],n:['佛菩薩一般不燒金紙，可誦《心經》《大悲咒》或念「南無觀世音菩薩」迴向。','供品不放葷食、五辛（蔥、蒜、韭菜、洋蔥、蕗蕎），也不用酒。']},
+ 文昌:{t:'上午，考前到文昌廟或在家拜',x:'3 柱',i:['蔥（聰明）、芹菜（勤學）、蒜（會算）、菜頭（好彩頭）','包子、粽子（包中）','桂圓（狀元）、肉粽（中）','准考證影本（寫上姓名、生日、准考證號、考場）','清茶 3 杯、鮮花一對','文昌筆（可帶去拜過再用）'],p:['文昌金','壽金','刈金'],n:['蔥、芹菜、蒜、菜頭是取吉祥諧音，拜完可帶回家煮給考生吃。','考完記得回去還願、說謝謝。']},
+ 神:{t:'上午',x:'3 柱',i:['壽麵（麵線）、壽桃','鮮花一對','水果（3 或 5 樣）','清茶 3 杯、酒 3 杯','糕餅、紅龜粿'],p:['壽金','刈金'],n:['神明聖誕到廟裡拜，可問廟方是否有統一的供品與金紙。']},
+ 媽祖:{t:'上午到宮廟或家中',x:'3 柱',i:['鮮花一對','水果（3 或 5 樣）','壽麵、壽桃、紅龜粿','糕餅、糖果','清茶 3 杯','胭脂、花粉（有些信眾會獻給媽祖）'],p:['壽金（大壽金）','刈金'],n:['不少媽祖廟農曆三月有遶境進香，可配合宮廟活動拜拜。']},
+ 關公:{t:'上午到恩主公廟或在家拜',x:'3 柱',i:['鮮花一對','水果（3 或 5 樣）','壽麵、壽桃','糕餅','清茶 3 杯'],p:['壽金','刈金'],n:['行天宮等恩主公廟提倡不燒金紙、不供牲禮，以鮮花素果、誠心為主；到廟裡依廟方規定。']},
+ 註生:{t:'上午',x:'3 柱',i:['鮮花一對','水果（3 或 5 樣）','胭脂、花粉','紅蛋、紅湯圓','油飯、麻油雞（還願常用）','清茶 3 杯'],p:['壽金','刈金','註生娘娘衣（依廟方習俗）'],n:['求子可向註生娘娘稟告夫妻姓名、生日、地址；生了孩子要回去還願。']},
+ 保生:{t:'上午',x:'3 柱',i:['鮮花一對','水果（3 或 5 樣）','壽麵、壽桃','糕餅','清茶 3 杯'],p:['壽金','刈金'],n:['可稟告家人姓名、生日、病況，祈求身體健康。']},
+ 水官:{t:'上午（下元當天）',x:'3 柱',i:['水果（3 或 5 樣）','糕餅、麵線','鮮花一對','清茶 3 杯'],p:['壽金','刈金'],n:['水官解厄，可稟告想化解的困難；也有人在這天拜謝一年平安。']},
+ 普渡:{t:'下午到傍晚前（避免入夜），在家門口朝外擺桌',x:'每樣供品插 1 柱香',i:['飯菜、泡麵（打開蓋子）','餅乾零食（打開包裝）、飲料（打開瓶蓋）','米、油、鹽、糖（可事後捐出）','水果（部分地區避用鳳梨）','臉盆、清水、毛巾（讓好兄弟洗手洗臉）','普渡燈或蠟燭'],p:['普渡公金','銀紙（大銀、小銀）','經衣、更衣'],n:['好兄弟供品不擺在屋內，也不要拜到天黑。','拜完要說「請好兄弟享用，吃飽了就請回」。']},
+ 祖:{t:'中午前後',x:'3 柱（或依家中習俗）',i:['祖先愛吃的飯菜（熱的）、白飯','碗筷（每位祖先一副，或依牌位數量）','四果','清茶、酒','糕點'],p:['大銀、小銀（銀紙）']},
+ 春節:{t:'初一早上（先拜神明，再拜祖先）',x:'神明 3 柱、祖先 3 柱',i:['神明｜甜粿（年年高升）、發粿（發財）','神明｜糖果、柑橘（大吉大利）','神明｜四果、鮮花一對','神明｜清茶 3 杯','祖先｜年菜或素齋（不少家庭初一吃素）','祖先｜甜粿、發粿、四果','祖先｜清茶、酒、碗筷'],p:['神明｜壽金、刈金','祖先｜大銀、小銀'],n:['初一忌掃地、倒垃圾、打破東西，以免「掃走財氣」。','拜完向長輩拜年。']},
+ 除夕:{t:'下午（先拜神明，再祭祖，傍晚拜地基主）',x:'神明 3 柱、祖先 3 柱、地基主 1 柱',i:['神明｜甜粿、發粿、菜頭粿（好彩頭）','神明｜四果、鮮花、清茶','祖先｜年菜：全雞（起家）、全魚（年年有餘）、長年菜（長壽）、菜頭（好彩頭）','祖先｜春飯（白飯上插飯春花，象徵年年有剩）','祖先｜甜粿、發粿、四果','祖先｜清茶、酒、碗筷','地基主｜便當或飯菜一份（用免洗碗筷）','地基主｜清茶或酒'],p:['神明｜壽金、刈金','祖先｜大銀、小銀','地基主｜刈金、小銀'],n:['地基主在廚房或後門朝屋內拜，桌子要矮（或用小椅子），只插 1 柱香。','拜完全家圍爐、長輩發紅包；春飯可擺到初五（隔開）再收。']},
+ 元宵:{t:'上午拜天官，晚上全家吃湯圓',x:'3 柱',i:['湯圓（甜湯圓）','水果（3 或 5 樣）','糕餅、紅龜粿','鮮花一對','清茶 3 杯'],p:['天公金（或大壽金）','壽金','刈金'],n:['元宵是上元天官大帝聖誕，天官賜福；也在這天前完成安太歲、點光明燈。']},
+ 端午:{t:'午時（11 點到下午 1 點）前完成',x:'神明 3 柱、祖先 3 柱、地基主 1 柱',i:['神明｜粽子、四果、鮮花、清茶','祖先｜粽子、飯菜、四果','祖先｜清茶、酒、碗筷','地基主｜粽子、飯菜（用免洗碗筷）','門口｜艾草、榕枝、菖蒲綁成一束掛門上','香包、雄黃（避邪驅蟲）'],p:['神明｜壽金、刈金','祖先｜大銀、小銀','地基主｜刈金、小銀'],n:['午時水：正午取的水，民間認為可存放、洗淨避邪。','正午可試試立蛋，是端午的小樂趣。']},
+ 中秋:{t:'上午或傍晚（先拜土地公，再拜祖先）',x:'土地公 3 柱、祖先 3 柱',i:['土地公｜月餅','土地公｜柚子（文旦，「佑子」）','土地公｜芋頭（好頭路）、四果','土地公｜鮮花一對、清茶 3 杯','祖先｜月餅、柚子、四果','祖先｜飯菜、清茶、酒、碗筷'],p:['土地公｜福金（土地公金）、壽金、刈金','祖先｜大銀、小銀'],n:['中秋是土地公得道日，農家會在田裡插「土地公拐」（竹子夾金紙）祈求豐收。','有些地區晚上拜「太陰娘娘」（月娘），女性主拜，用月餅、柚子、胭脂花粉。']},
+ 重陽:{t:'上午（有祭祖習俗的家庭）',x:'3 柱',i:['麻糬或重陽糕','祖先愛吃的飯菜','四果','清茶、酒、碗筷'],p:['大銀、小銀（銀紙）'],n:['台灣多數家庭重陽以敬老為主，祭祖與否依各家；可陪長輩登高、吃飯祝壽。']},
+ 冬至:{t:'上午拜神明、中午前後祭祖（「冬至大如年」）',x:'神明 3 柱、祖先 3 柱',i:['神明｜紅白湯圓（甜的），每尊神明各一碗','神明｜四果、鮮花一對','神明｜清茶 3 杯','祖先｜紅白湯圓（可甜可鹹），每位祖先一碗','祖先｜飯菜（熱的）、四果','祖先｜清茶、酒、碗筷','地基主｜湯圓一碗（用免洗碗筷）'],p:['神明｜壽金、刈金','祖先｜大銀、小銀','地基主｜刈金、小銀'],n:['吃了冬至湯圓就「添一歲」；老習俗把湯圓黏在門窗、桌櫃上，稱為「餉耗」，酬謝家中器物。','部分地區冬至吃菜包、雞母狗仔（造型湯圓），或進補麻油雞、羊肉爐。']},
+ 送神:{t:'上午（農曆十二月二十四日）',x:'3 柱',i:['甜湯圓、麥芽糖、冬瓜糖（甜嘴，請灶君「上天言好事」）','甜粿','四果','清茶 3 杯','鮮花一對'],p:['壽金','刈金','甲馬（雲馬，給神明當坐騎）'],n:['送神後才大掃除（「清屯」），把神桌、香爐整理乾淨。','傳統說「送神早，接神晚」。']},
+ 接神:{t:'下午或傍晚（正月初四）',x:'3 柱',i:['四果','糕點、甜品','鮮花一對','清茶 3 杯'],p:['壽金','刈金','甲馬（雲馬）'],n:['傳統說「送神早，接神晚」，接神可在下午拜。']},
+ 七夕:{t:'傍晚',x:'3 柱',i:['七娘媽亭（紙糊）','胭脂、白粉、鏡子、梳子、紅絲線','圓仔花、雞冠花（含苞的鮮花）','麻油雞、油飯、湯圓（中間按一凹，給織女裝眼淚）','四果','清茶 3 杯'],p:['壽金','刈金','燒七娘媽亭'],n:['孩子滿 16 歲可「做十六歲」，在七娘媽亭下鑽過，表示長大成人。','胭脂花粉拜完，一半拋上屋頂送給七娘媽，一半自己留用。']},
+ 清明:{t:'清明前後的上午（各家掃墓日不同）',x:'后土 3 柱、祖先 3 柱',i:['掃墓工具：手套、鐮刀、掃把、垃圾袋','墓紙（古仔紙）用小石頭壓在墳上','后土｜四果、清茶（先拜后土，即土地公）','祖先｜潤餅、紅龜粿、發粿','祖先｜三牲或飯菜、四果','祖先｜清茶、酒'],p:['后土｜壽金、刈金','祖先｜大銀、小銀'],n:['先拜后土（墓旁的土地公），再拜祖先，掃墓順序不要顛倒。','注意用火安全，金紙在金爐或指定地點燒，帶走垃圾。']}};
+// 一般拜拜的步驟與通則（台灣民間常見做法）
+const OFFER_STEPS=['洗手、整理神桌；水果洗淨擺盤，飯菜盛熱的，拜祖先要擺碗筷','點燭（或開燈），倒好清茶、酒','點香：先拜天公（朝門外），再拜神明，最後拜祖先','拿香稟告：自己的姓名、生日、住址，以及想祈求或感謝的事','插香：從中間開始插，多數宮廟習慣用左手插香','等香燒過約三分之二（拜祖先可擲筊問「吃飽了沒」）','燒金紙：先燒神明的，再燒祖先的；燒完可把杯中酒繞灑在金紙灰上','向神明、祖先說謝謝，收供品，全家分食沾福氣'];
+const OFFER_RULE=['香用單數：1、3、5 柱，一般 3 柱即可；拜好兄弟、地基主多用 1 柱','水果避用：番石榴（芭樂，籽多難消化，被認為不潔）、釋迦（外形像佛頭）、番茄（多籽），多數人拜神不用','普渡時部分地區避用鳳梨（「旺來」，怕招來好兄弟）','金紙依對象分：神明用金紙（壽金、刈金），祖先與好兄弟用銀紙'];
+function offerKey(n){const M=[[/天公/,'天公'],[/元宵/,'元宵'],[/春節/,'春節'],[/除夕/,'除夕'],[/端午/,'端午'],[/中秋/,'中秋'],[/重陽/,'重陽'],[/冬至/,'冬至'],[/下元/,'水官'],[/媽祖|天上聖母/,'媽祖'],[/關聖|恩主/,'關公'],[/註生/,'註生'],[/保生/,'保生'],[/初一|十五/,'月'],[/土地|頭牙|尾牙|做牙/,'土地'],[/觀世音|浴佛/,'觀音'],[/文昌/,'文昌'],[/中元|鬼門/,'普渡'],[/送神/,'送神'],[/接神/,'接神'],[/七夕/,'七夕'],[/清明/,'清明']];const m=M.find(([r])=>r.test(n));return m?m[1]:'神'}
 function offerSheet(ts,n){
   const k=offerKey(n), O=OFFER[k], id=`${ts}|${n}`, done=store.get('gx_offer',{})[id]||[];
-  const notes=O.p.filter(x=>/不燒/.test(x)), all=[...O.i.map(x=>['供品',x]),...O.p.filter(x=>!/不燒/.test(x)).map(x=>['金紙',x])];
+  const sp=(x,g)=>{const i=x.indexOf('｜');return i<0?[g,x]:[`${x.slice(0,i)}・${g}`,x.slice(i+1)]};
+  const all=[...O.i.map(x=>sp(x,'供品')),...O.p.map(x=>sp(x,'金紙'))];
   const L=sheet(`${n}・準備清單`,`<div class="card stack"><div class="sty"><b>時間</b><span>${O.t}</span></div><div class="sty"><b>香</b><span>${O.x}</span></div></div>
-    <div class="card stack"><span class="eyebrow">點一下打勾，準備好了就勾起來</span><div class="checks">${all.map(([g,x],i)=>`<label class="check offck"><input type="checkbox" data-off="${i}"${done.includes(i)?' checked':''}><span class="ct"><b>${g}</b>${x}</span></label>`).join('')}</div>
-    ${notes.map(x=>`<p class="small">${x}</p>`).join('')}<p class="small muted">各地與各家習俗不同，以長輩或當地宮廟的習慣為準。</p></div>`);
+    <div class="card stack"><span class="eyebrow">點一下打勾，準備好了就勾起來</span><div class="checks">${all.map(([g,x],i)=>`<label class="check offck"><input type="checkbox" data-off="${i}"${done.includes(i)?' checked':''}><span class="ct"><b>${g}</b>${x}</span></label>`).join('')}</div></div>
+    ${(O.n||[]).length?`<div class="card stack"><span class="eyebrow">這個節日要注意</span>${O.n.map(x=>`<p class="small">・${x}</p>`).join('')}</div>`:''}
+    <div class="card stack"><span class="eyebrow">拜拜步驟</span><ol class="ofsteps">${OFFER_STEPS.map(x=>`<li>${x}</li>`).join('')}</ol></div>
+    <div class="card stack"><span class="eyebrow">通則</span>${OFFER_RULE.map(x=>`<p class="small">・${x}</p>`).join('')}<p class="small muted">各地與各家習俗不同，以長輩或當地宮廟的習慣為準。</p></div>`);
   L.panel.addEventListener('change',e=>{const c=e.target.closest('[data-off]');if(!c)return;const S=store.get('gx_offer',{}),a=new Set(S[id]||[]);c.checked?a.add(+c.dataset.off):a.delete(+c.dataset.off);S[id]=[...a];store.set('gx_offer',S);buzz()});
 }
 
