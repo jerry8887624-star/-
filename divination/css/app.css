@@ -965,3 +965,31 @@ html.simple .tab svg{width:32px;height:32px}
 .mic.on{background:#B3261E;color:#fff;animation:micp 1.2s ease-in-out infinite}
 @keyframes micp{0%,100%{box-shadow:0 0 0 0 rgba(179,38,30,.45)}50%{box-shadow:0 0 0 8px rgba(179,38,30,0)}}
 html.simple .tabbar nav{grid-template-columns:repeat(3,1fr)}
+
+/* ===== 拜拜節日 ===== */
+.festban{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid color-mix(in srgb,#B3261E 30%,transparent);border-radius:16px;padding:12px 14px;background:color-mix(in srgb,#B3261E 8%,var(--card));color:var(--ink);cursor:pointer}
+.festban>span:nth-child(2){display:flex;flex-direction:column;flex:1;min-width:0}
+.fb-ic{flex:none;width:38px;height:38px;border-radius:10px;background:#B3261E;color:#F6E7DA;display:grid;place-items:center;font-family:var(--f-brush);font-weight:700;font-size:19px;transform:rotate(-4deg)}
+.flist{display:flex;flex-direction:column}
+.fi{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:12px 2px;border-top:1px dashed var(--line)}
+.fi:first-child{border-top:0}
+.fi.today{background:var(--tint-soft);border-radius:12px;padding-inline:8px}
+.fi-d{display:flex;flex-direction:column;align-items:center;min-width:3.4em}.fi-d b{font-size:19px}.fi-d span{font-size:12.5px;color:var(--muted)}
+.fi-m{display:flex;flex-direction:column;gap:3px;min-width:0}
+/* ===== 解夢 ===== */
+.dream{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:1px dashed var(--line)}
+.dream:first-child{border-top:0;padding-top:0}
+.dream>.row b{font-family:var(--f-serif);font-size:18px}
+/* ===== 風水 ===== */
+.compass{width:min(280px,100%);align-self:center;font-family:var(--f-ui)}
+.compass .cs{stroke:var(--card);stroke-width:2}
+.compass .cs.good{fill:color-mix(in srgb,var(--good) 22%,var(--card))}
+.compass .cs.bad{fill:color-mix(in srgb,var(--bad) 16%,var(--card))}
+.compass .ct{font-size:14px;font-weight:700;text-anchor:middle;fill:var(--ink)}
+.compass .cd{font-size:11.5px;text-anchor:middle;fill:var(--muted)}
+.compass .cc{fill:var(--card2);stroke:var(--edge)}
+.compass .cg{font-family:var(--f-brush);font-size:24px;font-weight:700;text-anchor:middle;fill:var(--tint)}
+.fsrow{display:grid;grid-template-columns:5.2em 1fr;gap:10px;padding:8px 0;border-top:1px dashed var(--line)}
+.fsrow:first-of-type{border-top:0}
+.fsrow>b{color:var(--tint)}
+html.vw400 .fsrow{grid-template-columns:1fr;gap:2px}
