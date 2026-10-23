@@ -10,7 +10,7 @@ import pathlib, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 src = (ROOT / 'src.html').read_text(encoding='utf-8')
 for marker, path in [('/*APP_CSS*/', 'css/app.css'), ('/*KX_DATA*/', 'data/kangxi.js'), ('/*CONTENT*/', 'data/content.js'),
-                     ('/*TAROT_DATA*/', 'data/tarot.js'), ('/*QIAN_DATA*/', 'data/qian.js'), ('/*TONE_DATA*/', 'data/tones.js')]:
+                     ('/*TAROT_DATA*/', 'data/tarot.js'), ('/*QIAN_DATA*/', 'data/qian.js'), ('/*DREAM_DATA*/', 'data/dream.js'), ('/*TONE_DATA*/', 'data/tones.js')]:
     assert marker in src, marker
     src = src.replace(marker, (ROOT / path).read_text(encoding='utf-8').strip())
 
