@@ -3012,7 +3012,7 @@ function showUpdate(){if($('#upd'))return;const b=document.createElement('div');
   b.addEventListener('click',e=>{const x=e.target.closest('[data-upd]');if(!x)return;if(x.dataset.upd==='go')location.reload();else{b.classList.add('out');setTimeout(()=>b.remove(),300)}});
   document.body.appendChild(b);buzz()}
 window.__gxShowUpdate=showUpdate;
-function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protocol==='https:'||location.hostname==='localhost'))return;(navigator.serviceWorker.controller&&navigator.serviceWorker.addEventListener('controllerchange',showUpdate),document.addEventListener('visibilitychange',()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})}),setInterval(()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})},20*60e3),navigator.serviceWorker.register('sw.js')).catch(e=>console.warn('sw',e))}
+function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protocol==='https:'||location.hostname==='localhost'))return;(navigator.serviceWorker.controller&&navigator.serviceWorker.addEventListener('controllerchange',showUpdate),document.addEventListener('visibilitychange',()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})}),setInterval(()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})},20*60e3),navigator.serviceWorker.register('sw.js',{updateViaCache:'none'})).catch(e=>console.warn('sw',e))}
 
 /* ---------- 啟動 ---------- */
 function boot(){
