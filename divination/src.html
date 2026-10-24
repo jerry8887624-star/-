@@ -598,8 +598,8 @@ async function dtEvent(ev,arg){
     dt.busy=true;store.set(k,true);
     const card=ev==='reveal'?$(`.dt-pick[data-dtpick="${dt.pick}"]`):$('.dt-deck .dt-b:last-child');
     if(card&&!reduceMotion()){const d=tarotDaily(date);card.classList.add('flipping');await wait(250);card.innerHTML=`<span class="dt-fr${d.rev?' rev':''}">${cardFace(d.i)}</span>`;await wait(300)}
-    dt.busy=false;dt.st='done';buzz(10);const d=tarotDaily(date),c=tcard(d.i);dtRender(`牌面已揭示：${c.zh}，${d.rev?'逆位':'正位'}`);
-    const r=$('#dtBox');if(r&&!reduceMotion())r.classList.add('dt-in');return}
+    dt.busy=false;dt.st='done';const d=tarotDaily(date),c=tcard(d.i);buzz(c.major?[16,60,30]:12);dtRender(`牌面已揭示：${c.zh}，${d.rev?'逆位':'正位'}`);
+    const r=$('#dtBox');if(r&&!reduceMotion()){r.classList.add('dt-in');const f=r.querySelector('.dt-face');if(f){f.classList.add('glint');if(c.major)f.classList.add('maj');setTimeout(()=>f.classList.remove('glint'),1300)}}return}
 }
 function qmBestNow(){return Object.values(qimen(new Date()).cells).sort((a,b)=>b.score-a.score)[0]}
 const AREA_TXT={
@@ -1126,13 +1126,14 @@ function cardSvg(i){
     <text x="60" y="183" text-anchor="middle" font-size="6.2" fill="${g}" opacity=".75" letter-spacing=".9" font-family="Georgia,serif">${c.en.toUpperCase()}</text></svg>`;
 }
 const CARD_BACK=`<svg viewBox="0 0 120 200" class="tback" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><radialGradient id="cbg" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#22305A"/><stop offset="1" stop-color="#0E1428"/></radialGradient><pattern id="cbp" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 6H12M6 0V12" stroke="#D9B46A" stroke-opacity=".09" stroke-width=".6"/></pattern></defs><rect width="120" height="200" rx="10" fill="url(#cbg)"/><rect width="120" height="200" rx="10" fill="url(#cbp)"/><rect x="5" y="5" width="110" height="190" rx="7" fill="none" stroke="#D9B46A" stroke-opacity=".7" stroke-width=".9"/><rect x="9" y="9" width="102" height="182" rx="5" fill="none" stroke="#D9B46A" stroke-opacity=".3" stroke-width=".5"/>${Array.from({length:24},(_,i)=>{const a=i/24*Math.PI*2;return `<line x1="${(60+Math.cos(a)*12).toFixed(1)}" y1="${(100+Math.sin(a)*12).toFixed(1)}" x2="${(60+Math.cos(a)*(i%2?28:40)).toFixed(1)}" y2="${(100+Math.sin(a)*(i%2?28:40)).toFixed(1)}" stroke="#D9B46A" stroke-opacity="${i%2?.45:.8}" stroke-width=".7"/>`}).join('')}<circle cx="60" cy="100" r="44" fill="none" stroke="#D9B46A" stroke-opacity=".4" stroke-width=".6"/><circle cx="60" cy="100" r="48" fill="none" stroke="#D9B46A" stroke-opacity=".2" stroke-width=".5" stroke-dasharray="1.5 2.5"/><path d="M60 88L63 97L72 100L63 103L60 112L57 103L48 100L57 97Z" fill="#D9B46A" opacity=".9"/><path d="M60 22L62 27L67 29L62 31L60 36L58 31L53 29L58 27Z M60 164L62 169L67 171L62 173L60 178L58 173L53 171L58 169Z" fill="#D9B46A" opacity=".6"/></svg>`;
+let tStir=false, tRev=[], tLand=-1;
 let tBusy=false, tSpread='three', tQ='', tCat='綜合', tDeck=null, tPicked=[], tFlipped=false, tReading=null;
 function shuffleDeck(){const a=Array.from({length:78},(_,i)=>i);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.map(i=>({i,rev:Math.random()<.5}))}
 function spreadDef(){return TD.spreads.find(s=>s.k===tSpread)}
 function slotHtml(k,d,pos){
-  const p=tPicked[k];const cls=['slot',tSpread==='celtic'?'c'+(k+1):''];
+  const p=tPicked[k];const cls=['slot',tSpread==='celtic'?'c'+(k+1):''];const up=tFlipped||tRev[k], nx=!tFlipped&&!up&&tReading&&k===tRev.findIndex(v=>!v);
   if(!p)return `<div class="${cls.join(' ')}"><div class="tcard empty"><span>${k+1}</span></div><span class="sl">${pos}</span></div>`;
-  return `<div class="${cls.join(' ')}"><button type="button" class="tcard${tFlipped?' up flat':''}${p.rev?' rev':''}" data-tslot="${k}" aria-label="${pos}：${tFlipped?tcard(p.i).zh+(p.rev?'逆位':'正位'):'未翻開'}" style="--d:${k*90}ms"><span class="in"><span class="bk">${CARD_BACK}</span><span class="fr">${cardFace(p.i)}</span></span></button><span class="sl">${pos}${tFlipped?`<b class="cn">${tcard(p.i).zh}${p.rev?'・逆':''}</b>`:''}</span></div>`;
+  return `<div class="${cls.join(' ')}"><button type="button" class="tcard${up?' up flat':''}${nx?' next':''}${p.rev?' rev':''}" data-tslot="${k}" aria-label="${pos}：${up?tcard(p.i).zh+(p.rev?'逆位':'正位'):'未翻開，點一下翻牌'}" style="--d:${k*90}ms"><span class="in"><span class="bk">${CARD_BACK}</span><span class="fr">${cardFace(p.i)}</span></span></button><span class="sl">${pos}${up?`<b class="cn">${tcard(p.i).zh}${p.rev?'・逆':''}</b>`:''}</span></div>`;
 }
 let tLib=null, tLibSel=null;
 function libHtml(){
@@ -1150,17 +1151,28 @@ function tSpreadHtml(){
   return `<div class="tspread" id="deck" role="group" aria-label="78 張牌">${tDeck.map((c,k)=>{const col=k%T_COLS,row=Math.floor(k/T_COLS),off=col-(T_COLS-1)/2,taken=tPicked.some(p=>p.k===k);
     return `<button type="button" class="dc${taken?' gone':''}" data-dk="${k}" style="--o:${row+col};--rot:${(off*2.2).toFixed(1)}deg;--ty:${(off*off*0.9).toFixed(1)}px;--jr:${((k*37)%21-10)}deg" aria-label="${taken?'已選走':`第 ${k+1} 張牌，未揭示`}"${taken?' disabled':''}>${taken?'':CARD_BACK}</button>`}).join('')}</div>`;
 }
-// 洗牌：全部疊在中央抖動，再一波波發到桌面
-async function tDeal(){const g=$('#deck');if(!g)return;if(reduceMotion())return;
+// 洗牌：78 張疊在中央，手指在牌堆上畫圈攪動（牌會跟著旋轉散開），放開或點一下就一波波發到桌面
+function tStack(){const g=$('#deck');if(!g||!tStir)return;
   const R=g.getBoundingClientRect(),cx=R.left+R.width/2,cy=R.top+Math.min(R.height/2,180);
-  g.querySelectorAll('.dc').forEach(b=>{const r=b.getBoundingClientRect();b.style.setProperty('--fx',`${cx-(r.left+r.width/2)}px`);b.style.setProperty('--fy',`${cy-(r.top+r.height/2)}px`)});
-  g.classList.add('stacked');void g.offsetWidth;g.classList.add('jiggle');buzz(6);
-  await new Promise(r=>setTimeout(r,520));g.classList.remove('jiggle');g.classList.add('dealing');void g.offsetWidth;g.classList.remove('stacked');
-  setTimeout(()=>{g.classList.remove('dealing');buzz(6)},1000);
+  const cards=[...g.querySelectorAll('.dc')];
+  cards.forEach((b,k)=>{const r=b.getBoundingClientRect();b.style.setProperty('--fx',`${cx-(r.left+r.width/2)}px`);b.style.setProperty('--fy',`${cy-(r.top+r.height/2)}px`);b._ph=k*2.39996;b._rr=14+(k*53)%52});
+  g.classList.add('stacked','stir');void g.offsetWidth;g.classList.add('jiggle');buzz(6);setTimeout(()=>g.classList.remove('jiggle'),520);
+  let last=null,dist=0,th=0,raf=0,tick=0;
+  const paint=()=>{raf=0;const amp=Math.min(1,dist/160);cards.forEach(b=>{const r=b._rr*amp;b.style.setProperty('--sx',(Math.cos(th+b._ph)*r).toFixed(1)+'px');b.style.setProperty('--sy',(Math.sin(th+b._ph)*r*.7).toFixed(1)+'px');b.style.setProperty('--sr',(Math.sin(th*1.3+b._ph)*28*amp).toFixed(1)+'deg')})};
+  const down=e=>{if(!tStir)return;last=[e.clientX,e.clientY];try{g.setPointerCapture(e.pointerId)}catch(_){}};
+  const move=e=>{if(!last||!tStir)return;const d=Math.hypot(e.clientX-last[0],e.clientY-last[1]);last=[e.clientX,e.clientY];dist+=d;th+=d/55;if(dist-tick>140){tick=dist;buzz(4)}if(!raf)raf=requestAnimationFrame(paint)};
+  const up=()=>{if(!last)return;last=null;off();tDealOut()};
+  const off=()=>{g.removeEventListener('pointerdown',down);g.removeEventListener('pointermove',move);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up)};
+  g._off=off;g.addEventListener('pointerdown',down);g.addEventListener('pointermove',move);g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up);
+}
+function tDealOut(){const g=$('#deck');if(!g||!g.classList.contains('stacked')){tStir=false;const y=scrollY;renderTarot();scrollTo({top:y});return}g._off&&g._off();
+  g.classList.remove('stir','jiggle');g.classList.add('dealing');void g.offsetWidth;g.classList.remove('stacked');
+  g.querySelectorAll('.dc').forEach(b=>{b.style.removeProperty('--sx');b.style.removeProperty('--sy');b.style.removeProperty('--sr')});buzz(8);
+  setTimeout(()=>{g.classList.remove('dealing');if(!tStir)return;tStir=false;const y=scrollY;renderTarot();scrollTo({top:y})},1050);
 }
 // 選中：牌從桌面飛到上方牌陣的位置
 async function tFly(btn,k){
-  const slot=$(`.spreadbox .slot:nth-child(${k+1}) .tcard`);if(reduceMotion()||!slot)return;
+  const slot=$(`.ttray .ts:nth-child(${k+1})`)||$(`.spreadbox .slot:nth-child(${k+1}) .tcard`);if(reduceMotion()||!slot)return;
   const a=btn.getBoundingClientRect(),b=slot.getBoundingClientRect();const f=btn.cloneNode(true);f.className='dc fly';f.removeAttribute('data-dk');
   Object.assign(f.style,{position:'fixed',left:a.left+'px',top:a.top+'px',width:a.width+'px',height:a.height+'px',margin:0,zIndex:60});document.body.appendChild(f);
   btn.classList.add('gone');btn.innerHTML='';
@@ -1179,11 +1191,14 @@ function renderTarot(){
   </div>
   <div class="hscroll" id="spreads" role="group" aria-label="選擇牌陣">${TD.spreads.map(s=>`<button type="button" class="spread${s.k===tSpread?' on':''}" data-spread="${s.k}" aria-pressed="${s.k===tSpread}"><b>${s.n}</b><span>${s.pos.length} 張 · ${s.d}</span></button>`).join('')}</div>
   <div class="card stack table" id="ttable">
-    <div class="row between"><div><div class="eyebrow">${d.n}</div><h3 class="h3">${!tDeck?'先靜心洗牌':done?(tFlipped?'牌已翻開':'點牌或一次翻開'):`憑直覺選 ${need-tPicked.length} 張`}</h3></div><span class="small muted num">${tPicked.length}/${need}</span></div>
-    <div class="spreadbox ${tSpread}"${tSpread==='celtic'?' data-fit="272"':''}>${d.pos.map((p,k)=>slotHtml(k,d,p)).join('')}</div>
+    <div class="row between"><div><div class="eyebrow">${d.n}</div><h3 class="h3">${!tDeck?'先靜心洗牌':done?(tFlipped?'牌已翻開':'一張一張翻開'):tStir?'攪動牌堆':`憑直覺選 ${need-tPicked.length} 張`}</h3></div><span class="small muted num">${tPicked.length}/${need}</span></div>
+    ${tDeck&&!done&&!tFlipped?`<div class="ttray" id="ttray"><div class="ttray-slots">${d.pos.map((p,k)=>`<span class="ts${tPicked[k]?' on':''}${k===tLand?' land':''}${k===tPicked.length?' cur':''}" aria-hidden="true">${tPicked[k]?CARD_BACK:`<i>${k+1}</i>`}</span>`).join('')}</div>
+      <p class="ttray-tip" aria-live="polite">${tStir?'<b>用手指在牌堆上畫圈攪牌</b><span>放開或點一下，就把牌攤開</span>':`<b>第 ${tPicked.length+1} 張・${d.pos[tPicked.length]}</b><span>點一張有感覺的牌${need-tPicked.length>1?`（還要 ${need-tPicked.length} 張）`:''}</span>`}</p></div>`
+    :`<div class="spreadbox ${tSpread}"${tSpread==='celtic'?' data-fit="272"':''}>${d.pos.map((p,k)=>slotHtml(k,d,p)).join('')}</div>`}
+    ${done&&!tFlipped?`<p class="tcap" id="tCap" aria-live="polite"><span class="small muted">從第 1 張「${d.pos[0]}」開始，點牌一張張翻開</span></p>`:''}
     ${!tDeck?`<p class="ritual">深呼吸，心裡默想你的問題，按下洗牌。洗好後從牌堆中憑感覺抽牌，不必想太多。</p><button type="button" class="btn primary block" id="tShuffle">洗牌</button>`
-      :!done?`<p class="ritual" style="text-align:center" aria-live="polite">78 張牌已攤開，點一張你有感覺的牌${need-tPicked.length>1?`（還要 ${need-tPicked.length} 張）`:''}</p>${tSpreadHtml()}<div class="grid2"><button type="button" class="btn" id="tAuto">幫我抽</button><button type="button" class="btn" id="tReshuffle">重新洗牌</button></div>`
-      :`<div class="grid2">${tFlipped?'':`<button type="button" class="btn primary" id="tFlip">全部翻開</button>`}<button type="button" class="btn${tFlipped?' block':''}" id="tReshuffle" ${tFlipped?'style="grid-column:1 / -1"':''}>再抽一次</button></div>`}
+      :!done?`${tSpreadHtml()}<div class="grid2">${tStir?`<button type="button" class="btn primary" id="tDealNow">直接攤開</button>`:''}<button type="button" class="btn" id="tAuto">幫我抽</button>${tStir?'':`<button type="button" class="btn" id="tReshuffle">重新洗牌</button>`}</div>`
+      :`<div class="grid2">${tFlipped?'':`<button type="button" class="btn" id="tFlip">一次全部翻開</button>`}<button type="button" class="btn${tFlipped?' block':''}" id="tReshuffle" ${tFlipped?'style="grid-column:1 / -1"':''}>再抽一次</button></div>`}
   </div>
   <div id="tResult" class="stack">${tFlipped&&tReading?tarotReadingHtml(tReading):''}</div>
   ${hist.length?`<div class="card stack"><div class="row between"><h3 class="h3">抽牌紀錄</h3><button type="button" class="btn sm ghost" id="tClear">清除</button></div><div class="list">${hist.map((h,k)=>`<button type="button" class="li" data-thist="${k}"><span class="q">${esc(h.q||'（未寫問題）')}</span><span class="small muted">${esc(h.t)} · ${esc(TD.spreads.find(s=>s.k===h.s).n)} · ${h.c.map(x=>tcard(x.i).zh+(x.rev?'(逆)':'')).join('、')}</span><span class="chev" aria-hidden="true"></span></button>`).join('')}</div></div>`:''}
@@ -1301,16 +1316,17 @@ function tarotReadingHtml(R){
     ['趨吉',key.major?key.adv:`${keyLens||`把力氣放在${key.S.dom}上`}${key.R?'先修正方向再前進。':''}`],
     ['避凶',revs>=Math.ceil(cards.length/2)?'逆位牌偏多，代表內在阻力或時機未到：放慢腳步，先處理情緒與卡住的環節。':cards.some(c=>HARD_CARDS.has(c.i)&&c.major)?'牌陣中有轉變型的大牌，抗拒改變反而受傷，主動調整比被動接受好。':'留意逆位或困難牌提到的狀況，提前準備就能避開。'],
     ['行動',domS?`${domS.zh}牌最多，問題核心在「${domS.dom}」，${{wands:'用行動與熱情推進',cups:'先照顧感受與關係',swords:'理清思緒、把話說清楚',pentacles:'從實際的錢與時間規劃著手'}[domS.k]}。`:majors>=Math.ceil(cards.length/2)?'大阿爾克那佔多數，這件事牽動人生方向，值得認真看待、謹慎決定。':'牌面分布平均，按部就班處理即可，不必過度焦慮。']];
-  return `<div class="card stack">
+  const jump=`<nav class="tjump" aria-label="解讀段落">${[['tr-sum','總結'],cards.length<=10?['tr-story','來龍去脈']:null,['tr-per','逐張解讀'],['tr-tips','趨吉避凶']].filter(Boolean).map(([id,n])=>`<button type="button" class="chip" data-jump="${id}">${n}</button>`).join('')}</nav>`;
+  return `${jump}<div class="card stack" id="tr-sum">
     <div class="row between"><div><div class="eyebrow">${esc(R.t)} · ${d.n}</div><h3 class="h3">${R.q?esc(R.q):'塔羅解讀'}</h3></div><span class="pill ${tone[0]}">${tone[1]}</span></div>
     ${verdict}
     <div class="reader"><div class="seal" aria-hidden="true">言</div><p>${oneLine}</p></div>
     ${comboHtml(cards)}
     ${cards.length>1?`<p class="small muted">共 ${cards.length} 張：大阿爾克那 ${majors} 張、逆位 ${revs} 張。${majors>=2?'多張大牌出現，這件事受較大的命運力量推動。':''}${domS?`${domS.zh}牌最多，重點落在${domS.dom}。`:''}</p>`:''}
   </div>
-  ${tarotStory(R,cards,d,cat,tone)}
-  <div class="card stack"><h3 class="h3">逐張解讀</h3><p class="small muted">點牌面可以看完整牌義。</p>${per}</div>
-  <div class="card stack"><h3 class="h3">趨吉避凶</h3><div class="checks">${tips.map(([k,t])=>`<div class="check static"><span class="ct"><b>${k}</b>${t}</span></div>`).join('')}</div>
+  <div id="tr-story">${tarotStory(R,cards,d,cat,tone)}</div>
+  <div class="card stack" id="tr-per"><h3 class="h3">逐張解讀</h3><p class="small muted">點牌面可以看完整牌義。</p>${per}</div>
+  <div class="card stack" id="tr-tips"><h3 class="h3">趨吉避凶</h3><div class="checks">${tips.map(([k,t])=>`<div class="check static"><span class="ct"><b>${k}</b>${t}</span></div>`).join('')}</div>
     <div class="row acts">${spkHtml('tarot')}${shrHtml('tarot')}<button type="button" class="btn sm" id="tShare"><span>分享文字</span></button></div>
     <p class="small muted">塔羅反映的是此刻的能量與可能性，結果會隨你的選擇而改變。同一件事建議隔一段時間、情況有變化後再問。</p></div>`;
 }
@@ -1319,10 +1335,24 @@ async function shareOut(text){
   try{await navigator.clipboard.writeText(text);hud('已複製，可貼到 LINE')}catch(e){toast('無法自動複製，請長按選取文字','warn')}
 }
 function tarotFinish(){
-  const now=new Date();
+  const now=new Date();tRev=tPicked.map(()=>false);
   tReading={s:tSpread,q:tQ,cat:tCat,t:`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,c:tPicked.map(p=>({i:p.i,rev:p.rev}))};
   const h=store.get('gx_tarot',[]);tReading.ts=tReading.ts||Date.now();h.unshift(tReading);store.set('gx_tarot',h.slice(0,20));
 }
+// 逐張揭牌：翻開 → 金光掃過（大阿爾克那多一圈光暈與較強震動）→ 下方浮出牌名與關鍵字
+async function tRevealOne(k,quick){
+  const x=tReading.c[k],c=tcard(x.i),pos=spreadDef().pos[k],el=$(`.spreadbox .tcard[data-tslot="${k}"]`);tRev[k]=true;
+  await Promise.race([tPreload(x.i),wait(2500)]);
+  if(el){el.classList.remove('next');if(!quick)el.style.setProperty('--d','0ms');el.classList.add('up')}
+  if(!quick)buzz(c.major?[16,60,30]:12);
+  await wait(reduceMotion()?0:quick?900:780);
+  if(el){el.classList.add('flat');if(!reduceMotion()){el.classList.add('glint');if(c.major)el.classList.add('maj');setTimeout(()=>el.classList.remove('glint'),1300)}
+    el.setAttribute('aria-label',`${pos}：${c.zh}${x.rev?'逆位':'正位'}`);const sl=el.parentElement.querySelector('.sl');if(sl)sl.innerHTML=`${pos}<b class="cn">${c.zh}${x.rev?'・逆':''}</b>`}
+  if(quick)return;
+  const cap=$('#tCap');if(cap){cap.innerHTML=`<span class="eyebrow">${pos}${c.major?' · 大阿爾克那':''}</span><b>${c.zh}${x.rev?'（逆位）':''}</b><span class="small muted">${x.rev?c.kwR:c.kwU}</span>`;cap.classList.remove('pop');void cap.offsetWidth;cap.classList.add('pop')}
+  const n=tRev.findIndex(v=>!v);if(n>=0)$(`.spreadbox .tcard[data-tslot="${n}"]`)?.classList.add('next');
+}
+async function tAllRevealed(quick){await wait(quick?250:1100);tFlipped=true;renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'}),60)}
 function tarotDaily(d=new Date()){const h=hash(`${d.toDateString()}|tarot|${P.sur}${P.given}`);return {i:h%78,rev:!!((h>>>7)&1)}}
 
 /* ---------- 求籤・擲筊 ---------- */
@@ -2955,18 +2985,22 @@ document.addEventListener('click',async e=>{
   if(t.dataset.dtarot!==undefined){const now=new Date();tSpread='one';tQ='今日的提醒';tCat='綜合';tDeck=[];tPicked=[{k:-1,i:+t.dataset.dtarot,rev:t.dataset.drev==='1'}];tFlipped=true;tReading={s:'one',q:'今日的提醒',cat:'綜合',t:`${now.getMonth()+1}/${now.getDate()} 每日一牌`,c:[{i:+t.dataset.dtarot,rev:t.dataset.drev==='1'}]};go('tarot');setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),350);return}
   // 塔羅
   if(t.dataset.tcat){tCat=t.dataset.tcat;$$('[data-tcat]').forEach(c=>c.setAttribute('aria-pressed',c===t));return}
-  if(t.dataset.spread){tQ=$('#tQ')?.value||tQ;tSpread=t.dataset.spread;tDeck=null;tPicked=[];tFlipped=false;tReading=null;renderTarot();return}
-  if(t.id==='tShuffle'||t.id==='tReshuffle'){tQ=$('#tQ')?.value||tQ;tPicked=[];tFlipped=false;tReading=null;tDeck=shuffleDeck();renderTarot();$('#ttable').scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});setTimeout(tDeal,reduceMotion()?0:260);return}
-  if(t.dataset.dk!==undefined){const need=spreadDef().pos.length;const k=+t.dataset.dk;if(tPicked.length>=need||t.classList.contains('taken')||tPicked.some(p=>p.k===k))return;if(tBusy)return;tBusy=true;tPicked.push({k,...tDeck[k]});tPreload(tDeck[k].i);buzz(10);tQ=$('#tQ')?.value||tQ;
+  if(t.dataset.spread){tStir=false;tQ=$('#tQ')?.value||tQ;tSpread=t.dataset.spread;tDeck=null;tPicked=[];tFlipped=false;tReading=null;renderTarot();return}
+  if(t.id==='tShuffle'||t.id==='tReshuffle'){tQ=$('#tQ')?.value||tQ;tPicked=[];tFlipped=false;tReading=null;tLand=-1;tDeck=shuffleDeck();tStir=!reduceMotion();renderTarot();$('#ttable').scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});if(tStir)setTimeout(tStack,280);return}
+  if(t.id==='tDealNow'){tDealOut();return}
+  if(t.dataset.dk!==undefined){if(tStir)return;const need=spreadDef().pos.length;const k=+t.dataset.dk;if(tPicked.length>=need||t.classList.contains('taken')||tPicked.some(p=>p.k===k))return;if(tBusy)return;tBusy=true;tPicked.push({k,...tDeck[k]});tPreload(tDeck[k].i);buzz(10);tQ=$('#tQ')?.value||tQ;
     // 先畫出新的牌位（讓飛行有落點），再讓牌飛過去
-    const y=scrollY;await tFly(t,tPicked.length-1);if(tPicked.length>=need)tarotFinish();renderTarot();scrollTo({top:y});tBusy=false;return}
-  if(t.id==='tAuto'){tQ=$('#tQ')?.value||tQ;const need=spreadDef().pos.length;const free=tDeck.map((c,k)=>k).filter(k=>!tPicked.some(p=>p.k===k));while(tPicked.length<need){const k=free.splice(Math.floor(Math.random()*free.length),1)[0];tPicked.push({k,...tDeck[k]})}tPicked.forEach(p=>tPreload(p.i));tarotFinish();renderTarot();return}
-  if(t.id==='tFlip'||t.dataset.tslot!==undefined){if(!tReading)return;if(!tFlipped){if(tBusy)return;tBusy=true;t.disabled=true;
-      // 等牌面都載好（最多 2.5 秒）再翻
-      await Promise.race([Promise.all(tReading.c.map(c=>tPreload(c.i))),new Promise(r=>setTimeout(r,2500))]);
-      tFlipped=true;$$('.spreadbox .tcard').forEach(c=>c.classList.add('up'));buzz();await wait(900);tBusy=false;renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}else if(t.dataset.tslot!==undefined){const k=+t.dataset.tslot,x=tReading.c[k];if(x)cardSheet(x.i,x.rev,spreadDef().pos[k],tReading.cat)}return}
+    const y=scrollY;await tFly(t,tPicked.length-1);tLand=tPicked.length-1;if(tPicked.length>=need){tarotFinish();renderTarot();$('#ttable').scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'})}else{renderTarot();scrollTo({top:y})}tBusy=false;return}
+  if(t.id==='tAuto'){tStir=false;tQ=$('#tQ')?.value||tQ;const need=spreadDef().pos.length;const free=tDeck.map((c,k)=>k).filter(k=>!tPicked.some(p=>p.k===k));while(tPicked.length<need){const k=free.splice(Math.floor(Math.random()*free.length),1)[0];tPicked.push({k,...tDeck[k]})}tPicked.forEach(p=>tPreload(p.i));tarotFinish();renderTarot();$('#ttable').scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});return}
+  if(t.id==='tFlip'||t.dataset.tslot!==undefined){if(!tReading)return;
+    if(!tFlipped&&t.id==='tFlip'){if(tBusy)return;tBusy=true;t.disabled=true;const left=tRev.map((v,k)=>v?-1:k).filter(k=>k>=0);
+      await Promise.race([Promise.all(left.map(k=>tPreload(tReading.c[k].i))),wait(2500)]);buzz();await Promise.all(left.map(k=>tRevealOne(k,true)));tBusy=false;await tAllRevealed(true);return}
+    const k=+t.dataset.tslot,x=tReading.c[k];
+    if(!tFlipped&&!tRev[k]){if(tBusy)return;tBusy=true;await tRevealOne(k);tBusy=false;if(tRev.every(Boolean))await tAllRevealed();return}
+    if(x)cardSheet(x.i,x.rev,spreadDef().pos[k],tReading.cat);return}
   if(t.dataset.thist!==undefined){const h=store.get('gx_tarot',[])[+t.dataset.thist];if(h){tSpread=h.s;tQ=h.q;tCat=h.cat||'綜合';tDeck=[];tPicked=h.c.map((c,k)=>({k:-1-k,...c}));tFlipped=true;tReading=h;renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth'}),60)}return}
   if(t.id==='tClear'){if(await alertBox({title:'清除抽牌紀錄？',msg:'清除後無法復原。',buttons:[{text:'取消',style:'cancel',value:false},{text:'清除',style:'destructive',value:true}]})){store.set('gx_tarot',[]);renderTarot();hud('已清除')}return}
+  if(t.dataset.jump){$('#'+t.dataset.jump)?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});return}
   if(t.id==='tShare'&&tReading){shareOut(shareText(tReading));return}
   if(t.dataset.lib){tLib=t.dataset.lib;tLibSel=null;const y=scrollY;renderTarot();scrollTo(0,y);return}
   if(t.dataset.libc!==undefined){cardSheet(+t.dataset.libc,false,null,null);return}
@@ -3139,10 +3173,13 @@ function installSteps(){
 // 用瀏覽器開啟的人：在分頁列上方跳出提示泡泡，箭頭指向瀏覽器的分享按鈕
 function maybeA2hs(){
   if(!canInstall()||P.sample||instSnoozed()||$('#a2hs')||$('#updm')||$('.layer.show'))return;
+  const today=new Date().toDateString();if(store.get('gx_a2_day','')===today)return;store.set('gx_a2_day',today);
   const b=document.createElement('div');b.id='a2hs';b.className='a2hs'+(isIOS&&!iosOther&&!inApp?' ios':'');b.setAttribute('role','dialog');b.setAttribute('aria-label','加到主畫面');
-  const tip=inApp?'先改用瀏覽器開啟，就能把靈犀加到主畫面':isIOS&&!iosOther?'點下方「分享」→「加入主畫面」，像 App 一樣使用':instEvt?'一鍵安裝到主畫面，像 App 一樣使用':'把靈犀加到主畫面，像 App 一樣使用';
+  const tip=inApp?'先改用瀏覽器開啟':isIOS&&!iosOther?'點下方「分享」→「加入主畫面」':'像 App 一樣全螢幕使用';
   b.innerHTML=`<img src="icons/icon-192.png" alt=""><div class="a2t"><b>加到主畫面</b><span>${tip}</span></div><button type="button" class="btn sm primary" data-act="install">${instEvt?'安裝':'教我'}</button><button type="button" class="a2x" data-act="a2off" aria-label="不用了">×</button>`;
   document.body.appendChild(b);
+  // 小提示：12 秒後自動收起（不算拒絕，一天最多出現一次）
+  setTimeout(()=>{if(b.isConnected){b.classList.add('out');setTimeout(()=>b.remove(),300)}},12000);
 }
 async function doInstall(){
   if(instEvt){instEvt.prompt();const r=await instEvt.userChoice.catch(()=>null);instEvt=null;if(r&&r.outcome==='accepted')store.set('gx_inst',1);if(cur==='overview')render('overview');return}

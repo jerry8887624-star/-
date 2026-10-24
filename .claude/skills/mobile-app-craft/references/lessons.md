@@ -15,3 +15,5 @@
 | 部署後手機仍是舊版 | Service worker 讀到 HTTP 快取 | 網頁 `cache:'no-store'`、註冊 `updateViaCache:'none'` |
 | 分頁列擋住內文 | 固定在底部 | 往下捲收起、往上捲或到底出現 |
 | iPhone 翻牌後牌面空白 | 圖在 3D 翻到背面後才載完，iOS Safari 不重繪；`onerror` 呼叫的後備函式寫在 IIFE 內找不到 | 選取時就預載＋`decode()`，翻前等圖就緒；`onerror` 用掛在 window 的函式並重試一次；翻完強制重繪 |
+| 3D 翻牌後要長時間顯示的牌面 | 放在 `backface-visibility:hidden` 的背面，iOS 可能不載入／不重繪 | 翻牌動畫結束就改成平面（不含 3D）的牌面；備用圖只在真的載入失敗兩次才換 |
+| 手勢互動（攪牌）時誤觸按鈕 | 子元素仍可點 | 互動中子元素 `pointer-events:none`、容器 `touch-action:none`，狀態旗標擋住點擊處理 |

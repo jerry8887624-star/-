@@ -1503,3 +1503,54 @@ html.narrow .tspread{column-gap:3px}
 .tcard.flat .bk{display:none}
 .tcard.flat .fr{transform:none;-webkit-backface-visibility:visible;backface-visibility:visible}
 .tcard.flat:active .in,.tcard.up.flat:not(.empty):active .in{transform:scale(.97)}
+/* ===== 塔羅抽牌動效 v2：攪牌、固定牌位、逐張揭牌、金光 ===== */
+/* 攪牌：疊在中央的牌跟著手指旋轉散開 */
+.tspread.stacked .dc{transform:translate(calc(var(--fx) + var(--sx,0px)),calc(var(--fy) + var(--sy,0px))) rotate(calc(var(--jr) + var(--sr,0deg))) scale(1.9)}
+.tspread.stir{touch-action:none;cursor:grab}
+.tspread.stir .dc{transition:transform .28s cubic-bezier(.2,.8,.3,1);pointer-events:none}
+@keyframes t-jig{25%{transform:translate(calc(var(--fx) - 10px),var(--fy)) rotate(calc(var(--jr) * -1)) scale(1.9)}75%{transform:translate(calc(var(--fx) + 10px),var(--fy)) rotate(var(--jr)) scale(1.9)}}
+/* 選牌時牌位固定在畫面上方 */
+.ttray{position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);z-index:7;margin-inline:-6px;padding:10px 10px 8px;border-radius:16px;background:var(--tab-bg,var(--card));backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);box-shadow:0 1px 0 var(--line),0 8px 18px -12px rgba(0,0,0,.5);display:flex;flex-direction:column;align-items:center;gap:8px}
+.ttray-slots{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.ts{width:30px;aspect-ratio:260/457;border-radius:5px;display:grid;place-items:center;overflow:hidden;box-shadow:inset 0 0 0 1.5px var(--line);background:repeating-linear-gradient(135deg,transparent 0 5px,var(--fill) 5px 6px);color:var(--muted);font-size:11px}
+.ts i{font-style:normal}
+.ts.cur{box-shadow:inset 0 0 0 1.5px var(--tint);color:var(--tint);animation:ts-cur 1.6s ease-in-out infinite}
+@keyframes ts-cur{50%{box-shadow:inset 0 0 0 1.5px var(--tint),0 0 10px 1px rgba(231,194,122,.45)}}
+.ts.on{box-shadow:0 0 0 1px var(--tint);background:none}
+.ts.on svg{display:block;width:100%;height:100%}
+.ts.land{animation:ts-land .4s cubic-bezier(.2,.8,.3,1.3)}
+@keyframes ts-land{from{transform:scale(1.35)}}
+.ttray-tip{margin:0;display:flex;flex-direction:column;align-items:center;gap:1px;text-align:center}
+.ttray-tip b{font-size:15px;color:var(--ink)}.ttray-tip span{font-size:13px;color:var(--muted)}
+/* 逐張揭牌 */
+.tcap{margin:2px 0 0;min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center}
+.tcap b{font-family:var(--f-serif);font-size:19px;color:var(--ink)}
+.tcap.pop{animation:dt-up .32s ease both}
+.tcard.next:not(.up) .in{animation:t-next 1.8s ease-in-out infinite}
+.tcard.next:not(.up) .bk{box-shadow:0 0 0 1.5px var(--tint),0 0 16px 2px rgba(231,194,122,.45)}
+@keyframes t-next{50%{transform:translateY(-5px)}}
+.tcard.glint,.dt-face.glint{animation:t-pop .55s cubic-bezier(.2,.8,.3,1.25)}
+@keyframes t-pop{40%{transform:scale(1.07)}}
+.tcard.glint::after,.dt-face.glint::after{content:"";position:absolute;inset:0;border-radius:9px;pointer-events:none;z-index:3;mix-blend-mode:screen;
+  background:linear-gradient(105deg,transparent 32%,rgba(255,226,160,.55) 45%,rgba(255,250,235,.95) 50%,rgba(255,226,160,.55) 55%,transparent 68%) no-repeat;background-size:260% 100%;background-position:130% 0;animation:t-glint 1.1s cubic-bezier(.3,.6,.3,1) forwards}
+@keyframes t-glint{to{background-position:-40% 0}}
+.dt-face{position:relative}
+.tcard.maj,.dt-face.maj{border-radius:9px;animation:t-halo 1.8s ease-out both}
+@keyframes t-halo{0%{box-shadow:0 0 0 0 rgba(231,194,122,0)}30%{box-shadow:0 0 0 2px rgba(231,194,122,.95),0 0 28px 8px rgba(231,194,122,.6)}100%{box-shadow:0 0 0 1.5px rgba(231,194,122,.7),0 0 14px 2px rgba(231,194,122,.3)}}
+.tcard.glint.maj,.dt-face.glint.maj{animation:t-pop .55s cubic-bezier(.2,.8,.3,1.25),t-halo 1.8s ease-out both}
+/* 解讀段落快速跳轉 */
+.tjump{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0}.tjump::-webkit-scrollbar{display:none}
+.tjump .chip{flex:none}
+#tr-sum,#tr-story,#tr-per,#tr-tips{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 60px)}
+#tr-story:empty{display:none}
+/* 加到主畫面：縮成一條小提示 */
+.a2hs{grid-template-columns:auto 1fr auto auto;gap:8px;padding:7px 7px 7px 9px;border-radius:14px;max-width:420px}
+.a2hs img{width:30px;height:30px;border-radius:8px}
+.a2t b{font-size:14.5px;line-height:1.3}.a2t span{font-size:12px;line-height:1.35}
+.a2x{width:28px;height:28px;font-size:16px}
+.a2hs .btn.sm{min-height:34px;padding:0 12px}
+.a2hs.out{opacity:0;transform:translateY(10px);transition:opacity .25s,transform .25s}
+/* 牌陣比畫面高時（年度、凱爾特），翻牌說明黏在畫面下方，翻哪張都看得到 */
+.tcap{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);z-index:6;padding:8px 12px;border-radius:14px;background:var(--tab-bg,var(--card));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
+.tspread.stacked .dc{box-shadow:0 1px 2px rgba(0,0,0,.18)}
