@@ -1120,7 +1120,7 @@ function cardSvg(i){
     <text x="60" y="183" text-anchor="middle" font-size="6.2" fill="${g}" opacity=".75" letter-spacing=".9" font-family="Georgia,serif">${c.en.toUpperCase()}</text></svg>`;
 }
 const CARD_BACK=`<svg viewBox="0 0 120 200" class="tback" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><radialGradient id="cbg" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#22305A"/><stop offset="1" stop-color="#0E1428"/></radialGradient><pattern id="cbp" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 6H12M6 0V12" stroke="#D9B46A" stroke-opacity=".09" stroke-width=".6"/></pattern></defs><rect width="120" height="200" rx="10" fill="url(#cbg)"/><rect width="120" height="200" rx="10" fill="url(#cbp)"/><rect x="5" y="5" width="110" height="190" rx="7" fill="none" stroke="#D9B46A" stroke-opacity=".7" stroke-width=".9"/><rect x="9" y="9" width="102" height="182" rx="5" fill="none" stroke="#D9B46A" stroke-opacity=".3" stroke-width=".5"/>${Array.from({length:24},(_,i)=>{const a=i/24*Math.PI*2;return `<line x1="${(60+Math.cos(a)*12).toFixed(1)}" y1="${(100+Math.sin(a)*12).toFixed(1)}" x2="${(60+Math.cos(a)*(i%2?28:40)).toFixed(1)}" y2="${(100+Math.sin(a)*(i%2?28:40)).toFixed(1)}" stroke="#D9B46A" stroke-opacity="${i%2?.45:.8}" stroke-width=".7"/>`}).join('')}<circle cx="60" cy="100" r="44" fill="none" stroke="#D9B46A" stroke-opacity=".4" stroke-width=".6"/><circle cx="60" cy="100" r="48" fill="none" stroke="#D9B46A" stroke-opacity=".2" stroke-width=".5" stroke-dasharray="1.5 2.5"/><path d="M60 88L63 97L72 100L63 103L60 112L57 103L48 100L57 97Z" fill="#D9B46A" opacity=".9"/><path d="M60 22L62 27L67 29L62 31L60 36L58 31L53 29L58 27Z M60 164L62 169L67 171L62 173L60 178L58 173L53 171L58 169Z" fill="#D9B46A" opacity=".6"/></svg>`;
-let tSpread='three', tQ='', tCat='綜合', tDeck=null, tPicked=[], tFlipped=false, tReading=null;
+let tBusy=false, tSpread='three', tQ='', tCat='綜合', tDeck=null, tPicked=[], tFlipped=false, tReading=null;
 function shuffleDeck(){const a=Array.from({length:78},(_,i)=>i);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.map(i=>({i,rev:Math.random()<.5}))}
 function spreadDef(){return TD.spreads.find(s=>s.k===tSpread)}
 function slotHtml(k,d,pos){
@@ -1138,6 +1138,31 @@ function libHtml(){
     <div class="libgrid">${g[2].map(i=>`<button type="button" class="lc${tLibSel===i?' on':''}" data-libc="${i}" aria-label="${tcard(i).zh}">${cardFace(i)}</button>`).join('')}</div>
     <p class="small muted">點任一張牌查看正逆位與各類解讀。</p></div></details>`;
 }
+/* 一次攤開 78 張：每列 8 張微微成扇形，選走的牌留下虛線位置，其他牌不移動 */
+const T_COLS=8;
+function tSpreadHtml(){
+  return `<div class="tspread" id="deck" role="group" aria-label="78 張牌">${tDeck.map((c,k)=>{const col=k%T_COLS,row=Math.floor(k/T_COLS),off=col-(T_COLS-1)/2,taken=tPicked.some(p=>p.k===k);
+    return `<button type="button" class="dc${taken?' gone':''}" data-dk="${k}" style="--o:${row+col};--rot:${(off*2.2).toFixed(1)}deg;--ty:${(off*off*0.9).toFixed(1)}px;--jr:${((k*37)%21-10)}deg" aria-label="${taken?'已選走':`第 ${k+1} 張牌，未揭示`}"${taken?' disabled':''}>${taken?'':CARD_BACK}</button>`}).join('')}</div>`;
+}
+// 洗牌：全部疊在中央抖動，再一波波發到桌面
+async function tDeal(){const g=$('#deck');if(!g)return;if(reduceMotion())return;
+  const R=g.getBoundingClientRect(),cx=R.left+R.width/2,cy=R.top+Math.min(R.height/2,180);
+  g.querySelectorAll('.dc').forEach(b=>{const r=b.getBoundingClientRect();b.style.setProperty('--fx',`${cx-(r.left+r.width/2)}px`);b.style.setProperty('--fy',`${cy-(r.top+r.height/2)}px`)});
+  g.classList.add('stacked');void g.offsetWidth;g.classList.add('jiggle');buzz(6);
+  await new Promise(r=>setTimeout(r,520));g.classList.remove('jiggle');g.classList.add('dealing');void g.offsetWidth;g.classList.remove('stacked');
+  setTimeout(()=>{g.classList.remove('dealing');buzz(6)},1000);
+}
+// 選中：牌從桌面飛到上方牌陣的位置
+async function tFly(btn,k){
+  const slot=$(`.spreadbox .slot:nth-child(${k+1}) .tcard`);if(reduceMotion()||!slot)return;
+  const a=btn.getBoundingClientRect(),b=slot.getBoundingClientRect();const f=btn.cloneNode(true);f.className='dc fly';f.removeAttribute('data-dk');
+  Object.assign(f.style,{position:'fixed',left:a.left+'px',top:a.top+'px',width:a.width+'px',height:a.height+'px',margin:0,zIndex:60});document.body.appendChild(f);
+  btn.classList.add('gone');btn.innerHTML='';
+  // 牌位在畫面外（例如大字級時在上方）就飛到畫面頂端淡出
+  const off=b.bottom<64,ty=off?40:b.top+b.height/2,sx=off?1.4:b.width/a.width,dx=b.left+b.width/2-(a.left+a.width/2),dy=ty-(a.top+a.height/2);
+  f.animate([{transform:'translateY(-8px) scale(1.08)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(${sx})`,opacity:off?0:1}],{duration:420,easing:'cubic-bezier(.2,.75,.25,1)',fill:'forwards'});
+  await new Promise(r=>setTimeout(r,430));f.remove();
+}
 function renderTarot(){
   const d=spreadDef(), need=d.pos.length, done=tPicked.length>=need;
   const hist=store.get('gx_tarot',[]);
@@ -1151,7 +1176,7 @@ function renderTarot(){
     <div class="row between"><div><div class="eyebrow">${d.n}</div><h3 class="h3">${!tDeck?'先靜心洗牌':done?(tFlipped?'牌已翻開':'點牌或一次翻開'):`憑直覺選 ${need-tPicked.length} 張`}</h3></div><span class="small muted num">${tPicked.length}/${need}</span></div>
     <div class="spreadbox ${tSpread}"${tSpread==='celtic'?' data-fit="272"':''}>${d.pos.map((p,k)=>slotHtml(k,d,p)).join('')}</div>
     ${!tDeck?`<p class="ritual">深呼吸，心裡默想你的問題，按下洗牌。洗好後從牌堆中憑感覺抽牌，不必想太多。</p><button type="button" class="btn primary block" id="tShuffle">洗牌</button>`
-      :!done?`<p class="ritual" style="text-align:center">左右滑動牌堆，被哪張吸引就點哪張</p><div class="deck" id="deck">${tDeck.map((c,k)=>tPicked.some(p=>p.k===k)?'':`<button type="button" class="dc" data-dk="${k}" aria-label="抽這張" style="--k:${k}">${CARD_BACK}</button>`).join('')}</div><div class="grid2"><button type="button" class="btn" id="tAuto">幫我抽</button><button type="button" class="btn" id="tReshuffle">重新洗牌</button></div>`
+      :!done?`<p class="ritual" style="text-align:center" aria-live="polite">78 張牌已攤開，點一張你有感覺的牌${need-tPicked.length>1?`（還要 ${need-tPicked.length} 張）`:''}</p>${tSpreadHtml()}<div class="grid2"><button type="button" class="btn" id="tAuto">幫我抽</button><button type="button" class="btn" id="tReshuffle">重新洗牌</button></div>`
       :`<div class="grid2">${tFlipped?'':`<button type="button" class="btn primary" id="tFlip">全部翻開</button>`}<button type="button" class="btn${tFlipped?' block':''}" id="tReshuffle" ${tFlipped?'style="grid-column:1 / -1"':''}>再抽一次</button></div>`}
   </div>
   <div id="tResult" class="stack">${tFlipped&&tReading?tarotReadingHtml(tReading):''}</div>
@@ -2656,7 +2681,7 @@ function zwDailyText(date){const Z=zwDaily(date);if(!Z)return '';
 
 /* ---------- 各頁小提示 ---------- */
 // 第一次進入每一頁時，用一個小氣泡指出最常用的按鈕；點任何地方就收起，不會擋住操作
-const TIPS={overview:['#daily .days','左右滑動或點日期，可以看未來七天的運勢'],tarot:['#tShuffle,#deck','先在心裡默想問題，再按「洗牌」開始抽牌'],qian:['#qcard .btn.primary,#qNext0','照著步驟：稟告 → 擲筊請示 → 抽籤 → 確認'],
+const TIPS={overview:['#daily .days','左右滑動或點日期，可以看未來七天的運勢'],tarot:['#tShuffle,#deck','先在心裡默想問題，按「洗牌」後 78 張牌會攤開，點你有感覺的牌'],qian:['#qcard .btn.primary,#qNext0','照著步驟：稟告 → 擲筊請示 → 抽籤 → 確認'],
   ziwei:['.board .cell','點任何一個宮位，下面會出現詳細解讀'],liunian:['.yr','點年份可以看那一年的運勢'],hehun:['#hhB,[data-act="addp"]','選兩個人，看生肖八字合不合'],name:['#genBtn','按這裡，自動找出筆畫都吉利的好名字'],
   qimen:['.qm .qc','點任一方位，看這個方向適不適合'],zeri:['[data-zev]','先選要辦的事，下面就會列出好日子'],family:['.fam [data-fam],[data-act="addp"]','點這裡切換成家人的命盤'],journal:['[data-jv]','事情有了結果，按「回顧」記下有沒有應驗'],meihua:['[data-act="mhcast"]','心裡想著問題，按「起卦」得到一個卦'],star:['.dial-wrap','依今天月亮的位置，看你這個星座的運勢'],festival:['[data-act="festics"]','一鍵把整年的節日加到手機行事曆，前一天會提醒'],fengshui:['.compass','綠色是你的吉方，床頭、書桌朝這些方向最好']};
 let tipEl=null;
@@ -2925,8 +2950,10 @@ document.addEventListener('click',async e=>{
   // 塔羅
   if(t.dataset.tcat){tCat=t.dataset.tcat;$$('[data-tcat]').forEach(c=>c.setAttribute('aria-pressed',c===t));return}
   if(t.dataset.spread){tQ=$('#tQ')?.value||tQ;tSpread=t.dataset.spread;tDeck=null;tPicked=[];tFlipped=false;tReading=null;renderTarot();return}
-  if(t.id==='tShuffle'||t.id==='tReshuffle'){tQ=$('#tQ')?.value||tQ;tPicked=[];tFlipped=false;tReading=null;tDeck=shuffleDeck();renderTarot();const d=$('#deck');if(d){d.classList.add('shuffling');buzz();d.scrollLeft=(d.scrollWidth-d.clientWidth)/2;setTimeout(()=>d.classList.remove('shuffling'),700);$('#ttable').scrollIntoView({behavior:'smooth',block:'start'})}return}
-  if(t.dataset.dk!==undefined){const need=spreadDef().pos.length;const k=+t.dataset.dk;if(tPicked.length>=need||t.classList.contains('taken')||tPicked.some(p=>p.k===k))return;tPicked.push({k,...tDeck[k]});buzz();t.classList.add('taken');await wait(220);tQ=$('#tQ')?.value||tQ;if(tPicked.length>=need)tarotFinish();const sx=$('#deck')?.scrollLeft||0;renderTarot();const d=$('#deck');if(d)d.scrollLeft=sx;return}
+  if(t.id==='tShuffle'||t.id==='tReshuffle'){tQ=$('#tQ')?.value||tQ;tPicked=[];tFlipped=false;tReading=null;tDeck=shuffleDeck();renderTarot();$('#ttable').scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});setTimeout(tDeal,reduceMotion()?0:260);return}
+  if(t.dataset.dk!==undefined){const need=spreadDef().pos.length;const k=+t.dataset.dk;if(tPicked.length>=need||t.classList.contains('taken')||tPicked.some(p=>p.k===k))return;if(tBusy)return;tBusy=true;tPicked.push({k,...tDeck[k]});buzz(10);tQ=$('#tQ')?.value||tQ;
+    // 先畫出新的牌位（讓飛行有落點），再讓牌飛過去
+    const y=scrollY;await tFly(t,tPicked.length-1);if(tPicked.length>=need)tarotFinish();renderTarot();scrollTo({top:y});tBusy=false;return}
   if(t.id==='tAuto'){tQ=$('#tQ')?.value||tQ;const need=spreadDef().pos.length;const free=tDeck.map((c,k)=>k).filter(k=>!tPicked.some(p=>p.k===k));while(tPicked.length<need){const k=free.splice(Math.floor(Math.random()*free.length),1)[0];tPicked.push({k,...tDeck[k]})}tarotFinish();renderTarot();return}
   if(t.id==='tFlip'||t.dataset.tslot!==undefined){if(!tReading)return;if(!tFlipped){tFlipped=true;$$('.spreadbox .tcard').forEach(c=>c.classList.add('up'));buzz();await wait(900);renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}else if(t.dataset.tslot!==undefined){const k=+t.dataset.tslot,x=tReading.c[k];if(x)cardSheet(x.i,x.rev,spreadDef().pos[k],tReading.cat)}return}
   if(t.dataset.thist!==undefined){const h=store.get('gx_tarot',[])[+t.dataset.thist];if(h){tSpread=h.s;tQ=h.q;tCat=h.cat||'綜合';tDeck=[];tPicked=h.c.map((c,k)=>({k:-1-k,...c}));tFlipped=true;tReading=h;renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth'}),60)}return}
