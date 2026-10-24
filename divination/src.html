@@ -101,9 +101,10 @@ setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('�
   <filter id="crayon" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" xChannelSelector="R" yChannelSelector="G"/></filter>
   <filter id="crayonFill" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="7" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.4 0 0 0 1.75" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in" result="t"/><feDisplacementMap in="t" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/></filter>
 </defs></svg>
+<div class="bgart" aria-hidden="true"></div>
 <div class="app">
   <header class="navbar"><button class="aa" id="fsBtn" aria-label="文字大小與粗細"><span>A</span><span>A</span></button><span id="navTitle" aria-hidden="true">今日</span><button class="who" id="whoBtn" aria-label="編輯命主資料"><span id="whoAv">命</span></button></header>
-  <div class="largetitle"><small id="ltDate">　</small><h1 id="ltTitle">今日</h1><svg class="lt-doodle" viewBox="0 0 140 80" aria-hidden="true"><g filter="url(#crayonFill)"><path d="M104 8a24 24 0 1 0 16 41 20 20 0 1 1-16-41z" fill="var(--doodle-moon)"/><path d="M30 20l2.2 6.8 6.8 2.2-6.8 2.2L30 38l-2.2-6.8L21 29l6.8-2.2z" fill="var(--doodle-star)"/><path d="M70 50l1.6 4.6 4.6 1.6-4.6 1.6L70 62.4l-1.6-4.6-4.6-1.6 4.6-1.6z" fill="var(--doodle-sage)"/><path d="M128 62l1.3 3.7 3.7 1.3-3.7 1.3-1.3 3.7-1.3-3.7-3.7-1.3 3.7-1.3z" fill="var(--doodle-ink)"/><circle cx="56" cy="14" r="2" fill="var(--doodle-sage)"/><circle cx="12" cy="58" r="1.6" fill="var(--doodle-star)"/></g></svg></div>
+  <div class="largetitle"><small id="ltDate">　</small><h1 id="ltTitle">今日</h1><p class="lt-tag" id="ltTag"></p><button type="button" class="lt-sample" id="ltSample" data-act="profile" hidden>範例資料 · 點此輸入你的生辰</button><div class="lt-motto" id="ltMotto" aria-hidden="true"></div><svg class="lt-doodle" viewBox="0 0 140 80" aria-hidden="true"><g filter="url(#crayonFill)"><path d="M104 8a24 24 0 1 0 16 41 20 20 0 1 1-16-41z" fill="var(--doodle-moon)"/><path d="M30 20l2.2 6.8 6.8 2.2-6.8 2.2L30 38l-2.2-6.8L21 29l6.8-2.2z" fill="var(--doodle-star)"/><path d="M70 50l1.6 4.6 4.6 1.6-4.6 1.6L70 62.4l-1.6-4.6-4.6-1.6 4.6-1.6z" fill="var(--doodle-sage)"/><path d="M128 62l1.3 3.7 3.7 1.3-3.7 1.3-1.3 3.7-1.3-3.7-3.7-1.3 3.7-1.3z" fill="var(--doodle-ink)"/><circle cx="56" cy="14" r="2" fill="var(--doodle-sage)"/><circle cx="12" cy="58" r="1.6" fill="var(--doodle-star)"/></g></svg></div>
   <div id="subnav" hidden></div>
   <main>
     <div id="boot" class="loading">正在排盤…</div>
@@ -2668,20 +2669,27 @@ function buzz(){try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}}
 function renderTabs(){
   $('#tabs').innerHTML=GROUPS.map(g=>`<button class="tab" data-tab="${g.k}" aria-current="${groupOf(cur)===g?'page':'false'}"><svg viewBox="0 0 24 24" aria-hidden="true">${g.icon}</svg><span>${g.n}</span></button>`).join('');
 }
+// 各分頁的標語與直排箴言
+const TAGS={today:['順天應時・日日是好日','天時・地利・人和'],ask:['誠心問事・指點迷津','心誠・則靈'],cal:['擇吉而行・不違農時','敬天・順時・安心'],chart:['知命而不認命','識己・知命・造運'],tools:['好名開運・順勢而行','天時・人和・名正運旺'],fam:['一家平安・福氣滿堂','家和・萬事興']};
 function renderTitle(){
   const g=groupOf(cur), now=new Date(), L=Solar.fromDate(now).getLunar();
   $('#ltDate').textContent=cur==='overview'?`${now.getMonth()+1}月${now.getDate()}日 星期${WEEK[now.getDay()]} · 農曆${S2T(L.getMonthInChinese())}月${S2T(L.getDayInChinese())}`:SUBTITLE[cur];
   $('#ltTitle').textContent=TITLES[cur];$('#navTitle').textContent=TITLES[cur];
+  const tg=TAGS[g.k]||['',''];$('#ltTag').textContent=tg[0];$('#ltMotto').innerHTML=[...tg[1]].map(c=>c==='・'?'<i class="dot"></i>':`<i>${c}</i>`).join('');
+  $('#ltSample').hidden=!P.sample;
   const sub=g.sub&&(!simple||g.keepSub)?g.sub:null;
   $('#subnav').innerHTML=sub?`<div class="seg" role="group" aria-label="切換">${g.views.map((v,k)=>`<button type="button" data-sub="${v}" aria-pressed="${v===cur}">${g.sub[k]}</button>`).join('')}</div>`:'';
   $('#subnav').hidden=!sub;
 }
-function go(v,push=true){
+// 記住各頁捲動位置：切回來時停在原本讀到的地方
+const scrollMem={};
+function go(v,push=true,keepY=true){
   if(!VIEWS.includes(v))v='overview';
+  const same=v===cur,y0=scrollY;if(!same)scrollMem[cur]=y0;
   speakStop();
   const swap=()=>{cur=v;
     $$('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
-    renderTabs();renderTitle();render(v);window.scrollTo({top:0});hideTip();setTimeout(()=>{if(cur===v)showTip(v)},700);};
+    renderTabs();renderTitle();render(v);const ty=same?y0:keepY?(scrollMem[v]||0):0;lastY=ty;window.scrollTo({top:ty});document.body.classList.remove('tabhide');hideTip();setTimeout(()=>{if(cur===v)showTip(v)},700);};
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(push&&document.startViewTransition&&!reduce&&v!==cur){buzz();document.startViewTransition(swap)}else swap();
   if(push)try{history.replaceState(null,'','#'+v)}catch(e){}
@@ -2947,7 +2955,12 @@ $('#pForm').addEventListener('submit',e=>{
 });
 
 /* ---------- 手勢與捲動 ---------- */
-const onScroll=()=>{const y=scrollY;document.body.classList.toggle('collapsed',y>42)};
+// 往下捲閱讀時收起底部分頁列，往上捲或到底時再出現，避免擋住文字
+let lastY=0;
+const onScroll=()=>{const y=scrollY,b=document.body;b.classList.toggle('collapsed',y>42);
+  const atEnd=innerHeight+y>=document.documentElement.scrollHeight-24;
+  if(y<80||atEnd||y<lastY-6)b.classList.remove('tabhide');else if(y>lastY+8&&!b.classList.contains('modal-open'))b.classList.add('tabhide');
+  if(Math.abs(y-lastY)>6)lastY=y};
 addEventListener('scroll',onScroll,{passive:true});
 let tx=null,ty=null;
 document.addEventListener('touchstart',e=>{const d=e.target.closest('#daily');if(!d){tx=null;return}tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
@@ -2991,7 +3004,8 @@ function needProfile(){return !PEOPLE.length}
 function maybeWelcome(){let seen=false;try{seen=sessionStorage.getItem('gx_wel')==='1'}catch(e){}if(needProfile()&&!seen){store.set('gx_ver',APP_VER);showWelcome()}else{maybeNews();a2hsSoon()}}
 // 等歡迎頁、更新內容等視窗都關掉後再提醒加到主畫面
 function a2hsSoon(n=0){if(n>8)return;setTimeout(()=>{if($('#updm')||$('.layer.show')||$('#welcome.show')||$('.tipbub'))return a2hsSoon(n+1);maybeA2hs()},n?4000:3000)}
-const sampleBanner=()=>P.sample?`<div class="banner"><span>目前顯示<b>範例命主</b>，輸入你的姓名與生辰才是你的盤。</span><button class="btn sm primary" data-act="profile">輸入生辰</button></div>`:'';
+// 範例資料的提示改由大標題下方的「範例資料」標記常駐顯示（每一頁都看得到），這裡不再重複
+const sampleBanner=()=>'';
 
 /* ---------- 加到主畫面與離線 ---------- */
 let instEvt=null;
@@ -3050,8 +3064,8 @@ async function doInstall(){
 }
 /* 深淺色：跟隨系統／淺色／深色 */
 const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
-function setTheme(v,re=true){const r=document.documentElement;if(v==='light'||v==='dark')r.setAttribute('data-theme',v);else r.removeAttribute('data-theme');store.set('gx_theme',v);
-  $$('meta[name="theme-color"]').forEach(m=>{m.setAttribute('content',isDark()?'#1C2849':'#F1EADB');m.removeAttribute('media')});if(re&&D)render(cur)}
+function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList.add('theming');setTimeout(()=>r.classList.remove('theming'),450)}if(v==='light'||v==='dark')r.setAttribute('data-theme',v);else r.removeAttribute('data-theme');store.set('gx_theme',v);
+  $$('meta[name="theme-color"]').forEach(m=>{m.setAttribute('content',isDark()?'#12153A':'#EEF1EE');m.removeAttribute('media')});if(re&&D)render(cur)}
 /* 新版本提示：背景下載到新版後，請使用者點一下重新整理 */
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
