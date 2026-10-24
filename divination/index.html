@@ -1113,8 +1113,6 @@ html.reporting{overflow:hidden}
 .sp-star{animation-delay:2.8s}
 
 /* ===== 新版本提示 ===== */
-.updbar{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:70;display:flex;gap:10px;align-items:center;padding:10px 16px;border-radius:999px;border:0;background:var(--ink);color:var(--bg);font-size:15px;box-shadow:0 8px 24px rgba(0,0,0,.25);cursor:pointer;animation:tipin .4s var(--spring)}
-.updbar span{color:color-mix(in srgb,var(--bg) 70%,var(--tint))}
 
 /* ===== 梅花易數・小六壬 ===== */
 .hexrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -1170,7 +1168,6 @@ p.story b{color:var(--ink)}
 .mhcast .yl.mv rect{animation:yl-mv .9s ease-in-out 2.1s 2 alternate}
 @keyframes yl-in{from{opacity:0;transform:scaleX(.2)}to{opacity:1;transform:none}}
 @keyframes yl-mv{to{fill:#B3261E}}
-.updbar{white-space:nowrap;max-width:calc(100vw - 32px)}
 /* 手機羅盤 */
 .cmpwrap{position:relative;width:min(72vw,280px);margin:4px auto}
 .cmp{width:100%;height:auto;display:block}
@@ -1187,6 +1184,24 @@ p.story b{color:var(--ink)}
 .cmpmid b{font-size:clamp(26px,8vw,34px);font-variant-numeric:tabular-nums;line-height:1.1}
 .cmpmid span{font-size:13px;color:var(--muted);margin-top:2px}
 .cmpluck{margin:0;line-height:1.7}
+
+/* 新版本提醒卡：固定在底部分頁列上方 */
+.updcard{position:fixed;left:12px;right:12px;margin-inline:auto;max-width:440px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:70;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start;padding:16px 16px 14px;border-radius:18px;background:var(--card);background-image:var(--tex-paper);color:var(--ink);box-shadow:0 12px 32px rgba(0,0,0,.22),inset 0 0 0 1px var(--edge);animation:updin .45s var(--spring)}
+.updcard.out{opacity:0;transform:translateY(12px);transition:.3s}
+.updcard .ui{grid-row:1/3;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--seal);color:#FBEFE4;font-size:20px}
+.updcard .ut{display:flex;flex-direction:column;gap:3px;min-width:0}
+.updcard .ut b{font-family:var(--f-serif);font-size:17px;letter-spacing:.04em}
+.updcard .ut span{font-size:14px;line-height:1.55;color:var(--muted)}
+.updcard .ua{grid-column:2;display:flex;justify-content:flex-end;gap:8px;margin-top:8px;flex-wrap:wrap}
+@keyframes updin{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+html.simple .updcard{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+/* 更新內容介紹 */
+.newsi{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:10px 0;border-top:1px dashed var(--line)}
+.newsi:first-of-type{border-top:0}
+.newsi .ni{color:var(--seal);font-size:16px;line-height:1.6}
+.newsi b{font-family:var(--f-serif);font-size:16.5px}
+.newsi p{margin:4px 0 0;line-height:1.7;font-size:15px}
+.newsi .btn{margin-top:8px}
 </style>
 </head>
 <body>
@@ -5022,7 +5037,7 @@ function welcomeAct(a){
   else toast('隨時點右上角的生肖，或「輸入生辰」都能填寫','info');
 }
 function needProfile(){return !PEOPLE.length}
-function maybeWelcome(){let seen=false;try{seen=sessionStorage.getItem('gx_wel')==='1'}catch(e){}if(needProfile()&&!seen)showWelcome()}
+function maybeWelcome(){let seen=false;try{seen=sessionStorage.getItem('gx_wel')==='1'}catch(e){}if(needProfile()&&!seen){store.set('gx_ver',APP_VER);showWelcome()}else maybeNews()}
 const sampleBanner=()=>P.sample?`<div class="banner"><span>目前顯示<b>範例命主</b>，輸入你的姓名與生辰才是你的盤。</span><button class="btn sm primary" data-act="profile">輸入生辰</button></div>`:'';
 
 /* ---------- 加到主畫面與離線 ---------- */
@@ -5050,8 +5065,36 @@ const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');re
 function setTheme(v,re=true){const r=document.documentElement;if(v==='light'||v==='dark')r.setAttribute('data-theme',v);else r.removeAttribute('data-theme');store.set('gx_theme',v);
   $$('meta[name="theme-color"]').forEach(m=>{m.setAttribute('content',isDark()?'#1C2849':'#F1EADB');m.removeAttribute('media')});if(re&&D)render(cur)}
 /* 新版本提示：背景下載到新版後，請使用者點一下重新整理 */
-function showUpdate(){if($('#upd'))return;const b=document.createElement('button');b.id='upd';b.type='button';b.className='updbar';b.innerHTML='<b>靈犀有新版本</b><span>點這裡更新</span>';b.onclick=()=>location.reload();document.body.appendChild(b)}
-function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protocol==='https:'||location.hostname==='localhost'))return;(navigator.serviceWorker.controller&&navigator.serviceWorker.addEventListener('controllerchange',showUpdate),document.addEventListener('visibilitychange',()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})}),navigator.serviceWorker.register('sw.js')).catch(e=>console.warn('sw',e))}
+/* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
+// 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
+const CHANGES=[
+ {v:'2026.10.24',d:'10 月 24 日',items:[
+  ['更新提醒更清楚','App 有新版本時，畫面下方會出現提醒卡片，按「立即更新」即可；更新完成後會像現在這樣介紹新內容。',null],
+  ['風水・手機羅盤','開運 → 風水，按「開啟羅盤」，轉動手機就能看到你面向的方位、八卦與二十四山，以及這個方位對你是吉是凶。','fengshui'],
+  ['易卦依問題起卦','占卜 → 易卦，依你寫的問題起卦（梅花易數字占），問題不同卦就不同；加入起卦動畫，並用白話解釋「體用」等名詞。','meihua'],
+  ['右上角顯示名字','右上角改成顯示目前命主的名字，切換家人時一眼就知道在看誰的命盤。',null],
+  ['iPhone 生日欄位','修正 iPhone 上生日欄位超出卡片的問題。',null]]},
+ {v:'2026.10.23',d:'10 月 23 日',items:[
+  ['塔羅「來龍去脈」','塔羅解讀新增故事式完整說明，從問題、每張牌的位置意義到總結，一次讀懂。','tarot'],
+  ['分享圖卡改版','籤詩改成直排仿籤紙、全面使用宋體，不再顯示網址，版面依內容自動調整。',null],
+  ['拜拜清單更詳細','每個節日都有專屬供品清單、拜拜步驟與注意事項，例如冬至的紅白湯圓。','festival'],
+  ['姓名與解夢','姓名學加入成功運、基礎運與諧音檢查；解夢輸入多個元素（如狗和蛇）會綜合解讀。','name']]}];
+const APP_VER=CHANGES[0].v;
+function maybeNews(){
+  const seen=store.get('gx_ver',null);if(seen===APP_VER)return;store.set('gx_ver',APP_VER);
+  const old=!!store.get('gx_profiles',null);if(!seen&&!old)return;
+  const i=CHANGES.findIndex(c=>c.v===seen), list=(i<0?CHANGES.slice(0,1):CHANGES.slice(0,i)).slice(0,3);if(!list.length)return;
+  const L=sheet('靈犀更新了',`<div class="stack news"><p class="small muted">已經更新到最新版本，以下是這次的新內容。</p>
+    ${list.map(c=>`<div class="card stack"><span class="eyebrow">${c.d}</span>${c.items.map(([t,d,g])=>`<div class="newsi"><span class="ni" aria-hidden="true">✦</span><div><b>${t}</b><p>${d}</p>${g?`<button type="button" class="btn sm ghost" data-newsgo="${g}">去看看</button>`:''}</div></div>`).join('')}</div>`).join('')}
+    <button type="button" class="btn primary block" data-newsok>知道了</button></div>`);
+  L.panel.addEventListener('click',e=>{const g=e.target.closest('[data-newsgo]'),ok=e.target.closest('[data-newsok]');if(g||ok){closeLayer();if(g)setTimeout(()=>go(g.dataset.newsgo),250)}});
+}
+function showUpdate(){if($('#upd'))return;const b=document.createElement('div');b.id='upd';b.className='updcard';b.setAttribute('role','alertdialog');b.setAttribute('aria-labelledby','updT');b.setAttribute('aria-describedby','updD');
+  b.innerHTML='<span class="ui" aria-hidden="true">✦</span><div class="ut"><b id="updT">靈犀有新版本</b><span id="updD">更新只要一下子，完成後會告訴你這次改了什麼。</span></div><div class="ua"><button type="button" class="btn sm ghost" data-upd="later">稍後</button><button type="button" class="btn sm primary" data-upd="go">立即更新</button></div>';
+  b.addEventListener('click',e=>{const x=e.target.closest('[data-upd]');if(!x)return;if(x.dataset.upd==='go')location.reload();else{b.classList.add('out');setTimeout(()=>b.remove(),300)}});
+  document.body.appendChild(b);buzz()}
+window.__gxShowUpdate=showUpdate;
+function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protocol==='https:'||location.hostname==='localhost'))return;(navigator.serviceWorker.controller&&navigator.serviceWorker.addEventListener('controllerchange',showUpdate),document.addEventListener('visibilitychange',()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})}),setInterval(()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})},20*60e3),navigator.serviceWorker.register('sw.js')).catch(e=>console.warn('sw',e))}
 
 /* ---------- 啟動 ---------- */
 function boot(){
