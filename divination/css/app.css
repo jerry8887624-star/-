@@ -1355,3 +1355,88 @@ html.narrow .a2hs{grid-template-columns:auto 1fr auto}html.narrow .a2x{display:n
 .mk-menu .mk-hl{background:var(--card)}
 .mk-dlg{display:flex;flex-direction:column;gap:10px}.mk-top{display:flex;justify-content:space-between;align-items:center}.mk-top.end{justify-content:flex-end;gap:18px}.mk-top b{color:var(--ink);font-size:14px}.mk-top .mk-hl{padding:2px 8px}
 .mk-app{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--ink);font-size:12.5px}.mk-app img{width:52px;height:52px;border-radius:13px}
+
+/* ===================== v5 視覺改版：日＝水墨雲山、夜＝星空山嵐 ===================== */
+:root{
+  --bg:#F4EFE3;--card:#FFFDF8;--card2:#F5EFE3;--field:#FFFFFF;--field-line:rgba(160,128,74,.32);--line:#E8DFCC;--edge:rgba(176,140,70,.22);
+  --fill:rgba(150,115,55,.09);--seg-on:#FFFFFF;--ink:#22283A;--muted:#575C6B;--tint:#8E621C;--tint-ink:#FFFDF7;--tint-soft:rgba(176,132,60,.14);
+  --title-ink:#1B2848;--glass:rgba(255,253,247,.9);--glass-line:rgba(190,158,100,.32);--glass-shadow:0 6px 22px rgba(110,90,50,.08);
+  --gold-grad:linear-gradient(180deg,#F6E3B6,#E0BB76);--gold-ink:#3A2810;--seg-bg:rgba(255,253,247,.82);--seg-act:linear-gradient(180deg,#F8E8C4,#EACA8C);--seg-act-ink:#3A2810;--seg-act-line:rgba(190,150,80,.55);
+  --tab-bg:rgba(255,253,248,.94);--day-op:1;--night-op:0;--tex:none;--tex-paper:none;
+  --shadow:var(--glass-shadow);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11143A;--card:#1B2050;--card2:#242A60;--field:#10143A;--field-line:rgba(226,190,120,.28);--line:#2E3468;--edge:rgba(226,190,120,.2);
+  --fill:rgba(230,210,170,.09);--seg-on:#2A3070;--ink:#F1E9D8;--muted:#C2BDD0;--tint:#E6C27E;--tint-ink:#1A1530;--tint-soft:rgba(230,194,126,.16);
+  --title-ink:#F6ECD6;--glass:rgba(20,24,62,.84);--glass-line:rgba(226,190,120,.26);--glass-shadow:0 10px 30px rgba(0,0,0,.32);
+  --gold-grad:linear-gradient(180deg,#F0D49A,#C99A4E);--gold-ink:#24180A;--seg-bg:rgba(18,22,58,.78);--seg-act:linear-gradient(180deg,rgba(222,184,112,.36),rgba(130,98,50,.36));--seg-act-ink:#F7E3B6;--seg-act-line:rgba(230,194,126,.65);
+  --tab-bg:rgba(14,17,46,.94);--day-op:0;--night-op:1;--tex:none;--tex-paper:none;--shadow:var(--glass-shadow)}}
+:root[data-theme="dark"]{
+  --bg:#11143A;--card:#1B2050;--card2:#242A60;--field:#10143A;--field-line:rgba(226,190,120,.28);--line:#2E3468;--edge:rgba(226,190,120,.2);
+  --fill:rgba(230,210,170,.09);--seg-on:#2A3070;--ink:#F1E9D8;--muted:#C2BDD0;--tint:#E6C27E;--tint-ink:#1A1530;--tint-soft:rgba(230,194,126,.16);
+  --title-ink:#F6ECD6;--glass:rgba(20,24,62,.84);--glass-line:rgba(226,190,120,.26);--glass-shadow:0 10px 30px rgba(0,0,0,.32);
+  --gold-grad:linear-gradient(180deg,#F0D49A,#C99A4E);--gold-ink:#24180A;--seg-bg:rgba(18,22,58,.78);--seg-act:linear-gradient(180deg,rgba(222,184,112,.36),rgba(130,98,50,.36));--seg-act-ink:#F7E3B6;--seg-act-line:rgba(230,194,126,.65);
+  --tab-bg:rgba(14,17,46,.94);--day-op:0;--night-op:1;--tex:none;--tex-paper:none;--shadow:var(--glass-shadow)}
+
+/* 背景插畫：固定在畫面後方，日夜交叉淡入 */
+html{background:var(--bg)}
+html,body{background-image:none!important}
+body{background:transparent!important}
+.bgart{position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--bg)}
+.bgart::before,.bgart::after{content:"";position:absolute;inset:0;background:center top/cover no-repeat;transition:opacity .35s ease}
+.bgart::before{background-image:url(img/bg-day.jpg);opacity:var(--day-op)}
+.bgart::after{background-image:url(img/bg-night.jpg);opacity:var(--night-op)}
+body::before{background:color-mix(in srgb,var(--bg) 70%,transparent)!important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+/* 卡片：半透明紙面＋細金邊 */
+.card,.spread,.tile,.quick{background:var(--glass)!important;border:1px solid var(--glass-line)!important;box-shadow:var(--glass-shadow)!important}
+.card .card{background:var(--card2)!important;box-shadow:none!important}
+/* 大標題：宋體、標語、右側直排箴言 */
+.largetitle{padding:6px 34px 18px 0}
+.lt-doodle{display:none}
+#ltDate{color:var(--tint);font-family:var(--f-serif);font-size:14px;letter-spacing:.16em;font-weight:600}
+.largetitle h1{font-family:var(--f-serif);font-size:clamp(40px,12vw,54px);font-weight:700;letter-spacing:.08em;color:var(--title-ink);line-height:1.15;margin:2px 0}
+.lt-tag{margin:0;font-family:var(--f-serif);font-size:14.5px;letter-spacing:.3em;color:var(--muted)}
+.lt-tag:empty{display:none}
+.lt-motto{position:absolute;right:2px;top:8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--f-serif);font-size:12.5px;line-height:1.15;color:var(--muted);opacity:.9}
+.lt-motto i{font-style:normal}.lt-motto i.dot{width:3px;height:3px;border-radius:50%;background:currentColor;margin:3px 0}
+.lt-sample{position:relative;z-index:1}
+.lt-sample{align-self:flex-start;margin-top:10px;border:1px solid var(--glass-line);background:var(--glass);color:var(--tint);border-radius:999px;padding:5px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
+html.narrow .lt-motto{display:none}html.narrow .largetitle{padding-right:0}
+/* 上方按鈕 */
+.aa,.who{background:var(--glass)!important;border:1px solid var(--glass-line)!important;color:var(--title-ink)!important;box-shadow:var(--glass-shadow)}
+.who{font-family:var(--f-serif)}
+.collapsed .navbar{background:var(--tab-bg)!important;background-image:none!important;backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:0 1px 0 var(--glass-line)!important}
+#navTitle{font-family:var(--f-serif);color:var(--title-ink)}
+/* 分段切換：金色膠囊＋細分隔線 */
+.seg{background:var(--seg-bg)!important;border:1px solid var(--glass-line);border-radius:16px;padding:4px;gap:0}
+.seg button{position:relative;border-radius:12px;color:var(--ink);font-family:var(--f-serif);font-weight:600}
+.seg button+button::before{content:"";position:absolute;left:0;top:28%;bottom:28%;width:1px;background:var(--glass-line)}
+.seg button[aria-pressed="true"]::before,.seg button[aria-pressed="true"]+button::before{display:none}
+.seg button[aria-pressed="true"]{background:var(--seg-act)!important;color:var(--seg-act-ink);box-shadow:inset 0 0 0 1px var(--seg-act-line),0 3px 10px rgba(150,110,40,.18)!important}
+#subnav .seg{box-shadow:var(--glass-shadow)}
+#subnav .seg button{padding:10px 6px;font-size:16px}
+/* 按鈕 */
+.btn{background:var(--glass);box-shadow:inset 0 0 0 1px var(--glass-line)!important}
+.btn.primary{background:var(--gold-grad)!important;color:var(--gold-ink)!important;box-shadow:0 4px 14px rgba(170,125,50,.25),inset 0 1px 0 rgba(255,255,255,.45)!important}
+.btn.ghost{background:transparent;box-shadow:none!important}
+.btn,.qk,.tile,.chip,.tab,.li{transition:transform .12s ease,background-color .2s,color .2s}
+.btn:active,.qk:active,.tile:active,.chip:active,.tab:active,.li:active{transform:scale(.97)}
+.quick .qk .qi{background:var(--tint-soft);box-shadow:inset 0 0 0 1px var(--glass-line)}
+/* 底部分頁列：圓角面板、選取時金色底線；往下捲時收起 */
+.tabbar{background:var(--tab-bg)!important;background-image:none!important;border-radius:22px 22px 0 0;box-shadow:0 -8px 26px rgba(0,0,0,.08),0 -1px 0 var(--glass-line)!important;transition:transform .3s var(--ease);padding-top:2px}
+body.tabhide .tabbar{transform:translateY(calc(100% + 2px))}
+.tab span{position:relative;font-size:11px}
+.tab[aria-current="page"]{color:var(--tint)}
+.tab[aria-current="page"] svg{filter:none!important}
+.tab[aria-current="page"] span::after{content:"";position:absolute;left:50%;bottom:-6px;width:18px;height:3px;margin-left:-9px;border-radius:2px;background:var(--tint)}
+.tab{padding-bottom:10px}
+/* 日夜切換時平滑過渡 */
+html.theming *,html.theming *::before,html.theming *::after{transition:background-color .3s ease,color .3s ease,border-color .3s ease,fill .3s ease,stroke .3s ease!important}
+/* 分頁切換淡入、說明區展開 */
+@media (prefers-reduced-motion:no-preference){
+  .view:not([hidden]){animation:view-in .22s var(--ease)}
+  details[open]>summary~*{animation:det-in .2s ease}}
+@keyframes view-in{from{opacity:0;transform:translateY(8px)}}
+@keyframes det-in{from{opacity:0;transform:translateY(-4px)}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .dc2 span.fx{color:#FF9C8F}}
+:root[data-theme="dark"] .dc2 span.fx{color:#FF9C8F}
