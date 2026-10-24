@@ -1123,3 +1123,17 @@ p.story b{color:var(--ink)}
 .f input[type=date]::-webkit-date-and-time-value,.f input[type=datetime-local]::-webkit-date-and-time-value,.f input[type=time]::-webkit-date-and-time-value{text-align:center;margin:0;min-height:1.4em}
 .f input[type=date]::-webkit-calendar-picker-indicator{margin-left:0}
 .f{min-width:0;max-width:100%}
+/* 梅花易數：完整解讀改成標題在上、內文在下，避免標籤擠成多行 */
+.mhs{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-top:1px dashed var(--line)}
+.mhs:first-of-type{border-top:0;padding-top:2px}
+.mhs b{color:var(--tint);font-size:14.5px;letter-spacing:.04em}
+.mhs p{margin:0;line-height:1.75}
+/* 起卦動畫：六爻由下往上畫出，最後動爻閃爍 */
+.mhanim{align-items:center;text-align:center}
+.mhcast{width:min(46vw,170px);height:auto;margin:6px auto}
+.mhcast rect{fill:var(--ink)}
+.mhcast .yl{opacity:0;transform-box:fill-box;transform-origin:center;animation:yl-in .45s cubic-bezier(.22,1,.36,1) calc(var(--i) * .32s + .15s) forwards}
+.mhcast .yl.mv rect{animation:yl-mv .9s ease-in-out 2.1s 2 alternate}
+@keyframes yl-in{from{opacity:0;transform:scaleX(.2)}to{opacity:1;transform:none}}
+@keyframes yl-mv{to{fill:#B3261E}}
+.updbar{white-space:nowrap;max-width:calc(100vw - 32px)}

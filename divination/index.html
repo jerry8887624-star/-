@@ -1157,6 +1157,20 @@ p.story b{color:var(--ink)}
 .f input[type=date]::-webkit-date-and-time-value,.f input[type=datetime-local]::-webkit-date-and-time-value,.f input[type=time]::-webkit-date-and-time-value{text-align:center;margin:0;min-height:1.4em}
 .f input[type=date]::-webkit-calendar-picker-indicator{margin-left:0}
 .f{min-width:0;max-width:100%}
+/* 梅花易數：完整解讀改成標題在上、內文在下，避免標籤擠成多行 */
+.mhs{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-top:1px dashed var(--line)}
+.mhs:first-of-type{border-top:0;padding-top:2px}
+.mhs b{color:var(--tint);font-size:14.5px;letter-spacing:.04em}
+.mhs p{margin:0;line-height:1.75}
+/* 起卦動畫：六爻由下往上畫出，最後動爻閃爍 */
+.mhanim{align-items:center;text-align:center}
+.mhcast{width:min(46vw,170px);height:auto;margin:6px auto}
+.mhcast rect{fill:var(--ink)}
+.mhcast .yl{opacity:0;transform-box:fill-box;transform-origin:center;animation:yl-in .45s cubic-bezier(.22,1,.36,1) calc(var(--i) * .32s + .15s) forwards}
+.mhcast .yl.mv rect{animation:yl-mv .9s ease-in-out 2.1s 2 alternate}
+@keyframes yl-in{from{opacity:0;transform:scaleX(.2)}to{opacity:1;transform:none}}
+@keyframes yl-mv{to{fill:#B3261E}}
+.updbar{white-space:nowrap;max-width:calc(100vw - 32px)}
 </style>
 </head>
 <body>
@@ -4300,7 +4314,7 @@ const triOf=b=>+Object.keys(BAGUA).find(k=>BAGUA[k][3].join()===b.join());
 const YJ=window.YIJING_DATA||{};
 const hexOf=(u,l)=>YJ[BAGUA[u][0]+BAGUA[l][0]];
 const WXI=n=>'木火土金水'.indexOf(n);
-let mhMode='time', mhA='', mhB='', mhRes=null, mhQ='';
+let mhMode='word', mhA='', mhB='', mhRes=null, mhQ='', mhBusy=false;
 function meihua(up,lo,mv){
   const lines=[...BAGUA[lo][3],...BAGUA[up][3]];
   const hu=[triOf(lines.slice(1,4)),triOf(lines.slice(2,5))]; // [下互,上互]
@@ -4310,16 +4324,27 @@ function meihua(up,lo,mv){
   const rel=(a,b)=>{const x=WXI(BAGUA[a][2]),y=WXI(BAGUA[b][2]);if(x===y)return 'same';if((y+1)%5===x)return 'sheng';if((x+1)%5===y)return 'xie';if((x+2)%5===y)return 'ke';return 'beike'};
   return {up,lo,mv,lines,hu,bu,bl,ti,yong,r:rel(ti,yong),rb:rel(ti,tiUp?bl:bu)};
 }
-const MH_REL={sheng:['good','用生體','外力來幫助你，事情順利、有貴人，大吉。'],same:['good','體用比和','內外同心、條件相合，事情可成。'],ke:['mid','體剋用','你能掌控局面，努力可以達成，但要多花力氣。'],xie:['mid','體生用','你付出較多、有所耗損，結果平平，宜量力而為。'],beike:['bad','用剋體','外在阻力大、不利於你，宜暫緩或改變作法。']};
+const MH_REL={sheng:['good','用生體','外力來幫助你，事情順利、有貴人，大吉。','有貴人相助','你問的事（用）的五行生扶你（體），像有人推你一把'],same:['good','體用比和','內外同心、條件相合，事情可成。','條件相合','你（體）和你問的事（用）五行相同，彼此合拍'],ke:['mid','體剋用','你能掌控局面，努力可以達成，但要多花力氣。','努力可成','你（體）的五行剋制你問的事（用），代表你管得住它，但要出力'],xie:['mid','體生用','你付出較多、有所耗損，結果平平，宜量力而為。','付出較多','你（體）的五行去生扶你問的事（用），代表你得一直投入、比較累'],beike:['bad','用剋體','外在阻力大、不利於你，宜暫緩或改變作法。','阻力較大','你問的事（用）的五行剋制你（體），代表事情給你壓力，不容易掌控']};
 function mhLinesSvg(lines,mv){return `<svg viewBox="0 0 60 66" class="hexs" aria-hidden="true">${lines.map((b,i)=>{const y=58-i*10.5;return b?`<rect x="4" y="${y}" width="52" height="6" rx="1.5" class="${i+1===mv?'mv':''}"/>`:`<rect x="4" y="${y}" width="22" height="6" rx="1.5" class="${i+1===mv?'mv':''}"/><rect x="34" y="${y}" width="22" height="6" rx="1.5" class="${i+1===mv?'mv':''}"/>`}).join('')}</svg>`}
 function hexCard(label,u,l,mv){const h=hexOf(u,l);return `<div class="hexc"><span class="eyebrow">${label}</span>${mhLinesSvg([...BAGUA[l][3],...BAGUA[u][3]],mv)}<b>${h[1]}</b><span class="small muted">第 ${h[0]} 卦</span></div>`}
 function mhCast(){
   const now=new Date(), L=Solar.fromDate(now).getLunar();
   const yz=ZHI.indexOf(L.getYearZhi())+1, m=Math.abs(L.getMonth()), d=L.getDay(), hz=Math.floor(((now.getHours()+1)%24)/2)+1;
   const mod=(n,k)=>((n%k)+k)%k||k;
+  if(mhMode==='word'){
+    // 邵雍《梅花易數》字占：字分兩半，前半（字少）為上卦、後半為下卦，各取筆畫數；十一字以上改取字數；動爻以上下數合計加時辰數除六
+    const cs=[...mhQ].filter(c=>/[\u3400-\u9fff]/.test(c));if(!cs.length)return null;
+    const st=c=>strokesOf(c)||1, n=cs.length;
+    let a,b,how;
+    if(n===1){a=st(cs[0]);b=hz;how=`「${cs[0]}」${a} 畫為上卦，${ZHI[hz-1]}時（${hz}）為下卦`}
+    else{const h=Math.floor(n/2), A=cs.slice(0,h), B=cs.slice(h);
+      if(n<=10){a=A.reduce((x,c)=>x+st(c),0);b=B.reduce((x,c)=>x+st(c),0);how=`前 ${A.length} 字「${A.join('')}」共 ${a} 畫為上卦，後 ${B.length} 字「${B.join('')}」共 ${b} 畫為下卦`}
+      else{a=A.length;b=B.length;how=`共 ${n} 字，前 ${a} 字為上卦、後 ${b} 字為下卦（十一字以上取字數）`}}
+    return {...meihua(mod(a,8),mod(b,8),mod(a+b+hz,6)),how:`${how}，加${ZHI[hz-1]}時（${hz}）定動爻`,nums:[a,b,hz]};
+  }
   if(mhMode==='time')return {...meihua(mod(yz+m+d,8),mod(yz+m+d+hz,8),mod(yz+m+d+hz,6)),how:`${L.getYearInGanZhi()}年（${L.getYearZhi()}＝${yz}）${S2T(L.getMonthInChinese())}月（${m}）${S2T(L.getDayInChinese())}（${d}）${ZHI[hz-1]}時（${hz}）`};
   const a=parseInt(mhA,10), b=parseInt(mhB,10);if(!(a>0&&b>0))return null;
-  return {...meihua(mod(a,8),mod(b,8),mod(a+b+hz,6)),how:`上卦 ${a}、下卦 ${b}，加${ZHI[hz-1]}時（${hz}）定動爻`};
+  return {...meihua(mod(a,8),mod(b,8),mod(a+b+hz,6)),how:`第一個數 ${a} 為上卦、第二個數 ${b} 為下卦，加${ZHI[hz-1]}時（${hz}）定動爻`};
 }
 // 八卦取象（《說卦傳》）與爻位（《繫辭下》：二多譽、三多凶、四多懼、五多功）
 const TRI_SYM={1:'乾為天，性剛健；象徵領導、父親、決斷與主動',2:'兌為澤，性喜悅；象徵口才、少女、溝通與享受',3:'離為火，性附麗；象徵光明、文書、名聲與中女',4:'震為雷，性動；象徵行動、長男、起步與突發',5:'巽為風，性入；象徵順從、長女、流通與商機',6:'坎為水，性陷；象徵險阻、中男、智慧與奔波',7:'艮為山，性止；象徵停止、少男、穩固與等待',8:'坤為地，性順；象徵包容、母親、土地與耐心'};
@@ -4329,30 +4354,41 @@ function mhStory(R){
   const relZh={sheng:'生扶',same:'比和',ke:'受體所剋',xie:'洩體之氣',beike:'剋制'};
   const rh=(()=>{const x=WXI(B[R.ti][2]),t=[R.hu[0],R.hu[1]].map(k=>WXI(B[k][2]));const bad=t.some(y=>(y+2)%5===x),good=t.some(y=>(y+1)%5===x),same=t.includes(x);return bad?'互卦中有剋體之象，過程會遇到阻力或反覆，要多一點耐心。':good?'互卦中有生體之象，過程中會有人幫忙，越做越順。':same?'互卦與體卦五行相同（比和），過程中有志同道合的人一起努力。':'互卦對體卦沒有明顯生剋，過程大致平穩。'})();
   const P=[
-   ['怎麼起的卦',`本卦上卦是${B[R.up][0]}（${B[R.up][1]}，屬${B[R.up][2]}），下卦是${B[R.lo][0]}（${B[R.lo][1]}，屬${B[R.lo][2]}），合成「${h[1]}」。動爻在第${'初二三四五上'[R.mv-1]}爻，位於${R.mv<=3?'下':'上'}卦，所以${R.mv<=3?'下':'上'}卦為「用」（所問之事），${R.mv<=3?'上':'下'}卦為「體」（你自己）。`],
-   ['體與用',`體卦${B[R.ti][0]}：${TRI_SYM[R.ti]}，代表你目前的立場。用卦${B[R.yong][0]}：${TRI_SYM[R.yong]}，代表你問的這件事。體屬${B[R.ti][2]}、用屬${B[R.yong][2]}，為「${rr[1]}」──${rr[2]}`],
+   ['怎麼起的卦',`本卦上卦是${B[R.up][0]}（${B[R.up][1]}，屬${B[R.up][2]}），下卦是${B[R.lo][0]}（${B[R.lo][1]}，屬${B[R.lo][2]}），合成「${h[1]}」。動爻是${'初二三四五上'[R.mv-1]}爻，位於${R.mv<=3?'下':'上'}卦，所以${R.mv<=3?'下':'上'}卦為「用」（所問之事），${R.mv<=3?'上':'下'}卦為「體」（你自己）。`],
+   ['體與用',`體卦${B[R.ti][0]}：${TRI_SYM[R.ti]}，代表你目前的立場。用卦${B[R.yong][0]}：${TRI_SYM[R.yong]}，代表你問的這件事。體屬${B[R.ti][2]}、用屬${B[R.yong][2]}，${rr[4]}（${rr[1]}）。${rr[2]}`],
    ['現在（本卦）',`「${h[1]}」：${h[3]}`],
    ['過程（互卦）',`「${hu[1]}」：${hu[3]}${rh}`],
    ['動爻',YAO_POS[R.mv-1]],
-   ['結果（變卦）',`「${hb[1]}」：${hb[3]}變卦對體卦為${relZh[R.rb]}，${R.rb==='sheng'||R.rb==='same'?'結局偏向好的方向。':R.rb==='beike'?'結局有壓力，要提早準備備案。':'結局平穩，成敗看你投入多少。'}`],
+   ['結果（變卦）',`「${hb[1]}」：${hb[3]}變卦對你（體卦）是${relZh[R.rb]}，${R.rb==='sheng'||R.rb==='same'?'結局偏向好的方向。':R.rb==='beike'?'結局有壓力，要提早準備備案。':'結局平穩，成敗看你投入多少。'}`],
    ['總結與建議',`${rr[0]==='good'?'整體是順的，可以積極去做，':rr[0]==='mid'?'可以做，但要付出相應的努力，':'目前條件對你不利，建議暫緩或換個方式，'}${R.rb==='sheng'||R.rb==='same'?'而且結果會比現在更好。':R.rb==='beike'?'並留意後續的變化。':'結果取決於過程中的用心。'}梅花易數重在「當下的起心動念」，同一件事不宜反覆起卦；事情有新進展時再問即可。`]];
-  return `<div class="card stack"><h3 class="h3">完整解讀</h3>${P.map(([t,x])=>`<div class="sty"><b>${t}</b><span>${x}</span></div>`).join('')}<p class="small muted">取象依《說卦傳》，爻位依《繫辭下》，體用生剋依邵雍《梅花易數》。</p></div>`;
+  return `<div class="card stack"><h3 class="h3">完整解讀</h3>${P.map(([t,x])=>`<div class="mhs"><b>${t}</b><p>${x}</p></div>`).join('')}<p class="small muted">取象依《說卦傳》，爻位依《繫辭下》，體用生剋依邵雍《梅花易數》。</p></div>`;
 }
+function mhGloss(){
+  const G=[['本卦','起出來的第一個卦，代表事情現在的樣子。'],['互卦','從本卦中間四爻取出的卦，代表事情發展的過程。'],['變卦','動爻陰陽互換後得到的卦，代表事情最後的結果。'],['動爻','六爻中會「動」的那一爻（紅色標示），由下往上數，是事情的關鍵變化點。'],['體、用','沒有動爻的那個三爻卦叫「體」，代表你自己；有動爻的那個叫「用」，代表你問的事。'],['生、剋、比和','依五行（木火土金水）判斷：生是幫助、剋是壓制、比和是五行相同。看「用」對「體」是幫你還是壓你，就知道事情順不順。']];
+  return `<details class="disc"><summary>看不懂這些名詞？</summary><div class="stack" style="gap:8px;margin-top:8px">${G.map(([k,t])=>`<p class="small"><b>${k}</b>　${t}</p>`).join('')}</div></details>`;
+}
+// 起卦動畫：六爻由下往上逐一畫出，動爻閃動
+function mhAnimHtml(R){const ls=[...BAGUA[R.lo][3],...BAGUA[R.up][3]];
+  return `<div class="card stack mhanim" id="mhres" role="status" aria-label="起卦中"><span class="eyebrow">起卦中</span>
+    <svg viewBox="0 0 120 132" class="mhcast" aria-hidden="true">${ls.map((b,i)=>{const y=116-i*21,c=i+1===R.mv?' mv':'';return `<g class="yl${c}" style="--i:${i}">${b?`<rect x="10" y="${y}" width="100" height="11" rx="3"/>`:`<rect x="10" y="${y}" width="43" height="11" rx="3"/><rect x="67" y="${y}" width="43" height="11" rx="3"/>`}</g>`}).join('')}</svg>
+    <p class="small muted" style="text-align:center">${esc(R.how)}</p></div>`}
 function meihuaHtml(){
   const R=mhRes;
   let res='';
-  if(R){const h=hexOf(R.up,R.lo), rr=MH_REL[R.r], rb=MH_REL[R.rb], hb=hexOf(R.bu,R.bl);
+  if(R&&mhBusy)res=mhAnimHtml(R);
+  else if(R){const h=hexOf(R.up,R.lo), rr=MH_REL[R.r], rb=MH_REL[R.rb], hb=hexOf(R.bu,R.bl);
     res=`<div class="card stack" id="mhres">
-      <div class="row between"><div><div class="eyebrow">${esc(mhQ)||'梅花易數'} · ${R.how}</div><h3 class="h3">${h[1]}・第${'初二三四五上'[R.mv-1]}爻動</h3></div><span class="pill ${rr[0]}">${rr[1]}</span></div>
+      <div class="row between" style="align-items:flex-start;gap:10px"><div style="min-width:0"><div class="eyebrow">${esc(mhQ)||'梅花易數'}</div><h3 class="h3">${h[1]}</h3><span class="small muted">${'初二三四五上'[R.mv-1]}爻動</span></div><span class="pill ${rr[0]}" style="flex:none">${rr[3]}</span></div>
+      <p class="small muted">起卦方式：${R.how}。</p>
       <div class="hexrow">${hexCard('本卦',R.up,R.lo,R.mv)}${hexCard('互卦',R.hu[1],R.hu[0],0)}${hexCard('變卦',R.bu,R.bl,0)}</div>
       <p class="small muted">本卦看現在，互卦看過程，變卦看結果。體卦（${BAGUA[R.ti][0]}・${BAGUA[R.ti][2]}）代表你，用卦（${BAGUA[R.yong][0]}・${BAGUA[R.yong][2]}）代表所問之事。</p>
       <div class="qstory"><span class="eyebrow">卦辭（《周易》）</span><b>${h[2]}</b><p class="small">${h[3]}</p></div>
-      <div class="reader"><div class="seal" aria-hidden="true">易</div><p><b>${rr[1]}</b>：${rr[2]}結果看變卦「${hb[1]}」：${hb[3]}${R.rb==='beike'?'變卦剋體，後續要多留意。':R.rb==='sheng'||R.rb==='same'?'變卦生扶體卦，結局偏好。':''}</p></div>
-    </div>${mhStory(R)}`}
+      <div class="reader"><div class="seal" aria-hidden="true">易</div><p><b>${rr[3]}</b>：${rr[2]}<span class="small muted">（術語叫「${rr[1]}」：${rr[4]}。）</span>結果看變卦「${hb[1]}」：${hb[3]}${R.rb==='beike'?'變卦剋體，後續要多留意。':R.rb==='sheng'||R.rb==='same'?'變卦生扶體卦，結局偏好。':''}</p></div>
+    </div>${mhStory(R)}${mhGloss()}`}
   return `<div class="card stack">
     <label class="f" for="mhQ">想問的事<span class="taw"><textarea id="mhQ" maxlength="60" placeholder="例：這次面試會順利嗎？">${esc(mhQ)}</textarea>${micHtml('mhQ')}</span></label>
-    <div class="seg" role="group" aria-label="起卦方式"><button type="button" data-mhm="time" aria-pressed="${mhMode==='time'}">以現在時間起卦</button><button type="button" data-mhm="num" aria-pressed="${mhMode==='num'}">報兩個數字</button></div>
-    ${mhMode==='num'?`<div class="grid2 keep"><label class="f" for="mhA">第一個數字<input id="mhA" inputmode="numeric" maxlength="4" value="${esc(mhA)}" placeholder="例：38"></label><label class="f" for="mhB">第二個數字<input id="mhB" inputmode="numeric" maxlength="4" value="${esc(mhB)}" placeholder="例：61"></label></div><p class="small muted">心裡想著問題，隨口說出兩個數字即可。</p>`:'<p class="small muted">依邵雍梅花易數「年月日時起卦法」：以農曆年支、月、日、時辰數起上下卦與動爻。</p>'}
+    <div class="seg" role="group" aria-label="起卦方式"><button type="button" data-mhm="word" aria-pressed="${mhMode==='word'}">依問題起卦</button><button type="button" data-mhm="time" aria-pressed="${mhMode==='time'}">依時間</button><button type="button" data-mhm="num" aria-pressed="${mhMode==='num'}">報數字</button></div>
+    ${mhMode==='num'?`<div class="grid2 keep"><label class="f" for="mhA">第一個數字<input id="mhA" inputmode="numeric" maxlength="4" value="${esc(mhA)}" placeholder="例：38"></label><label class="f" for="mhB">第二個數字<input id="mhB" inputmode="numeric" maxlength="4" value="${esc(mhB)}" placeholder="例：61"></label></div><p class="small muted">心裡想著問題，隨口說出兩個數字即可。</p>`:mhMode==='word'?'<p class="small muted">依邵雍梅花易數「字占」：把你寫的問題分成前後兩半，以筆畫數起上下卦，再加上現在的時辰定動爻。問題不同、時間不同，卦就不同。</p>':'<p class="small muted">依邵雍梅花易數「年月日時起卦法」：以農曆年支、月、日、時辰數起卦。同一個時辰內起出的卦相同，想針對問題起卦請選「依問題起卦」。</p>'}
     <button type="button" class="btn primary block" data-act="mhcast">起卦</button>
   </div>${res}`;
 }
@@ -4764,8 +4800,12 @@ document.addEventListener('click',async e=>{
   if(t.dataset.calm){const n=new Date(),c=lnCal||{y:n.getFullYear(),m:n.getMonth()};const d=new Date(c.y,c.m+(+t.dataset.calm),1);lnCal={y:d.getFullYear(),m:d.getMonth()};const k=$('#dcalCard');if(k)k.innerHTML=`<div class="row between"><h3 class="h3">流日月曆</h3><span class="small muted">點日期看當天運勢</span></div>${dayCalHtml()}`;return}
   if(t.dataset.dday){daySheet(t.dataset.dday);return}
   if(t.dataset.act==='report')return openReport();
-  if(t.dataset.mhm){mhMode=t.dataset.mhm;mhRes=null;renderMeihua();return}
-  if(t.dataset.act==='mhcast'){mhQ=($('#mhQ')?.value||'').trim();mhA=$('#mhA')?.value||mhA;mhB=$('#mhB')?.value||mhB;const r=mhCast();if(!r){toast('請輸入兩個正整數','info');return}mhRes=r;renderMeihua();$('#mhres')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});return}
+  if(t.dataset.mhm){mhQ=($('#mhQ')?.value||mhQ).trim();mhMode=t.dataset.mhm;mhRes=null;renderMeihua();return}
+  if(t.dataset.act==='mhcast'){if(mhBusy)return;mhQ=($('#mhQ')?.value||'').trim();mhA=$('#mhA')?.value||mhA;mhB=$('#mhB')?.value||mhB;
+    if(mhMode==='word'&&!mhQ){toast('先寫下想問的事，卦會依你的問題而起','info');$('#mhQ')?.focus();return}
+    const r=mhCast();if(!r){toast(mhMode==='num'?'請輸入兩個正整數':'問題裡要有中文字才能起卦','info');return}
+    mhRes=r;mhBusy=!reduceMotion();renderMeihua();$('#mhres')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:"center"});buzz();
+    if(mhBusy)setTimeout(()=>{mhBusy=false;renderMeihua();$('#mhres')?.scrollIntoView({behavior:'smooth',block:'start'})},3000);return}
   if(t.dataset.offer){offerSheet(t.dataset.offer,t.dataset.offn);return}
   if(t.dataset.act==='home')return openHome();
   if(t.dataset.act==='simpleoff'){setSimple(false);toast('已回到完整功能，左上角「Aa」可再切回簡易模式','check');return}
