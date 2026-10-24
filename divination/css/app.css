@@ -1440,3 +1440,44 @@ html.theming *,html.theming *::before,html.theming *::after{transition:backgroun
 @keyframes det-in{from{opacity:0;transform:translateY(-4px)}}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .dc2 span.fx{color:#FF9C8F}}
 :root[data-theme="dark"] .dc2 span.fx{color:#FF9C8F}
+/* ===== 每日一牌 ===== */
+.daily-tarot.dt{display:block;cursor:default;padding:14px;background:var(--card2)}
+.dt-intro{display:grid;grid-template-columns:84px 1fr;gap:16px;align-items:center}
+.dt-title{font-family:var(--f-serif);font-size:16.5px;line-height:1.45}
+.dt-deck{position:relative;width:76px;aspect-ratio:260/457}
+.dt-deck .dt-b{position:absolute;inset:0;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px -4px rgba(0,0,0,.4)}
+.dt-deck .dt-b:nth-child(1){transform:translate(-4px,4px) rotate(-5deg)}.dt-deck .dt-b:nth-child(2){transform:translate(3px,2px) rotate(4deg)}
+.dt-b svg,.dt-pick svg,.dt-face svg,.dt-fr svg{display:block;width:100%;height:100%}
+.dt-stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding:6px 0}
+.dt-cap{margin:0;text-align:center}
+.dt-deck.shuffling{width:84px}
+.dt-deck.shuffling .dt-b{transform:none;animation:dt-shuf .88s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--k) * 12ms)}
+/* 分疊 → 交錯插入 → 收攏 */
+@keyframes dt-shuf{0%{transform:none}
+ 25%{transform:translateX(-30px) rotate(-6deg)}50%{transform:translateX(28px) rotate(5deg)}75%{transform:translateX(-6px) rotate(-1deg)}100%{transform:none}}
+.dt-deck.shuffling .dt-b:nth-child(even){animation-name:dt-shuf2}
+@keyframes dt-shuf2{0%{transform:none}25%{transform:translateX(30px) rotate(6deg)}50%{transform:translateX(-26px) rotate(-5deg)}75%{transform:translateX(5px) rotate(1deg)}100%{transform:none}}
+.dt-fan{display:flex;justify-content:center;gap:6px;padding:10px 0 4px;width:100%;min-width:0}
+.dt-stage{min-width:0;width:100%}.dt-cap{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 6px}
+.dt-pick{flex:0 1 64px;width:auto;min-width:0;aspect-ratio:260/457;border:0;padding:0;border-radius:8px;overflow:hidden;background:transparent;cursor:pointer;transform:translateY(calc(var(--i) * var(--i) * 3px)) rotate(calc(var(--i) * 4deg));box-shadow:0 4px 10px -4px rgba(0,0,0,.4);transition:transform .16s cubic-bezier(.16,1,.3,1),box-shadow .16s,opacity .2s;animation:dt-deal .3s cubic-bezier(.16,1,.3,1) both;animation-delay:calc((var(--i) + 2) * 40ms)}
+@keyframes dt-deal{from{opacity:0;transform:translateY(16px)}}
+.dt-pick:active{transform:translateY(calc(var(--i) * var(--i) * 3px - 5px)) rotate(calc(var(--i) * 4deg));box-shadow:0 8px 16px -6px rgba(0,0,0,.5)}
+.dt-pick:focus-visible{outline:3px solid var(--tint);outline-offset:3px}
+.dt-fan.chosen .dt-pick{opacity:.35}
+.dt-fan.chosen .dt-pick.on{opacity:1;transform:translateY(-10px) scale(1.08);box-shadow:0 12px 22px -8px rgba(0,0,0,.55),0 0 0 2px var(--tint)}
+.dt-pick.flipping{animation:dt-flip .5s cubic-bezier(.2,.75,.25,1) both;opacity:1!important}
+@keyframes dt-flip{0%{transform:translateY(-10px) scale(1.08) rotateY(0)}50%{transform:translateY(-12px) scale(1.12) rotateY(90deg)}100%{transform:translateY(-10px) scale(1.08) rotateY(0)}}
+.dt-fr{display:block;width:100%;height:100%}.dt-fr.rev,.dt-face.rev svg{transform:rotate(180deg)}
+.dt-res{display:grid;grid-template-columns:84px 1fr;gap:14px;align-items:start}
+.dt-face{width:84px;aspect-ratio:260/457;border:0;padding:0;border-radius:9px;overflow:hidden;background:transparent;cursor:pointer;box-shadow:0 6px 14px -6px rgba(0,0,0,.45)}
+.dt-name{margin:0;font-family:var(--f-serif);font-size:19px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dt-sum{margin:0}.dt-acts{margin:2px 0 0;padding-left:1.1em;display:flex;flex-direction:column;gap:4px;font-size:14.5px;line-height:1.6}
+.dt-more{margin-top:10px}.dt-done{margin:10px 0 0}
+.dt-in .dt-name{animation:dt-up .2s ease .1s both}.dt-in .dt-sum{animation:dt-up .24s ease .24s both}.dt-in .dt-acts{animation:dt-up .24s ease .34s both}
+@keyframes dt-up{from{opacity:0;transform:translateY(5px)}}
+html.narrow .dt-intro,html.narrow .dt-res{grid-template-columns:1fr}
+html.lowmo *,html.lowmo *::before,html.lowmo *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+/* 一鍵安裝按鈕 */
+.inst-cta{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;margin-top:-4px}
+.inst-cta img{width:40px;height:40px;border-radius:10px;flex:none}
+.inst-cta span{display:flex;flex-direction:column;gap:2px;min-width:0}.inst-cta b{color:var(--ink);font-size:15.5px}.inst-cta small{color:var(--muted);font-weight:500;font-size:13px}
