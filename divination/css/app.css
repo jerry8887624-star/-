@@ -1135,7 +1135,7 @@ p.story b{color:var(--ink)}
 @keyframes yl-in{from{opacity:0;transform:scaleX(.2)}to{opacity:1;transform:none}}
 @keyframes yl-mv{to{fill:#B3261E}}
 /* 手機羅盤 */
-.cmpwrap{position:relative;width:min(72vw,280px);margin:4px auto}
+.cmpwrap{position:relative;width:min(100%,280px);margin:4px auto}
 .cmp{width:100%;height:auto;display:block}
 .cmp line{stroke:var(--muted);stroke-width:1}
 .cmp line.tk-main{stroke:var(--ink);stroke-width:2}
@@ -1319,3 +1319,10 @@ html.simple .updcard{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 @keyframes updm-in{from{opacity:0}}
 @keyframes updm-pop{from{opacity:0;transform:translateY(16px) scale(.96)}}
 @media (max-height:700px){.lx-land{height:18vh}.lx-emblem{width:min(74vw,38vh,320px)}.lx-stage{padding-bottom:14vh}}
+/* 今日頁「快速入口」：常用功能一鍵直達 */
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 6px;padding:14px 8px;border-radius:var(--r);background:var(--card);background-image:var(--tex-paper);box-shadow:inset 0 0 0 1px var(--edge)}
+.qk{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:none;padding:4px 0;color:var(--ink);font-size:14px;font-weight:600;cursor:pointer;min-height:64px}
+.qk .qi{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--tint-soft);color:var(--tint)}
+.qk svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.qk:active .qi{transform:scale(.94)}
+html.narrow .quick{gap:8px 2px}html.narrow .qk .qi{width:40px;height:40px}
