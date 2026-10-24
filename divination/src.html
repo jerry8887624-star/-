@@ -13,7 +13,6 @@
 <script>try{var th=JSON.parse(localStorage.getItem('gx_theme')||'null');if(th==='light'||th==='dark')document.documentElement.setAttribute('data-theme',th)}catch(e){}try{var fs=JSON.parse(localStorage.getItem('gx_fs')||'null');if(fs){if(fs.z>1)document.documentElement.style.zoom=fs.z;if(fs.b)document.documentElement.classList.add('boldtext')}var w=innerWidth/((fs&&fs.z)||1);document.documentElement.classList.toggle('vw400',w<=400);document.documentElement.classList.toggle('narrow',w<340)}catch(e){}</script>
 <div id="splash" aria-hidden="true">
   <div class="sp-sky"><i class="sp-stars s1"></i><i class="sp-stars s2"></i><i class="sp-stars s3"></i><i class="sp-neb"></i></div>
-  <svg class="sp-doodle" viewBox="0 0 400 260" aria-hidden="true"><g filter="url(#crayonFill)"><path class="d1" d="M300 30a62 62 0 1 0 42 106 52 52 0 1 1-42-106z" fill="var(--sp-gold)"/><path class="d2" d="M90 70l5 15 15 5-15 5-5 15-5-15-15-5 15-5z" fill="var(--sp-gold)"/><path class="d3" d="M30 120l3.6 10.4 10.4 3.6-10.4 3.6L30 148l-3.6-10.4-10.4-3.6 10.4-3.6z" fill="var(--sp-sage)"/><path class="d4" d="M370 200l3 8.6 8.6 3-8.6 3-3 8.6-3-8.6-8.6-3 8.6-3z" fill="var(--sp-ink)"/><circle class="d5" cx="160" cy="40" r="4" fill="var(--sp-sage)"/><circle class="d6" cx="40" cy="190" r="3.4" fill="var(--sp-gold)"/></g></svg>
   <div class="sp-stage">
     <div class="sp-mark" id="spMark">
       <svg class="sp-logo" viewBox="0 0 1024 1024">
@@ -24,6 +23,7 @@
         </defs>
         <circle class="sp-halo" cx="512" cy="512" r="440" fill="url(#sp-glow)"/>
         <circle class="sp-ring" cx="512" cy="512" r="330" fill="none" stroke="url(#sp-gold)" stroke-width="10" pathLength="100"/>
+        <circle class="sp-ripple" cx="512" cy="512" r="330" fill="none" stroke-width="4"/><circle class="sp-ripple r2" cx="512" cy="512" r="330" fill="none" stroke-width="3"/>
         <circle class="sp-dash" cx="512" cy="512" r="300" fill="none" stroke="#E9BE62" stroke-opacity=".4" stroke-width="3" stroke-dasharray="4 14"/>
         <g class="sp-ticks" stroke="url(#sp-gold)" stroke-linecap="round">
           <line style="--i:0" x1="512" y1="160" x2="512" y2="200" stroke-width="10"/><line style="--i:1" x1="688" y1="207" x2="676" y2="228" stroke-width="6"/><line style="--i:2" x1="817" y1="336" x2="796" y2="348" stroke-width="6"/><line style="--i:3" x1="824" y1="512" x2="864" y2="512" stroke-width="10"/>
@@ -43,12 +43,18 @@
         </g>
         <path class="sp-star" d="M772 236 L782 270 L816 280 L782 290 L772 324 L762 290 L728 280 L762 270 Z" fill="url(#sp-gold)"/>
       </svg>
+      <svg class="sp-doodle" viewBox="0 0 400 400" aria-hidden="true"><g filter="url(#crayonFill)">
+        <path class="d1" d="M318 46a50 50 0 1 0 34 86 42 42 0 1 1-34-86z" fill="var(--sp-gold)"/>
+        <path class="d2" d="M82 92l4 12 12 4-12 4-4 12-4-12-12-4 12-4z" fill="var(--sp-gold)"/>
+        <path class="d3" d="M48 238l3 8.6 8.6 3-8.6 3-3 8.6-3-8.6-8.6-3 8.6-3z" fill="var(--sp-sage)"/>
+        <path class="d4" d="M352 268l2.6 7.4 7.4 2.6-7.4 2.6-2.6 7.4-2.6-7.4-7.4-2.6 7.4-2.6z" fill="var(--sp-ink)"/>
+        <circle class="d5" cx="196" cy="34" r="3.6" fill="var(--sp-sage)"/><circle class="d6" cx="62" cy="150" r="3" fill="var(--sp-gold)"/><circle class="d7" cx="350" cy="196" r="2.6" fill="var(--sp-sage)"/></g></svg>
       <i class="sp-shine"></i>
       <div class="sp-parts" id="spParts"></div>
     </div>
-    <div class="sp-title"><span style="--i:0">靈</span><span style="--i:1">犀</span><i class="sp-tshine"></i><b class="sp-seal" aria-hidden="true"><i>心</i><i>有</i><i>靈</i><i>犀</i></b></div>
+    <div class="sp-title"><i class="sp-rule"></i><span style="--i:0">靈</span><span style="--i:1">犀</span><i class="sp-rule r"></i></div>
     <div class="sp-en">LINGXI</div>
-    <div class="sp-sub">心有靈犀 ・ 一點通</div>
+    <div class="sp-sub">心有靈犀<i></i>一點通</div>
   </div>
   <i class="sp-flash"></i>
   <div class="sp-load" aria-hidden="true"><i></i><span>正在排盤…</span></div>
@@ -2986,6 +2992,9 @@ function setTheme(v,re=true){const r=document.documentElement;if(v==='light'||v=
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {v:'2026.10.24-3',d:'10 月 24 日',items:[
+  ['全新開場動畫','重新設計開場：月亮星星環繞天眼、眼睛睜開後墨圈向外擴散、羅盤外環緩緩轉動；「靈犀」改用宋體由上而下顯現，拿掉紅色印章，版面更簡潔。',null],
+  ['更新後一定看到最新版','修正有網路時仍可能顯示舊版的問題（例如風水羅盤沒出現）。','fengshui']]},
  {v:'2026.10.24',d:'10 月 24 日',items:[
   ['更新提醒更清楚','App 有新版本時，畫面下方會出現提醒卡片，按「立即更新」即可；更新完成後會像現在這樣介紹新內容。',null],
   ['風水・手機羅盤','開運 → 風水，按「開啟羅盤」，轉動手機就能看到你面向的方位、八卦與二十四山，以及這個方位對你是吉是凶。','fengshui'],

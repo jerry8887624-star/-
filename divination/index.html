@@ -1202,6 +1202,39 @@ html.simple .updcard{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .newsi b{font-family:var(--f-serif);font-size:16.5px}
 .newsi p{margin:4px 0 0;line-height:1.7;font-size:15px}
 .newsi .btn{margin-top:8px}
+
+/* ===== 開場 v3：月亮星星環繞眼睛不重疊、墨圈漣漪、宋體字由上而下顯現、去除朱印 ===== */
+.sp-mark{overflow:visible}
+#splash .sp-doodle{position:absolute;left:-45%;top:-45%;width:190%;height:190%;margin:0;pointer-events:none;overflow:visible}
+.sp-doodle path,.sp-doodle circle{opacity:0;transform-box:fill-box;transform-origin:center;animation:sp-doodle .7s cubic-bezier(.34,1.56,.64,1) forwards,sp-twk 3.2s ease-in-out infinite alternate}
+.sp-doodle .d1{animation-delay:.2s,1s;animation-name:sp-moon,none}
+.sp-doodle .d2{animation-delay:.55s,1.4s}.sp-doodle .d3{animation-delay:.7s,1.9s}.sp-doodle .d4{animation-delay:.85s,1.6s}.sp-doodle .d5{animation-delay:1s,2.2s}.sp-doodle .d6{animation-delay:1.1s,2.5s}.sp-doodle .d7{animation-delay:1.2s,2s}
+@keyframes sp-moon{from{opacity:0;transform:translate(-14px,10px) rotate(-18deg) scale(.85)}to{opacity:1;transform:none}}
+@keyframes sp-twk{from{scale:1}to{scale:.82}}
+/* 眼睛睜開後，墨色圓圈向外擴散 */
+.sp-ripple{opacity:0;stroke:var(--sp-ink);transform-box:fill-box;transform-origin:center;animation:sp-ripple 1.6s cubic-bezier(.2,.7,.2,1) 1.55s forwards}
+.sp-ripple.r2{animation-delay:1.85s}
+@keyframes sp-ripple{0%{opacity:.5;transform:scale(1)}100%{opacity:0;transform:scale(1.32)}}
+/* 刻度外環緩慢轉動，像羅盤 */
+#splash .sp-ticks{transform-box:fill-box;transform-origin:center;animation:sp-tickspin 60s linear 2.4s infinite}
+@keyframes sp-tickspin{to{transform:rotate(360deg)}}
+/* 標題 */
+#splash .sp-title{font-family:"Noto Serif TC","Songti TC",serif;font-weight:600;font-size:clamp(40px,12.5vw,54px);letter-spacing:.42em;padding-left:.42em;gap:0;margin-top:22px;align-items:center;overflow:visible}
+#splash .sp-title span{opacity:0;filter:none;transform:translateY(8px);clip-path:inset(0 0 100% 0);-webkit-text-fill-color:var(--sp-ink);color:var(--sp-ink);background:none;animation:sp-ink 1s cubic-bezier(.22,1,.36,1) calc(2.25s + var(--i) * .22s) forwards}
+@keyframes sp-ink{to{opacity:1;transform:none;clip-path:inset(0 0 -10% 0)}}
+.sp-rule{display:block;width:clamp(26px,9vw,44px);height:1.5px;background:var(--sp-gold);opacity:.8;transform:scaleX(0);transform-origin:right;margin-right:.55em;animation:sp-rule .8s cubic-bezier(.22,1,.36,1) 2.15s forwards}
+.sp-rule.r{transform-origin:left;margin-right:0;margin-left:.15em}
+@keyframes sp-rule{to{transform:none}}
+#splash .sp-tshine,#splash .sp-seal{display:none}
+#splash .sp-en{font-family:"Noto Serif TC",Georgia,serif;font-size:12px;font-weight:600;color:var(--sp-gold);margin-top:6px;animation-delay:2.7s}
+#splash .sp-sub{display:flex;align-items:center;gap:.9em;margin-top:18px;font-family:"Noto Serif TC","Songti TC",serif;font-size:14px;letter-spacing:.32em;padding-left:.32em;color:var(--sp-muted);animation-delay:2.95s}
+#splash .sp-sub i{display:block;width:4px;height:4px;transform:rotate(45deg);background:var(--sp-gold);opacity:.8}
+#splash .sp-skip{letter-spacing:.3em;font-size:12px}
+/* 收場：整個畫面輕輕放大淡出 */
+#splash.out .sp-stage{opacity:0;transition:opacity .6s ease}
+#splash.out .sp-mark{transform:none;opacity:1}
+#splash.still .sp-title span{clip-path:none!important}
+#splash.still .sp-rule{transform:none!important}
 </style>
 </head>
 <body>
@@ -1210,7 +1243,6 @@ html.simple .updcard{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 <script>try{var th=JSON.parse(localStorage.getItem('gx_theme')||'null');if(th==='light'||th==='dark')document.documentElement.setAttribute('data-theme',th)}catch(e){}try{var fs=JSON.parse(localStorage.getItem('gx_fs')||'null');if(fs){if(fs.z>1)document.documentElement.style.zoom=fs.z;if(fs.b)document.documentElement.classList.add('boldtext')}var w=innerWidth/((fs&&fs.z)||1);document.documentElement.classList.toggle('vw400',w<=400);document.documentElement.classList.toggle('narrow',w<340)}catch(e){}</script>
 <div id="splash" aria-hidden="true">
   <div class="sp-sky"><i class="sp-stars s1"></i><i class="sp-stars s2"></i><i class="sp-stars s3"></i><i class="sp-neb"></i></div>
-  <svg class="sp-doodle" viewBox="0 0 400 260" aria-hidden="true"><g filter="url(#crayonFill)"><path class="d1" d="M300 30a62 62 0 1 0 42 106 52 52 0 1 1-42-106z" fill="var(--sp-gold)"/><path class="d2" d="M90 70l5 15 15 5-15 5-5 15-5-15-15-5 15-5z" fill="var(--sp-gold)"/><path class="d3" d="M30 120l3.6 10.4 10.4 3.6-10.4 3.6L30 148l-3.6-10.4-10.4-3.6 10.4-3.6z" fill="var(--sp-sage)"/><path class="d4" d="M370 200l3 8.6 8.6 3-8.6 3-3 8.6-3-8.6-8.6-3 8.6-3z" fill="var(--sp-ink)"/><circle class="d5" cx="160" cy="40" r="4" fill="var(--sp-sage)"/><circle class="d6" cx="40" cy="190" r="3.4" fill="var(--sp-gold)"/></g></svg>
   <div class="sp-stage">
     <div class="sp-mark" id="spMark">
       <svg class="sp-logo" viewBox="0 0 1024 1024">
@@ -1221,6 +1253,7 @@ html.simple .updcard{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
         </defs>
         <circle class="sp-halo" cx="512" cy="512" r="440" fill="url(#sp-glow)"/>
         <circle class="sp-ring" cx="512" cy="512" r="330" fill="none" stroke="url(#sp-gold)" stroke-width="10" pathLength="100"/>
+        <circle class="sp-ripple" cx="512" cy="512" r="330" fill="none" stroke-width="4"/><circle class="sp-ripple r2" cx="512" cy="512" r="330" fill="none" stroke-width="3"/>
         <circle class="sp-dash" cx="512" cy="512" r="300" fill="none" stroke="#E9BE62" stroke-opacity=".4" stroke-width="3" stroke-dasharray="4 14"/>
         <g class="sp-ticks" stroke="url(#sp-gold)" stroke-linecap="round">
           <line style="--i:0" x1="512" y1="160" x2="512" y2="200" stroke-width="10"/><line style="--i:1" x1="688" y1="207" x2="676" y2="228" stroke-width="6"/><line style="--i:2" x1="817" y1="336" x2="796" y2="348" stroke-width="6"/><line style="--i:3" x1="824" y1="512" x2="864" y2="512" stroke-width="10"/>
@@ -1240,12 +1273,18 @@ html.simple .updcard{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
         </g>
         <path class="sp-star" d="M772 236 L782 270 L816 280 L782 290 L772 324 L762 290 L728 280 L762 270 Z" fill="url(#sp-gold)"/>
       </svg>
+      <svg class="sp-doodle" viewBox="0 0 400 400" aria-hidden="true"><g filter="url(#crayonFill)">
+        <path class="d1" d="M318 46a50 50 0 1 0 34 86 42 42 0 1 1-34-86z" fill="var(--sp-gold)"/>
+        <path class="d2" d="M82 92l4 12 12 4-12 4-4 12-4-12-12-4 12-4z" fill="var(--sp-gold)"/>
+        <path class="d3" d="M48 238l3 8.6 8.6 3-8.6 3-3 8.6-3-8.6-8.6-3 8.6-3z" fill="var(--sp-sage)"/>
+        <path class="d4" d="M352 268l2.6 7.4 7.4 2.6-7.4 2.6-2.6 7.4-2.6-7.4-7.4-2.6 7.4-2.6z" fill="var(--sp-ink)"/>
+        <circle class="d5" cx="196" cy="34" r="3.6" fill="var(--sp-sage)"/><circle class="d6" cx="62" cy="150" r="3" fill="var(--sp-gold)"/><circle class="d7" cx="350" cy="196" r="2.6" fill="var(--sp-sage)"/></g></svg>
       <i class="sp-shine"></i>
       <div class="sp-parts" id="spParts"></div>
     </div>
-    <div class="sp-title"><span style="--i:0">靈</span><span style="--i:1">犀</span><i class="sp-tshine"></i><b class="sp-seal" aria-hidden="true"><i>心</i><i>有</i><i>靈</i><i>犀</i></b></div>
+    <div class="sp-title"><i class="sp-rule"></i><span style="--i:0">靈</span><span style="--i:1">犀</span><i class="sp-rule r"></i></div>
     <div class="sp-en">LINGXI</div>
-    <div class="sp-sub">心有靈犀 ・ 一點通</div>
+    <div class="sp-sub">心有靈犀<i></i>一點通</div>
   </div>
   <i class="sp-flash"></i>
   <div class="sp-load" aria-hidden="true"><i></i><span>正在排盤…</span></div>
@@ -5068,6 +5107,9 @@ function setTheme(v,re=true){const r=document.documentElement;if(v==='light'||v=
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {v:'2026.10.24-3',d:'10 月 24 日',items:[
+  ['全新開場動畫','重新設計開場：月亮星星環繞天眼、眼睛睜開後墨圈向外擴散、羅盤外環緩緩轉動；「靈犀」改用宋體由上而下顯現，拿掉紅色印章，版面更簡潔。',null],
+  ['更新後一定看到最新版','修正有網路時仍可能顯示舊版的問題（例如風水羅盤沒出現）。','fengshui']]},
  {v:'2026.10.24',d:'10 月 24 日',items:[
   ['更新提醒更清楚','App 有新版本時，畫面下方會出現提醒卡片，按「立即更新」即可；更新完成後會像現在這樣介紹新內容。',null],
   ['風水・手機羅盤','開運 → 風水，按「開啟羅盤」，轉動手機就能看到你面向的方位、八卦與二十四山，以及這個方位對你是吉是凶。','fengshui'],
