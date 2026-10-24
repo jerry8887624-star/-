@@ -3001,10 +3001,11 @@ function dtRender(say){const box=$('#dtBox');if(!box)return;const date=new Date(
 async function dtEvent(ev,arg){
   const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+dayOff);const k=dtKey(date);
   if(dt.busy)return;
+  if(ev==='start'||ev==='quick')tPreload(tarotDaily(date).i);
   if(ev==='start'){if(reduceMotion()){dt.st='select';return dtRender('請選一張牌')}dt.st='shuffle';dt.busy=true;buzz(6);dtRender('洗牌中');
     await wait(880);dt.busy=false;if(dt.st==='shuffle'){dt.st='select';buzz(6);dtRender('洗牌完成，請選一張牌')}return}
   if(ev==='skip'){dt.busy=false;dt.st='select';return dtRender('請選一張牌')}
-  if(ev==='pick'){if(dt.st!=='select')return;dt.pick=+arg;dt.st='selected';buzz(8);store.set(k,false);dtRender('已選 1 張，按翻開看今天的牌');return}
+  if(ev==='pick'){if(dt.st!=='select')return;dt.pick=+arg;tPreload(tarotDaily(date).i);dt.st='selected';buzz(8);store.set(k,false);dtRender('已選 1 張，按翻開看今天的牌');return}
   if(ev==='undo'){dt.pick=-1;dt.st='select';return dtRender('請選一張牌')}
   if(ev==='reveal'||ev==='quick'){
     dt.busy=true;store.set(k,true);
@@ -3514,7 +3515,13 @@ function sym(k,col,cx,cy,sz){
   return C(0,0,12);
 }
 /* 牌面：1909 年萊德偉特（Pamela Colman Smith 繪，公有領域）；圖檔載入失敗時退回自繪牌面 */
-function cardFace(i){return `<img class="tface" src="img/tarot/${i}.jpg" alt="" width="260" height="457" decoding="async" onerror="this.outerHTML=cardSvg(${i})">`}
+// 牌面圖：載入失敗先重試一次，再失敗就換成程式繪製的牌面（onerror 在全域執行，所以掛到 window）
+function cardFace(i){return `<img class="tface" src="img/tarot/${i}.jpg" alt="" width="260" height="457" onerror="__tfail(this,${i})">`}
+window.__tfail=(img,i)=>{if(!img.dataset.retry){img.dataset.retry=1;setTimeout(()=>{img.src=`img/tarot/${i}.jpg?r=${Date.now()}`},400);return}img.outerHTML=cardSvg(i)};
+// 預先載入並解碼牌面，翻牌時圖已就緒（iOS Safari 對翻到背面後才載完的圖常不重繪）
+const tFaceCache={};
+function tPreload(i){if(!tFaceCache[i]){const im=new Image();im.src=`img/tarot/${i}.jpg`;tFaceCache[i]=(im.decode?im.decode():new Promise((r,j)=>{im.onload=r;im.onerror=j})).catch(()=>{})}return tFaceCache[i]}
+function tRepaint(){$$('.spreadbox .tcard .fr img.tface').forEach(img=>{if(!img.complete||!img.naturalWidth){const i=+(img.src.match(/(\d+)\.jpg/)||[])[1];if(!isNaN(i))__tfail(img,i)}else{img.style.transform='translateZ(0)';requestAnimationFrame(()=>img.style.transform='')}})}
 function cardSvg(i){
   const c=tcard(i), [b1,b2,g]=SUIT_PAL[c.suit], id='g'+i, rg='r'+i;
   let art='';
@@ -5364,11 +5371,14 @@ document.addEventListener('click',async e=>{
   if(t.dataset.tcat){tCat=t.dataset.tcat;$$('[data-tcat]').forEach(c=>c.setAttribute('aria-pressed',c===t));return}
   if(t.dataset.spread){tQ=$('#tQ')?.value||tQ;tSpread=t.dataset.spread;tDeck=null;tPicked=[];tFlipped=false;tReading=null;renderTarot();return}
   if(t.id==='tShuffle'||t.id==='tReshuffle'){tQ=$('#tQ')?.value||tQ;tPicked=[];tFlipped=false;tReading=null;tDeck=shuffleDeck();renderTarot();$('#ttable').scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});setTimeout(tDeal,reduceMotion()?0:260);return}
-  if(t.dataset.dk!==undefined){const need=spreadDef().pos.length;const k=+t.dataset.dk;if(tPicked.length>=need||t.classList.contains('taken')||tPicked.some(p=>p.k===k))return;if(tBusy)return;tBusy=true;tPicked.push({k,...tDeck[k]});buzz(10);tQ=$('#tQ')?.value||tQ;
+  if(t.dataset.dk!==undefined){const need=spreadDef().pos.length;const k=+t.dataset.dk;if(tPicked.length>=need||t.classList.contains('taken')||tPicked.some(p=>p.k===k))return;if(tBusy)return;tBusy=true;tPicked.push({k,...tDeck[k]});tPreload(tDeck[k].i);buzz(10);tQ=$('#tQ')?.value||tQ;
     // 先畫出新的牌位（讓飛行有落點），再讓牌飛過去
     const y=scrollY;await tFly(t,tPicked.length-1);if(tPicked.length>=need)tarotFinish();renderTarot();scrollTo({top:y});tBusy=false;return}
-  if(t.id==='tAuto'){tQ=$('#tQ')?.value||tQ;const need=spreadDef().pos.length;const free=tDeck.map((c,k)=>k).filter(k=>!tPicked.some(p=>p.k===k));while(tPicked.length<need){const k=free.splice(Math.floor(Math.random()*free.length),1)[0];tPicked.push({k,...tDeck[k]})}tarotFinish();renderTarot();return}
-  if(t.id==='tFlip'||t.dataset.tslot!==undefined){if(!tReading)return;if(!tFlipped){tFlipped=true;$$('.spreadbox .tcard').forEach(c=>c.classList.add('up'));buzz();await wait(900);renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}else if(t.dataset.tslot!==undefined){const k=+t.dataset.tslot,x=tReading.c[k];if(x)cardSheet(x.i,x.rev,spreadDef().pos[k],tReading.cat)}return}
+  if(t.id==='tAuto'){tQ=$('#tQ')?.value||tQ;const need=spreadDef().pos.length;const free=tDeck.map((c,k)=>k).filter(k=>!tPicked.some(p=>p.k===k));while(tPicked.length<need){const k=free.splice(Math.floor(Math.random()*free.length),1)[0];tPicked.push({k,...tDeck[k]})}tPicked.forEach(p=>tPreload(p.i));tarotFinish();renderTarot();return}
+  if(t.id==='tFlip'||t.dataset.tslot!==undefined){if(!tReading)return;if(!tFlipped){if(tBusy)return;tBusy=true;t.disabled=true;
+      // 等牌面都載好（最多 2.5 秒）再翻
+      await Promise.race([Promise.all(tReading.c.map(c=>tPreload(c.i))),new Promise(r=>setTimeout(r,2500))]);
+      tFlipped=true;$$('.spreadbox .tcard').forEach(c=>c.classList.add('up'));buzz();await wait(900);tBusy=false;renderTarot();tRepaint();setTimeout(tRepaint,600);setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}else if(t.dataset.tslot!==undefined){const k=+t.dataset.tslot,x=tReading.c[k];if(x)cardSheet(x.i,x.rev,spreadDef().pos[k],tReading.cat)}return}
   if(t.dataset.thist!==undefined){const h=store.get('gx_tarot',[])[+t.dataset.thist];if(h){tSpread=h.s;tQ=h.q;tCat=h.cat||'綜合';tDeck=[];tPicked=h.c.map((c,k)=>({k:-1-k,...c}));tFlipped=true;tReading=h;renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth'}),60)}return}
   if(t.id==='tClear'){if(await alertBox({title:'清除抽牌紀錄？',msg:'清除後無法復原。',buttons:[{text:'取消',style:'cancel',value:false},{text:'清除',style:'destructive',value:true}]})){store.set('gx_tarot',[]);renderTarot();hud('已清除')}return}
   if(t.id==='tShare'&&tReading){shareOut(shareText(tReading));return}
@@ -5562,6 +5572,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.10.27-2",
+  "n": "1.8.1",
+  "d": "10 月 27 日",
+  "items": [
+   [
+    "修正塔羅牌面空白",
+    "網路較慢時，部分牌翻開後會是空白；現在選牌時就先載入牌面，翻牌前確認圖都到了，載入失敗也會自動重試。",
+    "tarot"
+   ]
+  ]
+ },
  {
   "v": "2026.10.27",
   "n": "1.8",
