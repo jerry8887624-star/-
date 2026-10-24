@@ -1573,7 +1573,7 @@ html.narrow .tspread{column-gap:3px}
 @keyframes t-halo{0%{box-shadow:0 0 0 0 rgba(231,194,122,0)}30%{box-shadow:0 0 0 2px rgba(231,194,122,.95),0 0 28px 8px rgba(231,194,122,.6)}100%{box-shadow:0 0 0 1.5px rgba(231,194,122,.7),0 0 14px 2px rgba(231,194,122,.3)}}
 .tcard.glint.maj,.dt-face.glint.maj{animation:t-pop .55s cubic-bezier(.2,.8,.3,1.25),t-halo 1.8s ease-out both}
 /* 解讀段落快速跳轉 */
-.tjump{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0}.tjump::-webkit-scrollbar{display:none}
+.tjump{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0}.tjump::-webkit-scrollbar{display:none}
 .tjump .chip{flex:none}
 #tr-sum,#tr-story,#tr-per,#tr-tips{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 60px)}
 #tr-story:empty{display:none}
@@ -3634,10 +3634,10 @@ function tStack(){const g=$('#deck');if(!g||!tStir)return;
   const off=()=>{g.removeEventListener('pointerdown',down);g.removeEventListener('pointermove',move);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up)};
   g._off=off;g.addEventListener('pointerdown',down);g.addEventListener('pointermove',move);g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up);
 }
-function tDealOut(){const g=$('#deck');if(!g||!g.classList.contains('stacked')){tStir=false;const y=scrollY;renderTarot();scrollTo({top:y});return}g._off&&g._off();
+function tDealOut(){const g=$('#deck');if(!g||!g.classList.contains('stacked')){tStir=false;renderTarot();$('#ttable')?.scrollIntoView({block:'start'});return}g._off&&g._off();
   g.classList.remove('stir','jiggle');g.classList.add('dealing');void g.offsetWidth;g.classList.remove('stacked');
   g.querySelectorAll('.dc').forEach(b=>{b.style.removeProperty('--sx');b.style.removeProperty('--sy');b.style.removeProperty('--sr')});buzz(8);
-  setTimeout(()=>{g.classList.remove('dealing');if(!tStir)return;tStir=false;const y=scrollY;renderTarot();scrollTo({top:y})},1050);
+  setTimeout(()=>{g.classList.remove('dealing');if(!tStir)return;tStir=false;const y=scrollY;renderTarot();scrollTo({top:y});const tb=$('#ttable');if(tb&&tb.getBoundingClientRect().top<0)tb.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'})},1050);
 }
 // 選中：牌從桌面飛到上方牌陣的位置
 async function tFly(btn,k){

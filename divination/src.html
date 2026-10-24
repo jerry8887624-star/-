@@ -1165,10 +1165,10 @@ function tStack(){const g=$('#deck');if(!g||!tStir)return;
   const off=()=>{g.removeEventListener('pointerdown',down);g.removeEventListener('pointermove',move);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up)};
   g._off=off;g.addEventListener('pointerdown',down);g.addEventListener('pointermove',move);g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up);
 }
-function tDealOut(){const g=$('#deck');if(!g||!g.classList.contains('stacked')){tStir=false;const y=scrollY;renderTarot();scrollTo({top:y});return}g._off&&g._off();
+function tDealOut(){const g=$('#deck');if(!g||!g.classList.contains('stacked')){tStir=false;renderTarot();$('#ttable')?.scrollIntoView({block:'start'});return}g._off&&g._off();
   g.classList.remove('stir','jiggle');g.classList.add('dealing');void g.offsetWidth;g.classList.remove('stacked');
   g.querySelectorAll('.dc').forEach(b=>{b.style.removeProperty('--sx');b.style.removeProperty('--sy');b.style.removeProperty('--sr')});buzz(8);
-  setTimeout(()=>{g.classList.remove('dealing');if(!tStir)return;tStir=false;const y=scrollY;renderTarot();scrollTo({top:y})},1050);
+  setTimeout(()=>{g.classList.remove('dealing');if(!tStir)return;tStir=false;const y=scrollY;renderTarot();scrollTo({top:y});const tb=$('#ttable');if(tb&&tb.getBoundingClientRect().top<0)tb.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'})},1050);
 }
 // 選中：牌從桌面飛到上方牌陣的位置
 async function tFly(btn,k){
