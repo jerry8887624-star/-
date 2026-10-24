@@ -1,6 +1,6 @@
 /* 靈犀離線快取：第一次開啟後把主程式、萬年曆、紫微元件存在手機裡；之後沒網路也能用，開啟也更快。
    網頁本身「先試網路、2.5 秒沒回應就用手機裡的版本」，所以有網路時總是拿到最新版。 */
-const V='lingxi-7cca665e5f';
+const V='lingxi-f9983220aa';
 const CORE=['./','index.html','manifest.webmanifest','vendor/lunar.min.js','vendor/iztro.min.js','icons/icon-192.png','icons/icon-180.png','icons/logo.svg','img/guangong.jpg'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('lingxi-')&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

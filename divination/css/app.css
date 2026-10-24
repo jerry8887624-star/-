@@ -1137,3 +1137,19 @@ p.story b{color:var(--ink)}
 @keyframes yl-in{from{opacity:0;transform:scaleX(.2)}to{opacity:1;transform:none}}
 @keyframes yl-mv{to{fill:#B3261E}}
 .updbar{white-space:nowrap;max-width:calc(100vw - 32px)}
+/* 手機羅盤 */
+.cmpwrap{position:relative;width:min(72vw,280px);margin:4px auto}
+.cmp{width:100%;height:auto;display:block}
+.cmp line{stroke:var(--muted);stroke-width:1}
+.cmp line.tk-main{stroke:var(--ink);stroke-width:2}
+.cmp text{fill:var(--ink);font-size:13px;font-weight:700;text-anchor:middle;font-family:var(--f-serif)}
+.cmp text.sm{font-size:10px;fill:var(--muted)}
+.cmp text.n{fill:#B3261E;font-size:15px}
+.cmp text.shan{font-size:8px;font-weight:500;fill:var(--muted)}
+.cmp .ring{fill:none;stroke:var(--line);stroke-width:1}
+.cmp .needle{fill:#B3261E}
+.cmp .hub{fill:var(--ink)}
+.cmpmid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.cmpmid b{font-size:clamp(26px,8vw,34px);font-variant-numeric:tabular-nums;line-height:1.1}
+.cmpmid span{font-size:13px;color:var(--muted);margin-top:2px}
+.cmpluck{margin:0;line-height:1.7}
