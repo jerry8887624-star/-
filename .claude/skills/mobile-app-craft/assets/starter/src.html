@@ -1,0 +1,98 @@
+<title>__APP_NAME__</title>
+<style>/*APP_CSS*/</style>
+<div class="bgart" aria-hidden="true"></div>
+<div class="app">
+  <header class="navbar"><button class="nbtn l" id="setBtn" aria-label="顯示設定">Aa</button><span id="navTitle" aria-hidden="true"></span><span></span></header>
+  <div class="largetitle"><small id="ltSub"></small><h1 id="ltTitle"></h1><p id="ltTag"></p></div>
+  <div id="subnav"></div>
+  <main>
+    <!-- 每個 view 一個 section；新增功能＝加 section＋在 GROUPS／render 登記 -->
+    <section class="view" id="v-home" hidden></section>
+    <section class="view" id="v-list" hidden></section>
+    <section class="view" id="v-about" hidden></section>
+  </main>
+</div>
+<div class="tabbar"><nav id="tabs" aria-label="功能"></nav></div>
+<script>
+(()=>{
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const reduceMotion=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||store.get('ax_motion','full')==='low';
+const wait=ms=>new Promise(r=>setTimeout(r,reduceMotion()?0:ms));
+function buzz(ms=8){if(store.get('ax_haptic',true)===false)return;try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
+function toast(t){$('.toast')?.remove();const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}
+function sheet(title,html){const L=document.createElement('div');L.className='layer';L.innerHTML=`<div class="scrim"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sheet-h"><b>${title}</b><button class="x" data-close aria-label="關閉">×</button></div>${html}</div>`;
+  L.addEventListener('click',e=>{if(e.target.closest('[data-close]')||e.target.classList.contains('scrim'))L.remove()});document.body.appendChild(L);document.body.classList.add('modal-open');
+  new MutationObserver(()=>{if(!L.isConnected)document.body.classList.remove('modal-open')}).observe(document.body,{childList:true});return L}
+
+/* ===== App 內容（改這一段：GROUPS 分頁、TITLES／SUBS 標題、render 各頁畫面）===== */
+const GROUPS=[
+  {k:'home',n:'首頁',icon:'☀︎',views:['home'],tag:'今天想做什麼？'},
+  {k:'list',n:'清單',icon:'☰',views:['list','about'],sub:['清單','說明'],tag:'整理你的事項'}];
+const TITLES={home:'首頁',list:'清單',about:'清單'},SUBS={home:'',list:'所有項目',about:'怎麼使用'};
+const render={
+  home:()=>`<div class="card"><span class="eyebrow">今日重點</span><h3 class="h3">一句話告訴使用者最重要的事</h3><p class="muted small">首屏只放最重要的資訊與一個主要行動。</p><button class="btn primary" data-go="list">開始</button></div>
+    <div class="card"><nav class="quick" aria-label="快速入口">${[['list','☰','清單'],['about','ⓘ','說明']].map(([v,i,n])=>`<button class="qk" data-go="${v}"><span class="qi" aria-hidden="true">${i}</span><span>${n}</span></button>`).join('')}</nav></div>
+    ${installCta()}`,
+  list:()=>`<div class="card"><h3 class="h3">清單</h3>${Array.from({length:12},(_,i)=>`<p>項目 ${i+1}</p>`).join('')}</div>`,
+  about:()=>`<div class="card"><h3 class="h3">怎麼使用</h3><p>這裡放白話說明。</p></div>`};
+/* ===== 以下為框架，一般不需修改 ===== */
+const VIEWS=GROUPS.flatMap(g=>g.views);let cur='home';const groupOf=v=>GROUPS.find(g=>g.views.includes(v));
+function renderTabs(){$('#tabs').innerHTML=GROUPS.map(g=>`<button class="tab" data-tab="${g.k}" aria-current="${groupOf(cur)===g?'page':'false'}"><span class="ti" aria-hidden="true">${g.icon}</span><span>${g.n}</span></button>`).join('')}
+function renderTitle(){const g=groupOf(cur);$('#ltTitle').textContent=$('#navTitle').textContent=TITLES[cur];$('#ltSub').textContent=SUBS[cur];$('#ltTag').textContent=g.tag||'';
+  $('#subnav').innerHTML=g.sub?`<div class="seg" role="group" aria-label="切換">${g.views.map((v,i)=>`<button data-sub="${v}" aria-pressed="${v===cur}">${g.sub[i]}</button>`).join('')}</div>`:''}
+const scrollMem={};let lastY=0;
+function go(v){if(!VIEWS.includes(v))v='home';const same=v===cur;if(!same)scrollMem[cur]=scrollY;cur=v;
+  $$('.view').forEach(s=>s.hidden=s.id!=='v-'+v);$('#v-'+v).innerHTML=render[v]();renderTabs();renderTitle();
+  const y=same?scrollY:(scrollMem[v]||0);lastY=y;scrollTo({top:y});document.body.classList.remove('tabhide');store.set('ax_tab',v);try{history.replaceState(null,'','#'+v)}catch(e){}}
+/* 往下捲收起分頁列、往上捲或到底再出現，不擋內容 */
+addEventListener('scroll',()=>{const y=scrollY,b=document.body;b.classList.toggle('collapsed',y>42);const end=innerHeight+y>=document.documentElement.scrollHeight-24;
+  if(y<80||end||y<lastY-6)b.classList.remove('tabhide');else if(y>lastY+8&&!b.classList.contains('modal-open'))b.classList.add('tabhide');if(Math.abs(y-lastY)>6)lastY=y},{passive:true});
+
+/* ---------- 設定：外觀、動效、震動 ---------- */
+function setTheme(v){const r=document.documentElement;r.classList.add('theming');setTimeout(()=>r.classList.remove('theming'),400);v==='auto'?r.removeAttribute('data-theme'):r.setAttribute('data-theme',v);store.set('ax_theme',v)}
+function openSettings(){const th=store.get('ax_theme','auto'),mo=store.get('ax_motion','full');
+  const L=sheet('顯示與設定',`<div class="card"><b>外觀</b><div class="seg">${[['auto','跟隨系統'],['light','淺色'],['dark','深色']].map(([v,n])=>`<button data-th="${v}" aria-pressed="${th===v}">${n}</button>`).join('')}</div>
+    <b>動態效果</b><div class="seg">${[['full','完整動效'],['low','簡化動效']].map(([v,n])=>`<button data-mo="${v}" aria-pressed="${mo===v}">${n}</button>`).join('')}</div>
+    <label><input type="checkbox" id="hap"${store.get('ax_haptic',true)?' checked':''}> 震動回饋</label></div>${installCta()}`);
+  L.addEventListener('click',e=>{const t=e.target.closest('[data-th]');if(t){setTheme(t.dataset.th);L.querySelectorAll('[data-th]').forEach(x=>x.setAttribute('aria-pressed',x===t))}
+    const m=e.target.closest('[data-mo]');if(m){store.set('ax_motion',m.dataset.mo);document.documentElement.classList.toggle('lowmo',m.dataset.mo==='low');L.querySelectorAll('[data-mo]').forEach(x=>x.setAttribute('aria-pressed',x===m))}});
+  L.addEventListener('change',e=>{if(e.target.id==='hap')store.set('ax_haptic',e.target.checked)})}
+
+/* ---------- 加到主畫面 ---------- */
+let instEvt=null;const inFrame=(()=>{try{return self!==top}catch(e){return true}})();
+const UA=navigator.userAgent,isIOS=/iPhone|iPad|iPod/.test(UA)||(/Macintosh/.test(UA)&&navigator.maxTouchPoints>1),inApp=/\bLine\/|FBAN|FBAV|Instagram|GSA\//i.test(UA);
+const canInstall=()=>!inFrame&&!matchMedia('(display-mode: standalone)').matches&&navigator.standalone!==true&&!store.get('ax_inst',0);
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEvt=e;if(cur==='home')go('home')});
+addEventListener('appinstalled',()=>{store.set('ax_inst',1);toast('已加到主畫面')});
+const installCta=()=>canInstall()?`<button class="btn block" data-act="install">${instEvt?'一鍵安裝到手機主畫面':'加到手機主畫面'}</button>`:'';
+async function doInstall(){if(instEvt){instEvt.prompt();const r=await instEvt.userChoice.catch(()=>null);instEvt=null;if(r&&r.outcome==='accepted')store.set('ax_inst',1);go(cur);return}
+  sheet('加到主畫面',`<div class="card"><ol>${inApp?'<li>你在 LINE／Facebook 等 App 裡面開啟，請點「⋯」→「在瀏覽器中開啟」。</li><li>在瀏覽器裡再按一次「加到主畫面」。</li>':isIOS?'<li>點 Safari 下方的「分享」（新版在右下「⋯」裡）。</li><li>往下滑，點「加入主畫面」。</li><li>右上角點「新增」。</li>':'<li>點 Chrome 右上角「⋮」。</li><li>點「加到主畫面」或「安裝應用程式」。</li><li>按「安裝」。</li>'}</ol></div>`)}
+
+/* ---------- 版本更新：先列內容再更新；更新後介紹一次 ---------- */
+const CHANGES=/*CHANGES*/,APP_VER=CHANGES[0].v;
+function updModal(list,mode){if($('.updm'))return;const top=list[0]||{},items=list.flatMap(c=>c.items).slice(0,6);const m=document.createElement('div');m.className='updm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
+  m.innerHTML=`<div class="scrim" style="position:absolute;inset:0;background:rgba(6,10,24,.55)"></div><div class="box"><div class="card"><h2>${top.n?`<span>${esc(top.n)}</span>`:''}${mode==='pre'?'更新內容':'已更新到新版'}</h2><ol>${items.map(([t,d])=>`<li><b>${esc(t)}</b><span>${esc(d)}</span></li>`).join('')}</ol></div>
+    ${mode==='pre'?'<button class="btn primary block" data-um="go">立即更新</button><button class="btn block" data-um="later">稍後更新</button>':'<button class="btn primary block" data-um="ok">開始使用</button>'}</div>`;
+  m.addEventListener('click',e=>{const b=e.target.closest('[data-um]');if(!b)return;if(b.dataset.um==='go'){store.set('ax_ver',top.v||APP_VER);location.reload()}else m.remove()});document.body.appendChild(m)}
+function maybeNews(){const seen=store.get('ax_ver',null);store.set('ax_ver',APP_VER);if(!seen||seen===APP_VER)return;const i=CHANGES.findIndex(c=>c.v===seen);updModal((i<0?CHANGES.slice(0,1):CHANGES.slice(0,i)).slice(0,3),'post')}
+window.__showUpdate=async()=>{let list=[];try{const all=await (await fetch('changes.json?t='+Date.now(),{cache:'no-store'})).json();const i=all.findIndex(c=>c.v===APP_VER);list=(i<0?all.slice(0,1):all.slice(0,i)).slice(0,3)}catch(e){}updModal(list,'pre')};
+function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protocol==='https:'||location.hostname==='localhost'))return;
+  if(navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',window.__showUpdate);
+  const chk=()=>navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{});document.addEventListener('visibilitychange',()=>{if(!document.hidden)chk()});setInterval(chk,20*60e3);
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{})}
+
+/* ---------- 事件分派：所有按鈕用 data-* ---------- */
+document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.tab){const g=GROUPS.find(x=>x.k===t.dataset.tab);buzz();return go(g.views[0])}
+  if(t.dataset.sub)return go(t.dataset.sub);
+  if(t.dataset.go)return go(t.dataset.go);
+  if(t.id==='setBtn')return openSettings();
+  if(t.dataset.act==='install')return doInstall();
+});
+/* ---------- 啟動 ---------- */
+{const th=store.get('ax_theme','auto');if(th!=='auto')document.documentElement.setAttribute('data-theme',th);document.documentElement.classList.toggle('lowmo',store.get('ax_motion','full')==='low')}
+const h=location.hash.slice(1);go(VIEWS.includes(h)?h:store.get('ax_tab','home'));setTimeout(maybeNews,600);setTimeout(regSW,1500);
+})();
+</script>
