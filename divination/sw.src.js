@@ -17,6 +17,7 @@ self.addEventListener('fetch',e=>{
       fetch(r.url,{cache:'no-store',credentials:'same-origin'}).then(n=>{clearTimeout(t);put('index.html',n.clone());if(!done){done=true;res(n)}})
         .catch(()=>{clearTimeout(t);caches.match('index.html').then(m=>{if(!done){done=true;res(m||Response.error())}})});
     }));return}
+  if(u.pathname.endsWith('/changes.json'))return; // 更新紀錄一律走網路
   const same=u.origin===location.origin, font=/fonts\.(googleapis|gstatic)\.com$/.test(u.hostname), cdn=u.hostname==='cdn.jsdelivr.net';
   if(!same&&!font&&!cdn)return;
   // 圖片、程式庫、字型：先用手機裡的，同時在背景更新
