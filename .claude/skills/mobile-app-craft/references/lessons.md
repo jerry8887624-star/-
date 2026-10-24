@@ -14,3 +14,4 @@
 | iOS 上 SVG 旋轉位移 | transform-origin 用 px 座標 | `transform-box:fill-box;transform-origin:center` |
 | 部署後手機仍是舊版 | Service worker 讀到 HTTP 快取 | 網頁 `cache:'no-store'`、註冊 `updateViaCache:'none'` |
 | 分頁列擋住內文 | 固定在底部 | 往下捲收起、往上捲或到底出現 |
+| iPhone 翻牌後牌面空白 | 圖在 3D 翻到背面後才載完，iOS Safari 不重繪；`onerror` 呼叫的後備函式寫在 IIFE 內找不到 | 選取時就預載＋`decode()`，翻前等圖就緒；`onerror` 用掛在 window 的函式並重試一次；翻完強制重繪 |

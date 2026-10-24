@@ -1498,3 +1498,8 @@ html.lowmo *,html.lowmo *::before,html.lowmo *::after{animation-duration:.01ms!i
 .dc.fly{border-radius:5px;overflow:hidden;box-shadow:0 0 0 2px var(--tint),0 16px 28px -10px rgba(0,0,0,.6)}
 .dc.fly svg{display:block;width:100%;height:100%}
 html.narrow .tspread{column-gap:3px}
+/* 翻開後改成平面顯示：iOS Safari 對 3D 背面的圖片常不載入或不重繪，翻完就不再放在背面 */
+.tcard.flat .in{transform:none;transform-style:flat;transition:none}
+.tcard.flat .bk{display:none}
+.tcard.flat .fr{transform:none;-webkit-backface-visibility:visible;backface-visibility:visible}
+.tcard.flat:active .in,.tcard.up.flat:not(.empty):active .in{transform:scale(.97)}
