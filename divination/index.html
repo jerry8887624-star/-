@@ -1235,68 +1235,210 @@ html.simple .updcard{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 #splash.out .sp-mark{transform:none;opacity:1}
 #splash.still .sp-title span{clip-path:none!important}
 #splash.still .sp-rule{transform:none!important}
+
+/* ===== 開場 v4「夜空天眼」：藏青夜空、金色線條天眼、中軸星月、山水雲海 ===== */
+#splash.lx{--g1:#FBEBC0;--g2:#E0B865;--g3:#A97B2C;background:radial-gradient(120% 70% at 50% 38%,#16264F 0%,#0B1634 45%,#050A1A 100%)!important;color:#F3E6C6;display:block;overflow:hidden}
+#splash.lx>*{position:absolute}
+.lx-stars{inset:0;pointer-events:none}
+.lx-stars i{position:absolute;width:var(--z);height:var(--z);border-radius:50%;background:#FFF4D6;box-shadow:0 0 6px rgba(255,236,190,.8);opacity:0;animation:lx-in .8s ease var(--d) forwards,lx-twk var(--t) ease-in-out calc(var(--d) + .8s) infinite alternate}
+@keyframes lx-in{to{opacity:1}}
+@keyframes lx-twk{0%{opacity:1}100%{opacity:.25}}
+.lx-meteor{top:14%;left:68%;width:120px;height:1.5px;background:linear-gradient(90deg,#FFF3CF,rgba(255,243,207,0));transform:rotate(-30deg) translateX(0);transform-origin:left;opacity:0;animation:lx-meteor 1s cubic-bezier(.3,0,.2,1) 1.3s forwards;border-radius:2px;filter:drop-shadow(0 0 4px #FFE8B0)}
+@keyframes lx-meteor{0%{opacity:0;transform:rotate(150deg) translateX(0) scaleX(.2)}15%{opacity:1}100%{opacity:0;transform:rotate(150deg) translateX(260px) scaleX(1)}}
+.lx-moon{top:max(15vh,calc(env(safe-area-inset-top,0px) + 96px));right:5%;width:min(18vw,78px);opacity:0;filter:drop-shadow(0 0 14px rgba(240,200,120,.45));animation:lx-moon 1.4s cubic-bezier(.22,1,.36,1) .2s forwards}
+@keyframes lx-moon{from{opacity:0;transform:translate(12px,14px) rotate(-12deg)}to{opacity:1;transform:none}}
+.lx-cloud{width:min(40vw,170px);opacity:0;pointer-events:none;z-index:0}
+.lx-cloud.c1{left:-10%;top:19%;animation:lx-cl1 1.6s cubic-bezier(.22,1,.36,1) .4s forwards,lx-drift 9s ease-in-out 2s infinite alternate}
+.lx-cloud.c2{right:-10%;top:51%;animation:lx-cl2 1.6s cubic-bezier(.22,1,.36,1) .55s forwards,lx-drift 11s ease-in-out 2.2s infinite alternate-reverse}
+@keyframes lx-cl1{from{opacity:0;transform:translateX(-40px)}to{opacity:.6;transform:none}}
+@keyframes lx-cl2{from{opacity:0;transform:translateX(40px)}to{opacity:.6;transform:none}}
+@keyframes lx-drift{from{translate:0 0}to{translate:14px 0}}
+.lx-stage{inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:16vh;gap:0;z-index:2}
+.lx-tag{display:flex;align-items:center;gap:14px;font-family:"Noto Serif TC","Songti TC",serif;font-size:13px;letter-spacing:.42em;padding-left:.42em;color:rgba(243,230,198,.82);opacity:0;animation:lx-up .9s ease .7s forwards;margin-bottom:2vh}
+.lx-tag i{display:block;width:34px;height:1px;background:linear-gradient(90deg,transparent,var(--g2))}
+.lx-tag i:last-child{background:linear-gradient(90deg,var(--g2),transparent)}
+@keyframes lx-up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.lx-emblem{width:min(80vw,42vh,340px);height:auto;overflow:visible;filter:drop-shadow(0 0 6px rgba(240,200,120,.28))}
+.lx-emblem *{transform-box:fill-box;transform-origin:center}
+.lx-axis path{stroke-dasharray:1;stroke-dashoffset:1;animation:lx-draw 1s cubic-bezier(.65,0,.35,1) .9s forwards;opacity:.8}
+.lx-orbits .o1,.lx-orbits .o3{stroke-dasharray:1;stroke-dashoffset:1;animation:lx-draw 1.3s cubic-bezier(.65,0,.35,1) 1.1s forwards}
+.lx-orbits .o3{animation-delay:1.4s}
+.lx-orbits .o2{opacity:0;animation:lx-in .8s ease 1.6s forwards,lx-rot 50s linear 1.6s infinite}
+@keyframes lx-draw{to{stroke-dashoffset:0}}
+@keyframes lx-rot{to{transform:rotate(360deg)}}
+.lx-spin{opacity:0;animation:lx-in .6s ease 2.2s forwards,lx-rot 24s linear 2.2s infinite}
+.lx-orn .p{opacity:0;animation:lx-pop .6s cubic-bezier(.34,1.56,.64,1) forwards}
+.lx-orn .p1,.lx-orn .p6{animation-delay:1.7s}.lx-orn .p2,.lx-orn .p5{animation-delay:1.85s}.lx-orn .p3,.lx-orn .p4{animation-delay:2s}
+.lx-orn .p8,.lx-orn .p9{animation-delay:2.55s}
+.lx-orn .t1{animation:lx-pop .6s cubic-bezier(.34,1.56,.64,1) 2.7s forwards,lx-twk 2.4s ease-in-out 3.4s infinite alternate}
+.lx-orn .t2{animation:lx-pop .6s cubic-bezier(.34,1.56,.64,1) 2.85s forwards,lx-twk 3s ease-in-out 3.5s infinite alternate}
+.lx-orn .t3{animation:lx-pop .6s cubic-bezier(.34,1.56,.64,1) 3s forwards,lx-twk 2.6s ease-in-out 3.6s infinite alternate}
+.lx-orn .t4{animation:lx-pop .6s cubic-bezier(.34,1.56,.64,1) 3.1s forwards,lx-twk 3.4s ease-in-out 3.7s infinite alternate}
+@keyframes lx-pop{from{opacity:0;transform:scale(0) rotate(-45deg)}to{opacity:1;transform:none}}
+.lx-eye .lid{stroke-dasharray:1;stroke-dashoffset:1;animation:lx-draw .95s cubic-bezier(.65,0,.35,1) 1.6s forwards}
+.lx-eye .l3,.lx-eye .l4{animation-delay:1.78s}.lx-eye .l5{animation-delay:1.95s}
+.lx-iris{opacity:0;transform:scale(.4);animation:lx-iris .7s cubic-bezier(.34,1.56,.64,1) 2.2s forwards}
+@keyframes lx-iris{to{opacity:1;transform:none}}
+.lx-fib{animation:lx-rot 30s linear infinite}
+.lx-core{opacity:0;transform:scale(0) rotate(-90deg);animation:lx-flare .9s cubic-bezier(.34,1.4,.64,1) 2.5s forwards,lx-breathe 2.8s ease-in-out 3.6s infinite}
+@keyframes lx-flare{0%{opacity:0;transform:scale(0) rotate(-90deg)}60%{opacity:1;transform:scale(1.3) rotate(8deg)}100%{opacity:1;transform:none}}
+@keyframes lx-breathe{50%{transform:scale(1.08);filter:drop-shadow(0 0 10px #FFE3A0)}}
+.lx-burst{opacity:0;animation:lx-burst 1.4s cubic-bezier(.2,.7,.2,1) 2.6s forwards}
+@keyframes lx-burst{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(3.4)}}
+.lx-flash{inset:0;pointer-events:none;background:radial-gradient(circle at 50% 36%,rgba(255,226,160,.4),rgba(255,226,160,0) 55%);opacity:0;animation:lx-flash 1.2s ease 2.55s forwards}
+@keyframes lx-flash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+/* 標題：金色漸層字，模糊到清晰、字距收合，再閃過一道光 */
+.lx-title{display:flex;align-items:center;gap:16px;margin-top:2.6vh}
+.lx-title b{display:flex;gap:.36em;font-family:"Noto Serif TC","Songti TC",serif;font-weight:600;font-size:clamp(42px,13vw,58px);line-height:1.15}
+.lx-title span{display:inline-block;color:#F0D597;background:linear-gradient(100deg,#B8893A 0%,#F6E2AE 30%,#FFF9E6 42%,#E3BC6C 55%,#B8893A 100%);background-size:250% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;opacity:0;filter:blur(10px);transform:scale(1.25);animation:lx-ttl 1s cubic-bezier(.22,1,.36,1) calc(2.9s + var(--i) * .22s) forwards,lx-shine 1.6s ease calc(3.8s + var(--i) * .15s) forwards}
+.lx-title b{filter:drop-shadow(0 0 12px rgba(240,200,120,.3))}
+@keyframes lx-ttl{to{opacity:1;filter:blur(0);transform:none}}
+@keyframes lx-shine{to{background-position:0 0}}
+.lx-rl{position:relative;display:block;width:clamp(36px,13vw,64px);height:1px;background:linear-gradient(90deg,transparent,var(--g2));transform:scaleX(0);transform-origin:right;animation:lx-rule .9s cubic-bezier(.22,1,.36,1) 2.9s forwards}
+.lx-rl.r{background:linear-gradient(90deg,var(--g2),transparent);transform-origin:left}
+.lx-rl::after{content:"";position:absolute;right:-3px;top:-3px;width:7px;height:7px;background:var(--g1);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.lx-rl.r::after{right:auto;left:-3px}
+@keyframes lx-rule{to{transform:none}}
+.lx-under{position:relative;width:min(58vw,240px);height:1px;margin-top:1.2vh;background:linear-gradient(90deg,transparent,rgba(224,184,101,.7),transparent);transform:scaleX(0);animation:lx-rule .9s cubic-bezier(.22,1,.36,1) 3.4s forwards}
+.lx-under::after{content:"";position:absolute;left:50%;top:-3px;width:6px;height:6px;margin-left:-3px;background:var(--g2);transform:rotate(45deg)}
+.lx-en{margin-top:1.6vh;font-family:"Noto Serif TC",Georgia,serif;font-size:13px;font-weight:600;letter-spacing:.9em;padding-left:.9em;color:var(--g2);opacity:0;animation:lx-spread 1.1s cubic-bezier(.22,1,.36,1) 3.55s forwards}
+@keyframes lx-spread{from{opacity:0;letter-spacing:.3em;padding-left:.3em}to{opacity:1;letter-spacing:.9em;padding-left:.9em}}
+.lx-sub{display:flex;align-items:center;gap:1em;margin-top:2vh;font-family:"Noto Serif TC","Songti TC",serif;font-size:15px;letter-spacing:.36em;padding-left:.36em;color:rgba(243,230,198,.9);opacity:0;animation:lx-up .9s ease 3.8s forwards}
+.lx-sub i{display:block;width:8px;height:8px;background:var(--g2);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+/* 山水 */
+.lx-land{left:0;right:0;bottom:0;width:100%;height:24vh;z-index:1;pointer-events:none}
+.lx-land .lx-m0{opacity:0;transform:translateY(20px);animation:lx-rise 1.8s cubic-bezier(.22,1,.36,1) .2s forwards}
+.lx-land .lx-m1{opacity:0;transform:translateY(30px);animation:lx-rise 1.6s cubic-bezier(.22,1,.36,1) .35s forwards}
+.lx-land .lx-m2{opacity:0;transform:translateY(40px);animation:lx-rise 1.6s cubic-bezier(.22,1,.36,1) .45s forwards}
+@keyframes lx-rise{to{opacity:1;transform:none}}
+.lx-ref{opacity:0;transform-box:fill-box;transform-origin:center;animation:lx-in 1s ease 2.6s forwards,lx-shim 3s ease-in-out 3.6s infinite alternate}
+.lx-ripples path{opacity:0;transform-box:fill-box;transform-origin:center;animation:lx-in 1s ease 2.8s forwards,lx-shim 2.4s ease-in-out 3.8s infinite alternate}
+.lx-ripples path:nth-child(2){animation-delay:2.9s,4s}.lx-ripples path:nth-child(3){animation-delay:3s,4.2s}.lx-ripples path:nth-child(4){animation-delay:3.1s,4.4s}
+@keyframes lx-shim{from{transform:scaleX(1)}to{transform:scaleX(.6);opacity:.5}}
+/* 輕觸開啟 */
+#splash.lx .lx-tap{left:0;right:0;bottom:calc(5vh + env(safe-area-inset-bottom,0px));z-index:3;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:"Noto Serif TC","Songti TC",serif;font-size:13px;letter-spacing:.4em;padding-left:.4em;color:rgba(243,230,198,.85);opacity:0;animation:lx-up .8s ease 4.2s forwards}
+.lx-tapln{display:block;width:1px;height:22px;background:linear-gradient(transparent,var(--g2))}
+.lx-tapo{display:block;width:18px;height:18px;border:1px solid var(--g2);border-radius:50%;position:relative;margin-bottom:4px;animation:lx-pulse 1.8s ease-in-out 4.6s infinite}
+.lx-tapo::after{content:"";position:absolute;inset:4px;background:var(--g1);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+@keyframes lx-pulse{50%{box-shadow:0 0 0 6px rgba(224,184,101,0);transform:scale(1.12)}}
+#splash.lx .sp-load{left:0;right:0;bottom:calc(5vh + env(safe-area-inset-bottom,0px));z-index:4;color:rgba(243,230,198,.8)}
+#splash.lx.waiting .lx-tap{visibility:hidden}
+/* 收場：鏡頭穿進天眼 */
+#splash.lx.out .lx-emblem{transform:scale(3.2);opacity:0;transition:transform .8s cubic-bezier(.55,.06,.68,.19),opacity .6s ease .15s}
+#splash.lx.out .lx-title,#splash.lx.out .lx-under,#splash.lx.out .lx-en,#splash.lx.out .lx-sub,#splash.lx.out .lx-tag,#splash.lx.out .lx-tap{opacity:0!important;transition:opacity .35s;animation:none}
+/* 減少動態效果：直接顯示完成畫面 */
+#splash.lx.still .lx-burst,#splash.lx.still .lx-flash,#splash.lx.still .lx-meteor{display:none}
+#splash.lx.still .lx-title span{background-position:0 0}
+/* 更新內容彈窗 */
+.updm{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));animation:updm-in .3s ease}
+.updm.out{opacity:0;transition:opacity .25s}
+.updm-scrim{position:absolute;inset:0;background:rgba(6,10,24,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.updm-box{position:relative;width:100%;max-width:420px;max-height:100%;display:flex;flex-direction:column;gap:10px;animation:updm-pop .45s cubic-bezier(.34,1.4,.64,1)}
+.updm-card{position:relative;overflow:auto;border-radius:22px;padding:30px 22px 22px;background:var(--card);background-image:var(--tex-paper);box-shadow:0 18px 50px rgba(0,0,0,.35),inset 0 0 0 1px var(--edge)}
+.updm-orn{position:absolute;left:0;top:0;width:100%;height:110px;pointer-events:none}
+.updm-orn path,.updm-orn circle{stroke:var(--tint);stroke-width:.9;opacity:.45}.updm-orn circle:last-child{fill:var(--tint);stroke:none}
+.updm-h{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
+.updm-v{font-family:var(--f-serif);font-size:24px;font-weight:700;padding:2px 14px;border-radius:999px;background:var(--tint-soft);color:var(--tint);font-variant-numeric:tabular-nums}
+.updm-v:empty{display:none}
+.updm-h b{font-family:var(--f-serif);font-size:24px;letter-spacing:.06em}
+.updm-lead{position:relative;text-align:center;margin:0 0 12px;font-size:15px;line-height:1.6;color:var(--muted)}
+.updm-list{list-style:none;counter-reset:u;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.updm-list li{counter-increment:u;position:relative;padding-left:40px;display:flex;flex-direction:column;gap:3px}
+.updm-list li::before{content:counter(u);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--tint-soft);color:var(--tint);font-weight:700;font-size:15px}
+.updm-list b{font-family:var(--f-serif);font-size:17px;line-height:1.4}
+.updm-list span{font-size:14.5px;line-height:1.65;color:var(--muted)}
+.updm-go{align-self:flex-start;border:0;background:none;padding:2px 0;color:var(--tint);font-weight:600;font-size:14px;cursor:pointer}
+.updm-btn{min-height:52px;font-size:17px;border-radius:16px}
+.updm-btn.ghostline{background:var(--card);color:var(--muted);box-shadow:inset 0 0 0 1px var(--edge)}
+@keyframes updm-in{from{opacity:0}}
+@keyframes updm-pop{from{opacity:0;transform:translateY(16px) scale(.96)}}
+@media (max-height:700px){.lx-land{height:18vh}.lx-emblem{width:min(74vw,38vh,320px)}.lx-stage{padding-bottom:14vh}}
 </style>
 </head>
 <body>
 
 
 <script>try{var th=JSON.parse(localStorage.getItem('gx_theme')||'null');if(th==='light'||th==='dark')document.documentElement.setAttribute('data-theme',th)}catch(e){}try{var fs=JSON.parse(localStorage.getItem('gx_fs')||'null');if(fs){if(fs.z>1)document.documentElement.style.zoom=fs.z;if(fs.b)document.documentElement.classList.add('boldtext')}var w=innerWidth/((fs&&fs.z)||1);document.documentElement.classList.toggle('vw400',w<=400);document.documentElement.classList.toggle('narrow',w<340)}catch(e){}</script>
-<div id="splash" aria-hidden="true">
-  <div class="sp-sky"><i class="sp-stars s1"></i><i class="sp-stars s2"></i><i class="sp-stars s3"></i><i class="sp-neb"></i></div>
-  <div class="sp-stage">
-    <div class="sp-mark" id="spMark">
-      <svg class="sp-logo" viewBox="0 0 1024 1024">
-        <defs>
-          <linearGradient id="sp-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF0C2"/><stop offset=".45" stop-color="#E9BE62"/><stop offset="1" stop-color="#A9761F"/></linearGradient>
-          <radialGradient id="sp-iris" cx="45%" cy="40%" r="65%"><stop offset="0" stop-color="#FFF3CC"/><stop offset=".5" stop-color="#E7B95A"/><stop offset="1" stop-color="#9A6A18"/></radialGradient>
-          <radialGradient id="sp-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F3CF7E" stop-opacity=".5"/><stop offset="1" stop-color="#F3CF7E" stop-opacity="0"/></radialGradient>
-        </defs>
-        <circle class="sp-halo" cx="512" cy="512" r="440" fill="url(#sp-glow)"/>
-        <circle class="sp-ring" cx="512" cy="512" r="330" fill="none" stroke="url(#sp-gold)" stroke-width="10" pathLength="100"/>
-        <circle class="sp-ripple" cx="512" cy="512" r="330" fill="none" stroke-width="4"/><circle class="sp-ripple r2" cx="512" cy="512" r="330" fill="none" stroke-width="3"/>
-        <circle class="sp-dash" cx="512" cy="512" r="300" fill="none" stroke="#E9BE62" stroke-opacity=".4" stroke-width="3" stroke-dasharray="4 14"/>
-        <g class="sp-ticks" stroke="url(#sp-gold)" stroke-linecap="round">
-          <line style="--i:0" x1="512" y1="160" x2="512" y2="200" stroke-width="10"/><line style="--i:1" x1="688" y1="207" x2="676" y2="228" stroke-width="6"/><line style="--i:2" x1="817" y1="336" x2="796" y2="348" stroke-width="6"/><line style="--i:3" x1="824" y1="512" x2="864" y2="512" stroke-width="10"/>
-          <line style="--i:4" x1="817" y1="688" x2="796" y2="676" stroke-width="6"/><line style="--i:5" x1="688" y1="817" x2="676" y2="796" stroke-width="6"/><line style="--i:6" x1="512" y1="824" x2="512" y2="864" stroke-width="10"/><line style="--i:7" x1="336" y1="817" x2="348" y2="796" stroke-width="6"/>
-          <line style="--i:8" x1="207" y1="688" x2="228" y2="676" stroke-width="6"/><line style="--i:9" x1="160" y1="512" x2="200" y2="512" stroke-width="10"/><line style="--i:10" x1="207" y1="336" x2="228" y2="348" stroke-width="6"/><line style="--i:11" x1="336" y1="207" x2="348" y2="228" stroke-width="6"/>
-        </g>
-        <g class="sp-eye">
-          <path class="sp-lid" d="M262 512 C352 382 432 340 512 340 C592 340 672 382 762 512 C672 642 592 684 512 684 C432 684 352 642 262 512 Z" fill="#0A0F22" stroke="url(#sp-gold)" stroke-width="26" stroke-linejoin="round" pathLength="100"/>
-          <clipPath id="sp-clip"><path d="M262 512 C352 382 432 340 512 340 C592 340 672 382 762 512 C672 642 592 684 512 684 C432 684 352 642 262 512 Z"/></clipPath>
-          <g clip-path="url(#sp-clip)"><g class="sp-iris"><g class="sp-look">
-            <circle cx="512" cy="512" r="112" fill="url(#sp-iris)"/>
-            <circle class="sp-fiber" cx="512" cy="512" r="92" fill="none" stroke="#9A6A18" stroke-opacity=".45" stroke-width="3" stroke-dasharray="2 9"/>
-            <g class="sp-pupil"><path d="M512 432 L530 494 L592 512 L530 530 L512 592 L494 530 L432 512 L494 494 Z" fill="#0D1329"/>
-            <path class="sp-core" d="M512 470 L520 504 L554 512 L520 520 L512 554 L504 520 L470 512 L504 504 Z" fill="#F7DFA0"/></g>
-          </g></g></g>
-          <circle class="sp-glint" cx="476" cy="470" r="17" fill="#FFF8E6"/><circle class="sp-glint g2" cx="552" cy="560" r="7" fill="#FFF8E6"/>
-        </g>
-        <path class="sp-star" d="M772 236 L782 270 L816 280 L782 290 L772 324 L762 290 L728 280 L762 270 Z" fill="url(#sp-gold)"/>
-      </svg>
-      <svg class="sp-doodle" viewBox="0 0 400 400" aria-hidden="true"><g filter="url(#crayonFill)">
-        <path class="d1" d="M318 46a50 50 0 1 0 34 86 42 42 0 1 1-34-86z" fill="var(--sp-gold)"/>
-        <path class="d2" d="M82 92l4 12 12 4-12 4-4 12-4-12-12-4 12-4z" fill="var(--sp-gold)"/>
-        <path class="d3" d="M48 238l3 8.6 8.6 3-8.6 3-3 8.6-3-8.6-8.6-3 8.6-3z" fill="var(--sp-sage)"/>
-        <path class="d4" d="M352 268l2.6 7.4 7.4 2.6-7.4 2.6-2.6 7.4-2.6-7.4-7.4-2.6 7.4-2.6z" fill="var(--sp-ink)"/>
-        <circle class="d5" cx="196" cy="34" r="3.6" fill="var(--sp-sage)"/><circle class="d6" cx="62" cy="150" r="3" fill="var(--sp-gold)"/><circle class="d7" cx="350" cy="196" r="2.6" fill="var(--sp-sage)"/></g></svg>
-      <i class="sp-shine"></i>
-      <div class="sp-parts" id="spParts"></div>
-    </div>
-    <div class="sp-title"><i class="sp-rule"></i><span style="--i:0">靈</span><span style="--i:1">犀</span><i class="sp-rule r"></i></div>
-    <div class="sp-en">LINGXI</div>
-    <div class="sp-sub">心有靈犀<i></i>一點通</div>
+<div id="splash" class="lx" aria-hidden="true">
+  <div class="lx-stars" id="lxStars"></div>
+  <i class="lx-meteor"></i>
+  <svg class="lx-moon" viewBox="0 0 100 100"><defs><linearGradient id="lxMoon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7E6B5"/><stop offset=".55" stop-color="#D8AE60"/><stop offset="1" stop-color="#9C7130"/></linearGradient></defs><path d="M62 6a44 44 0 1 0 32 74A36 36 0 1 1 62 6z" fill="url(#lxMoon)"/><path d="M62 6a44 44 0 1 0 32 74A36 36 0 1 1 62 6z" fill="none" stroke="#FFF3D1" stroke-opacity=".5" stroke-width=".8"/></svg>
+  <svg class="lx-cloud c1" viewBox="0 0 220 80"><path d="M0 62 C30 40 62 46 78 56 C88 38 120 34 136 50 C150 40 176 44 184 60 C196 58 210 62 216 70 L0 70Z" fill="#14234A"/><path d="M0 62 C30 40 62 46 78 56 C88 38 120 34 136 50 C150 40 176 44 184 60 C196 58 210 62 216 70" fill="none" stroke="#D9B26A" stroke-opacity=".7" stroke-width="1.1"/><path d="M20 30 C70 14 130 18 160 30 C178 38 172 52 158 48 C148 45 150 36 160 37" fill="none" stroke="#D9B26A" stroke-opacity=".55" stroke-width="1"/></svg>
+  <svg class="lx-cloud c2" viewBox="0 0 220 80"><path d="M220 60 C190 40 160 44 146 54 C134 36 104 34 90 48 C76 38 50 42 42 58 C30 56 14 60 6 70 L220 70Z" fill="#14234A"/><path d="M220 60 C190 40 160 44 146 54 C134 36 104 34 90 48 C76 38 50 42 42 58 C30 56 14 60 6 70" fill="none" stroke="#D9B26A" stroke-opacity=".7" stroke-width="1.1"/><path d="M200 26 C150 12 92 16 64 28 C46 36 52 50 66 46 C76 43 74 34 64 35" fill="none" stroke="#D9B26A" stroke-opacity=".55" stroke-width="1"/></svg>
+  <div class="lx-stage">
+    <div class="lx-tag"><i></i><span>與內心相遇・看見未來</span><i></i></div>
+    <svg class="lx-emblem" viewBox="0 0 400 440" aria-hidden="true">
+      <defs>
+        <linearGradient id="lxg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FBEBC0"/><stop offset=".5" stop-color="#E0B865"/><stop offset="1" stop-color="#A97B2C"/></linearGradient>
+        <radialGradient id="lxIris" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#1E3266"/><stop offset="1" stop-color="#070E24"/></radialGradient>
+        <radialGradient id="lxGlow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFE9B0" stop-opacity=".95"/><stop offset=".35" stop-color="#F0C873" stop-opacity=".45"/><stop offset="1" stop-color="#F0C873" stop-opacity="0"/></radialGradient>
+      </defs>
+      <g class="lx-axis" stroke="url(#lxg)" stroke-width="1.1"><path d="M200 220 V8" pathLength="1"/><path d="M200 220 V432" pathLength="1"/></g>
+      <g class="lx-orbits" fill="none" stroke="url(#lxg)">
+        <circle class="o1" cx="200" cy="220" r="152" stroke-width="1.2" pathLength="1"/>
+        <circle class="o2" cx="200" cy="220" r="134" stroke-width=".9" stroke-dasharray="1 6" stroke-opacity=".7"/>
+        <path class="o3" d="M90 150 A130 130 0 0 1 310 150" stroke-width=".8" stroke-opacity=".6" pathLength="1"/>
+      </g>
+      <g class="lx-spin"><circle cx="200" cy="220" r="152" fill="none" stroke="none"/><circle cx="200" cy="68" r="3.4" fill="#F3D48C"/><circle cx="352" cy="220" r="2.4" fill="#F3D48C"/><circle cx="92" cy="327" r="2.8" fill="#F3D48C"/></g>
+      <g class="lx-orn" fill="url(#lxg)">
+        <path class="p p1" d="M200 0 L203 11 L214 14 L203 17 L200 28 L197 17 L186 14 L197 11Z"/>
+        <path class="p p2" d="M184 44 A16 16 0 0 0 216 44 A13 13 0 0 1 184 44Z"/>
+        <path class="p p3" d="M200 76 L205 84 L200 92 L195 84Z"/>
+        <path class="p p4" d="M200 348 L205 356 L200 364 L195 356Z"/>
+        <path class="p p5" d="M184 382 A16 16 0 0 1 216 382 A13 13 0 0 0 184 382Z"/>
+        <path class="p p6" d="M200 404 L203.5 416.5 L216 420 L203.5 423.5 L200 436 L196.5 423.5 L184 420 L196.5 416.5Z"/>
+        <path class="p p8" d="M20 220 L31 217 L34 206 L37 217 L48 220 L37 223 L34 234 L31 223Z"/>
+        <path class="p p9" d="M352 220 L363 217 L366 206 L369 217 L380 220 L369 223 L366 234 L363 223Z"/>
+        <path class="p t1" d="M80 108 L82 116 L90 118 L82 120 L80 128 L78 120 L70 118 L78 116Z"/>
+        <path class="p t2" d="M326 96 L328 103 L335 105 L328 107 L326 114 L324 107 L317 105 L324 103Z"/>
+        <path class="p t3" d="M334 318 L336 325 L343 327 L336 329 L334 336 L332 329 L325 327 L332 325Z"/>
+        <path class="p t4" d="M70 300 L71.6 306 L78 308 L71.6 310 L70 316 L68.4 310 L62 308 L68.4 306Z"/>
+      </g>
+      <g class="lx-eye" fill="none" stroke="url(#lxg)" stroke-linecap="round">
+        <path class="lid l1" d="M44 220 Q200 66 356 220" stroke-width="3.4" pathLength="1"/>
+        <path class="lid l2" d="M44 220 Q200 374 356 220" stroke-width="3.4" pathLength="1"/>
+        <path class="lid l3" d="M76 220 Q200 104 324 220" stroke-width="1.4" pathLength="1"/>
+        <path class="lid l4" d="M76 220 Q200 336 324 220" stroke-width="1.4" pathLength="1"/>
+        <path class="lid l5" d="M98 168 Q200 98 302 168" stroke-width="1" stroke-opacity=".7" pathLength="1"/>
+      </g>
+      <g class="lx-iris">
+        <circle cx="200" cy="220" r="54" fill="url(#lxIris)" stroke="url(#lxg)" stroke-width="2.2"/>
+        <circle cx="200" cy="220" r="44" fill="none" stroke="url(#lxg)" stroke-width=".8" stroke-opacity=".7"/>
+        <circle class="lx-fib" cx="200" cy="220" r="49" fill="none" stroke="#E7C27A" stroke-width=".8" stroke-dasharray="1 4" stroke-opacity=".6"/>
+      </g>
+      <circle class="lx-burst" cx="200" cy="220" r="54" fill="none" stroke="#FBE3A6" stroke-width="2"/>
+      <g class="lx-core">
+        <circle cx="200" cy="220" r="40" fill="url(#lxGlow)"/>
+        <path d="M200 186 L205 215 L234 220 L205 225 L200 254 L195 225 L166 220 L195 215Z" fill="url(#lxg)"/>
+        <path d="M211.3 208.7 L203 220 L211.3 231.3 L200 223 L188.7 231.3 L197 220 L188.7 208.7 L200 217Z" fill="#FFF6DA"/>
+        <circle cx="200" cy="220" r="3" fill="#FFF8E6"/>
+      </g>
+    </svg>
+    <div class="lx-title"><i class="lx-rl"></i><b><span style="--i:0">靈</span><span style="--i:1">犀</span></b><i class="lx-rl r"></i></div>
+    <i class="lx-under"></i>
+    <div class="lx-en">LINGXI</div>
+    <div class="lx-sub">心有靈犀<i></i>一點通</div>
   </div>
-  <i class="sp-flash"></i>
+  <svg class="lx-land" viewBox="0 0 400 240" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs><linearGradient id="lxWater" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E1B3C"/><stop offset="1" stop-color="#040915"/></linearGradient><radialGradient id="lxRef" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#F3CF83" stop-opacity=".75"/><stop offset="1" stop-color="#F3CF83" stop-opacity="0"/></radialGradient></defs>
+    <g class="lx-m0"><path d="M0 132 C30 120 48 96 70 100 C92 104 104 124 128 118 C150 112 162 84 186 86 C212 88 222 116 248 112 C276 108 290 80 316 84 C344 88 356 114 400 108 L400 240 L0 240Z" fill="#101D40" opacity=".85"/><path d="M0 132 C30 120 48 96 70 100 C92 104 104 124 128 118 C150 112 162 84 186 86 C212 88 222 116 248 112 C276 108 290 80 316 84 C344 88 356 114 400 108" fill="none" stroke="#D9B26A" stroke-opacity=".3" stroke-width=".8"/></g>
+    <g class="lx-m1"><path d="M0 160 C22 150 36 124 58 120 C78 117 88 140 104 146 C122 152 132 132 150 134 C170 137 180 168 200 182 L200 240 L0 240Z" fill="#0D1836"/><path d="M0 160 C22 150 36 124 58 120 C78 117 88 140 104 146 C122 152 132 132 150 134 C170 137 180 168 200 182" fill="none" stroke="#E4BE73" stroke-opacity=".75" stroke-width="1.1"/>
+      <path d="M400 150 C376 142 362 112 338 110 C316 108 304 132 288 140 C270 148 258 128 240 132 C222 136 216 166 200 182 L200 240 L400 240Z" fill="#0D1836"/><path d="M400 150 C376 142 362 112 338 110 C316 108 304 132 288 140 C270 148 258 128 240 132 C222 136 216 166 200 182" fill="none" stroke="#E4BE73" stroke-opacity=".75" stroke-width="1.1"/></g>
+    <g class="lx-m2"><path d="M0 186 C20 178 34 160 52 162 C70 164 78 182 98 188 C116 194 130 192 150 198 L150 240 L0 240Z" fill="#081128"/><path d="M0 186 C20 178 34 160 52 162 C70 164 78 182 98 188 C116 194 130 192 150 198" fill="none" stroke="#F0CB80" stroke-opacity=".9" stroke-width="1.3"/>
+      <path d="M400 182 C380 174 366 156 346 158 C326 160 318 180 298 186 C280 192 266 192 250 198 L250 240 L400 240Z" fill="#081128"/><path d="M400 182 C380 174 366 156 346 158 C326 160 318 180 298 186 C280 192 266 192 250 198" fill="none" stroke="#F0CB80" stroke-opacity=".9" stroke-width="1.3"/></g>
+    <rect y="196" width="400" height="44" fill="url(#lxWater)"/>
+    <ellipse class="lx-ref" cx="200" cy="204" rx="70" ry="6" fill="url(#lxRef)"/>
+    <g class="lx-ripples" stroke="#F3CF83" stroke-linecap="round"><path d="M180 210 H220" stroke-width="1"/><path d="M166 217 H234" stroke-width=".8" stroke-opacity=".7"/><path d="M186 224 H214" stroke-width=".7" stroke-opacity=".6"/><path d="M150 231 H250" stroke-width=".6" stroke-opacity=".4"/></g>
+  </svg>
+  <i class="lx-flash"></i>
   <div class="sp-load" aria-hidden="true"><i></i><span>正在排盤…</span></div>
-  <div class="sp-skip">輕觸略過</div>
+  <div class="sp-skip lx-tap"><i class="lx-tapln"></i><i class="lx-tapo"></i>輕觸開啟</div>
 </div>
 <script>
 (function(){var s=document.getElementById('splash');try{if(sessionStorage.getItem('gx_sp')){s.remove();return}sessionStorage.setItem('gx_sp','1')}catch(e){}
 if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){s.classList.add('still')}
-else{var box=document.getElementById('spParts'),h='';for(var i=0;i<36;i++){var a=Math.random()*Math.PI*2,d=55+Math.random()*45,t=i/36*Math.PI*2-Math.PI/2;h+='<i style="--sx:'+(Math.cos(a)*d).toFixed(1)+'vmax;--sy:'+(Math.sin(a)*d).toFixed(1)+'vmax;--ex:'+(Math.cos(t)*.3223).toFixed(4)+';--ey:'+(Math.sin(t)*.3223).toFixed(4)+';--d:'+(.05+Math.random()*.4).toFixed(2)+'s;--z:'+(2+Math.random()*3).toFixed(1)+'px"></i>'}box.innerHTML=h}
+else{var box=document.getElementById('lxStars'),h='';for(var i=0;i<70;i++){var z=Math.random();h+='<i style="left:'+(Math.random()*100).toFixed(1)+'%;top:'+(Math.random()*78).toFixed(1)+'%;--z:'+(z<.8?1:z<.96?2:3)+'px;--d:'+(Math.random()*1.6).toFixed(2)+'s;--t:'+(1.6+Math.random()*2.4).toFixed(2)+'s"></i>'}box.innerHTML=h}
 document.documentElement.classList.add('splashing');window.__spT0=performance.now();
-/* 開場整體放慢約 1.5 倍，節奏更從容（減少動態效果的使用者不受影響） */
-if(!s.classList.contains('still')&&document.getAnimations)requestAnimationFrame(function(){document.getAnimations().forEach(function(a){var t=a.effect&&a.effect.target;if(t&&t.closest&&t.closest('#splash'))a.playbackRate=.65})});
 setTimeout(function(){if(!window.__gxBooted&&document.getElementById('splash')){s.classList.add('waiting');var sp=s.querySelector('.sp-load span'),iv=setInterval(function(){if(window.__gxBooted||!document.getElementById('splash'))return clearInterval(iv);sp.textContent=(window.__gxStage||'正在排盤')+'…'},200)}},5800);
 /* 保險：開場動畫絕不會卡住——點一下即可略過；10 秒後若程式仍未啟動，自動收起並提示重新載入 */
 var t0=Date.now();s.addEventListener('click',function(){if(Date.now()-t0>1200&&!window.__gxBooted&&window.__gxBail)window.__gxBail('仍在載入中…')});
@@ -5107,34 +5249,137 @@ function setTheme(v,re=true){const r=document.documentElement;if(v==='light'||v=
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
- {v:'2026.10.24-3',d:'10 月 24 日',items:[
-  ['全新開場動畫','重新設計開場：月亮星星環繞天眼、眼睛睜開後墨圈向外擴散、羅盤外環緩緩轉動；「靈犀」改用宋體由上而下顯現，拿掉紅色印章，版面更簡潔。',null],
-  ['更新後一定看到最新版','修正有網路時仍可能顯示舊版的問題（例如風水羅盤沒出現）。','fengshui']]},
- {v:'2026.10.24',d:'10 月 24 日',items:[
-  ['更新提醒更清楚','App 有新版本時，畫面下方會出現提醒卡片，按「立即更新」即可；更新完成後會像現在這樣介紹新內容。',null],
-  ['風水・手機羅盤','開運 → 風水，按「開啟羅盤」，轉動手機就能看到你面向的方位、八卦與二十四山，以及這個方位對你是吉是凶。','fengshui'],
-  ['易卦依問題起卦','占卜 → 易卦，依你寫的問題起卦（梅花易數字占），問題不同卦就不同；加入起卦動畫，並用白話解釋「體用」等名詞。','meihua'],
-  ['右上角顯示名字','右上角改成顯示目前命主的名字，切換家人時一眼就知道在看誰的命盤。',null],
-  ['iPhone 生日欄位','修正 iPhone 上生日欄位超出卡片的問題。',null]]},
- {v:'2026.10.23',d:'10 月 23 日',items:[
-  ['塔羅「來龍去脈」','塔羅解讀新增故事式完整說明，從問題、每張牌的位置意義到總結，一次讀懂。','tarot'],
-  ['分享圖卡改版','籤詩改成直排仿籤紙、全面使用宋體，不再顯示網址，版面依內容自動調整。',null],
-  ['拜拜清單更詳細','每個節日都有專屬供品清單、拜拜步驟與注意事項，例如冬至的紅白湯圓。','festival'],
-  ['姓名與解夢','姓名學加入成功運、基礎運與諧音檢查；解夢輸入多個元素（如狗和蛇）會綜合解讀。','name']]}];
+ {
+  "v": "2026.10.24-4",
+  "n": "1.3",
+  "d": "10 月 24 日",
+  "items": [
+   [
+    "全新開場動畫",
+    "夜空天眼主題：金色線條天眼與星月中軸、環繞的軌道、流星劃過，眼睛睜開時星芒綻放，下方是金邊山水與湖光。",
+    null
+   ],
+   [
+    "更新提醒改版",
+    "有新版本時會先列出這次更新了什麼，按「立即更新」就好，也可以稍後再更新。",
+    null
+   ]
+  ]
+ },
+ {
+  "v": "2026.10.24-3",
+  "n": "1.2",
+  "d": "10 月 24 日",
+  "items": [
+   [
+    "開場動畫改版",
+    "月亮星星環繞天眼、墨圈漣漪；「靈犀」改用宋體，拿掉紅色印章。",
+    null
+   ],
+   [
+    "更新後一定看到最新版",
+    "修正有網路時仍可能顯示舊版的問題（例如風水羅盤沒出現）。",
+    "fengshui"
+   ]
+  ]
+ },
+ {
+  "v": "2026.10.24",
+  "n": "1.1",
+  "d": "10 月 24 日",
+  "items": [
+   [
+    "更新提醒更清楚",
+    "App 有新版本時會出現提醒，更新完成後介紹新內容。",
+    null
+   ],
+   [
+    "風水・手機羅盤",
+    "開運 → 風水，按「開啟羅盤」，轉動手機就能看到你面向的方位、八卦與二十四山，以及這個方位對你是吉是凶。",
+    "fengshui"
+   ],
+   [
+    "易卦依問題起卦",
+    "占卜 → 易卦，依你寫的問題起卦（梅花易數字占），問題不同卦就不同；加入起卦動畫，並用白話解釋「體用」等名詞。",
+    "meihua"
+   ],
+   [
+    "右上角顯示名字",
+    "右上角改成顯示目前命主的名字，切換家人時一眼就知道在看誰的命盤。",
+    null
+   ],
+   [
+    "iPhone 生日欄位",
+    "修正 iPhone 上生日欄位超出卡片的問題。",
+    null
+   ]
+  ]
+ },
+ {
+  "v": "2026.10.23",
+  "n": "1.0",
+  "d": "10 月 23 日",
+  "items": [
+   [
+    "塔羅「來龍去脈」",
+    "塔羅解讀新增故事式完整說明，從問題、每張牌的位置意義到總結，一次讀懂。",
+    "tarot"
+   ],
+   [
+    "分享圖卡改版",
+    "籤詩改成直排仿籤紙、全面使用宋體，不再顯示網址，版面依內容自動調整。",
+    null
+   ],
+   [
+    "拜拜清單更詳細",
+    "每個節日都有專屬供品清單、拜拜步驟與注意事項，例如冬至的紅白湯圓。",
+    "festival"
+   ],
+   [
+    "姓名與解夢",
+    "姓名學加入成功運、基礎運與諧音檢查；解夢輸入多個元素（如狗和蛇）會綜合解讀。",
+    "name"
+   ]
+  ]
+ }
+];
 const APP_VER=CHANGES[0].v;
+// 更新內容彈窗：pre＝偵測到新版、尚未更新（立即更新／稍後更新）；post＝已經是新版（開始使用）
+function updModal(list,mode){
+  if($('#updm'))return;
+  const top=list[0], items=list.flatMap(c=>c.items).slice(0,6);
+  const m=document.createElement('div');m.id='updm';m.className='updm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-labelledby','updmT');
+  m.innerHTML=`<div class="updm-scrim"></div><div class="updm-box">
+    <div class="updm-card"><svg class="updm-orn" viewBox="0 0 300 120" preserveAspectRatio="none" aria-hidden="true"><path d="M-10 70 C60 10 160 -6 310 40" fill="none"/><path d="M-10 92 C80 40 190 26 310 64" fill="none"/><circle cx="246" cy="40" r="10" fill="none"/><circle cx="58" cy="42" r="2.6"/></svg>
+      <div class="updm-h"><span class="updm-v">${top?esc(top.n||''):''}</span><b id="updmT">${mode==='pre'?'更新內容':'已更新到新版'}</b></div>
+      <p class="updm-lead">${mode==='pre'?'靈犀推出新版本，更新後就能使用以下新功能：':'這次更新了這些內容：'}</p>
+      ${items.length?`<ol class="updm-list">${items.map(([t,d,g])=>`<li><b>${t}</b><span>${d}</span>${g&&mode==='post'?`<button type="button" class="updm-go" data-newsgo="${g}">去看看 ›</button>`:''}</li>`).join('')}</ol>`:'<p class="updm-lead">包含功能改善與錯誤修正。</p>'}
+    </div>
+    ${mode==='pre'?'<button type="button" class="btn primary block updm-btn" data-um="go">立即更新</button><button type="button" class="btn block updm-btn ghostline" data-um="later">稍後更新</button>':'<button type="button" class="btn primary block updm-btn" data-um="ok">開始使用</button>'}
+  </div>`;
+  const close=()=>{m.classList.add('out');setTimeout(()=>m.remove(),280)};
+  m.addEventListener('click',e=>{const b=e.target.closest('[data-um],[data-newsgo]');if(!b)return;
+    if(b.dataset.um==='go'){store.set('gx_ver',top?top.v:APP_VER);location.reload();return}
+    close();if(b.dataset.newsgo)setTimeout(()=>go(b.dataset.newsgo),250);if(b.dataset.um==='later')setTimeout(showUpdateBar,400)});
+  document.body.appendChild(m);buzz();setTimeout(()=>m.querySelector('.updm-btn')?.focus({preventScroll:true}),60);
+}
 function maybeNews(){
   const seen=store.get('gx_ver',null);if(seen===APP_VER)return;store.set('gx_ver',APP_VER);
   const old=!!store.get('gx_profiles',null);if(!seen&&!old)return;
   const i=CHANGES.findIndex(c=>c.v===seen), list=(i<0?CHANGES.slice(0,1):CHANGES.slice(0,i)).slice(0,3);if(!list.length)return;
-  const L=sheet('靈犀更新了',`<div class="stack news"><p class="small muted">已經更新到最新版本，以下是這次的新內容。</p>
-    ${list.map(c=>`<div class="card stack"><span class="eyebrow">${c.d}</span>${c.items.map(([t,d,g])=>`<div class="newsi"><span class="ni" aria-hidden="true">✦</span><div><b>${t}</b><p>${d}</p>${g?`<button type="button" class="btn sm ghost" data-newsgo="${g}">去看看</button>`:''}</div></div>`).join('')}</div>`).join('')}
-    <button type="button" class="btn primary block" data-newsok>知道了</button></div>`);
-  L.panel.addEventListener('click',e=>{const g=e.target.closest('[data-newsgo]'),ok=e.target.closest('[data-newsok]');if(g||ok){closeLayer();if(g)setTimeout(()=>go(g.dataset.newsgo),250)}});
+  updModal(list,'post');
 }
-function showUpdate(){if($('#upd'))return;const b=document.createElement('div');b.id='upd';b.className='updcard';b.setAttribute('role','alertdialog');b.setAttribute('aria-labelledby','updT');b.setAttribute('aria-describedby','updD');
-  b.innerHTML='<span class="ui" aria-hidden="true">✦</span><div class="ut"><b id="updT">靈犀有新版本</b><span id="updD">更新只要一下子，完成後會告訴你這次改了什麼。</span></div><div class="ua"><button type="button" class="btn sm ghost" data-upd="later">稍後</button><button type="button" class="btn sm primary" data-upd="go">立即更新</button></div>';
+// 偵測到新版：先讀新版的更新紀錄，列出這次多了什麼
+async function showUpdate(){
+  if($('#updm')||$('#upd'))return;
+  let list=[];try{const r=await fetch('changes.json?t='+Date.now(),{cache:'no-store'});const all=await r.json();const i=all.findIndex(c=>c.v===APP_VER);list=(i<0?all.slice(0,1):all.slice(0,i)).slice(0,3)}catch(e){}
+  updModal(list.length?list:[{v:APP_VER,n:'',items:[]}],'pre');
+}
+// 按了「稍後更新」：底部留一張小卡，隨時可以更新
+function showUpdateBar(){if($('#upd'))return;const b=document.createElement('div');b.id='upd';b.className='updcard';b.setAttribute('role','alertdialog');b.setAttribute('aria-labelledby','updT');b.setAttribute('aria-describedby','updD');
+  b.innerHTML='<span class="ui" aria-hidden="true">✦</span><div class="ut"><b id="updT">靈犀有新版本</b><span id="updD">隨時可以更新，更新只要一下子。</span></div><div class="ua"><button type="button" class="btn sm ghost" data-upd="later">關閉</button><button type="button" class="btn sm primary" data-upd="go">立即更新</button></div>';
   b.addEventListener('click',e=>{const x=e.target.closest('[data-upd]');if(!x)return;if(x.dataset.upd==='go')location.reload();else{b.classList.add('out');setTimeout(()=>b.remove(),300)}});
-  document.body.appendChild(b);buzz()}
+  document.body.appendChild(b)}
 window.__gxShowUpdate=showUpdate;
 function regSW(){if(!('serviceWorker' in navigator)||inFrame||!(location.protocol==='https:'||location.hostname==='localhost'))return;(navigator.serviceWorker.controller&&navigator.serviceWorker.addEventListener('controllerchange',showUpdate),document.addEventListener('visibilitychange',()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})}),setInterval(()=>{if(!document.hidden)navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{})},20*60e3),navigator.serviceWorker.register('sw.js',{updateViaCache:'none'})).catch(e=>console.warn('sw',e))}
 

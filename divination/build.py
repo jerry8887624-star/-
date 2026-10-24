@@ -10,9 +10,12 @@ import pathlib, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 src = (ROOT / 'src.html').read_text(encoding='utf-8')
 for marker, path in [('/*APP_CSS*/', 'css/app.css'), ('/*KX_DATA*/', 'data/kangxi.js'), ('/*CONTENT*/', 'data/content.js'),
-                     ('/*TAROT_DATA*/', 'data/tarot.js'), ('/*QIAN_DATA*/', 'data/qian.js'), ('/*DREAM_DATA*/', 'data/dream.js'), ('/*YIJING_DATA*/', 'data/yijing.js'), ('/*TONE_DATA*/', 'data/tones.js')]:
+                     ('/*TAROT_DATA*/', 'data/tarot.js'), ('/*QIAN_DATA*/', 'data/qian.js'), ('/*DREAM_DATA*/', 'data/dream.js'), ('/*YIJING_DATA*/', 'data/yijing.js'), ('/*TONE_DATA*/', 'data/tones.js'), ('/*CHANGES*/', 'data/changes.json')]:
     assert marker in src, marker
     src = src.replace(marker, (ROOT / path).read_text(encoding='utf-8').strip())
+
+# 更新紀錄另存一份給執行中的舊版 App 讀取，用來在更新前列出新內容
+(ROOT / 'changes.json').write_text((ROOT / 'data/changes.json').read_text(encoding='utf-8'), encoding='utf-8')
 
 if '--fragment' in sys.argv:
     out = pathlib.Path(sys.argv[sys.argv.index('--fragment') + 1])
