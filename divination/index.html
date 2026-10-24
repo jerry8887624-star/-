@@ -1532,6 +1532,11 @@ html.lowmo *,html.lowmo *::before,html.lowmo *::after{animation-duration:.01ms!i
 .dc.fly{border-radius:5px;overflow:hidden;box-shadow:0 0 0 2px var(--tint),0 16px 28px -10px rgba(0,0,0,.6)}
 .dc.fly svg{display:block;width:100%;height:100%}
 html.narrow .tspread{column-gap:3px}
+/* 翻開後改成平面顯示：iOS Safari 對 3D 背面的圖片常不載入或不重繪，翻完就不再放在背面 */
+.tcard.flat .in{transform:none;transform-style:flat;transition:none}
+.tcard.flat .bk{display:none}
+.tcard.flat .fr{transform:none;-webkit-backface-visibility:visible;backface-visibility:visible}
+.tcard.flat:active .in,.tcard.up.flat:not(.empty):active .in{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -3521,7 +3526,6 @@ window.__tfail=(img,i)=>{if(!img.dataset.retry){img.dataset.retry=1;setTimeout((
 // 預先載入並解碼牌面，翻牌時圖已就緒（iOS Safari 對翻到背面後才載完的圖常不重繪）
 const tFaceCache={};
 function tPreload(i){if(!tFaceCache[i]){const im=new Image();im.src=`img/tarot/${i}.jpg`;tFaceCache[i]=(im.decode?im.decode():new Promise((r,j)=>{im.onload=r;im.onerror=j})).catch(()=>{})}return tFaceCache[i]}
-function tRepaint(){$$('.spreadbox .tcard .fr img.tface').forEach(img=>{if(!img.complete||!img.naturalWidth){const i=+(img.src.match(/(\d+)\.jpg/)||[])[1];if(!isNaN(i))__tfail(img,i)}else{img.style.transform='translateZ(0)';requestAnimationFrame(()=>img.style.transform='')}})}
 function cardSvg(i){
   const c=tcard(i), [b1,b2,g]=SUIT_PAL[c.suit], id='g'+i, rg='r'+i;
   let art='';
@@ -3546,7 +3550,7 @@ function spreadDef(){return TD.spreads.find(s=>s.k===tSpread)}
 function slotHtml(k,d,pos){
   const p=tPicked[k];const cls=['slot',tSpread==='celtic'?'c'+(k+1):''];
   if(!p)return `<div class="${cls.join(' ')}"><div class="tcard empty"><span>${k+1}</span></div><span class="sl">${pos}</span></div>`;
-  return `<div class="${cls.join(' ')}"><button type="button" class="tcard${tFlipped?' up':''}${p.rev?' rev':''}" data-tslot="${k}" aria-label="${pos}：${tFlipped?tcard(p.i).zh+(p.rev?'逆位':'正位'):'未翻開'}" style="--d:${k*90}ms"><span class="in"><span class="bk">${CARD_BACK}</span><span class="fr">${cardFace(p.i)}</span></span></button><span class="sl">${pos}${tFlipped?`<b class="cn">${tcard(p.i).zh}${p.rev?'・逆':''}</b>`:''}</span></div>`;
+  return `<div class="${cls.join(' ')}"><button type="button" class="tcard${tFlipped?' up flat':''}${p.rev?' rev':''}" data-tslot="${k}" aria-label="${pos}：${tFlipped?tcard(p.i).zh+(p.rev?'逆位':'正位'):'未翻開'}" style="--d:${k*90}ms"><span class="in"><span class="bk">${CARD_BACK}</span><span class="fr">${cardFace(p.i)}</span></span></button><span class="sl">${pos}${tFlipped?`<b class="cn">${tcard(p.i).zh}${p.rev?'・逆':''}</b>`:''}</span></div>`;
 }
 let tLib=null, tLibSel=null;
 function libHtml(){
@@ -5378,7 +5382,7 @@ document.addEventListener('click',async e=>{
   if(t.id==='tFlip'||t.dataset.tslot!==undefined){if(!tReading)return;if(!tFlipped){if(tBusy)return;tBusy=true;t.disabled=true;
       // 等牌面都載好（最多 2.5 秒）再翻
       await Promise.race([Promise.all(tReading.c.map(c=>tPreload(c.i))),new Promise(r=>setTimeout(r,2500))]);
-      tFlipped=true;$$('.spreadbox .tcard').forEach(c=>c.classList.add('up'));buzz();await wait(900);tBusy=false;renderTarot();tRepaint();setTimeout(tRepaint,600);setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}else if(t.dataset.tslot!==undefined){const k=+t.dataset.tslot,x=tReading.c[k];if(x)cardSheet(x.i,x.rev,spreadDef().pos[k],tReading.cat)}return}
+      tFlipped=true;$$('.spreadbox .tcard').forEach(c=>c.classList.add('up'));buzz();await wait(900);tBusy=false;renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}else if(t.dataset.tslot!==undefined){const k=+t.dataset.tslot,x=tReading.c[k];if(x)cardSheet(x.i,x.rev,spreadDef().pos[k],tReading.cat)}return}
   if(t.dataset.thist!==undefined){const h=store.get('gx_tarot',[])[+t.dataset.thist];if(h){tSpread=h.s;tQ=h.q;tCat=h.cat||'綜合';tDeck=[];tPicked=h.c.map((c,k)=>({k:-1-k,...c}));tFlipped=true;tReading=h;renderTarot();setTimeout(()=>$('#tResult')?.scrollIntoView({behavior:'smooth'}),60)}return}
   if(t.id==='tClear'){if(await alertBox({title:'清除抽牌紀錄？',msg:'清除後無法復原。',buttons:[{text:'取消',style:'cancel',value:false},{text:'清除',style:'destructive',value:true}]})){store.set('gx_tarot',[]);renderTarot();hud('已清除')}return}
   if(t.id==='tShare'&&tReading){shareOut(shareText(tReading));return}
@@ -5572,6 +5576,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.10.27-3",
+  "n": "1.8.2",
+  "d": "10 月 27 日",
+  "items": [
+   [
+    "塔羅牌面統一用原版插畫",
+    "在 iPhone 上翻開的牌，有時會變成簡化的線條牌面，跟下方解讀的圖不一致；現在翻開後一律顯示原版彩色插畫。",
+    "tarot"
+   ]
+  ]
+ },
  {
   "v": "2026.10.27-2",
   "n": "1.8.1",
