@@ -2488,11 +2488,12 @@ function reportHtml(){
     <p><b>主要十神</b>：${topSS.map(([k])=>`${k}——${GC.SS_TXT[k]}`).join('<br>')}</p>
     ${(()=>{const ss=bzShensha();return ss.length?`<p><b>神煞</b>：${ss.map(o=>`${o.n}（${o.w.map(i=>PILLAR_N[i]).join('、')}）`).join('、')}</p>`:''})()}
     ${(()=>{const rs=bzRelations();return rs.length?`<p><b>刑沖合害</b>：${rs.map(r=>`${r.k}（${r.who}）`).join('、')}</p>`:''})()}`)}
-  ${A?sec('二、紫微斗數',`<p>${A.fiveElementsClass}・命主${A.soul}・身主${A.body}</p>
-    <p><b>命宮</b>（${ming.heavenlyStem}${ming.earthlyBranch}）：${ming.majorStars.length?ming.majorStars.map(s=>`<b>${s.name}</b>${s.brightness?`（${s.brightness}）`:''}——${MAJOR[s.name]||''}`).join('<br>'):'命無主星，借對宮論斷，個性較受環境影響、可塑性高。'}</p>
-    <p><b>身宮</b>在${body.name}：中年以後重心在${FOCUS[body.name]}。</p>
+  ${A?sec('二、紫微斗數',`<p>${A.fiveElementsClass}・命主${A.soul}・身主${A.body}${ZW_PLAIN[A.soul]&&ZW_PLAIN[A.body]?`：內在${ZW_PLAIN[A.soul].in}；實際做事時，${ZW_PLAIN[A.body].out.replace(/^做事/,'')}。`:''}</p>
+    <p class="small">命主（${A.soul}）代表內在、先天的性格與一生追求；身主（${A.body}）代表後天做事的方式，中年以後越明顯。${ZW_JU[A.fiveElementsClass]?`${A.fiveElementsClass}是命盤的五行分類，決定從 ${ZW_JU[A.fiveElementsClass].n} 歲開始走第一個大運。`:''}</p>
+    <p><b>命宮</b>（${ming.heavenlyStem}${ming.earthlyBranch}）：${ming.majorStars.length?ming.majorStars.map(s=>`<b>${s.name}</b>${s.brightness?`（力量${BRIGHT[s.brightness]||''}・${s.brightness}）`:''}——${(ZW_PLAIN[s.name]||{}).d||MAJOR[s.name]||''}`).join('<br>'):'命宮沒有主星，借對面遷移宮的主星來看：個性比較會隨環境調整，可塑性高。'}</p>
+    <p><b>身宮</b>在${pn(body.name)}：身宮代表後天、中年以後最在意的地方，你的重心會越來越放在${FOCUS[body.name]}。</p>
     ${zwPatterns(A).map(x=>`<p><b>${x[0]}</b>：「${x[1]}」（《紫微斗數全書》）${x[2]}</p>`).join('')}
-    <h3 class="rp-h3">十二宮逐宮詳批</h3>${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<p><b>${p.name}</b>（${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name).join('、')||'—'}）：${palaceReading(A,i)}</p>`).join('')}
+    <h3 class="rp-h3">十二宮逐宮解讀</h3>${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<p><b>${p.name}</b>（${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name).join('、')||'—'}）：${palaceReading(A,i)}</p>`).join('')}
     <table class="rp-t">${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<tr><th>${p.name}</th><td>${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name+(s.mutagen?'化'+s.mutagen:'')).join('、')||'—'}${p.majorStars.length?'':'<small>（借對宮）</small>'}</td><td><small>${PALACE[p.name]||''}</small></td></tr>`).join('')}</table>`):''}
   ${sec('三、大運與流年',`<div class="rp-dy">${D.yun.slice(0,8).map((x,i)=>`<span${i===curDy?' class="on"':''}><b>${x.getGanZhi()}</b><small>${x.getStartAge()}歲</small><small>${shishen(D.dm,x.getGanZhi()[0])}</small></span>`).join('')}</div>
     ${[Y0,Y1].map(Y=>`<p><b>${Y.y} ${Y.gz}年（${Y.ss}年）</b>：${'★'.repeat(Math.round(Y.score))}${'☆'.repeat(5-Math.round(Y.score))}　${YEARSS[Y.ss]}${Y.tai?`<b>犯太歲</b>（${Y.tai.detail}）。`:''}</p>`).join('')}`)}
@@ -2723,7 +2724,7 @@ const ZW_PAL_PEOPLE={兄弟:'兄弟姊妹與同事',夫妻:'另一半',子女:'�
 function palaceReading(A,i){
   const pl=A.palaces[i], own=pl.majorStars.length, ms=(own?pl.majorStars:A.palaces[(i+6)%12].majorStars), names=ms.map(s=>s.name), n=pl.name;
   const out=[];
-  if(!own)out.push(`本宮無主星，借對宮${A.palaces[(i+6)%12].name}的${names.join('、')||'星曜'}來看，這方面的表現較受環境與他人影響，可塑性大。`);
+  if(!own)out.push(`這一宮沒有主星，借對面${pn(A.palaces[(i+6)%12].name)}的${names.join('、')||'星曜'}來看：這方面的表現較受環境與他人影響，可塑性大。`);
   const key=names.length>=2?(ZW_COMBO[names[0]+names[1]]||ZW_COMBO[names[1]+names[0]]):null;
   if(key)out.push(`${names.slice(0,2).join('、')}在一起：`+key.replace(/^[^，]+同宮，/,'').replace('化殺為權','能把衝勁化為領導力').replace('財星與庫星相會','會賺也會存').replace('陰陽調和','剛柔並濟').replace('大器晚成','比較晚發').replace('宜修身養性','要懂得節制').replace(/，宜/g,'，適合').replace(/忌衝動/g,'要小心衝動').replace('利考試與公職','考試與公職運好'));
   if(n==='命宮')out.push(`你的個性${names.map(x=>ZW_PEOPLE[x]).join('，又')}。`);
