@@ -1739,6 +1739,30 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 /* 直排標語收緊字距，確保在大標題區塊內、不壓到下方的分段按鈕 */
 .lt-motto{font-size:12px;line-height:1.08;gap:1px;top:6px}
 .lt-motto i.dot{margin:2px 0}
+/* 求籤神明切換：關聖帝君／觀世音菩薩 */
+.godseg{margin-top:-4px}
+.godseg button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 6px;line-height:1.25}
+.godseg button b{font-family:var(--f-serif);font-size:15px;letter-spacing:.06em}
+.godseg button span{font-size:11.5px;color:var(--muted)}
+.godseg button[aria-pressed="true"] b{color:var(--accent,#A3271D)}
+.shrine.photo.gy .smoke{bottom:8%;left:48.5%}
+.shrine.photo.gy .smoke.s2{left:47%}.shrine.photo.gy .smoke.s3{left:50%}
+.shrine.photo.gy .glow{background:radial-gradient(42% 34% at 50% 30%,rgba(255,236,190,.2),transparent 70%)}
+.shrine-card.compact .shrine.photo.gy img{object-position:50% 26%}
+.shrine-card.swap .shrine.photo img{animation:godIn .7s var(--ease) both}
+@keyframes godIn{from{opacity:0;filter:blur(6px) brightness(1.4);transform:scale(1.04)}to{opacity:1;filter:none;transform:none}}
+.shrine-card.swap .shrine-cap{animation:godIn .7s .1s var(--ease) both}
+@media (prefers-reduced-motion:reduce){.shrine-card.swap .shrine.photo img,.shrine-card.swap .shrine-cap{animation:none}}
+/* 走財位 */
+.cw-next{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:2px}
+.cw-next li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 2px;border-bottom:.5px solid var(--line)}
+.cw-next li:last-child{border-bottom:0}
+.cw-next li b{font-family:var(--f-serif)}
+.cw-next .num{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.cw-next li{grid-template-columns:auto auto 1fr}
+.cw-next li>*{white-space:nowrap}
+.cw-next li .pill{justify-self:end}
+.cw-next li{gap:8px}.cw-next .num{min-width:5.2em}
 </style>
 </head>
 <body>
@@ -2376,6 +2400,109 @@ window.QIAN_STORY={
 15:['姜太公釣魚','姜子牙八十歲仍在渭水邊垂釣，終遇周文王拜為丞相，輔周滅商。籤意：大器晚成，時候未到要耐心守候。'],
 16:['李世民遊地府','出自《西遊記》第十一回，唐太宗魂遊地府、受審後還陽。籤意取其「陽世不知陰世事」，凡事身不由己、宜謹慎。'],
 33:['劉備入東吳回荊州','《三國演義》孫權以招親為名欲扣留劉備，劉備在趙雲護送下攜孫夫人平安返回荊州。籤意取其渡江雖險、把穩終得相逢。']};</script>
+<script>// 觀音一百籤：[（空）, 籤意判讀, 籤詩, 白話解, 事業, 求財, 感情婚姻, 健康, 平安與其他]
+// 籤詩逐字採用「台灣好廟網・觀音一百籤」所列版本（2026/10/25 擷取，經《觀音靈籤、奇門遁甲與紫微斗數資料手冊》附錄轉錄）；各廟用字、籤序與吉凶等級不一。
+// 原始資料未附吉凶等級：此處「吉／平／守」為依籤詩內容的白話判讀，白話與分類解說亦為本 App 撰寫，僅供參考。
+window.GUANYIN_DATA=[["","吉","天開地闢結良緣，日吉時良萬事全，若得此籤非小可，人行中正帝王宣。","天地開創、結下良緣，時辰大吉、萬事齊備。抽到此籤非同小可，只要行事正直，必得貴人賞識提拔。","大有可為，正道而行必受重用。","財源廣進。","良緣天成，可成。","平安無礙。","諸事吉祥。"],
+["","平","鯨魚未化守江湖，未許升騰離碧波，異日崢嶸身變態，從教一躍禹門過。","鯨魚還沒化龍，只能暫守江湖、不宜躁進；等時機成熟，必能一躍過龍門，身分大不相同。","時機未到，先蓄積實力。","目前平平，日後漸佳。","暫緩，待時可成。","慢慢調養會好。","守成待時。"],
+["","守","衝風冒雨去還歸，役役勞身似燕兒，啣得泥來成疊後，到頭疊壞復成泥。","像燕子冒著風雨來回啣泥築巢，辛苦築好卻又崩壞，徒勞無功。凡事別白忙，先求穩固。","勞多功少，宜守舊。","得而復失，宜保守。","難成或不穩定。","病情易反覆，耐心調理。","小心反覆損耗。"],
+["","吉","菱花鏡破復重圓，女再求夫男再婚，自此門閭重改換，更添福祿與兒孫。","破鏡重圓，失去的又能找回；家門重新改換氣象，福祿增添、子孫興旺。","重新開始，漸入佳境。","失而復得。","復合有望，再婚亦吉。","逐漸康復。","家運轉好。"],
+["","吉","一鋤掘地要求泉，努力求之得最先，無意俄然遇知己，相逢攜手上青天。","下定決心掘地求泉，努力就能搶先得到；又在不經意間遇到知己貴人，攜手共登青雲。","努力有成，遇貴人提攜。","勤力得財。","有緣相逢，可成。","逐漸痊癒。","有貴人相助。"],
+["","平","投身巖下飼於菟，須是還他大丈夫，捨己也應難再得，通行天下此人無。","像捨身飼虎般大捨大愛，才是真正的大丈夫，這樣的胸襟世間少有。意指要有奉獻的心，付出不求立即回報。","付出多、回報慢，以德服人。","先捨後得，勿貪。","需要包容與付出。","勿過勞，保重身體。","行善積德可化解。"],
+["","守","奔波役役重重險，帶水拖泥又渡山，更慮他方求別用，千山萬水未能還。","奔波勞碌、處處險阻，拖泥帶水翻山越嶺；若再往他方另謀出路，更是千山萬水難以回頭。","不宜變動或另起爐灶。","勞而無獲。","難成。","宜靜養，勿奔波。","出行不利，宜守。"],
+["","吉","歲寒松柏古栽培，雨雪風霜總不摧，異日必當成大用，功名作個棟樑材。","像歲寒中的松柏，風霜雨雪都摧不倒；經得起考驗，將來必成大器、做棟樑之材。","堅持必有大成。","穩健累積。","心意堅定，可成。","體質強健。","平安。"],
+["","吉","勞君問我心中事，此意偏宜說向公，一片靈臺明似鏡，恰如明月正當空。","你心中所問的事，菩薩都明白；只要心地光明如鏡，事情就像明月當空般清楚順利。","光明正大必成。","正財可得。","心意相通，可成。","平安。","心安事順。"],
+["","平","櫝藏無價寶和珍，只管他鄉外處尋，好似將燈來覔火，不如安靜莫勞心。","珍寶就在自己的箱子裡，卻跑到外地去尋找，像拿著燈去找火。不如安靜下來，珍惜眼前所有。","守本業，勿外求。","財在身邊，勿遠求。","緣分就在眼前。","靜養為宜。","安守即吉。"],
+["","吉","欲求好事喜非常，爭相姻親只暫忙，畢竟到頭成好事，貴人接引貴人鄉。","想求的好事會令人非常歡喜；親事雖然一時忙亂，最後終能成就，有貴人接引。","有貴人提攜。","可得。","終成好事。","平安。","吉。"],
+["","吉","時臨否極泰當來，抖擻從君出暗埃，若遇卯寅佳信至，管教立志事和諧。","否極泰來，好運將至；振作起來走出陰霾，若在春天（寅卯月）得到好消息，立定志向事情就會和諧圓滿。","轉機將至。","漸有起色。","和諧可成。","漸漸痊癒。","時來運轉。"],
+["","吉","自小生身富貴家，眼前萬事總奢華，要君賜受金魚袋，四海傳名足可誇。","生於富貴之家，眼前萬事豐足；若能受到重用、得到賞賜，名聲將遠播四海。","地位提升、名聲遠播。","豐足。","門當戶對。","平安。","富貴平安。"],
+["","吉","宛如仙鶴出樊籠，脫却羈縻處處通，南北東西無障碍，任君直上九霄中。","像仙鶴飛出籠子，擺脫束縛、處處暢通；東西南北都沒有阻礙，任你一飛衝天。","脫離困境、大展身手。","財路通達。","可成。","康復。","出行大吉。"],
+["","守","觸人口氣最難吞，忽有災危禍到門，卵破巢空無宿處，深為穩便把心存。","受人言語冒犯最難忍受，若一時忍不住，恐怕招來災禍、落得無處安身。務必穩重，存好心多忍讓。","防口舌是非。","不宜求財。","多爭執，宜忍讓。","注意情緒與血壓。","謹言慎行。"],
+["","吉","攢眉思慮暫時開，咫尺雲開見日來，宛似汙泥中片玉，良工一舉出塵埃。","愁眉暫時可以舒展，雲開見日就在眼前；你像汙泥中的美玉，遇到好工匠一出手，就能脫穎而出。","遇伯樂而出頭。","漸佳。","可成。","好轉。","轉吉。"],
+["","守","莫聽閑言與是非，晨昏只好念阿彌，若將妄語為真實，畫餅如何療得飢。","不要聽信閒言與是非，早晚念佛靜心；若把虛妄的話當真，就像畫餅充飢一場空。","勿信空口承諾。","虛而不實。","防人挑撥。","心安則安。","遠離是非。"],
+["","吉","金烏西墜兔東臨，日夜循環亘古今，僧道得之無不利，工商農士各開心。","日落月升、循環不息；各行各業都順遂，修行之人求得更是無往不利。","順利。","各有所得。","和順。","平安。","吉。"],
+["","平","急水灘頭放艇時，狂風作浪欲何為，待他浪靜風停後，穩載船歸過不危。","在急流險灘放船，正遇狂風巨浪；不要硬闖，等風平浪靜後再走，就能平安載船而歸。","等待時機再行動。","稍候可得。","暫緩可成。","漸漸安穩。","勿冒險。"],
+["","吉","當春久雨喜初晴，玉兔金烏漸漸明，舊事已成新事遂，看看一跳入蓬瀛。","久雨初晴，日月漸漸明朗；舊事已了、新事順遂，很快就能步入佳境。","新局順遂。","漸旺。","喜事將近。","康復。","轉吉。"],
+["","吉","陰陽道合總由天，女嫁男婚豈偶然，但看龍蛇堪運動，熊羆叶夢喜團圓。","陰陽相合是天意，男婚女嫁並非偶然；時運順轉，將有添丁團圓之喜。","順勢而行。","和合生財。","天作之合。","平安。","家有喜慶。"],
+["","吉","四郊田畝皆枯竭，久旱俄然三日霖，花果草芽俱潤澤，始知一雨值千金。","久旱的田地忽逢三日甘霖，花果草木都得滋潤；困境中及時得到幫助，更顯珍貴。","困境逢甘霖，轉機到。","及時得財。","可成。","得良藥而癒。","吉。"],
+["","吉","欲攀仙桂蟾宮去，豈慮天門不放開，謀望一般音信好，高人自送嶺頭來。","想登月宮折桂、考取功名，不必擔心天門不開；所求之事都有好消息，自有貴人送上門。","升遷考試有望。","有貴人送財。","好消息。","平安。","吉。"],
+["","守","不成鄰里不成家，水泡痴人似落花，若問君恩難得力，到頭畢竟事如蔴。","鄰里不和、家也不成家，像水泡落花般虛幻；想靠人提拔難以得力，事情最後亂如麻。","難以成事。","虛而難得。","難成。","宜小心。","宜守。"],
+["","吉","過了憂危第幾重，從今再歷永無凶，寬心自有寬心計，得遇高人護聖功。","已經度過好幾重憂患危難，從此不再有凶險；放寬心自有出路，還會遇到高人護佑。","苦盡甘來。","漸好。","可成。","平安康復。","轉危為安。"],
+["","守","上下傳來事總虛，天邊接得一封書，書中許我功名事，直待終時亦是無。","傳來傳去的消息都不實在；就算接到書信說有功名，等到最後還是一場空。","勿信空頭承諾。","虛而不實。","難成。","小心為上。","防虛驚。"],
+["","平","一謀一用一番機，慮後疑前不敢為，時至自然逢貴助，銀牆鐵壁好安居。","每次謀劃都想得太多、瞻前顧後不敢行動；時機到了自然有貴人相助，那時就能安穩無憂。","待時而動，自有貴人。","時到財來。","不必多疑，時到可成。","平安。","穩。"],
+["","平","東方月上正蟬娟，頃刻雲遮月半邊，莫道圓時還又缺，須教缺處復重圓。","明月正圓，頃刻被雲遮去半邊；不必擔心圓了又缺，缺的地方終會重新圓滿。","小有波折後回穩。","先失後得。","有波折，終圓滿。","漸漸恢復。","先阻後通。"],
+["","吉","寶劍光芒出匣時，匣中應不被塵欺，貴人親手提攜起，儘可防身更勿疑。","寶劍出匣、光芒四射，不再被塵埃掩蓋；有貴人親手提拔，盡可放心施展，不必懷疑。","得到重用。","可得。","可成。","平安。","有護佑。"],
+["","守","勸君切莫向他求，似鶴飛來暗箭投，若去採薪蛇伏草，恐遭毒手也堪憂。","勸你千萬不要向外求：像鶴飛來卻遭暗箭、上山砍柴遇到伏蛇。外求恐遭陷害，令人擔憂。","防小人暗算。","勿向外求。","慎防欺騙。","注意意外。","少出門。"],
+["","平","清閑無事靜處坐，飢時吃飯困時臥，放下身心不用忙，必定不遭殃與禍。","清閒無事時就靜坐，餓了吃、睏了睡，放下身心不必忙；這樣自然不會遭災惹禍。","守成為上。","不求自安。","隨緣。","靜養即安。","平安無事。"],
+["","平","渺渺前途事可疑，石中藏玉有誰知，一朝良臣分明剖，始覺其中碧玉奇。","前途渺茫令人疑慮，但石頭裡藏著美玉無人知；一旦遇到明眼人剖開，才知其中珍奇。","懷才待遇伯樂。","後來可得。","久後可成。","漸漸明朗。","先疑後吉。"],
+["","吉","石藏美玉在中心，得指何須向外尋，直待高人來剖析，恰如靈雨滌煩襟。","美玉就藏在石頭中心，有人指點就不必向外尋找；等高人來剖析，煩惱就像被甘霖洗淨。","得高人指點。","財在近處。","有人牽成。","遇良醫。","吉。"],
+["","吉","出入行藏禮義恭，言必忠良聽必聰，心下了然俱洞徹，光明如日正當空。","進退舉止謙恭有禮，說話忠誠、聽話明白；心中了然通透，前途光明如日當空。","守正得昌。","正財可得。","可成。","平安。","吉。"],
+["","吉","衣冠重整舊宿風，道是無功卻有功，掃卻當途荊棘碍，三人共議事相同。","重整衣冠、恢復往日風采，看似無功其實有功；掃除前路障礙，大家意見一致，事情可成。","重整旗鼓，合作可成。","合夥有利。","和合。","漸漸痊癒。","吉。"],
+["","吉","目前病訟不須憂，實地資財儘可求，恰好繫猿金脫鎖，得歸仙洞去來遊。","眼前的病痛和官司不必擔心，實實在在的財利可以求得；像被鎖的猿猴脫了金鎖，重獲自由。","解脫困境。","可求。","可成。","不須擔憂，會康復。","訟事化解。"],
+["","守","欲問身安運泰時，風中燈燭不相宜，爭如收拾深堂坐，庶免光搖靜處期。","若問何時平安順遂，現在就像風中燭火不安穩；不如收拾一切、在家靜坐，才能免於動盪。","宜守不宜動。","不宜求財。","暫緩。","靜養。","少外出。"],
+["","平","鏡月當空出匣時，剎那雲霧暗迷離，寬心守待浮雲散，更改相宜可望為。","明月剛出，忽然被雲霧遮住；放寬心等浮雲散去，調整做法後就有希望。","調整後可成。","稍候。","先阻後成。","漸好。","等待即安。"],
+["","守","天邊消息應難問，切莫私心強望求，若把石頭磨作鏡，精神枉費一時休。","遠方的消息難以探問，不要私心強求；像把石頭磨成鏡子，只是白費精神。","勿強求。","難得。","難成。","寬心調養。","宜守。"],
+["","平","紅輪西墜兔東升，陰長陽消是兩形，若是女人占此卦，增添福祿稱心情。","日落月升、陰長陽消，此時陰柔之氣當令；若是女性求得此籤，福祿增添、稱心如意。","宜柔不宜剛，女性尤吉。","平穩。","女方有利。","注意調養。","平。"],
+["","守","無限好事君須記，恰如認賊作為子，莫貪眼下有些甜，可慮他時還受苦。","看似無限好事，其實像認賊作子；不要貪眼前一點甜頭，否則日後恐怕吃苦。","防誤信小人。","勿貪小利。","看清對方。","勿貪口腹。","防受騙。"],
+["","吉","君垂恩澤潤無邊，覆禱祈禳沒黨偏，一切有情皆受用，均沾樂利得週全。","恩澤廣被、祈求無私，一切眾生都受惠；大家共享福利，圓滿周全。","共好共榮。","大家得利。","圓滿。","平安。","吉。"],
+["","吉","天地交泰萬物新，自形自色自怡神，森羅萬象皆精彩，事事和諧得稱人。","天地交泰、萬象更新，萬物欣欣向榮；事事和諧，稱心如意。","大吉。","順。","和諧。","平安。","吉。"],
+["","平","棋逢對手要藏機，黑白盤中未決時，到底欲知誰勝負，須教先著相機宜。","棋逢敵手要深藏心機；勝負未分時，要搶先一步、見機行事才能取勝。","競爭激烈，宜先發制人。","把握先機。","有競爭者，宜主動。","及早處理。","審慎。"],
+["","吉","溫柔自是勝強剛，積善于門太吉昌，若是有人占此卦，宛如止渴遇瓊漿。","溫柔勝過剛強，積善之家必有吉慶；求得此籤，就像口渴時喝到甘露。","以和為貴則成。","可得。","溫柔相待可成。","康復。","吉。"],
+["","平","勸君耐守舊生涯，把定身心莫聽邪，直待有人輕著力，滿園枯木再開花。","勸你耐心守住原本的工作，穩住身心不聽邪說；等有人輕輕助一把力，枯木也能再開花。","守舊待援。","後來有財。","耐心等候。","漸漸恢復。","守則安。"],
+["","吉","錦上添花色更鮮，運來祿馬喜雙全，時人莫訝功名晚，一舉登科四海傳。","錦上添花、好上加好，祿馬雙全；別嫌功名來得晚，一舉成名天下知。","晚成而大成。","名利雙全。","喜事。","平安。","吉。"],
+["","吉","鵾鳥秋光化作鵬，遨翔得意盡飛騰，直沖萬里雲霄外，任是諸禽總不能。","鯤鳥化為大鵬，翱翔萬里雲霄，其他鳥都比不上；象徵大展鴻圖、出類拔萃。","大展鴻圖。","大利。","可成。","平安。","吉。"],
+["","守","營圖萬事若冰澌，何必慳貪苦所為，只好靜心閑處坐，待他興變復奚疑。","謀劃萬事像冰塊融解般難以成形，何必苦苦強求；不如靜心閒坐，等情勢變化再說。","暫停觀望。","不宜強求。","暫緩。","靜養。","宜守。"],
+["","吉","五湖四海盡行船，高掛風帆把舵堅，幸得順風隨所至，滿船寶貝稱心田。","揚帆行遍五湖四海，掌穩了舵；幸得順風，滿船寶貝、稱心如意。","外出發展大利。","大有收穫。","可成。","平安。","出行吉。"],
+["","吉","夏日初臨日正常，人皆愁惱熱非常，天公也解諸人意，故遣薰風特送涼。","盛夏酷熱人人煩惱，老天體貼人意，送來涼爽的薰風；困難時會有及時的舒解。","困中得助。","及時。","可成。","得到緩解。","吉。"],
+["","守","水中捉月費工夫，費盡功夫卻又無，莫信閑言併浪論，枉拋心力也難圖。","水中撈月白費工夫，最後一場空；不要相信閒言浪語，再費心力也難成。","難成，勿虛耗。","一場空。","難成。","勿信偏方。","宜守。"],
+["","吉","失意翻成得意時，龍吟虎嘯兩相宜，青雲有路終須到，許我功名必可期。","失意轉為得意，龍吟虎嘯相得益彰；青雲之路終會到達，功名可期。","轉運成功。","轉佳。","轉好可成。","好轉。","吉。"],
+["","守","夢中得寶醒來無，應說巫山只是虛，若問婚姻幷病訟，別尋生路得相宜。","夢中得寶醒來一場空，像巫山雲雨般虛幻；若問婚姻或病訟，都要另找出路才妥當。","換個方向。","虛而不實。","另尋良緣。","換醫或換方法。","另謀出路。"],
+["","吉","相傳罔替子孫贊，衣祿豐盈富在天，金馬玉堂人快樂，飢時吃飯困時眠。","世代相傳、子孫稱頌，衣食豐足、富貴天成；生活快樂自在，飢來吃飯睏來眠。","穩定富足。","豐盈。","美滿。","平安。","吉。"],
+["","平","澗小石粗流水響，力勞撐駕恐損傷，路須指出前江去，風靜潮平儘不妨。","小溪多石、水聲湍急，用力撐船恐怕受傷；若有人指點航道，等風平浪靜再走就無妨。","請教後再行。","慢則得。","待時。","小心。","先險後安。"],
+["","吉","聞是聞非風過耳，好衣好祿日當空，君須記取他年事，汝意還同我意同。","是非話語當作耳邊風，衣祿好如日當空；記住日後之事，你的心意與神明相同，所求可遂。","不受是非影響。","好。","心意相同，可成。","平安。","吉。"],
+["","平","忠言善語君須記，莫向他方求別藝，勸君安守舊生涯，除卻有餘都不是。","好好記住忠言，不要到別處另謀出路；安守本業，除此之外都不適合。","守本業。","守成。","珍惜眼前人。","照常保養。","守則吉。"],
+["","守","直上高樓去避身，四邊繞處是荊榛，誰知造物安排定，得意番成失意人。","登上高樓想避禍，四周卻都是荊棘；造化早已安排，得意反而變成失意。","防樂極生悲。","防損失。","有變數。","小心。","宜守。"],
+["","守","抱薪救火火增烟，燒卻三千及大千，若問營謀併出入，不如收拾莫憂燃。","抱柴救火只會讓火更旺；問謀事或出行，不如收手，別再火上加油。","停止擴張。","勿加碼。","勿激化。","勿亂補。","收手為安。"],
+["","吉","日上吟詩月下歌，逢場作戲笑呵呵，相逢會處難藏隱，喝啋齊聲嗹哩囉。","白天吟詩、夜晚歌唱，逢場作戲歡笑連連；相逢時難掩喜悅，眾人齊聲喝采。","人和事順。","有喜。","喜事。","心情愉快即安。","吉。"],
+["","吉","晨昏全賴佛扶持，雖是逢危不見危，若得貴人來接引，此時福祿自相隨。","早晚依靠佛菩薩扶持，雖遇危險也能化解；若得貴人接引，福祿自然跟隨。","得貴人。","福祿相隨。","可成。","化險為夷。","有神佛護佑。"],
+["","平","昔日行船失了針，今朝依舊海中尋，若還尋得原針在，也費工夫也費心。","以前行船掉了針，如今又到海中去找；就算找得到，也要花費許多工夫與心力。","費力而成。","難而可得。","費心。","慢慢調理。","費神。"],
+["","守","譬若金鱗放碧漪，暗遭羅網四邊圍，思量無計翻身出，命到泉關苦獨悲。","像金魚放入水中，卻暗中被羅網四面包圍；想盡辦法也難翻身，處境艱難。","困局，宜求助。","防損失。","不宜。","宜盡早就醫。","慎防陷阱。"],
+["","守","眼前歡喜未為歡，危不危兮安不安，割肉成瘡因甚事，不如守舊得安全。","眼前的歡喜不是真歡喜，看似安穩其實不安；何必割肉成瘡自找麻煩，不如守舊保平安。","勿貪變動。","守成。","勿草率。","小病勿拖。","守舊安全。"],
+["","守","路險馬行人去遠，失群羊困虎相當，危灘船過風翻浪，春暮花殘天降霜。","路險馬行遠、失群羊遇虎、危灘逢風浪、春暮花殘又降霜，重重不利；宜暫停一切計畫。","不利。","不利。","不利。","多加注意。","慎出行。"],
+["","吉","一條金秤等君情，無減無增無重輕，為是平生心正直，文章不識義皆明。","一把金秤公平衡量你的心，不增不減；因為你一生正直，即使不識文章，道理也看得明白。","公道自在人心。","正財。","真心可成。","平安。","吉。"],
+["","吉","門庭清吉夢禎祥，積善于門大吉昌，訟理婚成蠶又熟，病逢良藥得安康。","家門清吉、夢兆祥瑞，積善之家大吉；官司得理、婚姻成就、蠶桑豐收、病遇良藥得安康。","吉。","豐收。","可成。","遇良醫康復。","訟事得理。"],
+["","吉","冬來嶺上一枝梅，葉落枯枝總不摧，探得陽春消息近，依然還我做花魁。","寒冬嶺上一枝梅，葉落枝枯仍不倒；春天的消息近了，依舊能拔得頭籌。","逆境後奪魁。","春後轉旺。","可成。","漸漸恢復。","吉。"],
+["","平","朝朝役役恰如蜂，飛來飛去西復東，春暮花殘無覔處，此身不戀舊叢中。","每天像蜜蜂般忙碌，飛東飛西；到了春末花謝無處採蜜，只好離開舊巢另尋出路。","宜轉換跑道。","舊路不通，另覓財源。","舊緣難續。","勿過勞。","變動中求安。"],
+["","平","誰知愛寵遇強徒，女子當年嫁二夫，自是一弓施兩箭，騎龍跨馬上安居。","誰知所愛遇到強橫之人，像女子再嫁；但一弓兩箭各有所得，最後仍能安居。","一波三折後安定。","兩頭兼得。","有變，但終安。","漸漸安穩。","終能安定。"],
+["","守","弄蜂須要求他蜜，只怕遭他尾上針，雖是眼前有異路，暗裏深藏荊棘林。","想採蜜就怕被蜂螫；眼前雖有別的路，暗中卻藏著荊棘，要特別小心。","機會中藏風險。","防損失。","防受傷害。","防意外。","謹慎。"],
+["","吉","春雷震起蟄中蟲，脫卻塵凡出舊墉，忽遇風雲交際處，自然變化得成龍。","春雷驚醒冬眠的蟲，脫離舊地；遇到風雲際會，自然化身成龍。","時來運轉、一飛衝天。","大利。","可成。","康復。","吉。"],
+["","守","慵飛野鶴自投籠，欲舉鵬霄落陷中，南北東西混障碍，此身憔悴恨無窮。","懶飛的野鶴自投牢籠，想高飛卻落入陷阱；四方都有阻礙，身心憔悴、遺憾無窮。","受困，勿自投羅網。","不利。","不宜。","宜調養。","慎選擇。"],
+["","平","宛如抱虎過山前，戰戰兢兢膽碎寒，幸得山前逢妙手，方能保得一身安。","像抱著老虎過山，戰戰兢兢、膽戰心寒；幸好在山前遇到高手相救，才能保住平安。","險中求助可安。","勿冒險。","小心。","遇良醫可安。","有驚無險。"],
+["","吉","魚龍混雜意和同，耐守寒潭未濟中，不覺一朝頭角聳，禹門一跳到天宮。","魚龍混雜時耐心守在寒潭；不知不覺頭角崢嶸，一躍過龍門直上天宮。","耐守後一鳴驚人。","後有大利。","久後可成。","漸漸痊癒。","吉。"],
+["","平","夢中說夢獲多財，身外浮名總莫猜，水遠山遙難信定，貴人一指笑顏開。","夢中說夢得了許多財，身外浮名別去猜；路途遙遠難以確定，等貴人一指點，就能笑逐顏開。","待貴人指點。","勿空想。","有人牽線。","遇良醫。","平。"],
+["","平","冷水來澆白雪洋，不寒不熱自溫涼，要行天下無他事，惟有中藏一藝強。","冷水澆在雪上，不冷不熱恰好溫涼；行走天下沒有別的，只靠身懷一技之長。","靠專業立足。","技藝生財。","平淡穩定。","平穩。","平。"],
+["","平","虛空結愿結人緣，保得人安愿未還，得兔忘蹄真絕跡，敢將初誓謾輕瞞。","曾經許願結緣，保得平安卻還沒還願；得兔忘蹄、忘了初衷，怎能輕慢當初的誓言。提醒你先還願、守信諾。","守信用。","先還舊債。","勿負初心。","還願祈安。","記得還願。"],
+["","吉","直上高山去學仙，豈知一旦帝王宣，青天白日常明照，志在聲名四海傳。","上山學仙修道，豈料忽被帝王宣召；光明磊落，名聲遠播四海。","意外得重用。","名利雙收。","可成。","平安。","吉。"],
+["","吉","庭前葉落暮秋時，行客奔程勢若飛，謝得天公輕着力，順風相送寶船歸。","深秋葉落，行人趕路如飛；幸得老天相助，順風送寶船歸來。","順利。","滿載而歸。","可成。","平安。","出行歸來平安。"],
+["","吉","炎炎烈火焰燒天，焰裡還生一朵蓮，到底永成根不壞，依然枝葉色新鮮。","熊熊烈火中生出一朵蓮花，根基始終不壞，枝葉依然鮮豔；象徵在逆境中保持本心，終能長存。","逆境中站穩。","根基穩固。","經得起考驗。","化險為夷。","吉。"],
+["","平","譬若初三四五蟾，半無半有未完全，須教十五良宵夜，到處清光到處圓。","像初三四五的月亮，半有半無還未圓滿；等到十五月圓，處處清光、處處圓滿。","時候未到，再等等。","後來可得。","待時可成。","漸好。","待時。"],
+["","守","因名喪德不和同，切忌忙中變作凶，醉後不知何處去，青松影裡睡矇矓。","為了名利失了德行、與人不和；切忌在忙亂中把事情弄糟，像醉後不知去處、昏昏沉沉。","勿急躁、勿為名失德。","防損失。","防糊塗行事。","節制菸酒。","清醒處事。"],
+["","吉","重開山後藏前事，萬寶園中可再團，醉詠新詩添逸興，貴人引接上雲衢。","重新開創，過去的事收藏起來，好事可再團聚；吟詩添興，有貴人引領直上青雲。","重新出發得貴人。","可得。","重聚可成。","康復。","吉。"],
+["","吉","春來花發映陽臺，萬里舟行進寶來，躍過禹門三級浪，恰如平地一聲雷。","春來花開，萬里行船載寶而歸；躍過龍門三級浪，像平地一聲雷般一鳴驚人。","大成功。","大利。","喜事。","平安。","吉。"],
+["","守","人行半嶺日啣山，峻險巉巖未可攀，仰望上天垂護佑，此身猶在太虛間。","爬到半山天已將黑，險峻山崖難以攀登；只能仰望上天保佑，此身仍懸在半空之中。","進退兩難，宜止。","不利。","難成。","多加注意。","勿夜行。"],
+["","平","木雕一虎在山林，遠望威容意不禁，縱說不妨終可畏，此身如入大江心。","山林中的木雕老虎，遠看威風令人心驚；雖說無害，終究讓人害怕，像身陷大江中心。提醒你別被表象嚇倒，但仍要謹慎。","虛驚居多，仍宜謹慎。","守成。","疑慮多，慢慢確認。","虛驚一場，仍需留意。","謹慎。"],
+["","吉","出入營謀大吉昌，無瑕玉在石中藏，如今幸得高人指，獲寶從心喜不常。","出入謀事大吉，無瑕美玉藏在石中；有高人指點，得寶稱心、喜出望外。","大吉。","得寶。","可成。","平安。","吉。"],
+["","吉","忽朝一信天下墀，寶貝船裝滿載歸，若問前程成底事，始終應得貴人提。","忽然一日佳音從天而降，滿船寶貝載歸；問前程，始終有貴人提攜。","貴人提拔。","滿載而歸。","可成。","平安。","吉。"],
+["","吉","好把愁眉須展開，大才大用薦將來，一條大路平如掌，凡有施為總稱懷。","舒展愁眉吧，你將被舉薦大用；前路平坦如掌，所作所為都稱心如意。","被重用。","順。","可成。","平安。","吉。"],
+["","吉","經商得利稱心懷，福祿榮華倍獲財，若問進身謀望事，秀才一舉狀元回。","經商得利稱心如意，福祿榮華、財富倍增；問求官謀事，像秀才一舉高中狀元。","大成。","大利。","喜事。","平安。","吉。"],
+["","平","鸞鳳翎毛雨壓垂，此時應被雀輕欺，忽朝一日雲霄霽，依舊還教振羽衣。","鸞鳳羽毛被雨打濕下垂，暫時被小雀欺負；等雲開天晴，依舊能振翅高飛。","暫時受屈，終會翻身。","先困後通。","先阻後成。","漸漸恢復。","忍耐。"],
+["","平","小人君子別賢愚，事有差訛合是非，琴遇知音當鼓操，爭如定靜得便宜。","要分清小人與君子、賢與愚；事有差錯易生是非，與其爭辯，不如定靜下來反而得益。","防小人，靜守。","穩。","看清對方。","靜養。","定靜為吉。"],
+["","吉","事業功勳暮與朝，榮華物態不勝饒，報君記取金雞鬪，福祿聲名價自超。","事業功勳日夜累積，榮華豐盛；記住酉年（金雞）之時，福祿聲名自然超群。","功成名就。","豐。","吉。","平安。","吉。"],
+["","吉","巍巍寶塔不尋常，八面玲瓏盡放光，勸汝志心勤頂禮，天龍擁護降千祥。","巍巍寶塔八面放光；勸你誠心禮佛，天龍護佑、千祥降臨。","得護佑。","吉。","吉。","平安。","大吉。"],
+["","守","園林月色搖疎影，恍若鋪成滿地瓊，幾度兒童來收拾，豈知收拾總無成。","園林月光下樹影搖曳，地上像鋪滿美玉；孩子們幾次想收拾，卻怎麼也撿不起來——看得到卻得不到。","虛而難成。","一場空。","看得到得不到。","宜務實調養。","勿空想。"],
+["","守","經商出入事遲疑，恐惹閒愁與是非，如鳥飛投羅網陷，相看能有幾人知。","經商出入猶豫不決，恐惹愁煩是非；像鳥飛入羅網，身陷其中卻少有人知。","防陷阱。","不利。","慎重。","多加注意。","謹慎。"],
+["","平","等閑騎馬着鞭來，半有憂危半有財，似火方燒頭上屋，天教一雨蕩殃災。","輕鬆騎馬而來，卻是憂與財各半；像火燒到頭上屋頂，幸得老天一場雨，災禍化解。","有驚無險。","半得半失。","有波折。","急症可解。","化險為夷。"],
+["","守","欲就東兮欲就西，逢人說事轉痴迷，登山不見神仙面，莫若歸休更勿提。","想往東又想往西，逢人說事越說越糊塗；登山也見不到神仙，不如回家休息，別再提了。","放下為宜。","不宜。","不成。","休養。","歸家為安。"]];</script>
 <script>// 周公解夢：民間流傳說法＋現代心理提醒。[關鍵字(|分隔), 類別, 吉凶 g吉 m平 b凶, 民間說法, 心理提醒]
 window.DREAM_DATA=[
 ['蛇|大蛇|白蛇|青蛇','動物','g','民間說夢見蛇主財運或桃花將至；蛇入屋、纏身多解為得財。','蛇常代表讓你在意又難以掌握的事，留意最近心裡的不安或渴望。'],
@@ -3297,7 +3424,7 @@ function renderOverview(){
   <div class="grid3">
     <button class="tile" data-go="ziwei"><span class="stat"><span class="k">紫微命宮</span><span class="v">${mStars}</span><span class="s">${A?A.fiveElementsClass:''}${dec?` · 大限${A.palaces[dec.index].name}`:''}</span></span></button>
     <button class="tile" data-go="name"><span class="stat"><span class="k">姓名評分</span><span class="v num">${nm.ok?nm.score+' 分':'—'}</span><span class="s">${nm.ok?`總格 ${nm.g.zong} ${n81(nm.g.zong)[0]==='半'?'半吉':n81(nm.g.zong)[0]}`:'有字缺筆畫'}</span></span></button>
-    <button class="tile" data-go="qian"><span class="stat"><span class="k">恩主公指點</span><span class="v">求一支籤</span><span class="s">六十甲子籤 · 擲筊</span></span></button>
+    <button class="tile" data-go="qian"><span class="stat"><span class="k">神明指點</span><span class="v">求一支籤</span><span class="s">關公 · 觀音 · 擲筊</span></span></button>
   </div>`,year:()=>`
   <div class="card stack">
     <div class="row between"><div><div class="eyebrow">${cy} ${ygz}年 · 虛歲 ${ys.age}</div><h3 class="h3">今年流年：${ys.ss}年</h3></div>${meter(ys.score,true)}</div>
@@ -3314,7 +3441,7 @@ function renderOverview(){
     <div class="legend">${D.cnt.map((c,e)=>`<span><i style="background:var(--${['wood','fire','earth','metal','water'][e]})"></i>${WX[e]} ${c}</span>`).join('')}</div>
     <p><b>日主${D.dm}${WX[D.dmE]}</b>，${DMTXT[D.dm]}命局${D.strong?'偏強':'偏弱'}，喜用 ${D.xi.map(elTag).join(' ')}，${D.cnt.some(c=>!c)?`五行缺${D.cnt.map((c,e)=>c?'':WX[e]).join('')}。`:'五行俱全。'}</p>
   </div>`,family:()=>familyMini(),style:()=>styleCard(),bazi:()=>baziDetail(),simple:()=>`<div class="bigacts">
-    <button type="button" class="bigact" data-go="qian"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/></svg><b>求一支籤</b><span>向恩主公請示</span></button>
+    <button type="button" class="bigact" data-go="qian"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/></svg><b>求一支籤</b><span>向關公或觀音請示</span></button>
     <button type="button" class="bigact" data-go="family"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.5" cy="8" r="3"/><circle cx="16" cy="9" r="2.4"/><path d="M3 19c.6-3.4 2.9-5.2 5.5-5.2s4.9 1.8 5.5 5.2M13.6 14.2c.8-.6 1.6-.8 2.4-.8 2.2 0 3.9 1.5 4.4 4.6"/></svg><b>全家運勢</b><span>家人今天好不好</span></button>
     ${canSpeak?`<button type="button" class="bigact" data-speak="daily"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><b>唸給我聽</b><span>朗讀今日運勢</span></button>`:''}
     <button type="button" class="bigact" data-go="festival"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v5M9 4.5v3.5M15 4.5v3.5"/><path d="M5 11h14l-1.6 8.5H6.6Z"/></svg><b>拜拜節日</b><span>初一十五、神明生</span></button>
@@ -3362,7 +3489,7 @@ function guideCard(){
     <div class="eyebrow">想更進一步</div>
     <div class="next">
       <button type="button" class="nx" data-ask="${AREA_CAT[worst.n]}"><i class="ic" style="background:#1F2A4D">牌</i><b>有一件具體的事放不下？</b><span class="s">抽塔羅看${worst.n}這件事怎麼走</span><span class="chev" aria-hidden="true"></span></button>
-      <button type="button" class="nx" data-go="qian"><i class="ic" style="background:#A3271D">籤</i><b>想請神明指點方向？</b><span class="s">向恩主公求一支籤，或擲筊問是非</span><span class="chev" aria-hidden="true"></span></button>
+      <button type="button" class="nx" data-go="qian"><i class="ic" style="background:#A3271D">籤</i><b>想請神明指點方向？</b><span class="s">向關公或觀音求一支籤，或擲筊問是非</span><span class="chev" aria-hidden="true"></span></button>
       <button type="button" class="nx" data-go="qimen"><i class="ic" style="background:#2F6B4F">方</i><b>今天要出門、談判或面試？</b><span class="s">用奇門看此刻最有利的方位</span><span class="chev" aria-hidden="true"></span></button>
       <button type="button" class="nx" data-go="liunian"><i class="ic" style="background:#8A6A24">年</i><b>想知道這個月、這一年的節奏？</b><span class="s">看流年與流月，提前布局</span><span class="chev" aria-hidden="true"></span></button>
     </div>
@@ -3686,6 +3813,30 @@ function qmDetail(c){
     <p class="small">${c.score>=3?`往${PAL[c.p][1]}方行動、談判或出門，可借此宮吉氣。`:c.score>=0?`${PAL[c.p][1]}方吉凶參半，可做但要準備備案。`:`${PAL[c.p][1]}方此時不宜，能避則避。`}</p>
   </div>`;
 }
+/* 走財位：生門所落宮位＝此時辰的財位方向（民俗做法；停留時間、距離無古籍統一標準） */
+function cwOf(Q){const c=Object.values(Q.cells).find(c=>c.door==='生');const qi='乙丙丁'.includes(c.heaven);
+  const lv=c.kong?2:(c.score>=3||qi&&c.score>=1)?0:c.score>=0?1:2;return {c,qi,lv}}
+function caiweiHtml(t,Q){
+  const pad=n=>String(n).padStart(2,'0'), h=t.getHours(), st=new Date(t);st.setMinutes(0,0,0);st.setHours(h%2?h:h-1);
+  const end=new Date(st.getTime()+7200e3), now=cwOf(Q), TAG=[['good','好時機'],['mid','可走'],['bad','不建議']];
+  const left=Math.max(0,Math.round((end-t)/60000));
+  const next=Array.from({length:6},(_,k)=>{const a=new Date(st.getTime()+(k+1)*7200e3), m=new Date(a.getTime()+3600e3), r=cwOf(qimen(m));
+    return `<li><span class="num">${a.getHours()}–${(a.getHours()+2)%24} 點</span><b>${PAL[r.c.p][1]}</b><span class="pill sm ${TAG[r.lv][0]}">${r.c.kong?'空亡':TAG[r.lv][1]}</span></li>`}).join('');
+  const P_=PAL[now.c.p];
+  return `<div class="card stack cw">
+    <div class="row between"><div><div class="eyebrow">走財位 · 此時辰（至 ${pad(end.getHours())}:00）</div><h3 class="h3">財位在${P_[1]}方</h3></div><span class="pill ${TAG[now.lv][0]}">${TAG[now.lv][1]}</span></div>
+    <p>這個時辰的「生門」（主生財、生機）落在${P_[0]}宮，也就是<b>${P_[1]}方</b>。${now.qi?`又逢${now.c.heaven}奇，民間視為更好的財利時機。`:''}${now.c.kong?'但此宮正逢<b>空亡</b>，財氣虛而不實，建議等下個時辰再走。':now.lv===2?'生門此時受制，力量不足，可改看下面其他時辰。':`若想走財位，可在剩下約 ${left} 分鐘內出發。`}</p>
+    <button type="button" class="btn primary block" id="cwGo">用羅盤找${P_[1]}方</button>
+    <div><span class="small muted">接下來的時辰</span><ol class="cw-next">${next}</ol></div>
+    <details class="disc"><summary>怎麼走？要注意什麼</summary><div class="stack small" style="margin-top:8px">
+      <p><b>做法</b>　用羅盤確認方向 → 在這個時辰內朝財位方向出門，走到安全、方便停留的地方 → 靜下心想想自己的理財目標，再回家。把它當成提醒自己積極行動的小儀式。</p>
+      <p><b>要走多遠、停多久？</b>　目前查不到古籍或各派一致的標準。網路上常見「停留約 20 分鐘」只是個人建議，不是奇門的規定，也不會因為走得更久就更有效。</p>
+      <p><b>安全第一</b>　不要闖進私人土地、工地、車道或水邊；身體不舒服、天氣不好、路線不安全時就停止。</p>
+      <p><b>不要</b>　為此借錢、下注或購買高價開運物。財位不能取代預算、風險評估或專業理財建議。</p>
+      <p class="muted">本 App 採時家奇門轉盤排法，以生門為財位；不同老師、流派的排盤與財位定義可能不同。</p>
+    </div></details>
+  </div>`;
+}
 function renderQimen(){
   const t=qmTime||new Date(), Q=qimen(t);
   const [kind,key]=QM_USE[qmCat];
@@ -3718,6 +3869,7 @@ function renderQimen(){
     ${use.ma?'<p class="good-t">逢驛馬，事情變動快，利出行與跑動。</p>':''}
     <div class="reader"><div class="seal" aria-hidden="true">遁</div><p>${us>=3?`此時${qmCat}之事可行，往${PAL[use.p][1]}方向或在此時辰行動最有利。`:us>=0?`${qmCat}之事吉凶參半，可行但要準備備案；若能選擇，改走${PAL[best.p][1]}方較順。`:`此時不利${qmCat}，建議換個時辰再看，或往${PAL[best.p][1]}方（${best.door}門）借力。`}</p></div>
   </div>
+  ${caiweiHtml(t,Q)}
   ${compassLiveHtml(1,{Q,use,best})}
   <p class="small muted" style="text-align:center">點盤面任一宮，查看該方位的詳細解讀</p>
   <div class="card flat stack"><h3 class="h3">此時最佳方位：${PAL[best.p][1]}</h3><p class="small">${best.door}門・${best.star}・${best.god}。談事、出門、坐位面向這個方位，借一點天時地利。</p></div>
@@ -4045,6 +4197,15 @@ function tarotDaily(d=new Date()){const h=hash(`${d.toDateString()}|tarot|${P.su
 
 /* ---------- 求籤・擲筊 ---------- */
 const QD=window.QIAN_DATA;
+/* 求籤神明：關聖帝君（六十甲子籤）／觀世音菩薩（觀音一百籤） */
+const QGODS={gg:{call:'恩主公',name:'關聖帝君',short:'關公',cap:'恩主公・協天大帝',set:'六十甲子籤',data:window.QIAN_DATA},
+ gy:{call:'觀世音菩薩',name:'觀世音菩薩',short:'觀音',cap:'南無觀世音菩薩・大慈大悲',set:'觀音一百籤',data:window.GUANYIN_DATA||[]}};
+let qGod=store.get('gx_qgod','gg');if(!QGODS[qGod])qGod='gg';
+const GD=()=>QGODS[qGod], qdOf=g=>QGODS[QGODS[g]?g:'gg'].data;
+const qLv=Q=>/^上|^吉/.test(Q[1])?0:/^中|^平/.test(Q[1])?1:2;
+// 籤等文字：關公籤為「上上籤」等；觀音籤原始資料未附等級，用白話判讀的「吉／平／宜守」
+const qGrade=(g,Q)=>g==='gy'?({吉:'吉',平:'平',守:'宜守'}[Q[1]]||Q[1])+'籤':Q[1]+'籤';
+const qTag=(g,n)=>{const Q=qdOf(g)[n-1];return g==='gy'?`觀音第 ${n} 籤・${qGrade(g,Q)}`:`第 ${n} 籤・${qGrade(g,Q)}`};
 const GUANGONG=`<svg viewBox="0 -6 244 306" class="deity" role="img" aria-label="關聖帝君神像">
 <defs>
  <radialGradient id="gg-aura" cx="50%" cy="38%" r="55%"><stop offset="0" stop-color="#FFE7A8" stop-opacity=".95"/><stop offset=".45" stop-color="#E9B451" stop-opacity=".5"/><stop offset="1" stop-color="#C98A2B" stop-opacity="0"/></radialGradient>
@@ -4187,6 +4348,8 @@ const SHRINE_ART=`<div class="shrine">
   </div>
 </div>`;
 window.__gxShrine=SHRINE_ART;
+window.__gyShrine=`<div class="shrine"><div class="plaque">觀世音菩薩</div><div class="niche" style="display:grid;place-items:center;min-height:180px;color:#F3D389;font:700 64px var(--f-serif)">觀</div></div>`;
+const SHRINE_GY=`<div class="shrine photo gy"><img src="img/guanyin.jpg" alt="觀世音菩薩神龕：菩薩白衣端坐蓮台，手持淨瓶，兩側楹聯「南無觀世音菩薩」「慈悲喜捨救苦救難」" width="900" height="900" decoding="async" onerror="this.parentNode.outerHTML=window.__gyShrine"><span class="smoke s1"></span><span class="smoke s2"></span><span class="smoke s3"></span><span class="glow"></span></div>`;
 const SHRINE=`<div class="shrine photo"><img src="img/guangong.jpg" alt="關聖帝君神龕：恩主公居中端坐，紅臉美髯，左右陪祀，兩側楹聯「在漢室江山忠義高名傳萬古，中天日月烝嘗祀典享千秋」" width="900" height="900" decoding="async" onerror="this.parentNode.outerHTML=window.__gxShrine"><span class="smoke s1"></span><span class="smoke s2"></span><span class="smoke s3"></span><span class="glow"></span></div>`;
 // 筊杯：flat=true 為平面朝上
 function bweiShape(flat){return flat
@@ -4205,18 +4368,19 @@ function prayText(){
   const hr=P.hour===13?'':HOURS[P.hour].split(' ')[0].replace(/^[早晚]/,'');
   const who=P.gender==='女'?'信女':'信士', addr=($('#qAddr')?.value??store.get('gx_addr','')).trim();
   const q=($('#qQ')?.value??qQ).trim().replace(/[。.！!？?，,、；;\s]+$/,'');
-  return `恩主公在上，${who} <b>${esc(P.sur+P.given)}</b>，${yr}農曆${mon}${S2T(L.getDayInChinese())}${hr?hr+'':''}生，生肖屬${SX[ZHI.indexOf(D.birthZ)]}${addr?`，現居${esc(addr)}`:''}，今日誠心向恩主公稟告：所問<b>${qCat}</b>之事${q?`——${esc(q)}`:''}。懇請恩主公慈悲指點，賜籤明示。`;
+  const C=GD().call, dear=qGod==='gy'?'大慈大悲觀世音菩薩':'恩主公';
+  return `${dear}在上，${who} <b>${esc(P.sur+P.given)}</b>，${yr}農曆${mon}${S2T(L.getDayInChinese())}${hr?hr+'':''}生，生肖屬${SX[ZHI.indexOf(D.birthZ)]}${addr?`，現居${esc(addr)}`:''}，今日誠心向${C}稟告：所問<b>${qCat}</b>之事${q?`——${esc(q)}`:''}。懇請${C}慈悲指點，賜籤明示。`;
 }
 let qMode='qian', qStep=0, qCat='家運', qQ='', qNo=null, qLast=null, qTries=0, qStrict=false, qStreak=0, jTally={sheng:0,xiao:0,yin:0}, jQ='';
 const QCATS=['家運','事業','求財','婚姻','健康','出行','功名','失物','訴訟'];
 const QSTEPS=['稟告','請示','抽籤','確認','解籤'];
 function jiaoStage(res){const settled=res&&jiaoJustLanded;jiaoJustLanded=false;return `<div class="jiao${res?' done':''}${settled?' settled':''}" id="jiao">${bweiSVG(res?res.a:true,false)}${bweiSVG(res?res.b:false,true)}</div>${res?`<div class="jres ${res.r}"><b>${JIAO[res.r][0]}</b><span>${JIAO[res.r][1]}</span></div>`:''}`}
-let qCalm=false;
+let qCalm=false, qGodSwap=false;
 function renderQian(){
   // 求籤、擲筊、解夢各自是一個分頁，畫在各自的區塊
   const V=$('#v-'+qMode);if(!V)return;
   V.classList.toggle('calm',qCalm);qCalm=false;
-  let body='';
+  let body='';const swapNow=qGodSwap;
   if(qMode==='dream'){body=dreamBody()}
   else if(qMode==='jiao'){
     body=`<div class="card stack" id="jcard">
@@ -4241,28 +4405,30 @@ function renderQian(){
         <label class="toggle"><input type="checkbox" id="qStrict"${qStrict?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>嚴謹模式：確認籤詩需連續三個聖筊</span></label>
         <button type="button" class="btn primary block" id="qNext0">稟告完成，擲筊請示</button></div>`;
     }else if(qStep===1){
-      st=`<div class="stack"><p>擲筊請示恩主公，是否允許求籤。得到<b>聖筊</b>即可抽籤。</p><div class="jstage">${jiaoStage(qLast)}</div>
-        ${qLast?`<p class="${qLast.r==='sheng'?'good-t':'muted'}">${qLast.r==='sheng'?'恩主公應允，請前往抽籤。':qLast.r==='xiao'?'笑筊：請把所求之事再說得更清楚，然後再擲一次。':'陰筊：可能時機未到，靜心片刻後再請示。'}${qTries>=3&&qLast.r!=='sheng'?'已請示三次未得聖筊，建議改日再來。':''}</p>`:''}
+      st=`<div class="stack"><p>擲筊請示${GD().call}，是否允許求籤。得到<b>聖筊</b>即可抽籤。</p><div class="jstage">${jiaoStage(qLast)}</div>
+        ${qLast?`<p class="${qLast.r==='sheng'?'good-t':'muted'}">${qLast.r==='sheng'?`${GD().call}應允，請前往抽籤。`:qLast.r==='xiao'?'笑筊：請把所求之事再說得更清楚，然後再擲一次。':'陰筊：可能時機未到，靜心片刻後再請示。'}${qTries>=3&&qLast.r!=='sheng'?'已請示三次未得聖筊，建議改日再來。':''}</p>`:''}
         ${qLast&&qLast.r==='sheng'?`<button type="button" class="btn primary block" id="qNext1">前往抽籤</button>`:`<button type="button" class="btn primary block" id="qAsk">擲筊請示</button>`}</div>`;
     }else if(qStep===2){
       st=`<div class="stack"><p>手持籤筒，心中默念所求之事，輕輕搖動直到一支籤落出。</p>
         <button type="button" class="tube-btn" id="qShake" aria-label="搖籤筒">${tubeSVG(qNo)}</button>
-        ${qNo?`<p style="text-align:center">落出 <b>第 ${qNo} 籤</b>，請擲筊確認是否為恩主公所賜。</p><button type="button" class="btn primary block" id="qNext2">擲筊確認</button>`:`<p class="small muted" style="text-align:center">點一下籤筒開始搖</p>`}</div>`;
+        ${qNo?`<p style="text-align:center">落出 <b>第 ${qNo} 籤</b>，請擲筊確認是否為${GD().call}所賜。</p><button type="button" class="btn primary block" id="qNext2">擲筊確認</button>`:`<p class="small muted" style="text-align:center">點一下籤筒開始搖</p>`}</div>`;
     }else if(qStep===3){
       const need=qStrict?3:1;
       st=`<div class="stack"><p>第 <b>${qNo}</b> 籤，擲筊確認。${qStrict?`需連續 ${need} 個聖筊（目前 ${qStreak}）。`:'得聖筊即為此籤。'}</p><div class="jstage">${jiaoStage(qLast)}</div>
-        ${qLast?`<p class="${qLast.r==='sheng'?'good-t':'bad-t'}">${qLast.r==='sheng'?(qStreak>=need?'確認完成，這就是恩主公賜給你的籤。':'聖筊，請再擲。'):'不是聖筊，這支籤不是給你的，請重新抽籤。'}</p>`:''}
+        ${qLast?`<p class="${qLast.r==='sheng'?'good-t':'bad-t'}">${qLast.r==='sheng'?(qStreak>=need?`確認完成，這就是${GD().call}賜給你的籤。`:'聖筊，請再擲。'):'不是聖筊，這支籤不是給你的，請重新抽籤。'}</p>`:''}
         ${qLast&&qLast.r==='sheng'&&qStreak>=need?`<button type="button" class="btn primary block" id="qNext3">看籤詩</button>`:qLast&&qLast.r!=='sheng'?`<button type="button" class="btn primary block" id="qRedraw">重新抽籤</button>`:`<button type="button" class="btn primary block" id="qConfirm">擲筊</button>`}</div>`;
     }else st=qianResult(qNo,qCat,qQ);
     body=`<div class="card stack" id="qcard">${steps}${st}</div>`;
   }
   const hist=store.get('gx_qian',[]);
   V.innerHTML=`
-  ${qMode==='dream'?'':`<div class="card shrine-card${qMode!=='qian'||qStep>0?' compact':''}">${SHRINE}<p class="shrine-cap">恩主公・協天大帝</p></div>`}
+  ${qMode==='dream'?'':`<div class="card shrine-card${qMode!=='qian'||qStep>0?' compact':''}${qGodSwap?' swap':''}">${qGod==='gy'?SHRINE_GY:SHRINE}<p class="shrine-cap">${GD().cap}</p></div>
+  ${qMode==='jiao'||qStep===0||qStep===4?`<div class="seg godseg" role="group" aria-label="請示的神明">${Object.entries(QGODS).map(([k,g])=>`<button type="button" data-qgod="${k}" aria-pressed="${k===qGod}"><b>${g.name}</b><span>${qMode==='jiao'?(k==='gy'?'慈悲・觀音':'恩主公'):g.set}</span></button>`).join('')}</div>`:''}`}
   ${body}
-  ${qMode==='qian'&&hist.length?`<div class="card stack"><div class="row between"><h3 class="h3">求籤紀錄</h3><button type="button" class="btn sm ghost" id="qClear">清除</button></div><div class="list">${hist.map((h,k)=>`<button type="button" class="li" data-qhist="${k}"><span class="q">第 ${h.n} 籤 · ${QD[h.n-1][1]}籤</span><span class="small muted">${esc(h.t)}</span><span class="small muted">${esc(h.cat)}${h.q?' · '+esc(h.q):''}</span><span class="chev" aria-hidden="true"></span></button>`).join('')}</div></div>`:''}
-  ${qMode==='dream'?'':`<p class="small muted note">本頁為個人參考工具，並非行天宮或任何宮廟的官方服務。籤詩採用民間流傳的六十甲子籤，用字可能與廟方籤紙略有出入；正式求籤請親赴宮廟。</p>`}
+  ${qMode==='qian'&&hist.length?`<div class="card stack"><div class="row between"><h3 class="h3">求籤紀錄</h3><button type="button" class="btn sm ghost" id="qClear">清除</button></div><div class="list">${hist.map((h,k)=>`<button type="button" class="li" data-qhist="${k}"><span class="q">${qTag(h.g,h.n).replace('・',' · ')}</span><span class="small muted">${esc(h.t)}</span><span class="small muted">${esc(h.cat)}${h.q?' · '+esc(h.q):''}</span><span class="chev" aria-hidden="true"></span></button>`).join('')}</div></div>`:''}
+  ${qMode==='dream'?'':`<p class="small muted note">本頁為個人參考工具，並非任何宮廟的官方服務。${qGod==='gy'?'觀音一百籤籤詩採用台灣好廟網所列版本，各寺廟用字、籤序可能不同；原始資料未附吉凶等級，「吉／平／宜守」與白話解說為本 App 依籤詩內容所寫，僅供參考。':'籤詩採用民間流傳的六十甲子籤，用字可能與廟方籤紙略有出入。'}正式求籤請親赴宮廟。</p>`}
   ${helpBox(qMode==='dream'&&GC.HELP.dream?'dream':'qian')}`;
+  if(swapNow)qGodSwap=false;
   if(qScroll){qScroll=false;
     // 捲到「下一步要按的地方」並置中：抽籤時是籤筒，擲筊時是筊杯，解籤時是籤詩
     const go=()=>{const t=V.querySelector('.tube')||V.querySelector('.jstage')||V.querySelector('.slip')||$(qMode==='jiao'?'#jcard':'#qcard');if(!t)return;
@@ -4297,24 +4463,25 @@ const QDO=[['積極行動','把握時機','行善回饋'],['守本分','多做�
 const QDONT=[['得意忘形','鬆懈怠慢'],['急躁冒進','聽信傳言'],['勉強硬來','借貸擔保']];
 const QS=window.QIAN_STORY||{};
 const qianStory=n=>QS[n]?`典故：${QS[n][0]}。${QS[n][1]}`:'';
-function qianShareText(n,cat,q){const Q=QD[n-1];return `【靈犀・求籤】第 ${n} 籤（${Q[0]}・${Q[1]}籤）\n${Q[2]}\n白話：${Q[3]}\n所問：${cat}${q?'——'+q:''}`}
+function qianShareText(n,cat,q){const Q=GD().data[n-1];return `【靈犀・求籤】${qGod==='gy'?`觀音靈籤第 ${n} 籤（${qGrade('gy',Q)}）`:`第 ${n} 籤（${Q[0]}・${Q[1]}籤）`}\n${Q[2]}\n白話：${Q[3]}\n所問：${cat}${q?'——'+q:''}`}
 function qianResult(n,cat,q){
-  const Q=QD[n-1], lines=Q[2].replace(/。$/,'').split('，');
-  const lv=Q[1].startsWith('上')?0:Q[1]==='中'?1:2, lvCls=['good','mid','bad'][lv];
+  const gy=qGod==='gy', Q=GD().data[n-1], lines=Q[2].replace(/。$/,'').split('，');
+  const lv=qLv(Q), lvCls=['good','mid','bad'][lv];
   const FIELD={家運:8,事業:4,求財:5,婚姻:6,健康:7,出行:8,功名:4,失物:8,訴訟:8};
-  const advice=['這是一支好籤。順勢而為，但別因順利而鬆懈；得償所願後記得回宮謝神、行善回饋。','吉凶參半，關鍵在你的作法：守本分、多準備，時機到了自然轉好。','這支籤是提早示警，不必害怕。照著籤意調整，可以避開損失；情況改變後可以再來請示。'][lv];
+  const advice=[`這是一支好籤。順勢而為，但別因順利而鬆懈；得償所願後記得${gy?'回寺廟向菩薩還願':'回宮謝神'}、行善回饋。`,'吉凶參半，關鍵在你的作法：守本分、多準備，時機到了自然轉好。','這支籤是提早示警，不必害怕。照著籤意調整，可以避開損失；情況改變後可以再來請示。'][lv];
   return `<div class="stack">
-    <div class="slip" aria-label="第 ${n} 籤，${Q[0]}，${Q[1]}籤：${Q[2]}">
-      <div class="slip-top" aria-hidden="true">靈犀 ・ 六十甲子籤</div>
+    <div class="slip${gy?' gy':''}" aria-label="${gy?'觀音靈籤':''}第 ${n} 籤，${gy?'':Q[0]+'，'}${qGrade(qGod,Q)}：${Q[2]}">
+      <div class="slip-top" aria-hidden="true">靈犀 ・ ${GD().set}</div>
       <div class="slip-body" aria-hidden="true">
-        <div class="slip-no"><b>第${cnNum(n)}籤</b><span class="slip-gz">${Q[0]}</span><div class="slip-seal ${lvCls}"><span>${Q[1]}</span><span>籤</span></div></div>
+        <div class="slip-no"><b>第${cnNum(n)}籤</b><span class="slip-gz">${gy?'觀音靈籤':Q[0]}</span><div class="slip-seal ${lvCls}"><span>${gy?{吉:'吉',平:'平',守:'守'}[Q[1]]:Q[1]}</span><span>籤</span></div></div>
         <div class="slip-poem">${lines.map(l=>`<p>${l}</p>`).join('')}</div>
       </div>
       <div class="slip-jie" aria-hidden="true"><b>解曰</b><div>${[['事業',4],['求財',5],['婚姻',6],['健康',7],['平安',8]].map(([k,i])=>`<span><em>${k}</em>${Q[i]}</span>`).join('')}</div></div>
     </div>
     <p><b>白話</b>　${Q[3]}</p>
-    <details class="disc" open><summary>逐句解</summary><div class="qlines">${lines.map((l,k)=>`<div class="ql"><b>${l}</b><span>${(window.QIAN_LINES||[])[n-1]?.[k]||''}</span></div>`).join('')}</div></details>
-    ${QS[n]?`<div class="qstory"><span class="eyebrow">典故</span><b>${QS[n][0]}</b><p class="small">${QS[n][1]}</p><p class="small muted">各廟配用的故事版本不一，此為常見版本之一。</p></div>`:''}
+    ${gy?`<p class="small muted">觀音籤原始資料未附吉凶等級；「${qGrade('gy',Q)}」與白話解說是依籤詩內容的白話判讀，僅供參考。</p>`:''}
+    ${gy?'':`<details class="disc" open><summary>逐句解</summary><div class="qlines">${lines.map((l,k)=>`<div class="ql"><b>${l}</b><span>${(window.QIAN_LINES||[])[n-1]?.[k]||''}</span></div>`).join('')}</div></details>`}
+    ${!gy&&QS[n]?`<div class="qstory"><span class="eyebrow">典故</span><b>${QS[n][0]}</b><p class="small">${QS[n][1]}</p><p class="small muted">各廟配用的故事版本不一，此為常見版本之一。</p></div>`:''}
     <div class="reader"><div class="seal" aria-hidden="true">籤</div><p>你問的是「${esc(cat)}」${q?`：${esc(q)}`:''}。籤意說：<b>${Q[FIELD[cat]]}</b>${QGUIDE[cat][lv]}${advice}</p></div>
     <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">宜</span><div class="chips">${QDO[lv].map(x=>`<span class="pill good">${x}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">忌</span><div class="chips">${QDONT[lv].map(x=>`<span class="pill bad">${x}</span>`).join('')}</div></div></div>
     <p class="small"><b>應期</b>　${QTIME[lv]}</p>
@@ -4331,9 +4498,9 @@ async function jiaoReveal(r,ctx){
   await new Promise(r=>setTimeout(r,reduceMotion()?300:450));$('.jstage')?.classList.remove('reveal-wait');
   const J=JIAO[r.r], tone=r.r==='sheng'?'good':r.r==='xiao'?'mid':'bad', art=`<div class="jiao done">${bweiSVG(r.a,false)}${bweiSVG(r.b,true)}</div>`;
   let o={tone,art,kicker:J[1],big:J[0],body:J[2],actions:[]};
-  if(ctx==='ask'){o.actions=r.r==='sheng'?[{text:'前往抽籤',primary:true,value:'qNext1'},{text:'稍後',value:null}]:[{text:'再擲一次',primary:true,value:'qAsk'},{text:'關閉',value:null}];if(r.r==='sheng')o.body='恩主公應允，可以抽籤了。'}
+  if(ctx==='ask'){o.actions=r.r==='sheng'?[{text:'前往抽籤',primary:true,value:'qNext1'},{text:'稍後',value:null}]:[{text:'再擲一次',primary:true,value:'qAsk'},{text:'關閉',value:null}];if(r.r==='sheng')o.body=`${GD().call}應允，可以抽籤了。`}
   if(ctx==='confirm'){const need=qStrict?3:1;
-    if(r.r==='sheng'&&qStreak>=need){o.kicker='恩主公賜籤';o.body=`第 ${qNo} 籤（${QD[qNo-1][0]}）確認完成，這就是賜給你的籤。`;o.actions=[{text:'看籤詩',primary:true,value:'qNext3'}]}
+    if(r.r==='sheng'&&qStreak>=need){o.kicker=`${GD().call}賜籤`;o.body=`第 ${qNo} 籤${qGod==='gy'?'':`（${QD[qNo-1][0]}）`}確認完成，這就是賜給你的籤。`;o.actions=[{text:'看籤詩',primary:true,value:'qNext3'}]}
     else if(r.r==='sheng'){o.body=`已連續 ${qStreak} 個聖筊，還需要 ${need-qStreak} 個。`;o.actions=[{text:'再擲一次',primary:true,value:'qConfirm'}]}
     else{o.body='這支籤不是給你的，請重新抽籤。';o.actions=[{text:'重新抽籤',primary:true,value:'qRedraw'},{text:'關閉',value:null}]}}
   if(ctx==='jiao'){o.actions=[{text:'再擲一次',primary:true,value:'jToss'},{text:'完成',value:null}];if(r.r==='sheng'&&jTally.sheng>=3){o.kicker=`已得 ${jTally.sheng} 個聖筊`}}
@@ -4546,7 +4713,7 @@ const shrHtml=k=>`<button type="button" class="btn sm spk" data-card="${k}">${SH
 function speakText(k){
   if(k==='daily'){const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+dayOff);const F=fortune(date);
     return `${P.given}，${dayOff===0?'今天':dayOff===1?'明天':''}${date.getMonth()+1}月${date.getDate()}日，星期${WEEK[date.getDay()]}，農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())}。整體運勢${F.total}分，${F.word}。${F.sum}${personalNote(F,date).replace(/<[^>]+>/g,'')}${F.areas.map(a=>`${a.n}${Math.round(a.s*20)}分`).join('，')}。${F.note}幸運色是${F.la.c.split('、')[0]}，幸運數字${F.la.n}，財喜方位在${F.la.d.split('、')[0]}。吉時有${F.good.map(x=>ZHI[x.k]+'時').join('、')}。今天宜${F.yi.slice(0,5).join('、')}；忌${F.ji.slice(0,5).join('、')}。`}
-  if(k==='qian'&&qNo){const Q=QD[qNo-1];return `第${qNo}籤，${Q[0]}，${Q[1]}籤。籤詩：${Q[2]}白話：${Q[3]}${typeof qianStory==='function'?qianStory(qNo):''}${$('#v-qian .reader p')?$('#v-qian .reader p').textContent:''}`}
+  if(k==='qian'&&qNo){const Q=GD().data[qNo-1];return `${qGod==='gy'?'觀音靈籤，':''}第${qNo}籤，${qGod==='gy'?'':Q[0]+'，'}${qGrade(qGod,Q)}。籤詩：${Q[2]}白話：${Q[3]}${qGod!=='gy'&&typeof qianStory==='function'?qianStory(qNo):''}${$('#v-qian .reader p')?$('#v-qian .reader p').textContent:''}`}
   if(k==='tarot'&&tReading){const d=TD.spreads.find(s=>s.k===tReading.s);return `${tReading.q||'塔羅解讀'}，${d.n}。`+tReading.c.map((x,i)=>{const c=tcard(x.i);return `第${i+1}張，${d.pos[i]}：${c.zh}，${x.rev?'逆位':'正位'}。${x.rev?c.rev:c.up}`}).join('')+($('#v-tarot .reader p')?$('#v-tarot .reader p').textContent:'')}
   return '';
 }
@@ -4638,9 +4805,9 @@ function cardSpec(k){
     return {tag:`${date.getMonth()+1}月${date.getDate()}日 週${WEEK[date.getDay()]}`,big:String(F.total),bigSize:220,title:`${P.given}的每日運勢・${F.word}`,sub:`農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())} · ${F.gz}日`,seed:date.getDate(),
       body:[{t:F.sum},{k:'五大面向',t:F.areas.map(a=>`${a.n} ${Math.round(a.s*20)}`).join('　')},{k:'開運',t:`幸運色 ${F.la.c.split('、')[0]}　幸運數字 ${F.la.n}　財喜方位 ${F.la.d.split('、')[0]}`},{k:'宜',t:F.yi.slice(0,8).join('、')||'—'},{k:'忌',t:F.ji.slice(0,8).join('、')||'—'}],
       text:`【靈犀・每日運勢】${date.getMonth()+1}/${date.getDate()} ${F.total}分 ${F.word}\n${F.sum}`}}
-  if(k==='qian'&&qNo){const Q=QD[qNo-1];
-    const FI={家運:8,事業:4,求財:5,婚姻:6,健康:7,出行:8,功名:4,失物:8,訴訟:8}, st=typeof qianStory==='function'?qianStory(qNo):'';
-    return {tag:'六十甲子籤',title:`第${cnNum(qNo)}籤`,seal:Q[1],sub:`${Q[0]}　所問：${qCat}${qQ?`・${qQ}`:''}`,seed:qNo,poem:Q[2].replace(/。$/,'').split('，'),
+  if(k==='qian'&&qNo){const gy=qGod==='gy', Q=GD().data[qNo-1];
+    const FI={家運:8,事業:4,求財:5,婚姻:6,健康:7,出行:8,功名:4,失物:8,訴訟:8}, st=!gy&&typeof qianStory==='function'?qianStory(qNo):'';
+    return {tag:GD().set,title:`第${cnNum(qNo)}籤`,seal:Q[1],sub:`${gy?'觀音靈籤':Q[0]}　所問：${qCat}${qQ?`・${qQ}`:''}`,seed:qNo,poem:Q[2].replace(/。$/,'').split('，'),
       body:[{k:'白話',t:Q[3]},{k:`所問「${qCat}」`,t:Q[FI[qCat]||8]},{k:'解曰',t:[['事業',4],['求財',5],['婚姻',6],['健康',7],['平安',8]].map(([k,i])=>`${k}：${Q[i]}`).join('\n'),size:28},...(st?[{k:'典故',t:st,size:28}]:[])],text:qianShareText(qNo,qCat,qQ)}}
   if(k==='tarot'&&tReading){const d=TD.spreads.find(s=>s.k===tReading.s), few=tReading.c.length<=5;
     return {tag:d.n,title:tReading.q||'塔羅解讀',seed:tReading.c[0].i+3,imgs:few?tReading.c.map(c=>({src:`img/tarot/${c.i}.jpg`,rev:c.rev})):null,
@@ -4720,7 +4887,7 @@ function jLog(r){const h=store.get('gx_jiaoh',[]),now=Date.now(),q=(jQ||'').trim
 const fmtT=ts=>{const d=new Date(ts);return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
 function jnItems(){
   const out=[];
-  store.get('gx_qian',[]).forEach((h,k)=>{const Q=QD[h.n-1];if(!Q)return;out.push({type:'求籤',key:'q:'+(h.ts||h.t+':'+h.n),ts:h.ts||0,t:h.ts?fmtT(h.ts):h.t,q:h.q||`問${h.cat}`,res:`第 ${h.n} 籤・${Q[1]}籤`,tone:Q[1].startsWith('上')?'good':Q[1]==='中'?'mid':'bad',open:`data-qhist="${k}"`})});
+  store.get('gx_qian',[]).forEach((h,k)=>{const Q=qdOf(h.g)[h.n-1];if(!Q)return;out.push({type:'求籤',key:'q:'+(h.ts||h.t+':'+h.n),ts:h.ts||0,t:h.ts?fmtT(h.ts):h.t,q:h.q||`問${h.cat}`,res:qTag(h.g,h.n),tone:['good','mid','bad'][qLv(Q)],open:`data-qhist="${k}"`})});
   store.get('gx_tarot',[]).forEach((h,k)=>{const d=TD.spreads.find(s=>s.k===h.s);out.push({type:'塔羅',key:'t:'+(h.ts||h.t+':'+h.c.map(c=>c.i).join('.')),ts:h.ts||0,t:h.ts?fmtT(h.ts):h.t,q:h.q||'（未寫問題）',res:`${d?d.n:''}・${h.c.slice(0,3).map(x=>tcard(x.i).zh+(x.rev?'(逆)':'')).join('、')}${h.c.length>3?'…':''}`,tone:'mid',open:`data-thist="${k}"`})});
   store.get('gx_jiaoh',[]).forEach(h=>{const c=h.c||{},tot=(c.sheng||0)+(c.xiao||0)+(c.yin||0);out.push({type:'擲筊',key:'j:'+h.ts,ts:h.ts,t:fmtT(h.ts),q:h.q||'（未寫問題）',res:`聖筊 ${c.sheng||0}・笑筊 ${c.xiao||0}・陰筊 ${c.yin||0}`,tone:(c.sheng||0)*2>tot?'good':(c.yin||0)*2>tot?'bad':'mid',open:''})});
   return out.sort((a,b)=>(b.ts||0)-(a.ts||0));
@@ -5700,7 +5867,7 @@ function setSimple(on){simple=on;store.set('gx_simple',on);GROUPS=on?SIMPLE_GROU
   if(on){const o=fsGet();if(o.z<1.15){o.z=1.15;fsApply(o)}}
   go(on&&!SIMPLE_GROUPS.some(g=>g.views.includes(cur))?'overview':cur,false)}
 const TITLES={overview:'今日',star:'今日',dream:'今日',family:'今日',qian:'問事',jiao:'問事',tarot:'問事',meihua:'問事',festival:'日曆',zeri:'日曆',journal:'日曆',ziwei:'命盤',liunian:'命盤',hehun:'命盤',fengshui:'開運',name:'開運',qimen:'開運'};
-const SUBTITLE={overview:'',festival:'神明聖誕・年節・初一十五',fengshui:'八宅命卦・居家吉方',family:'全家人的今日運勢與太歲',journal:'求籤・塔羅・擲筊紀錄與應驗',tarot:'78 張牌 · 10 種牌陣',meihua:'梅花易數 · 小六壬',star:'太陽星座 × 今日月亮',qian:'六十甲子籤 · 恩主公指點',jiao:'擲筊請示 · 是或否',dream:'周公解夢 · 夢境綜合解讀',ziwei:'紫微斗數十二宮',liunian:'八字 × 紫微 流年',name:'五格剖象 · 改名建議',qimen:'時家奇門 · 方位',hehun:'生肖 × 八字 × 紫微夫妻宮',zeri:'依農民曆宜忌 · 不沖生肖'};
+const SUBTITLE={overview:'',festival:'神明聖誕・年節・初一十五',fengshui:'八宅命卦・居家吉方',family:'全家人的今日運勢與太歲',journal:'求籤・塔羅・擲筊紀錄與應驗',tarot:'78 張牌 · 10 種牌陣',meihua:'梅花易數 · 小六壬',star:'太陽星座 × 今日月亮',qian:'關公六十籤 · 觀音一百籤',jiao:'擲筊請示 · 是或否',dream:'周公解夢 · 夢境綜合解讀',ziwei:'紫微斗數十二宮',liunian:'八字 × 紫微 流年',name:'五格剖象 · 改名建議',qimen:'時家奇門 · 方位',hehun:'生肖 × 八字 × 紫微夫妻宮',zeri:'依農民曆宜忌 · 不沖生肖'};
 let cur='overview';
 const groupOf=v=>GROUPS.find(g=>g.views.includes(v))||ALL_GROUPS.find(g=>g.views.includes(v));
 function buzz(ms=8){if(store.get('gx_haptic',true)===false)return;try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
@@ -5951,14 +6118,16 @@ document.addEventListener('click',async e=>{
   if(t.id==='qNext0'){qScroll=true;qQ=$('#qQ')?.value||'';qStrict=$('#qStrict')?.checked||false;qStep=1;qLast=null;qTries=0;renderQian();return}
   if(t.id==='qAsk'){if(tossBusy)return;tossBusy=true;const res=tossJiao();await animToss(res);qLast=res;qCalm=true;qTries++;renderQian();jiaoReveal(qLast,'ask');return}
   if(t.id==='qNext1'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}
-  if(t.id==='qShake'){if(qNo||tossBusy)return;tossBusy=true;const s=t.querySelector('.tube');s.classList.add('shake');buzz();await wait(1200);qNo=1+Math.floor(Math.random()*60);renderQian();const v=await reveal({tone:'gold',art:tubeSVG(qNo).replace('class="tube out"','class="tube out" style="width:84px"'),kicker:'籤筒落出',big:`第 ${qNo} 籤`,sub:`${QD[qNo-1][0]}籤`,body:'請擲筊確認，是否為恩主公所賜。',actions:[{text:'擲筊確認',primary:true,value:'qNext2'},{text:'稍後',value:null}]});tossBusy=false;if(v)setTimeout(()=>$('#'+v)?.click(),60);return}
+  if(t.id==='qShake'){if(qNo||tossBusy)return;tossBusy=true;const s=t.querySelector('.tube');s.classList.add('shake');buzz();await wait(1200);qNo=1+Math.floor(Math.random()*GD().data.length);renderQian();const v=await reveal({tone:'gold',art:tubeSVG(qNo).replace('class="tube out"','class="tube out" style="width:84px"'),kicker:'籤筒落出',big:`第 ${qNo} 籤`,sub:qGod==='gy'?'觀音一百籤':`${QD[qNo-1][0]}籤`,body:`請擲筊確認，是否為${GD().call}所賜。`,actions:[{text:'擲筊確認',primary:true,value:'qNext2'},{text:'稍後',value:null}]});tossBusy=false;if(v)setTimeout(()=>$('#'+v)?.click(),60);return}
   if(t.id==='qNext2'){qScroll=true;qStep=3;qLast=null;qStreak=0;renderQian();return}
   if(t.id==='qConfirm'){if(tossBusy)return;tossBusy=true;const res=tossJiao();await animToss(res);qLast=res;qCalm=true;qStreak=qLast.r==='sheng'?qStreak+1:0;renderQian();jiaoReveal(qLast,'confirm');return}
   if(t.id==='qRedraw'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}
-  if(t.id==='qNext3'){qScroll=true;qStep=4;const now=new Date();const h=store.get('gx_qian',[]);h.unshift({n:qNo,cat:qCat,q:qQ,ts:Date.now(),t:`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`});store.set('gx_qian',h.slice(0,20));renderQian();return}
+  if(t.id==='qNext3'){qScroll=true;qStep=4;const now=new Date();const h=store.get('gx_qian',[]);h.unshift({n:qNo,g:qGod,cat:qCat,q:qQ,ts:Date.now(),t:`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`});store.set('gx_qian',h.slice(0,20));renderQian();return}
   if(t.id==='qShare'){shareOut(qianShareText(qNo,qCat,qQ));return}
   if(t.id==='qAgain'){qStep=0;qNo=null;qLast=null;renderQian();window.scrollTo({top:0,behavior:'smooth'});return}
-  if(t.dataset.qhist!==undefined){const h=store.get('gx_qian',[])[+t.dataset.qhist];if(h){qStep=4;qNo=h.n;qCat=h.cat;qQ=h.q;if(cur==='qian'){qMode='qian';renderQian()}else go('qian')}return}
+  if(t.dataset.qgod){const g=t.dataset.qgod;if(g===qGod||!QGODS[g])return;qGod=g;store.set('gx_qgod',g);qGodSwap=true;
+    if(qMode==='qian'){qStep=0;qNo=null;qLast=null;qTries=0;qStreak=0}renderQian();hud(`改向${QGODS[g].name}請示`);return}
+  if(t.dataset.qhist!==undefined){const h=store.get('gx_qian',[])[+t.dataset.qhist];if(h){qStep=4;qNo=h.n;qGod=QGODS[h.g]?h.g:'gg';qCat=h.cat;qQ=h.q;if(cur==='qian'){qMode='qian';renderQian()}else go('qian')}return}
   if(t.id==='qClear'){if(await alertBox({title:'清除求籤紀錄？',msg:'清除後無法復原。',buttons:[{text:'取消',style:'cancel',value:false},{text:'清除',style:'destructive',value:true}]})){store.set('gx_qian',[]);renderQian();hud('已清除')}return}
   if(t.id==='jToss'){if(tossBusy)return;tossBusy=true;jQ=$('#jQ')?.value||jQ;const res=tossJiao();await animToss(res);qLast=res;qCalm=true;jTally[qLast.r]++;jLog(qLast.r);renderQian();jiaoReveal(qLast,'jiao');return}
   if(t.id==='jReset'){jTally={sheng:0,xiao:0,yin:0};qLast=null;renderQian();return}
@@ -5967,6 +6136,7 @@ document.addEventListener('click',async e=>{
   if(t.dataset.zy!==undefined){zwYearOn=t.dataset.zy==='1';renderZiwei();return}
   if(t.dataset.yr){const yb=t.closest('.years'),sl=yb?yb.scrollLeft:0,y=scrollY;lnYear=+t.dataset.yr;renderLiunian();const nb=$('#v-liunian .years');if(nb){nb.scrollLeft=sl;const on=nb.querySelector('[aria-pressed="true"]');if(on){const r=on.getBoundingClientRect(),R=nb.getBoundingClientRect();if(r.left<R.left||r.right>R.right)nb.scrollTo({left:on.offsetLeft-(nb.clientWidth-on.clientWidth)/2,behavior:'smooth'})}}scrollTo({top:y});return}
   // 奇門
+  if(t.id==='cwGo'){if(qmCat!=='財運'){qmCat='財運';qmSel=null;renderQimen()}requestAnimationFrame(()=>$('#v-qimen .cmpcard')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'center'}));hud('羅盤已對準生門（財位）');return}
   if(t.dataset.qc){qmCat=t.dataset.qc;qmSel=null;renderQimen();return}
   if(t.dataset.qp){qmSel=+t.dataset.qp;const y=scrollY;renderQimen();scrollTo(0,y);const c=qimen(qmTime||new Date()).cells[qmSel];sheet(`${PAL[qmSel][0]}${qmSel}宮 · ${PAL[qmSel][1]}方`,qmDetail(c).replace('id="qmDetail"',''));return}
   if(t.id==='qmNow'){qmTime=null;renderQimen();return}
@@ -6137,6 +6307,23 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.1-3",
+  "n": "1.14",
+  "d": "11 月 1 日",
+  "items": [
+   [
+    "新增觀世音菩薩求籤",
+    "求籤頁可切換「關聖帝君（六十甲子籤）」或「觀世音菩薩（觀音一百籤）」。觀音籤一百首籤詩逐字收錄，配上觀音神龕、專屬稟告詞與白話解說；擲筊、紀錄、分享、日記都會分開記住是向哪位神明求的。",
+    "qian"
+   ],
+   [
+    "奇門新增「走財位」",
+    "奇門頁會告訴你這個時辰的財位（生門）在哪個方向、還剩多少時間，並列出接下來六個時辰；一鍵用手機羅盤找方向。附上做法與安全提醒：停留多久、走多遠沒有古籍統一標準，也請勿為此借錢或下注。",
+    "qimen"
+   ]
+  ]
+ },
  {
   "v": "2026.11.1-2",
   "n": "1.13.1",
