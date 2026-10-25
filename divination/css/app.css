@@ -1606,3 +1606,16 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .voc-l1{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .voc-tag{font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--tint-soft);color:var(--ink);white-space:nowrap}
 .voc-tag.on{background:color-mix(in srgb,var(--mid) 22%,transparent)}
+/* 奇門羅盤：用神與吉方扇形 */
+.cmp .tgt-use{fill:color-mix(in srgb,var(--mid) 30%,transparent);stroke:var(--mid);stroke-width:1}
+.cmp .tgt-best{fill:color-mix(in srgb,var(--good) 26%,transparent);stroke:var(--good);stroke-width:1}
+.cmpgo{margin:0;text-align:center;font-size:16px;min-height:1.6em}
+.cmpkey{display:flex;justify-content:center;gap:14px;font-size:13px;color:var(--muted)}
+.cmpkey span{display:inline-flex;align-items:center;gap:5px}
+.cmpkey i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.cmpkey .k-use{background:color-mix(in srgb,var(--mid) 45%,transparent);box-shadow:inset 0 0 0 1px var(--mid)}
+.cmpkey .k-best{background:color-mix(in srgb,var(--good) 40%,transparent);box-shadow:inset 0 0 0 1px var(--good)}
+/* 中央度數依羅盤寬度縮放，大字級時不壓到外圈方位字 */
+.cmpwrap{container-type:inline-size}
+.cmpmid b{font-size:min(34px,11.5cqw)}
+.cmpmid span{font-size:min(13px,4.4cqw);white-space:nowrap}
