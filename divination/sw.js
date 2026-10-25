@@ -1,6 +1,6 @@
 /* 靈犀離線快取：第一次開啟後把主程式、萬年曆、紫微元件存在手機裡；之後沒網路也能用，開啟也更快。
    網頁本身「先試網路、4 秒沒回應就用手機裡的版本」，所以有網路時總是拿到最新版。 */
-const V='lingxi-b2e973d035';
+const V='lingxi-d1e9e43c08';
 const CORE=['./','index.html','manifest.webmanifest','vendor/lunar.min.js','vendor/iztro.min.js','vendor/astronomy.min.js','icons/icon-192.png','icons/icon-180.png','icons/logo.svg','img/guangong.jpg','img/guanyin.jpg','img/bg-day.jpg','img/bg-night.jpg'];
 // 安裝時一律向伺服器重抓（cache:'reload'），避免把瀏覽器快取裡的舊版存進來
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CORE.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
@@ -18,6 +18,7 @@ self.addEventListener('fetch',e=>{
         .catch(()=>{clearTimeout(t);caches.match('index.html').then(m=>{if(!done){done=true;res(m||Response.error())}})});
     }));return}
   if(u.pathname.endsWith('/changes.json'))return; // 更新紀錄一律走網路
+  if(u.pathname.includes('/audio/'))return; // 音樂檔較大且以分段請求串流，交給瀏覽器自己的快取
   const same=u.origin===location.origin, font=/fonts\.(googleapis|gstatic)\.com$/.test(u.hostname), cdn=u.hostname==='cdn.jsdelivr.net';
   if(!same&&!font&&!cdn)return;
   // 圖片、程式庫、字型：先用手機裡的，同時在背景更新

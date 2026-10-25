@@ -1821,6 +1821,13 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .qmvs2 dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.5}
 .qmvs2 dt{color:var(--muted);white-space:nowrap}
 .qmvs2 dd{margin:0}
+/* 背景音樂曲目選擇 */
+.bgmlist{display:grid;gap:6px}
+.bgmopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px 10px 36px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;position:relative;font:inherit}
+.bgmopt b{font-size:15px}.bgmopt span{font-size:12.5px;color:var(--muted)}
+.bgmopt::before{content:'';position:absolute;left:12px;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;border:1.5px solid var(--muted)}
+.bgmopt[aria-checked="true"]{border-color:var(--tint);background:var(--tint-soft)}
+.bgmopt[aria-checked="true"]::before{border-color:var(--tint);background:radial-gradient(circle,var(--tint) 0 4px,transparent 4.5px)}
 </style>
 </head>
 <body>
@@ -6148,15 +6155,33 @@ const SND=(()=>{
     shuffle(sec=1.6){if(!sfxOn()||!ready())return;const t=ctx.currentTime;for(let i=0;i<Math.floor(sec*7);i++)burst(t+i/7+Math.random()*.04,.09,2400+Math.random()*1800,.9,.22,sfx,'highpass')},
     deal(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;for(let i=0;i<5;i++)burst(t+i*.07,.07,3600,.8,.2,sfx,'highpass')},
     chime(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;[1047,1319,1568].forEach((f,i)=>tone(f,t+i*.09,.1,1.2))},
-    setMood(m){if(mood===m)return;const was=mood;mood=m;if(!ctx||!timer)return;const t=ctx.currentTime;mus.gain.cancelScheduledValues(t);mus.gain.setValueAtTime(mus.gain.value,t);mus.gain.linearRampToValueAtTime(0.0001,t+1.2);
-      setTimeout(()=>{if(!timer)return;stopPad();startPad();nextT=ctx.currentTime+.3;const t2=ctx.currentTime;mus.gain.linearRampToValueAtTime(vol()*.55,t2+2.5)},1300)},
-    music(on){if(on){if(!ready())return false;if(timer)return true;startPad();nextT=ctx.currentTime+.4;timer=setInterval(sched,200);const t=ctx.currentTime;mus.gain.cancelScheduledValues(t);mus.gain.setValueAtTime(0.0001,t);mus.gain.linearRampToValueAtTime(vol()*.55,t+3);return true}
-      if(!ctx||!timer)return false;clearInterval(timer);timer=null;const t=ctx.currentTime;mus.gain.cancelScheduledValues(t);mus.gain.setValueAtTime(mus.gain.value,t);mus.gain.linearRampToValueAtTime(0.0001,t+1);setTimeout(()=>{if(!timer)stopPad()},1100);return false},
-    volume(){if(ctx&&timer){const t=ctx.currentTime;mus.gain.cancelScheduledValues(t);mus.gain.setValueAtTime(mus.gain.value,t);mus.gain.linearRampToValueAtTime(vol()*.55,t+.4)}},
-    pause(){if(ctx&&ctx.state==='running')ctx.suspend().catch(()=>{})},
-    resume(){if(ctx&&ctx.state==='suspended'&&(timer||sfxOn()))ctx.resume().catch(()=>{})},
-    get playing(){return !!timer}
+    setMood(m){if(mood===m)return;mood=m;if(playing&&!synth&&trackMode()==='auto'&&curTrack&&curTrack.mood!==m)swapTo(pickTrack(),true);
+      else if(playing&&synth){fadeTo(0.0001,1.2);setTimeout(()=>{if(!playing||!synth)return;stopPad();startPad();nextT=ctx.currentTime+.3;fadeTo(vol()*.55,2.5)},1300)}},
+    music(on){if(on){if(!ready())return false;if(playing)return true;playing=true;startTrack(pickTrack());return true}
+      if(!playing)return false;playing=false;fadeTo(0.0001,1);if(timer){clearInterval(timer);timer=null}
+      setTimeout(()=>{if(playing)return;stopPad();synth=false;if(el)el.pause()},1100);return false},
+    track(k){store.set('gx_bgmt',k);if(el)el.loop=k!=='loop';if(playing&&!synth)swapTo(pickTrack(),true);else if(playing&&synth){synth=false;if(timer){clearInterval(timer);timer=null}stopPad();startTrack(pickTrack())}},
+    volume(){if(ctx&&playing)fadeTo(vol()*(synth?.55:1),.4)},
+    pause(){if(el&&!el.paused){el.pause();elHeld=true}if(ctx&&ctx.state==='running')ctx.suspend().catch(()=>{})},
+    resume(){if(ctx&&ctx.state==='suspended'&&(playing||sfxOn()))ctx.resume().catch(()=>{});if(el&&elHeld&&playing&&!synth){elHeld=false;el.play().catch(()=>{})}},
+    get now(){return synth?'內建氛圍音樂':curTrack?`${curTrack.zh}（${curTrack.n}）`:''},
+    get playing(){return playing}
   };
+  // 背景音樂：使用者提供的兩首曲子；依頁面氛圍自動選曲，或固定一首、兩首輪播。載入失敗時退回內建合成氛圍音樂
+  let el=null,elSrc=null,curTrack=null,playing=false,synth=false,elHeld=false,swapTok=0;
+  const trackMode=()=>store.get('gx_bgmt','auto');
+  function pickTrack(){const m=trackMode();if(m==='loop')return curTrack||BGM[0];return BGM.find(t=>t.k===m)||BGM.find(t=>t.mood===(mood==='star'?'star':'temple'))||BGM[0]}
+  function fadeTo(v,sec){if(!ctx)return;const t=ctx.currentTime;mus.gain.cancelScheduledValues(t);mus.gain.setValueAtTime(Math.max(mus.gain.value,.0001),t);mus.gain.linearRampToValueAtTime(v,t+sec)}
+  function ensureEl(){if(el)return el;el=new Audio();el.preload='auto';el.setAttribute('playsinline','');
+    try{elSrc=ctx.createMediaElementSource(el);elSrc.connect(mus)}catch(e){elSrc=null}
+    el.addEventListener('ended',()=>{if(playing&&!synth&&trackMode()==='loop'){const i=BGM.indexOf(curTrack);startTrack(BGM[(i+1)%BGM.length])}});
+    return el}
+  function startTrack(tr){const tok=++swapTok;curTrack=tr;const a=ensureEl();a.loop=trackMode()!=='loop';
+    if(!a.src.endsWith(tr.src)){a.src=tr.src}fadeTo(0.0001,.05);
+    const p=a.play();(p&&p.then?p:Promise.resolve()).then(()=>{if(tok!==swapTok||!playing)return;synth=false;fadeTo(vol(),2.5);typeof musUi==='function'&&musUi()})
+      .catch(()=>{if(tok!==swapTok||!playing)return;startSynth()})}
+  function startSynth(){synth=true;curTrack=null;if(el)el.pause();stopPad();startPad();nextT=ctx.currentTime+.4;if(!timer)timer=setInterval(sched,200);fadeTo(vol()*.55,3);typeof musUi==='function'&&musUi()}
+  function swapTo(tr,fade){if(curTrack===tr&&el&&!el.paused)return;fadeTo(0.0001,fade?1.2:.05);const tok=++swapTok;setTimeout(()=>{if(tok!==swapTok||!playing)return;startTrack(tr)},fade?1250:60)}
   // 鋪底：寺廟＝D 調低沉持續音；星空＝A 小調柔和和弦，濾波器緩慢呼吸
   let pad=[];
   function startPad(){const t=ctx.currentTime,temple=mood!=='star';
@@ -6174,6 +6199,7 @@ const SND=(()=>{
   document.addEventListener('visibilitychange',()=>{document.hidden?api.pause():api.resume()});
   ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,e=>api.unlock(e),{capture:true,passive:true}));
   return api})();
+const BGM=[{k:'ritual',n:'Ritual Pause',zh:'儀式靜心',src:'audio/ritual-pause.mp3',mood:'temple',d:'沉穩莊嚴，適合求籤、擲筊、拜拜'},{k:'rain',n:'Glassy Rain',zh:'琉璃雨',src:'audio/glassy-rain.mp3',mood:'star',d:'清透空靈，適合塔羅、星座、命盤'}];
 const MOOD_STAR=new Set(['tarot','star','meihua','dream','ziwei','liunian','hehun']);
 function musUi(){const b=$('#musBtn');if(b){b.setAttribute('aria-pressed',SND.playing);b.classList.toggle('on',SND.playing)}}
 function renderTabs(){
@@ -6226,12 +6252,13 @@ function fsSheetBody(){const o=fsGet(),th=store.get('gx_theme','auto');return `$
     <div class="f"><span>動態效果</span><div class="seg" role="group" aria-label="動態效果">${[['full','完整動效'],['low','簡化動效']].map(([v,n])=>`<button type="button" data-motion="${v}" aria-pressed="${store.get('gx_motion','full')===v}">${n}</button>`).join('')}</div></div>
     <label class="toggle"><input type="checkbox" id="fsHaptic"${store.get('gx_haptic',true)!==false?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>震動回饋（iPhone 需 iOS 18 以上）</span></label>
     <label class="toggle"><input type="checkbox" id="fsSfx"${store.get('gx_sfx',true)!==false?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>儀式音效（筊杯、籤筒、翻牌、磬聲）</span></label>
-    <label class="toggle"><input type="checkbox" id="fsBgm"${store.get('gx_bgm',false)?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>背景音樂（求籤寺廟氛圍・塔羅星空氛圍）</span></label>
+    <label class="toggle"><input type="checkbox" id="fsBgm"${store.get('gx_bgm',false)?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>背景音樂</span></label>
+    <div class="stack" style="gap:6px"><span class="small">背景音樂曲目</span><div class="bgmlist" role="radiogroup" aria-label="背景音樂曲目">${[['auto','依頁面自動切換','求籤等頁播〈儀式靜心〉，塔羅等頁播〈琉璃雨〉'],...BGM.map(t=>[t.k,`${t.zh}　${t.n}`,t.d]),['loop','兩首輪流播放','播完一首換下一首']].map(([k,n,d])=>`<button type="button" class="bgmopt" role="radio" data-bgmt="${k}" aria-checked="${store.get('gx_bgmt','auto')===k}"><b>${n}</b><span>${d}</span></button>`).join('')}</div></div>
     <div class="row between"><span class="small">音樂音量</span><div class="seg" role="group" aria-label="音樂音量" style="min-width:150px">${[[1,'小'],[2,'中'],[3,'大']].map(([v,l])=>`<button type="button" data-bgmv="${v}" aria-pressed="${store.get('gx_bgmv',2)===v}">${l}</button>`).join('')}</div></div>
     <p class="small muted" style="margin:0">iPhone 開著靜音鍵時聽不到網頁聲音；音樂只會在你按下開關後播放。</p>
     <label class="toggle"><input type="checkbox" id="fsBold"${o.b?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>粗體文字，看得更清楚</span></label>
     <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canSpeak?`<div class="card stack"><div class="f"><span>朗讀速度</span><div class="seg" role="group" aria-label="朗讀速度">${RATES.map(([r,n])=>`<button type="button" data-rate="${r}" aria-pressed="${store.get('gx_rate',.9)===r}">${n}</button>`).join('')}</div></div><button type="button" class="btn sm" data-rtest style="align-self:flex-start">${SPK_IC}<span>試聽</span></button></div>`:''}<div class="card stack"><b>操作提示</b><span class="small muted">每一頁第一次打開時，會用小氣泡提示怎麼用。</span><button type="button" class="btn sm" data-act="tipsreset" style="align-self:flex-start">重新顯示所有提示</button></div>${reminderHtml()}${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
-function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const tv=e.target.closest('[data-theme-v]');if(tv){setTheme(tv.dataset.themeV);L.panel.querySelectorAll('[data-theme-v]').forEach(x=>x.setAttribute('aria-pressed',x===tv));buzz();return}const mo=e.target.closest('[data-motion]');if(mo){store.set('gx_motion',mo.dataset.motion);document.documentElement.classList.toggle('lowmo',mo.dataset.motion==='low');L.panel.querySelectorAll('[data-motion]').forEach(x=>x.setAttribute('aria-pressed',x===mo));return}const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const bv=e.target.closest('[data-bgmv]');if(bv){store.set('gx_bgmv',+bv.dataset.bgmv);L.panel.querySelectorAll('[data-bgmv]').forEach(x=>x.setAttribute('aria-pressed',x===bv));SND.volume();return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsHaptic'){store.set('gx_haptic',e.target.checked);if(e.target.checked)buzz(10);return}if(e.target.id==='fsSfx'){store.set('gx_sfx',e.target.checked);if(e.target.checked)SND.bell();return}if(e.target.id==='fsBgm'){store.set('gx_bgm',e.target.checked);SND.music(e.target.checked);musUi();return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
+function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const tv=e.target.closest('[data-theme-v]');if(tv){setTheme(tv.dataset.themeV);L.panel.querySelectorAll('[data-theme-v]').forEach(x=>x.setAttribute('aria-pressed',x===tv));buzz();return}const mo=e.target.closest('[data-motion]');if(mo){store.set('gx_motion',mo.dataset.motion);document.documentElement.classList.toggle('lowmo',mo.dataset.motion==='low');L.panel.querySelectorAll('[data-motion]').forEach(x=>x.setAttribute('aria-pressed',x===mo));return}const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const bt=e.target.closest('[data-bgmt]');if(bt){L.panel.querySelectorAll('[data-bgmt]').forEach(x=>x.setAttribute('aria-checked',x===bt));SND.track(bt.dataset.bgmt);if(!SND.playing){store.set('gx_bgm',true);SND.setMood(MOOD_STAR.has(cur)?'star':'temple');SND.music(true);const c=L.panel.querySelector('#fsBgm');if(c)c.checked=true}musUi();return}const bv=e.target.closest('[data-bgmv]');if(bv){store.set('gx_bgmv',+bv.dataset.bgmv);L.panel.querySelectorAll('[data-bgmv]').forEach(x=>x.setAttribute('aria-pressed',x===bv));SND.volume();return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsHaptic'){store.set('gx_haptic',e.target.checked);if(e.target.checked)buzz(10);return}if(e.target.id==='fsSfx'){store.set('gx_sfx',e.target.checked);if(e.target.checked)SND.bell();return}if(e.target.id==='fsBgm'){store.set('gx_bgm',e.target.checked);SND.music(e.target.checked);musUi();return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
 function updateHeader(){
   $('#whoAv').textContent=P.given||P.sur||'命';
   $('#whoBtn').setAttribute('aria-label',`命主：${P.sur}${P.given}${P.sample?'（範例）':''}，點此編輯`);
@@ -6344,7 +6371,7 @@ document.addEventListener('click',async e=>{
   const t=e.target.closest('button');if(!t)return;
   if(t.dataset.tab){const g=GROUPS.find(x=>x.k===t.dataset.tab);const last=store.get('gx_sub_'+g.k,g.views[0]);return go(g.views.includes(last)?last:g.views[0])}
   if(t.dataset.sub){store.set('gx_sub_'+groupOf(t.dataset.sub).k,t.dataset.sub);return go(t.dataset.sub)}
-  if(t.id==='musBtn'){const on=!SND.playing;store.set('gx_bgm',on);SND.setMood(MOOD_STAR.has(cur)?'star':'temple');SND.music(on);musUi();hud(on?(MOOD_STAR.has(cur)?'星空音樂':'寺廟音樂'):'音樂已關閉');const c=$('#fsBgm');if(c)c.checked=on;return}
+  if(t.id==='musBtn'){const on=!SND.playing;store.set('gx_bgm',on);SND.setMood(MOOD_STAR.has(cur)?'star':'temple');SND.music(on);musUi();setTimeout(()=>hud(on?(SND.now||'音樂播放中'):'音樂已關閉'),on?350:0);const c=$('#fsBgm');if(c)c.checked=on;return}
   if(t.dataset.go)return go(t.dataset.go);
   if(t.id==='fsBtn')return openFs();
   if(t.dataset.speak){speak(speakText(t.dataset.speak),t);return}
@@ -6624,6 +6651,23 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.3",
+  "n": "1.17",
+  "d": "11 月 3 日",
+  "items": [
+   [
+    "背景音樂換成兩首正式配樂",
+    "〈儀式靜心 Ritual Pause〉與〈琉璃雨 Glassy Rain〉。按左上角 ♪ 播放；預設依頁面自動切換：求籤、擲筊、拜拜播〈儀式靜心〉，塔羅、星座、命盤播〈琉璃雨〉，換頁時淡入淡出。",
+    null
+   ],
+   [
+    "可以自己選歌",
+    "在「AA 顯示與設定」的「背景音樂曲目」可選：依頁面自動切換、只播〈儀式靜心〉、只播〈琉璃雨〉，或兩首輪流播放。",
+    null
+   ]
+  ]
+ },
  {
   "v": "2026.11.2-1",
   "n": "1.16.1",
