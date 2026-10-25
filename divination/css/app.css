@@ -1777,3 +1777,13 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 @keyframes eqb{0%,100%{height:2px}50%{height:8px}}
 @media (prefers-reduced-motion:reduce){.mus .eq b{animation:none;height:5px}}
 .mus{background:var(--glass)!important;border:1px solid var(--glass-line)!important;color:var(--title-ink)!important;box-shadow:var(--glass-shadow)}
+.qmvs th:first-child{white-space:nowrap}
+.qmvs td,.qmvs th{vertical-align:top;font-size:14px;line-height:1.55}
+.qmvs2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px;margin-top:8px}
+.qmvs2 .vs{border-radius:12px;padding:12px;background:var(--tint-soft)}
+.qmvs2 .vs.chk{background:var(--fill)}
+.qmvs2 .vs>b{display:flex;align-items:baseline;gap:8px;font-family:var(--f-serif);font-size:16px;margin-bottom:6px}
+.qmvs2 .vs>b small{font-family:var(--f-sans,inherit);font-size:12px;font-weight:500;color:var(--muted)}
+.qmvs2 dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.5}
+.qmvs2 dt{color:var(--muted);white-space:nowrap}
+.qmvs2 dd{margin:0}

@@ -1811,6 +1811,16 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 @keyframes eqb{0%,100%{height:2px}50%{height:8px}}
 @media (prefers-reduced-motion:reduce){.mus .eq b{animation:none;height:5px}}
 .mus{background:var(--glass)!important;border:1px solid var(--glass-line)!important;color:var(--title-ink)!important;box-shadow:var(--glass-shadow)}
+.qmvs th:first-child{white-space:nowrap}
+.qmvs td,.qmvs th{vertical-align:top;font-size:14px;line-height:1.55}
+.qmvs2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px;margin-top:8px}
+.qmvs2 .vs{border-radius:12px;padding:12px;background:var(--tint-soft)}
+.qmvs2 .vs.chk{background:var(--fill)}
+.qmvs2 .vs>b{display:flex;align-items:baseline;gap:8px;font-family:var(--f-serif);font-size:16px;margin-bottom:6px}
+.qmvs2 .vs>b small{font-family:var(--f-sans,inherit);font-size:12px;font-weight:500;color:var(--muted)}
+.qmvs2 dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.5}
+.qmvs2 dt{color:var(--muted);white-space:nowrap}
+.qmvs2 dd{margin:0}
 </style>
 </head>
 <body>
@@ -3639,7 +3649,7 @@ function guideCard(){
     <div class="next">
       <button type="button" class="nx" data-ask="${AREA_CAT[worst.n]}"><i class="ic" style="background:#1F2A4D">牌</i><b>有一件具體的事放不下？</b><span class="s">抽塔羅看${worst.n}這件事怎麼走</span><span class="chev" aria-hidden="true"></span></button>
       <button type="button" class="nx" data-go="qian"><i class="ic" style="background:#A3271D">籤</i><b>想請神明指點方向？</b><span class="s">向關公或觀音求一支籤，或擲筊問是非</span><span class="chev" aria-hidden="true"></span></button>
-      <button type="button" class="nx" data-go="qimen"><i class="ic" style="background:#2F6B4F">方</i><b>今天要出門、談判或面試？</b><span class="s">用奇門看此刻最有利的方位</span><span class="chev" aria-hidden="true"></span></button>
+      <button type="button" class="nx" data-go="qimen"><i class="ic" style="background:#2F6B4F">方</i><b>眼前有一件事要解決？</b><span class="s">談判、簽約、接案、考試——用奇門挑時辰與方位</span><span class="chev" aria-hidden="true"></span></button>
       <button type="button" class="nx" data-go="liunian"><i class="ic" style="background:#8A6A24">年</i><b>想知道這個月、這一年的節奏？</b><span class="s">看流年與流月，提前布局</span><span class="chev" aria-hidden="true"></span></button>
     </div>
   </section>`;
@@ -4045,6 +4055,18 @@ function caiweiHtml(t,Q){
     </div></details>
   </div>`;
 }
+/* 奇門＝導航（眼前一件事，幾小時到幾個月）；八字紫微＝健檢報告（一輩子的走向） */
+const QM_SCEN=[['這場談判怎麼談','事業','.cw-sign'],['合約要不要簽','事業','.cw-sign'],['案子該不該接','事業','#qmUse'],['考試怎麼過關','學業','#qmUse'],['想多賺一點','財運','.cw'],['出門辦事順不順','出行','#qmUse'],['感情怎麼談','感情','#qmUse']];
+function qmScenHtml(){return `<section class="card stack qmscen" aria-label="奇門能幫你什麼">
+  <div><div class="eyebrow">奇門像導航・命盤像健檢報告</div><h3 class="h3">你眼前要解決哪一件事？</h3></div>
+  <div class="chips" role="group" aria-label="選一件事">${QM_SCEN.map(([t,c,go],i)=>`<button type="button" class="chip" data-qscn="${i}" aria-pressed="${qmScen===i}">${t}</button>`).join('')}</div>
+  <details class="disc"><summary>奇門和紫微、八字有什麼不同？</summary><div class="qmvs2">
+    <div class="vs nav"><b>奇門遁甲<small>像導航</small></b><dl><dt>看什麼</dt><dd>此時此地的時間與方位能量</dd><dt>適合問</dt><dd>這場談判怎麼談？案子接不接？考試怎麼過？</dd><dt>時間</dt><dd>幾小時到幾個月（短中期）</dd><dt>給你</dt><dd>具體的行動時辰、方位與做法</dd></dl></div>
+    <div class="vs chk"><b>八字・紫微<small>像健檢報告</small></b><dl><dt>看什麼</dt><dd>你出生時的命理格局</dd><dt>適合問</dt><dd>一輩子財運如何？適合創業還是上班？感情何時有著落？</dd><dt>時間</dt><dd>十年大運、一生（長期）</dd><dt>給你</dt><dd>了解自己的特質與人生走向</dd></dl></div>
+  </div>
+  <div class="grid2" style="margin-top:8px"><button type="button" class="btn sm" data-go="ziwei">看我的紫微命盤</button><button type="button" class="btn sm" data-go="liunian">看我的流年</button></div></details>
+</section>`}
+let qmScen=null;
 function renderQimen(){
   const t=qmTime||new Date(), Q=qimen(t);
   const [kind,key]=QM_USE[qmCat];
@@ -4062,6 +4084,7 @@ function renderQimen(){
   const uS=STAR_S[use.star.split('‧')[0]], uD=DOOR_S[use.door], uG=GOD_S[use.god];
   const us=use.score, uLv=us>=3?['good','可行']:us>=0?['mid','謹慎可行']:['bad','暫緩'];
   $('#v-qimen').innerHTML=`
+  ${qmScenHtml()}
   <div class="card stack">
     <label class="f" for="qmT"><span class="row between">起局時間${qmTime?'<button type="button" class="btn sm ghost" id="qmNow">回到現在</button>':'<span class="pill good">即時</span>'}</span><input id="qmT" type="datetime-local" value="${dtv}"></label>
     <div class="chips" role="group" aria-label="所問之事">${CATS.map(c=>`<button type="button" class="chip" data-qc="${c}" aria-pressed="${c===qmCat}">${c}</button>`).join('')}</div>
@@ -4069,7 +4092,7 @@ function renderQimen(){
   </div>
   <div class="qm" aria-label="奇門九宮盤（上南下北）">${grid}</div>
   <p class="small muted">盤面上南下北、左東右西。每宮左上為八神、右上天盤干、右下地盤干。</p>
-  <div class="card stack">
+  <div class="card stack" id="qmUse">
     <div class="row between"><div><div class="eyebrow">問${qmCat} · 用神${kind==='door'?key+'門':key}</div><h3 class="h3">用神落${PAL[use.p][0]}${use.p}宮 · ${PAL[use.p][1]}方</h3></div><span class="pill ${uLv[0]}">${uLv[1]}</span></div>
     <p><b>${use.door}門</b>：${uD[1]}。<b>${use.star}</b>：${uS[1]}。<b>${use.god}</b>：${uG[1]}。</p>
     ${use.kong?'<p class="bad-t">用神落空亡：事情虛而不實，或時機未到，宜等出空（過了這個時辰／旬）再行動。</p>':''}
@@ -6430,7 +6453,8 @@ document.addEventListener('click',async e=>{
   if(t.id==='cwIcs'){if(cwSel.size){cwIcs();renderQimen()}return}
   if(t.dataset.cwhome!==undefined){qmCat='財運';qmTime=null;qmSel=null;go('qimen');setTimeout(()=>$('#v-qimen .cw')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'}),450);return}
   if(t.id==='cwGo'){if(qmCat!=='財運'){qmCat='財運';qmSel=null;renderQimen()}requestAnimationFrame(()=>$('#v-qimen .cmpcard')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'center'}));hud('羅盤已對準生門（財位）');return}
-  if(t.dataset.qc){qmCat=t.dataset.qc;qmSel=null;renderQimen();return}
+  if(t.dataset.qscn!==undefined){const i=+t.dataset.qscn,[,c,sel]=QM_SCEN[i];qmScen=qmScen===i?null:i;qmCat=c;qmSel=null;renderQimen();if(qmScen!==null)requestAnimationFrame(()=>$('#v-qimen '+sel)?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'}));return}
+  if(t.dataset.qc){qmScen=null;qmCat=t.dataset.qc;qmSel=null;renderQimen();return}
   if(t.dataset.qp){qmSel=+t.dataset.qp;const y=scrollY;renderQimen();scrollTo(0,y);const c=qimen(qmTime||new Date()).cells[qmSel];sheet(`${PAL[qmSel][0]}${qmSel}宮 · ${PAL[qmSel][1]}方`,qmDetail(c).replace('id="qmDetail"',''));return}
   if(t.id==='qmNow'){qmTime=null;renderQimen();return}
   // 姓名
@@ -6600,6 +6624,23 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.2-1",
+  "n": "1.16.1",
+  "d": "11 月 2 日",
+  "items": [
+   [
+    "奇門：先選你要解決的那件事",
+    "奇門頁最上面直接問「你眼前要解決哪一件事？」——這場談判怎麼談、合約要不要簽、案子該不該接、考試怎麼過關、想多賺一點……點一下就幫你切好問事類別，並帶到對應的工具（簽約擇時、走財位、用神解讀）。",
+    "qimen"
+   ],
+   [
+    "奇門和紫微、八字有什麼不同？",
+    "奇門像導航，解決眼前一件事（幾小時到幾個月）；八字、紫微像健檢報告，看一輩子的走向。奇門頁附上對照說明與命盤捷徑。",
+    "qimen"
+   ]
+  ]
+ },
  {
   "v": "2026.11.2",
   "n": "1.16",
