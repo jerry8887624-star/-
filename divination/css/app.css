@@ -1787,3 +1787,10 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .qmvs2 dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.5}
 .qmvs2 dt{color:var(--muted);white-space:nowrap}
 .qmvs2 dd{margin:0}
+/* 背景音樂曲目選擇 */
+.bgmlist{display:grid;gap:6px}
+.bgmopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px 10px 36px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;position:relative;font:inherit}
+.bgmopt b{font-size:15px}.bgmopt span{font-size:12.5px;color:var(--muted)}
+.bgmopt::before{content:'';position:absolute;left:12px;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;border:1.5px solid var(--muted)}
+.bgmopt[aria-checked="true"]{border-color:var(--tint);background:var(--tint-soft)}
+.bgmopt[aria-checked="true"]::before{border-color:var(--tint);background:radial-gradient(circle,var(--tint) 0 4px,transparent 4.5px)}
