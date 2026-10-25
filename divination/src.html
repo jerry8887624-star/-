@@ -103,7 +103,7 @@ setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('�
 </defs></svg>
 <div class="bgart" aria-hidden="true"></div>
 <div class="app">
-  <header class="navbar"><button class="aa" id="fsBtn" aria-label="文字大小與粗細"><span>A</span><span>A</span></button><span id="navTitle" aria-hidden="true">今日</span><button class="who" id="whoBtn" aria-label="編輯命主資料"><span id="whoAv">命</span></button></header>
+  <header class="navbar"><span class="navl"><button class="aa" id="fsBtn" aria-label="文字大小與粗細"><span>A</span><span>A</span></button><button class="mus" id="musBtn" aria-label="背景音樂" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/><path class="x" d="M3 3l18 18"/></svg><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i></button></span><span id="navTitle" aria-hidden="true">今日</span><button class="who" id="whoBtn" aria-label="編輯命主資料"><span id="whoAv">命</span></button></header>
   <div class="largetitle"><small id="ltDate">　</small><h1 id="ltTitle">今日</h1><p class="lt-tag" id="ltTag"></p><button type="button" class="lt-sample" id="ltSample" data-act="profile" hidden>範例資料 · 點此輸入你的生辰</button><div class="lt-motto" id="ltMotto" aria-hidden="true"></div><svg class="lt-doodle" viewBox="0 0 140 80" aria-hidden="true"><g filter="url(#crayonFill)"><path d="M104 8a24 24 0 1 0 16 41 20 20 0 1 1-16-41z" fill="var(--doodle-moon)"/><path d="M30 20l2.2 6.8 6.8 2.2-6.8 2.2L30 38l-2.2-6.8L21 29l6.8-2.2z" fill="var(--doodle-star)"/><path d="M70 50l1.6 4.6 4.6 1.6-4.6 1.6L70 62.4l-1.6-4.6-4.6-1.6 4.6-1.6z" fill="var(--doodle-sage)"/><path d="M128 62l1.3 3.7 3.7 1.3-3.7 1.3-1.3 3.7-1.3-3.7-3.7-1.3 3.7-1.3z" fill="var(--doodle-ink)"/><circle cx="56" cy="14" r="2" fill="var(--doodle-sage)"/><circle cx="12" cy="58" r="1.6" fill="var(--doodle-star)"/></g></svg></div>
   <div id="subnav" hidden></div>
   <main>
@@ -647,7 +647,7 @@ async function dtEvent(ev,arg){
   const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+dayOff);const k=dtKey(date);
   if(dt.busy)return;
   if(ev==='start'||ev==='quick')tPreload(tarotDaily(date).i);
-  if(ev==='start'){if(reduceMotion()){dt.st='select';return dtRender('請選一張牌')}dt.st='shuffle';dt.busy=true;buzz(6);dtRender('洗牌中');
+  if(ev==='start'){if(reduceMotion()){dt.st='select';return dtRender('請選一張牌')}dt.st='shuffle';dt.busy=true;buzz(6);SND.shuffle(.9);dtRender('洗牌中');
     await wait(880);dt.busy=false;if(dt.st==='shuffle'){dt.st='select';buzz(6);dtRender('洗牌完成，請選一張牌')}return}
   if(ev==='skip'){dt.busy=false;dt.st='select';return dtRender('請選一張牌')}
   if(ev==='pick'){if(dt.st!=='select')return;dt.pick=+arg;tPreload(tarotDaily(date).i);dt.st='selected';buzz(8);store.set(k,false);dtRender('已選 1 張，按翻開看今天的牌');return}
@@ -656,7 +656,7 @@ async function dtEvent(ev,arg){
     dt.busy=true;store.set(k,true);
     const card=ev==='reveal'?$(`.dt-pick[data-dtpick="${dt.pick}"]`):$('.dt-deck .dt-b:last-child');
     if(card&&!reduceMotion()){const d=tarotDaily(date);card.classList.add('flipping');await wait(250);card.innerHTML=`<span class="dt-fr${d.rev?' rev':''}">${cardFace(d.i)}</span>`;await wait(300)}
-    dt.busy=false;dt.st='done';const d=tarotDaily(date),c=tcard(d.i);buzz(c.major?[16,60,30]:12);dtRender(`牌面已揭示：${c.zh}，${d.rev?'逆位':'正位'}`);
+    dt.busy=false;dt.st='done';const d=tarotDaily(date),c=tcard(d.i);buzz(c.major?[16,60,30]:12);SND.flip(c.major);dtRender(`牌面已揭示：${c.zh}，${d.rev?'逆位':'正位'}`);
     const r=$('#dtBox');if(r&&!reduceMotion()){r.classList.add('dt-in');const f=r.querySelector('.dt-face');if(f){f.classList.add('glint');if(c.major)f.classList.add('maj');setTimeout(()=>f.classList.remove('glint'),1300)}}return}
 }
 function qmBestNow(){return Object.values(qimen(new Date()).cells).sort((a,b)=>b.score-a.score)[0]}
@@ -1304,7 +1304,7 @@ async function tShuffleAuto(){const g=$('#deck');if(!g||!tStir)return;const tok=
   g.addEventListener('click',()=>{if(tok===tShufTok&&tStir)tDealOut()},{once:true});
   const alive=()=>tok===tShufTok&&tStir&&g.isConnected;
   // 1. 收攏
-  g.classList.add('gather','stir');void g.offsetWidth;g.classList.add('stacked','glow');buzz(6);
+  g.classList.add('gather','stir');void g.offsetWidth;g.classList.add('stacked','glow');buzz(6);SND.shuffle(1.9);
   await wait(620);if(!alive())return;g.classList.remove('gather');
   // 2. 旋轉混牌（WAAPI，交給合成器跑，iPhone 也順）
   const D=1150;
@@ -1320,7 +1320,7 @@ async function tShuffleAuto(){const g=$('#deck');if(!g||!tStir)return;const tok=
 }
 function tDealOut(){const g=$('#deck');tShufTok++;if(!g||!g.classList.contains('stacked')){tStir=false;renderTarot();$('#ttable')?.scrollIntoView({block:'start'});return}g.getAnimations({subtree:true}).forEach(x=>x.cancel());g.classList.remove('gather','glow');
   g.classList.remove('stir','jiggle');g.classList.add('dealing');void g.offsetWidth;g.classList.remove('stacked');
-  buzz(8);
+  buzz(8);SND.deal();
   setTimeout(()=>{g.classList.remove('dealing');if(!tStir)return;tStir=false;const y=scrollY;renderTarot();scrollTo({top:y});const tb=$('#ttable');if(tb&&tb.getBoundingClientRect().top<0)tb.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'})},1050);
 }
 // 選中：牌從桌面飛到上方牌陣的位置
@@ -1498,7 +1498,7 @@ async function tRevealOne(k,quick){
   await Promise.race([tPreload(x.i),wait(2500)]);
   if(el){el.classList.remove('next');if(!quick)el.style.setProperty('--d','0ms');el.classList.add('up')}
   if(!quick)buzz(c.major?[16,60,30]:12);
-  await wait(reduceMotion()?0:quick?900:780);
+  await wait(reduceMotion()?0:quick?900:780);SND.flip(c.major&&!quick);
   if(el){el.classList.add('flat');if(!reduceMotion()){el.classList.add('glint');if(c.major)el.classList.add('maj');setTimeout(()=>el.classList.remove('glint'),1300)}
     el.setAttribute('aria-label',`${pos}：${c.zh}${x.rev?'逆位':'正位'}`);const sl=el.parentElement.querySelector('.sl');if(sl)sl.innerHTML=`${pos}<b class="cn">${c.zh}${x.rev?'・逆':''}</b>`}
   if(quick)return;
@@ -1809,6 +1809,7 @@ async function jiaoReveal(r,ctx){
   $$('#qAsk,#qConfirm,#jToss,#qNext1,#qNext3,#qRedraw').forEach(b=>{b.disabled=true});$('.jstage')?.classList.add('reveal-wait');
   {const jz=$('#jiao');if(jz){const r=jz.getBoundingClientRect();if(r.top<80||r.bottom>innerHeight-120)jz.scrollIntoView({block:'center',behavior:reduceMotion()?'auto':'smooth'})}}
   await new Promise(r=>setTimeout(r,reduceMotion()?300:450));$('.jstage')?.classList.remove('reveal-wait');
+  if(r.r==='sheng')SND.bell();else SND.soft();
   const J=JIAO[r.r], tone=r.r==='sheng'?'good':r.r==='xiao'?'mid':'bad', art=`<div class="jiao done">${bweiSVG(r.a,false)}${bweiSVG(r.b,true)}</div>`;
   let o={tone,art,kicker:J[1],big:J[0],body:J[2],actions:[]};
   if(ctx==='ask'){o.actions=r.r==='sheng'?[{text:'前往抽籤',primary:true,value:'qNext1'},{text:'稍後',value:null}]:[{text:'再擲一次',primary:true,value:'qAsk'},{text:'關閉',value:null}];if(r.r==='sheng')o.body=`${GD().call}應允，可以抽籤了。`}
@@ -3183,7 +3184,80 @@ const TITLES={overview:'今日',star:'今日',dream:'今日',family:'今日',qia
 const SUBTITLE={overview:'',festival:'神明聖誕・年節・初一十五',fengshui:'八宅命卦・居家吉方',family:'全家人的今日運勢與太歲',journal:'求籤・塔羅・擲筊紀錄與應驗',tarot:'78 張牌 · 10 種牌陣',meihua:'梅花易數 · 小六壬',star:'太陽星座 × 今日月亮',qian:'關公六十籤 · 觀音一百籤',jiao:'擲筊請示 · 是或否',dream:'周公解夢 · 夢境綜合解讀',ziwei:'紫微斗數十二宮',liunian:'八字 × 紫微 流年',name:'五格剖象 · 改名建議',qimen:'時家奇門 · 方位',hehun:'生肖 × 八字 × 紫微夫妻宮',zeri:'依農民曆宜忌 · 不沖生肖'};
 let cur='overview';
 const groupOf=v=>GROUPS.find(g=>g.views.includes(v))||ALL_GROUPS.find(g=>g.views.includes(v));
-function buzz(ms=8){if(store.get('gx_haptic',true)===false)return;try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
+/* 震動：Android 用 vibrate；iPhone（iOS 18 起）以隱藏的 switch 開關觸發系統觸覺回饋，只在使用者點按的當下有效 */
+const IOS_H=/iPhone|iPad|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+let hapEl=null;
+function iosTap(){try{if(!hapEl){hapEl=document.createElement('label');hapEl.setAttribute('aria-hidden','true');hapEl.style.cssText='position:fixed;left:-99px;top:0;width:1px;height:1px;opacity:0;pointer-events:none';hapEl.innerHTML='<input type="checkbox" switch tabindex="-1">';document.body.appendChild(hapEl)}hapEl.click()}catch(e){}}
+function buzz(ms=8){if(store.get('gx_haptic',true)===false)return;try{if(navigator.vibrate)navigator.vibrate(ms);else if(IOS_H)iosTap()}catch(e){}}
+/* ---------- 聲音：儀式音效＋背景音樂（全部以 Web Audio 即時合成，不需音檔、可離線） ---------- */
+const SND=(()=>{
+  let ctx=null,master,sfx,mus,rev,timer=null,mood=null,nextT=0,ksCache={};
+  const sfxOn=()=>store.get('gx_sfx',true)!==false, bgmOn=()=>store.get('gx_bgm',false)===true, vol=()=>({1:.35,2:.6,3:.9})[store.get('gx_bgmv',2)]||.6;
+  function init(){
+    if(ctx)return ctx;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+    try{ctx=new AC()}catch(e){return null}
+    master=ctx.createDynamicsCompressor();master.threshold.value=-14;master.connect(ctx.destination);
+    rev=ctx.createConvolver();rev.buffer=impulse(3.6,2.6);const rg=ctx.createGain();rg.gain.value=.42;rev.connect(rg);rg.connect(master);
+    sfx=ctx.createGain();sfx.gain.value=.8;sfx.connect(master);const sr=ctx.createGain();sr.gain.value=.35;sfx.connect(sr);sr.connect(rev);
+    mus=ctx.createGain();mus.gain.value=0;mus.connect(master);const mr=ctx.createGain();mr.gain.value=.9;mus.connect(mr);mr.connect(rev);
+    return ctx}
+  function impulse(sec,dec){const n=Math.floor(ctx.sampleRate*sec),b=ctx.createBuffer(2,n,ctx.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,dec)}return b}
+  function noise(len){const n=Math.floor(ctx.sampleRate*len),b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return b}
+  const ready=()=>{if(!init())return false;if(ctx.state==='suspended')ctx.resume().catch(()=>{});return true};
+  function env(g,t,a,peak,dec){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+a+dec)}
+  function tone(f,t,peak,dec,type='sine',dest=sfx){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=f;env(g,t,.004,peak,dec);o.connect(g);g.connect(dest);o.start(t);o.stop(t+dec+.05)}
+  function burst(t,len,f,q,peak,dest=sfx,type='bandpass'){const s=ctx.createBufferSource();s.buffer=noise(len+.02);const bp=ctx.createBiquadFilter();bp.type=type;bp.frequency.value=f;bp.Q.value=q;const g=ctx.createGain();env(g,t,.002,peak,len);s.connect(bp);bp.connect(g);g.connect(dest);s.start(t);s.stop(t+len+.03)}
+  // 木頭碰撞：短促的帶通雜訊＋木質共鳴
+  function wood(t,p=1,v=1){burst(t,.05,1500*p,6,.7*v);tone(420*p,t,.35*v,.07,'triangle');tone(980*p,t,.18*v,.04)}
+  // 古箏：Karplus-Strong 撥弦
+  function ks(f){const k=Math.round(f);if(ksCache[k])return ksCache[k];const sr=ctx.sampleRate,n=Math.floor(sr*3.2),b=ctx.createBuffer(1,n,sr),d=b.getChannelData(0),N=Math.max(2,Math.round(sr/f)),buf=new Float32Array(N);
+    for(let i=0;i<N;i++)buf[i]=Math.random()*2-1;let idx=0;for(let i=0;i<n;i++){const a=buf[idx],nb=buf[(idx+1)%N];d[i]=a;buf[idx]=(a+nb)*.4985;idx=(idx+1)%N}
+    for(let i=0;i<Math.min(n,400);i++)d[i]*=i/400;return ksCache[k]=b}
+  function pluck(f,t,v=.5,dest=mus){const s=ctx.createBufferSource();s.buffer=ks(f);const g=ctx.createGain();g.gain.value=v;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;s.connect(lp);lp.connect(g);g.connect(dest);s.start(t)}
+  // 頌缽／磬：不諧和泛音、長尾音
+  function bowl(f,t,v=.5,dest=mus){[[1,1,6],[2.71,.45,3.5],[5.15,.22,1.8],[8.9,.08,.9]].forEach(([m,a,d])=>{const o=ctx.createOscillator(),g=ctx.createGain(),o2=ctx.createOscillator(),g2=ctx.createGain();
+    o.frequency.value=f*m;env(g,t,.01,v*a,d);o.connect(g);g.connect(dest);o.start(t);o.stop(t+d+.1);
+    o2.frequency.value=f*m*1.004;env(g2,t,.01,v*a*.5,d*.9);o2.connect(g2);g2.connect(dest);o2.start(t);o2.stop(t+d+.1)})}
+  const api={
+    unlock(e){if(ctx)return;if(sfxOn()||bgmOn()){ready();if(bgmOn()&&!(e&&e.target&&e.target.closest&&e.target.closest('#musBtn'))){api.music(true);setTimeout(()=>typeof musUi==='function'&&musUi(),0)}}},
+    toss(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;burst(t,.28,700,.8,.12,sfx,'lowpass')},
+    clack(k=0){if(!sfxOn()||!ready())return;const t=ctx.currentTime,p=k?1.08:.94;wood(t,p,1);wood(t+.23,p*1.02,.45);wood(t+.38,p*1.03,.18)},
+    shake(sec=1.1){if(!sfxOn()||!ready())return;const t=ctx.currentTime;for(let i=0,n=Math.floor(sec*16);i<n;i++){const u=i/n;wood(t+i/16+Math.random()*.02,1.6+Math.random()*.5,.18+.25*Math.sin(Math.PI*u))}},
+    drop(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;wood(t,1.9,.6);wood(t+.12,2.1,.25)},
+    bell(){if(!sfxOn()||!ready())return;bowl(587,ctx.currentTime,.32,sfx)},
+    soft(){if(!sfxOn()||!ready())return;tone(440,ctx.currentTime,.1,.5)},
+    flip(major){if(!sfxOn()||!ready())return;const t=ctx.currentTime;burst(t,.16,3200,.7,.35,sfx,'highpass');if(major){[1318,1760,2349].forEach((f,i)=>tone(f,t+.12+i*.07,.12,1.4))}},
+    shuffle(sec=1.6){if(!sfxOn()||!ready())return;const t=ctx.currentTime;for(let i=0;i<Math.floor(sec*7);i++)burst(t+i/7+Math.random()*.04,.09,2400+Math.random()*1800,.9,.22,sfx,'highpass')},
+    deal(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;for(let i=0;i<5;i++)burst(t+i*.07,.07,3600,.8,.2,sfx,'highpass')},
+    chime(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;[1047,1319,1568].forEach((f,i)=>tone(f,t+i*.09,.1,1.2))},
+    setMood(m){if(mood===m)return;const was=mood;mood=m;if(!ctx||!timer)return;const t=ctx.currentTime;mus.gain.cancelScheduledValues(t);mus.gain.setValueAtTime(mus.gain.value,t);mus.gain.linearRampToValueAtTime(0.0001,t+1.2);
+      setTimeout(()=>{if(!timer)return;stopPad();startPad();nextT=ctx.currentTime+.3;const t2=ctx.currentTime;mus.gain.linearRampToValueAtTime(vol()*.55,t2+2.5)},1300)},
+    music(on){if(on){if(!ready())return false;if(timer)return true;startPad();nextT=ctx.currentTime+.4;timer=setInterval(sched,200);const t=ctx.currentTime;mus.gain.cancelScheduledValues(t);mus.gain.setValueAtTime(0.0001,t);mus.gain.linearRampToValueAtTime(vol()*.55,t+3);return true}
+      if(!ctx||!timer)return false;clearInterval(timer);timer=null;const t=ctx.currentTime;mus.gain.cancelScheduledValues(t);mus.gain.setValueAtTime(mus.gain.value,t);mus.gain.linearRampToValueAtTime(0.0001,t+1);setTimeout(()=>{if(!timer)stopPad()},1100);return false},
+    volume(){if(ctx&&timer){const t=ctx.currentTime;mus.gain.cancelScheduledValues(t);mus.gain.setValueAtTime(mus.gain.value,t);mus.gain.linearRampToValueAtTime(vol()*.55,t+.4)}},
+    pause(){if(ctx&&ctx.state==='running')ctx.suspend().catch(()=>{})},
+    resume(){if(ctx&&ctx.state==='suspended'&&(timer||sfxOn()))ctx.resume().catch(()=>{})},
+    get playing(){return !!timer}
+  };
+  // 鋪底：寺廟＝D 調低沉持續音；星空＝A 小調柔和和弦，濾波器緩慢呼吸
+  let pad=[];
+  function startPad(){const t=ctx.currentTime,temple=mood!=='star';
+    const fs=temple?[73.42,110,146.83]:[110,164.81,246.94,261.63];
+    const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=temple?520:900;lp.Q.value=.6;const g=ctx.createGain();g.gain.value=temple?.16:.1;lp.connect(g);g.connect(mus);
+    const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.05;lg.gain.value=temple?140:380;lfo.connect(lg);lg.connect(lp.frequency);lfo.start(t);pad.push(lfo);
+    fs.forEach((f,i)=>{[0,1].forEach(j=>{const o=ctx.createOscillator();o.type=temple?'sine':'triangle';o.frequency.value=f*(j?1.003:.998);const og=ctx.createGain();og.gain.value=i?.5:1;o.connect(og);og.connect(lp);o.start(t);pad.push(o)})})}
+  function stopPad(){pad.forEach(o=>{try{o.stop()}catch(e){}});pad=[]}
+  const TEMPLE=[293.66,329.63,369.99,440,493.88,587.33,659.25,739.99], STAR=[880,1046.5,1174.66,1318.51,1567.98,1760,2093];
+  function sched(){if(!ctx)return;const ahead=ctx.currentTime+.6;
+    while(nextT<ahead){const t=nextT;
+      if(mood==='star'){const f=STAR[Math.floor(Math.random()*STAR.length)];tone(f,t,.05+Math.random()*.04,2.6,'sine',mus);if(Math.random()<.35)tone(f*1.5,t+.18,.03,2.2,'sine',mus);if(Math.random()<.08)bowl(220,t,.12);nextT+=1.6+Math.random()*2.6}
+      else{if(Math.random()<.16){bowl([146.83,196,220][Math.floor(Math.random()*3)],t,.22);nextT+=4+Math.random()*3;continue}
+        const i=Math.floor(Math.random()*(TEMPLE.length-2)),run=Math.random()<.3?3:1;for(let k=0;k<run;k++)pluck(TEMPLE[Math.min(TEMPLE.length-1,i+k)],t+k*.16,.42-k*.08);nextT+=1.8+Math.random()*2.8}}}
+  document.addEventListener('visibilitychange',()=>{document.hidden?api.pause():api.resume()});
+  ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,e=>api.unlock(e),{capture:true,passive:true}));
+  return api})();
+const MOOD_STAR=new Set(['tarot','star','meihua','dream','ziwei','liunian','hehun']);
+function musUi(){const b=$('#musBtn');if(b){b.setAttribute('aria-pressed',SND.playing);b.classList.toggle('on',SND.playing)}}
 function renderTabs(){
   $('#tabs').innerHTML=GROUPS.map(g=>`<button class="tab" data-tab="${g.k}" aria-current="${groupOf(cur)===g?'page':'false'}"><svg viewBox="0 0 24 24" aria-hidden="true">${g.icon}</svg><span>${g.n}</span></button>`).join('');
 }
@@ -3205,6 +3279,7 @@ function go(v,push=true,keepY=true){
   if(!VIEWS.includes(v))v='overview';
   const same=v===cur,y0=scrollY;if(!same)scrollMem[cur]=y0;
   speakStop();
+  SND.setMood(MOOD_STAR.has(v)?'star':'temple');
   const swap=()=>{cur=v;
     $$('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
     renderTabs();renderTitle();render(v);const ty=same?y0:keepY?(scrollMem[v]||0):0;lastY=ty;window.scrollTo({top:ty});document.body.classList.remove('tabhide');hideTip();setTimeout(()=>{if(cur===v)showTip(v)},700);};
@@ -3231,10 +3306,14 @@ function fsSheetBody(){const o=fsGet(),th=store.get('gx_theme','auto');return `$
     <div class="fs-preview"><span class="eyebrow">預覽</span><b>今天整體平穩，財運最好。</b><p>子時 23–01　宜：祭祀、會親友</p></div>
     <div class="f"><span>文字大小</span><div class="seg fs-seg" role="group" aria-label="文字大小">${FS_STEPS.map(([z,n])=>`<button type="button" data-fs="${z}" aria-pressed="${o.z===z}">${n}</button>`).join('')}</div></div>
     <div class="f"><span>動態效果</span><div class="seg" role="group" aria-label="動態效果">${[['full','完整動效'],['low','簡化動效']].map(([v,n])=>`<button type="button" data-motion="${v}" aria-pressed="${store.get('gx_motion','full')===v}">${n}</button>`).join('')}</div></div>
-    <label class="toggle"><input type="checkbox" id="fsHaptic"${store.get('gx_haptic',true)!==false?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>震動回饋（支援的手機）</span></label>
+    <label class="toggle"><input type="checkbox" id="fsHaptic"${store.get('gx_haptic',true)!==false?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>震動回饋（iPhone 需 iOS 18 以上）</span></label>
+    <label class="toggle"><input type="checkbox" id="fsSfx"${store.get('gx_sfx',true)!==false?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>儀式音效（筊杯、籤筒、翻牌、磬聲）</span></label>
+    <label class="toggle"><input type="checkbox" id="fsBgm"${store.get('gx_bgm',false)?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>背景音樂（求籤寺廟氛圍・塔羅星空氛圍）</span></label>
+    <div class="row between"><span class="small">音樂音量</span><div class="seg" role="group" aria-label="音樂音量" style="min-width:150px">${[[1,'小'],[2,'中'],[3,'大']].map(([v,l])=>`<button type="button" data-bgmv="${v}" aria-pressed="${store.get('gx_bgmv',2)===v}">${l}</button>`).join('')}</div></div>
+    <p class="small muted" style="margin:0">iPhone 開著靜音鍵時聽不到網頁聲音；音樂只會在你按下開關後播放。</p>
     <label class="toggle"><input type="checkbox" id="fsBold"${o.b?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>粗體文字，看得更清楚</span></label>
     <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canSpeak?`<div class="card stack"><div class="f"><span>朗讀速度</span><div class="seg" role="group" aria-label="朗讀速度">${RATES.map(([r,n])=>`<button type="button" data-rate="${r}" aria-pressed="${store.get('gx_rate',.9)===r}">${n}</button>`).join('')}</div></div><button type="button" class="btn sm" data-rtest style="align-self:flex-start">${SPK_IC}<span>試聽</span></button></div>`:''}<div class="card stack"><b>操作提示</b><span class="small muted">每一頁第一次打開時，會用小氣泡提示怎麼用。</span><button type="button" class="btn sm" data-act="tipsreset" style="align-self:flex-start">重新顯示所有提示</button></div>${reminderHtml()}${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
-function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const tv=e.target.closest('[data-theme-v]');if(tv){setTheme(tv.dataset.themeV);L.panel.querySelectorAll('[data-theme-v]').forEach(x=>x.setAttribute('aria-pressed',x===tv));buzz();return}const mo=e.target.closest('[data-motion]');if(mo){store.set('gx_motion',mo.dataset.motion);document.documentElement.classList.toggle('lowmo',mo.dataset.motion==='low');L.panel.querySelectorAll('[data-motion]').forEach(x=>x.setAttribute('aria-pressed',x===mo));return}const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsHaptic'){store.set('gx_haptic',e.target.checked);if(e.target.checked)buzz(10);return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
+function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const tv=e.target.closest('[data-theme-v]');if(tv){setTheme(tv.dataset.themeV);L.panel.querySelectorAll('[data-theme-v]').forEach(x=>x.setAttribute('aria-pressed',x===tv));buzz();return}const mo=e.target.closest('[data-motion]');if(mo){store.set('gx_motion',mo.dataset.motion);document.documentElement.classList.toggle('lowmo',mo.dataset.motion==='low');L.panel.querySelectorAll('[data-motion]').forEach(x=>x.setAttribute('aria-pressed',x===mo));return}const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const bv=e.target.closest('[data-bgmv]');if(bv){store.set('gx_bgmv',+bv.dataset.bgmv);L.panel.querySelectorAll('[data-bgmv]').forEach(x=>x.setAttribute('aria-pressed',x===bv));SND.volume();return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsHaptic'){store.set('gx_haptic',e.target.checked);if(e.target.checked)buzz(10);return}if(e.target.id==='fsSfx'){store.set('gx_sfx',e.target.checked);if(e.target.checked)SND.bell();return}if(e.target.id==='fsBgm'){store.set('gx_bgm',e.target.checked);SND.music(e.target.checked);musUi();return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
 function updateHeader(){
   $('#whoAv').textContent=P.given||P.sur||'命';
   $('#whoBtn').setAttribute('aria-label',`命主：${P.sur}${P.given}${P.sample?'（範例）':''}，點此編輯`);
@@ -3301,8 +3380,8 @@ let tossBusy=false;
 /* 擲筊動畫：以 requestAnimationFrame 逐格計算拋物線、翻面、影子與落地彈跳，最後停在 res 指定的那一面 */
 async function animToss(res){
   $$('#qAsk,#qConfirm,#jToss').forEach(b=>{b.disabled=true;b.textContent='擲筊中…'});
-  const j=$('#jiao');buzz();
-  if(!j||reduceMotion()){await wait(300);return}
+  const j=$('#jiao');buzz();SND.toss();
+  if(!j||reduceMotion()){await wait(300);SND.clack(0);SND.clack(1);return}
   j.scrollIntoView({block:'center',behavior:'smooth'});
   const prev=qLast||{a:true,b:false};
   j.className='jiao flying';
@@ -3324,7 +3403,7 @@ async function animToss(res){
         if(t<T.wind){const u=Math.max(0,t)/T.wind;y=6*Math.sin(u*Math.PI/2);sq=1-.05*Math.sin(u*Math.PI/2)}
         else if(t<T.wind+T.fly){const u=(t-T.wind)/T.fly;y=-p.H*4*u*(1-u)+6*(1-u);x=p.dir*20*Math.sin(u*Math.PI);rot=p.dir*-24*Math.sin(u*Math.PI);phi=p.flips*Math.PI*easeOut(u);lift=4*u*(1-u)}
         else{const tb=t-T.wind-T.fly;phi=p.flips*Math.PI;
-          if(p.landed<1){p.landed=1;buzz();ripple(p.el)}
+          if(p.landed<1){p.landed=1;buzz();SND.clack(P.indexOf(p));ripple(p.el)}
           if(tb<T.b1){const u=tb/T.b1;y=-22*4*u*(1-u);rot=p.dir*7*Math.sin(u*Math.PI);if(u<.18)sq=1-.12*(1-u/.18)}
           else if(tb<T.b1+T.b2){const u=(tb-T.b1)/T.b2;y=-7*4*u*(1-u);rot=p.dir*-2.5*Math.sin(u*Math.PI);if(u<.2)sq=1-.07*(1-u/.2)}
           else{const u=Math.min(1,(tb-T.b1-T.b2)/90);sq=1-.04*Math.sin(u*Math.PI)}}
@@ -3347,6 +3426,7 @@ document.addEventListener('click',async e=>{
   const t=e.target.closest('button');if(!t)return;
   if(t.dataset.tab){const g=GROUPS.find(x=>x.k===t.dataset.tab);const last=store.get('gx_sub_'+g.k,g.views[0]);return go(g.views.includes(last)?last:g.views[0])}
   if(t.dataset.sub){store.set('gx_sub_'+groupOf(t.dataset.sub).k,t.dataset.sub);return go(t.dataset.sub)}
+  if(t.id==='musBtn'){const on=!SND.playing;store.set('gx_bgm',on);SND.setMood(MOOD_STAR.has(cur)?'star':'temple');SND.music(on);musUi();hud(on?(MOOD_STAR.has(cur)?'星空音樂':'寺廟音樂'):'音樂已關閉');const c=$('#fsBgm');if(c)c.checked=on;return}
   if(t.dataset.go)return go(t.dataset.go);
   if(t.id==='fsBtn')return openFs();
   if(t.dataset.speak){speak(speakText(t.dataset.speak),t);return}
@@ -3431,7 +3511,7 @@ document.addEventListener('click',async e=>{
   if(t.id==='qNext0'){qScroll=true;qQ=$('#qQ')?.value||'';qStrict=$('#qStrict')?.checked||false;qStep=1;qLast=null;qTries=0;renderQian();return}
   if(t.id==='qAsk'){if(tossBusy)return;tossBusy=true;const res=tossJiao();await animToss(res);qLast=res;qCalm=true;qTries++;renderQian();jiaoReveal(qLast,'ask');return}
   if(t.id==='qNext1'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}
-  if(t.id==='qShake'){if(qNo||tossBusy)return;tossBusy=true;const s=t.querySelector('.tube');s.classList.add('shake');buzz();await wait(1200);qNo=1+Math.floor(Math.random()*GD().data.length);renderQian();const v=await reveal({tone:'gold',art:tubeSVG(qNo).replace('class="tube out"','class="tube out" style="width:84px"'),kicker:'籤筒落出',big:`第 ${qNo} 籤`,sub:qGod==='gy'?'觀音一百籤':`${QD[qNo-1][0]}籤`,body:`請擲筊確認，是否為${GD().call}所賜。`,actions:[{text:'擲筊確認',primary:true,value:'qNext2'},{text:'稍後',value:null}]});tossBusy=false;if(v)setTimeout(()=>$('#'+v)?.click(),60);return}
+  if(t.id==='qShake'){if(qNo||tossBusy)return;tossBusy=true;const s=t.querySelector('.tube');s.classList.add('shake');buzz();SND.shake(1.15);await wait(1200);SND.drop();qNo=1+Math.floor(Math.random()*GD().data.length);renderQian();const v=await reveal({tone:'gold',art:tubeSVG(qNo).replace('class="tube out"','class="tube out" style="width:84px"'),kicker:'籤筒落出',big:`第 ${qNo} 籤`,sub:qGod==='gy'?'觀音一百籤':`${QD[qNo-1][0]}籤`,body:`請擲筊確認，是否為${GD().call}所賜。`,actions:[{text:'擲筊確認',primary:true,value:'qNext2'},{text:'稍後',value:null}]});tossBusy=false;if(v)setTimeout(()=>$('#'+v)?.click(),60);return}
   if(t.id==='qNext2'){qScroll=true;qStep=3;qLast=null;qStreak=0;renderQian();return}
   if(t.id==='qConfirm'){if(tossBusy)return;tossBusy=true;const res=tossJiao();await animToss(res);qLast=res;qCalm=true;qStreak=qLast.r==='sheng'?qStreak+1:0;renderQian();jiaoReveal(qLast,'confirm');return}
   if(t.id==='qRedraw'){qScroll=true;qStep=2;qNo=null;qLast=null;renderQian();return}

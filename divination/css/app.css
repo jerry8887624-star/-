@@ -1762,3 +1762,18 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .cw-relay{background:var(--tint-soft);border-radius:10px;padding:10px 12px;line-height:1.6}
 :root:not([data-theme="dark"]) .btn.ghost[data-act="home"]{color:var(--tint)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.ghost[data-act="home"]{color:inherit}}
+/* 頁首：音樂開關 */
+.navl{grid-column:1;justify-self:start;display:flex;align-items:center;gap:6px}
+.navl .aa{grid-column:auto}
+.mus{position:relative;width:36px;height:36px;border-radius:50%;border:0;background:var(--tint-soft);color:var(--tint);display:grid;place-items:center;cursor:pointer;padding:0}
+.mus svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:opacity .25s}
+.mus .x{stroke-width:1.9}
+.mus.on .x{opacity:0}
+.mus .eq{position:absolute;right:5px;bottom:6px;display:none;gap:1.5px;align-items:flex-end;height:8px}
+.mus.on .eq{display:flex}
+.mus .eq b{width:2px;background:currentColor;border-radius:1px;height:3px;animation:eqb 1.1s ease-in-out infinite}
+.mus .eq b:nth-child(2){animation-delay:.3s}.mus .eq b:nth-child(3){animation-delay:.6s}
+.mus.on svg{transform:translate(-2px,-1px)}
+@keyframes eqb{0%,100%{height:2px}50%{height:8px}}
+@media (prefers-reduced-motion:reduce){.mus .eq b{animation:none;height:5px}}
+.mus{background:var(--glass)!important;border:1px solid var(--glass-line)!important;color:var(--title-ink)!important;box-shadow:var(--glass-shadow)}
