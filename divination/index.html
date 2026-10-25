@@ -1668,6 +1668,57 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .fchk.fpg-h{padding:8px 0;border-bottom:1px solid var(--line)}
 .fpg-t{flex-direction:row!important;align-items:baseline;gap:8px!important;flex-wrap:wrap}
 .fpick-f{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;gap:6px;padding:12px 0 6px;background:var(--bg);box-shadow:0 -14px 14px -4px var(--bg),0 40px 0 var(--bg)}
+/* ===== 命盤報告（白話版） ===== */
+.rp-term{display:inline-block;margin-left:4px;font-size:11.5px;font-weight:400;color:#8A7F6C;letter-spacing:0}
+.rp-how{margin:10px 0 4px;padding:10px 12px;border-radius:6px;background:rgba(126,91,24,.07);font-size:13.5px;color:#4E4637;line-height:1.7}
+.rp-intro{color:#5E5545;font-size:14px}
+.rp-note{font-size:13.5px;color:#5E5545}
+.rp-sum{margin:14px 0 4px;padding:14px 16px;border-radius:8px;border:1.5px solid #7E5B18;background:rgba(126,91,24,.05);break-inside:avoid-page}
+.rp-sum h2{font-family:var(--f-serif);font-size:20px;color:#7E5B18;margin-bottom:6px}
+.rp-sum>div{padding:7px 0;border-top:1px dashed rgba(120,90,45,.3)}
+.rp-sum>div:first-of-type{border-top:0}
+.rp-sum b{display:block;font-size:15px;color:#2A251F}
+.rp-sum p{margin:2px 0 0;line-height:1.75}
+.rp-bars{display:flex;flex-direction:column;gap:5px;margin:6px 0;max-width:360px}
+.rp-bars div{display:grid;grid-template-columns:22px 1fr 22px;align-items:center;gap:8px}
+.rp-bars i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,#B08A3E,#7E5B18);width:calc(var(--v) * 100%);min-width:4px}
+.rp-bars span,.rp-bars b{font-size:13.5px;text-align:center}
+.rp-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.rp-box{padding:10px 12px;border-radius:6px;border:1px solid rgba(120,90,45,.25);break-inside:avoid}
+.rp-box.good{background:rgba(43,101,55,.06);border-color:rgba(43,101,55,.3)}
+.rp-box.bad{background:rgba(166,31,21,.05);border-color:rgba(166,31,21,.25)}
+.rp-box>b{color:#2A251F}
+.rp-box p{margin:6px 0 0;line-height:1.75;font-size:14px}
+.rp-box+.rp-box{margin-top:8px}.rp-2 .rp-box+.rp-box{margin-top:0}
+.rp-ul{margin:4px 0;padding-left:1.2em;line-height:1.75}
+.rp-ul li{margin:3px 0}
+.rp-when{font-size:12.5px;color:#7A705D}
+.rp-dot{display:inline-block;font-size:11.5px;font-weight:700;padding:0 6px;border-radius:99px;margin-right:6px;vertical-align:1px}
+.rp-dot.good{background:rgba(43,101,55,.12);color:#2B6537}.rp-dot.bad{background:rgba(166,31,21,.1);color:#A61F15}
+.rp-quote{margin:6px 0 8px;padding:10px 14px;border-left:3px solid #7E5B18;background:rgba(126,91,24,.06);font-family:var(--f-serif);font-size:16px;line-height:1.7}
+.rp-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:6px 0 4px}
+.rp-4 div{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:6px;border:1px solid rgba(120,90,45,.22)}
+.rp-4 span{font-size:12px;color:#7A705D}.rp-4 b{font-size:15px}.rp-4 small{font-size:11.5px;color:#7A705D;line-height:1.5}
+.rp-4 .good b{color:#2B6537}.rp-4 .bad b{color:#A61F15}
+.rp-pal{padding:8px 0;border-top:1px dotted rgba(120,90,45,.3);break-inside:avoid}
+.rp-pal p{margin:2px 0 0}
+.rp-dy2{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:6px 0 10px}
+.rp-dy2 div{padding:7px 10px;border-radius:6px;border:1px solid rgba(120,90,45,.22);break-inside:avoid}
+.rp-dy2 div.on{background:rgba(126,91,24,.1);border-color:#7E5B18}
+.rp-dy2 b{display:block;font-size:14px}.rp-dy2 span{font-size:13.5px;line-height:1.6}
+.rp-yr{padding:8px 0;border-top:1px dotted rgba(120,90,45,.3);break-inside:avoid}
+.rp-yr p{margin:3px 0}
+.rp-warn{color:#8F4000}
+.rp-big{font-size:22px;color:#7E5B18}
+.rp-app{font-size:13px;color:#4E4637}
+.rp-app .rp-t{font-size:12.5px}
+@media (max-width:520px){.rp-2,.rp-dy2{grid-template-columns:1fr}.rp-4{grid-template-columns:1fr 1fr}}
+/* 報告分頁：章節可跨頁，避免整節跳頁留下大片空白；標題不與內文分開 */
+.rp .rp-sec{break-inside:auto}
+.rp h2,.rp .rp-h3{break-after:avoid}
+@media print{.rp{font-size:13.5px;padding:0}.rp-sum{margin-top:10px}}
+.rp-4,.rp-2,.rp-sum{break-inside:avoid}
+@media print{.rp-app{break-before:page}}
 </style>
 </head>
 <body>
@@ -5068,36 +5119,92 @@ function daySheet(ts){
 }
 
 /* ---------- 命盤解說報告 ---------- */
+// 命盤解說報告：給完全不懂命理的人看——每段先講白話結論與建議，術語只放括號小字；專業資料集中在最後的附錄
+const DY_TXT={比肩:'靠自己打拚、和朋友同儕互相砥礪的十年',劫財:'競爭與開銷較多、要懂得守財的十年',食神:'才華發揮、生活享受、心情愉快的十年',傷官:'創意多、想突破框架，也容易和人有摩擦的十年',偏財:'人脈廣、機會財多、適合拓展的十年',正財:'收入穩定、適合存錢與踏實經營的十年',七殺:'壓力與挑戰並存，咬牙撐過就能闖出成績的十年',正官:'責任變重、地位提升、容易受到肯定的十年',偏印:'適合進修特殊技能、想法獨到但偶感孤單的十年',正印:'有貴人照顧、適合學習與充實自己的十年'};
 function reportHtml(){
   const A=D.astro, cy=new Date().getFullYear(), Y0=yearInfo(cy), Y1=yearInfo(cy+1), nm=nameAnalysis(P.sur,P.given), g=mingGua(P,D);
   const ssCnt={};D.pillars.forEach((p,i)=>{if(i!==2){const t=shishen(D.dm,p[0]);ssCnt[t]=(ssCnt[t]||0)+1}const t=shishen(D.dm,ZHI_HIDE[p[1]][0]);ssCnt[t]=(ssCnt[t]||0)+1});
   const topSS=Object.entries(ssCnt).sort((a,b)=>b[1]-a[1]).slice(0,3);
   const ming=A&&A.palaces.find(p=>p.name==='命宮'), body=A&&A.palaces.find(p=>p.isBodyPalace);
   const curDy=D.yun.findIndex(x=>cy>=x.getStartYear()&&cy<=x.getEndYear());
-  const sec=(t,h)=>`<section class="rp-sec"><h2>${t}</h2>${h}</section>`;
-  const now=new Date();
+  const sec=(t,intro,h)=>`<section class="rp-sec"><h2>${t}</h2>${intro?`<p class="rp-intro">${intro}</p>`:''}${h}</section>`;
+  const T=x=>`<small class="rp-term">${x}</small>`;
+  const now=new Date(), ss=bzShensha(), rs=bzRelations();
+  const M=A&&ZW_PLAIN[A.soul], S=A&&ZW_PLAIN[A.body];
+  const mut={};if(A)A.palaces.forEach(p=>[...p.majorStars,...p.minorStars].forEach(x=>{if(x.mutagen&&!mut[x.mutagen])mut[x.mutagen]={s:x.name,p:p.name}}));
+  const stars=n=>'★'.repeat(Math.round(n))+'☆'.repeat(5-Math.round(n));
+  const taiTxt=Y=>Y.tai?`今年的太歲和你的生肖有衝突（民間俗稱「犯太歲」${T(Y.tai.detail)}），建議年初到廟裡安太歲，凡事低調、多一分謹慎。`:'';
+  const xiC=D.xi.map(e=>GC.WX_ADV[e]), jiC=D.ji.map(e=>GC.WX_ADV[e]);
+  const pdName=i=>PILLAR_D[i];
+  const hour=P.hour===13?'時辰不確定':HOURS[P.hour].replace(' ','（')+' 點）';
+  const ssPlain=k=>(GC.SS_TXT[k]||'').split('多者')[1]||GC.SS_TXT[k];
+  const lvName=nm.ok?(nm.score>=80?'很好':nm.score>=65?'不錯':nm.score>=50?'普通':'偏弱'):'';
+  // 一頁看懂你
+  const sum=[
+    ['你是怎樣的人',`${DMTXT[D.dm].split('：')[1]||DMTXT[D.dm]}${M&&S?`內心${M.in}；實際做事時，${S.out.replace(/^做事/,'')}。`:''}`],
+    mut['祿']&&mut['科']?['你的優勢',`${mut['祿'].p===mut['科'].p?`「${paln(mut['祿'].p)}」同時帶著好運和貴人：這方面最容易得到機會，也最容易有人幫忙。`:`最容易得到好運的是「${paln(mut['祿'].p)}」，最容易遇到貴人的是「${paln(mut['科'].p)}」。`}${ss.some(o=>o.n==='天乙貴人')?'而且命中帶有「天乙貴人」，遇到困難常有人幫忙。':''}`]:null,
+    ['要多留意',`${mut['忌']?`最容易讓你操心、放不下的是「${paln(mut['忌'].p)}」，遇到這方面的事放慢腳步。`:''}${D.strong?'你的能量強、主見多，要提醒自己多聽別人意見。':'你的能量偏弱，別把自己逼太緊，懂得借力、適時休息。'}`],
+    [`${cy} 年運勢 ${stars(Y0.score)}`,`${YEARSS[Y0.ss]}${Y0.tai?'今年犯太歲，宜低調、安太歲。':''}`],
+    ['開運小撇步',`多用${xiC.map(a=>a.c.split('、')[0]).join('、')}；往${xiC.map(a=>a.d.split('、')[0]).join('、')}發展較順；床頭朝${BZ[g][1]}、書桌面向${BZ[g][0]}。`]].filter(Boolean);
   return `<div class="rp">
-  <header class="rp-head"><div><div class="rp-k">靈犀 LINGXI ・ 命盤解說報告</div><h1>${esc(P.sur+P.given)}</h1><p>${P.gender==='男'?'乾造（男）':'坤造（女）'}・屬${SX[ZHI.indexOf(D.birthZ)]}・國曆 ${D.y}/${D.m}/${D.d}・農曆${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())}・${P.hour===13?'時辰不確定':HOURS[P.hour].split(' ')[0]}</p></div><div class="rp-seal" aria-hidden="true"><i>靈</i><i>犀</i></div></header>
-  ${sec('一、八字四柱',`<table class="rp-t"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr><tr><th>天干</th>${D.pillars.map((p,i)=>`<td><b>${p[0]}</b><br><small>${i===2?'日主':shishen(D.dm,p[0])}</small></td>`).join('')}</tr><tr><th>地支</th>${D.pillars.map(p=>`<td><b>${p[1]}</b><br><small>${SX[ZHI.indexOf(p[1])]}</small></td>`).join('')}</tr><tr><th>納音</th>${[D.ec.getYearNaYin(),D.ec.getMonthNaYin(),D.ec.getDayNaYin(),D.ec.getTimeNaYin()].map(n=>`<td><small>${S2T(n)}</small></td>`).join('')}</tr></table>
-    <p><b>日主${D.dm}${WX[D.dmE]}</b>，${DMTXT[D.dm]}命局${D.strong?'偏強':'偏弱'}；五行 ${D.cnt.map((c,e)=>WX[e]+c).join('、')}${D.cnt.some(c=>!c)?`，缺${D.cnt.map((c,e)=>c?'':WX[e]).join('')}`:''}。</p>
-    <p><b>《滴天髓》論${D.dm}</b>：${DTS[D.dm][0]}<br><small>${DTS[D.dm][1]}</small></p>
-    <p><b>喜用神</b> ${D.xi.map(e=>WX[e]).join('、')}　<b>忌神</b> ${D.ji.map(e=>WX[e]).join('、')}</p>
-    <p><b>主要十神</b>：${topSS.map(([k])=>`${k}——${GC.SS_TXT[k]}`).join('<br>')}</p>
-    ${(()=>{const ss=bzShensha();return ss.length?`<p><b>神煞</b>：${ss.map(o=>`${o.n}（${o.w.map(i=>PILLAR_N[i]).join('、')}）`).join('、')}</p>`:''})()}
-    ${(()=>{const rs=bzRelations();return rs.length?`<p><b>刑沖合害</b>：${rs.map(r=>`${r.k}（${r.who}）`).join('、')}</p>`:''})()}`)}
-  ${A?sec('二、紫微斗數',`<p>${A.fiveElementsClass}・命主${A.soul}・身主${A.body}${ZW_PLAIN[A.soul]&&ZW_PLAIN[A.body]?`：內在${ZW_PLAIN[A.soul].in}；實際做事時，${ZW_PLAIN[A.body].out.replace(/^做事/,'')}。`:''}</p>
-    <p class="small">命主（${A.soul}）代表內在、先天的性格與一生追求；身主（${A.body}）代表後天做事的方式，中年以後越明顯。${ZW_JU[A.fiveElementsClass]?`${A.fiveElementsClass}是命盤的五行分類，決定從 ${ZW_JU[A.fiveElementsClass].n} 歲開始走第一個大運。`:''}</p>
-    <p><b>命宮</b>（${ming.heavenlyStem}${ming.earthlyBranch}）：${ming.majorStars.length?ming.majorStars.map(s=>`<b>${s.name}</b>${s.brightness?`（力量${BRIGHT[s.brightness]||''}・${s.brightness}）`:''}——${(ZW_PLAIN[s.name]||{}).d||MAJOR[s.name]||''}`).join('<br>'):'命宮沒有主星，借對面遷移宮的主星來看：個性比較會隨環境調整，可塑性高。'}</p>
-    <p><b>身宮</b>在${pn(body.name)}：身宮代表後天、中年以後最在意的地方，你的重心會越來越放在${FOCUS[body.name]}。</p>
-    ${zwPatterns(A).map(x=>`<p><b>${x[0]}</b>：「${x[1]}」（《紫微斗數全書》）${x[2]}</p>`).join('')}
-    <h3 class="rp-h3">十二宮逐宮解讀</h3>${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<p><b>${p.name}</b>（${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name).join('、')||'—'}）：${palaceReading(A,i)}</p>`).join('')}
-    <table class="rp-t">${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<tr><th>${p.name}</th><td>${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name+(s.mutagen?'化'+s.mutagen:'')).join('、')||'—'}${p.majorStars.length?'':'<small>（借對宮）</small>'}</td><td><small>${PALACE[p.name]||''}</small></td></tr>`).join('')}</table>`):''}
-  ${sec('三、大運與流年',`<div class="rp-dy">${D.yun.slice(0,8).map((x,i)=>`<span${i===curDy?' class="on"':''}><b>${x.getGanZhi()}</b><small>${x.getStartAge()}歲</small><small>${shishen(D.dm,x.getGanZhi()[0])}</small></span>`).join('')}</div>
-    ${[Y0,Y1].map(Y=>`<p><b>${Y.y} ${Y.gz}年（${Y.ss}年）</b>：${'★'.repeat(Math.round(Y.score))}${'☆'.repeat(5-Math.round(Y.score))}　${YEARSS[Y.ss]}${Y.tai?`<b>犯太歲</b>（${Y.tai.detail}）。`:''}</p>`).join('')}`)}
-  ${nm.ok?sec('四、姓名',`<p>五格：天格${nm.g.tian}・人格${nm.g.ren}・地格${nm.g.di}・外格${nm.g.wai}${nm.fixWai?'（單名固定）':''}・總格${nm.g.zong}　三才 ${nm.e.map(e=>WX[e]).join('')}</p><p>姓名評分 <b>${nm.score} 分</b>；人格五行${WX[nm.e[1]]}${D.xi.includes(nm.e[1])?'，正好補到喜用。':D.ji.includes(nm.e[1])?'，屬忌神，可考慮字號或暱稱補強。':'。'}</p>`):''}
-  ${sec('五、居家風水',`<p>命卦 <b>${GUA[g][0]}卦</b>（${GUA[g][2]}四命）。吉方：${STARS.slice(0,4).map((s,k)=>`${s[0]}${BZ[g][k]}`).join('、')}；凶方：${STARS.slice(4).map((s,k)=>`${s[0]}${BZ[g][k+4]}`).join('、')}。</p><p>床頭朝${BZ[g][1]}或${BZ[g][2]}，書桌面向${BZ[g][0]}。</p>`)}
-  ${sec('六、開運建議',`${D.xi.map(e=>{const a=GC.WX_ADV[e];return `<p><b>${WX[e]}</b>　顏色：${a.c}；方位：${a.d}；數字：${a.n}<br>適合行業：${a.j}<br>生活：${a.l}</p>`}).join('')}`)}
-  <footer class="rp-foot">製表日期 ${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ・ 命理是看清自己的一面鏡子，結果僅供參考。</footer>
+  <header class="rp-head"><div><div class="rp-k">靈犀 LINGXI ・ 命盤解說報告</div><h1>${esc(P.sur+P.given)}</h1><p>${P.gender==='男'?'男':'女'}・屬${SX[ZHI.indexOf(D.birthZ)]}・西元 ${D.y}/${D.m}/${D.d}${D.y>1911?`（民國 ${D.y-1911} 年）`:''}・農曆${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())}・${hour}</p></div><div class="rp-seal" aria-hidden="true"><i>靈</i><i>犀</i></div></header>
+  <p class="rp-how">這份報告用白話說明你的命盤：每一段先講結論和建議，<small class="rp-term">像這樣的小字</small>是命理術語，看不懂可以直接跳過。想深入研究的人，專業資料都整理在最後的附錄。</p>
+  <section class="rp-sum"><h2>一頁看懂你</h2>${sum.map(([k,v])=>`<div><b>${k}</b><p>${v}</p></div>`).join('')}</section>
+
+  ${sec('一、你的個性與天生特質',`依你出生的年、月、日、時換算出八個字${T('八字')}。其中「出生那一天」的字代表你自己。`,`
+    <h3 class="rp-h3">你是「${D.dm}${WX[D.dmE]}」型的人${T('日主')}</h3><p>像${DMTXT[D.dm]}</p>
+    <p>${D.strong?`你的能量偏強${T('身強')}：主見多、行動力好，適合自己帶頭做事；要提醒自己別太固執，多聽別人意見。`:`你的能量偏弱${T('身弱')}：比較需要環境與貴人的支持，適合團隊合作、借力使力；不要把自己逼太緊，記得適時休息。`}</p>
+    <h3 class="rp-h3">你的五行比例</h3>
+    <div class="rp-bars">${D.cnt.map((c,e)=>`<div><span>${WX[e]}</span><i style="--v:${c/Math.max(...D.cnt,1)}"></i><b>${c}</b></div>`).join('')}</div>
+    <p>${(()=>{const mx=Math.max(...D.cnt),mn=Math.min(...D.cnt);return `你的命盤中${D.cnt.map((c,e)=>c===mx?WX[e]:'').join('、').replace(/^、+|、+$/g,'').replace(/、+/g,'、')}最多，${D.cnt.map((c,e)=>c===mn?WX[e]:'').join('、').replace(/^、+|、+$/g,'').replace(/、+/g,'、')}最少${mn===0?'（命中缺這個元素）':''}。`})()}</p>
+    <div class="rp-2"><div class="rp-box good"><b>對你有幫助的元素：${D.xi.map(e=>WX[e]).join('、')}</b>${T('喜用神')}<p>${xiC.map((a,i)=>`${WX[D.xi[i]]}：多用${a.c}，往${a.d}發展，${a.l}。`).join('<br>')}</p></div>
+    <div class="rp-box bad"><b>要少一點的元素：${D.ji.map(e=>WX[e]).join('、')}</b>${T('忌神')}<p>衣服、家飾的主色少用${jiC.map(a=>a.c.split('、').slice(0,2).join('、')).join('、')}；這些元素太多時，容易覺得疲累、事情不順。</p></div></div>
+    <h3 class="rp-h3">你的性格特點</h3><ul class="rp-ul">${topSS.map(([k])=>`<li>${ssPlain(k)}${T(k)}</li>`).join('')}</ul>
+    ${ss.length?`<h3 class="rp-h3">天生帶著的福氣與提醒</h3><ul class="rp-ul">${ss.map(o=>`<li><b>${o.n}</b>：${SHA_TXT[o.n]||''}<span class="rp-when">（影響：${o.w.map(pdName).join('、')}）</span></li>`).join('')}</ul>`:''}
+    ${rs.length?`<h3 class="rp-h3">人生不同階段之間的和諧與摩擦</h3><p class="rp-note">八字的四組字分別代表：祖上與早年、父母與青年、自己與配偶、子女與晚年。它們之間有的互相幫忙，有的互相拉扯。</p><ul class="rp-ul">${rs.map(r=>`<li><span class="rp-dot ${r.t}">${r.t==='good'?'和諧':'摩擦'}</span>${r.i!=null?`「${pdName(r.i)}」與「${pdName(r.j)}」之間：`:'整體來看：'}${(r.d||'').split('：').slice(1).join('：')||r.d}${T(r.k)}</li>`).join('')}</ul>`:''}`)}
+
+  ${A?sec('二、你的人生地圖（紫微斗數）','紫微斗數把人生分成 12 個方面（例如自己、感情、錢財、工作），看每一方面的特質與運勢。',`
+    ${M&&S?`<div class="rp-quote">內在${M.in}；實際做事時，${S.out.replace(/^做事/,'')}。</div>
+    <p><b>你內在重視什麼</b>${T('命主'+A.soul)}：${M.d}關鍵字：${M.k.replace(/・/g,'、')}。</p>
+    <p><b>你如何面對現實生活</b>${T('身主'+A.body)}：${S.d}關鍵字：${S.k.replace(/・/g,'、')}。</p>`:''}
+    <p><b>你給人的感覺</b>${T('命宮'+(ming.majorStars.length?ming.majorStars.map(s=>s.name).join('、'):'無主星'))}：${ming.majorStars.length?ming.majorStars.map(s=>(ZW_PLAIN[s.name]||{}).d||'').join(''):'命宮沒有主星，個性比較會隨環境調整，可塑性高。'}</p>
+    <p><b>中年以後的重心</b>${T('身宮在'+pn(body.name))}：會越來越放在${FOCUS[body.name]}。</p>
+    ${zwPatterns(A).map(x=>`<p><b>命盤特色</b>${T(x[0])}：${x[2]}</p>`).join('')}
+    <h3 class="rp-h3">你天生帶著的四個重點</h3>${T('生年四化')}
+    <div class="rp-4">${['祿','權','科','忌'].map(m=>mut[m]?`<div class="${m==='忌'?'bad':'good'}"><span>${MUTN[m]}</span><b>${paln(mut[m].p)}</b><small>${{祿:'容易得到好處的地方',權:'最有主見、最想掌控的地方',科:'容易有人幫、名聲好的地方',忌:'最放不下、最需要用心的地方'}[m]}</small></div>`:'').join('')}</div>
+    <h3 class="rp-h3">人生 12 個方面</h3>
+    ${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<div class="rp-pal"><b>${paln(p.name)}</b>${T(pn(p.name)+'・'+((p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name).join('、')||'無主星'))}<p>${palaceReading(A,i)}</p></div>`).join('')}`):''}
+
+  ${sec('三、人生各階段與今明兩年','人生大約每十年換一次主題（大運），每一年也有自己的運勢（流年）。',`
+    <div class="rp-dy2">${D.yun.slice(0,8).map((x,i)=>{const t=shishen(D.dm,x.getGanZhi()[0]);return `<div${i===curDy?' class="on"':''}><b>${x.getStartAge()}–${x.getStartAge()+9} 歲${i===curDy?'・現在':''}</b><span>${DY_TXT[t]||''}</span>${T(x.getGanZhi()+'・'+t)}</div>`}).join('')}</div>
+    ${[Y0,Y1].map(Y=>`<div class="rp-yr"><b>${Y.y} 年　${stars(Y.score)}</b>${T(Y.gz+'年・'+Y.ss)}<p>${YEARSS[Y.ss]}${Y.zw?`這一年你的心思會放在${FOCUS[Y.zw.palace]||Y.zw.palace}。`:''}</p>${Y.tai?`<p class="rp-warn">${taiTxt(Y)}</p>`:''}${GC.YEAR_DO&&GC.YEAR_DO[Y.ss]?`<p><span class="rp-dot good">適合</span>${GC.YEAR_DO[Y.ss].join('、')}　<span class="rp-dot bad">少做</span>${GC.YEAR_DONT[Y.ss].join('、')}</p>`:''}</div>`).join('')}`)}
+
+  ${nm.ok?sec('四、你的名字','依姓名每個字的筆畫（康熙字典），算出代表人生不同面向的五組數字，看名字對你的助力。',`
+    <p>你的名字評分 <b class="rp-big">${nm.score}</b> 分（滿分 100），整體${lvName}。</p>
+    <p>名字的主要五行屬「${WX[nm.e[1]]}」${T('人格')}，${D.xi.includes(nm.e[1])?'正好是對你有幫助的元素，名字能幫你加分。':D.ji.includes(nm.e[1])?'剛好是你要少一點的元素，可以考慮用常用的字號、暱稱補強。':'和你的命盤沒有衝突。'}</p>
+    ${nm.score<65?'<p>如果想改善，可以在 App「開運 → 改名」看建議的名字。</p>':''}`):''}
+
+  ${sec('五、居家風水','依你的出生年和性別，算出家裡哪些方位對你比較好。',`
+    <p>你屬於「${GUA[g][2]}四命」${T('命卦：'+GUA[g][0]+'卦')}。</p>
+    <div class="rp-2"><div class="rp-box good"><b>對你好的方位</b><ul class="rp-ul">${STARS.slice(0,4).map((st,k)=>`<li><b>${BZ[g][k]}</b>：${st[3]}${T(st[0])}</li>`).join('')}</ul></div>
+    <div class="rp-box bad"><b>盡量避開的方位</b><ul class="rp-ul">${STARS.slice(4).map((st,k)=>`<li><b>${BZ[g][k+4]}</b>：${st[3]}${T(st[0])}</li>`).join('')}</ul></div></div>
+    <p><b>實用建議：</b>床頭朝${BZ[g][1]}或${BZ[g][2]}，書桌面向${BZ[g][0]}；大門、床、爐灶盡量不要在${BZ[g][5]}和${BZ[g][4]}。</p>`)}
+
+  ${sec('六、生活中的開運建議','依對你有幫助的元素，整理成日常可以做的事。',`${D.xi.map(e=>{const a=GC.WX_ADV[e];return `<div class="rp-box good"><b>多一點「${WX[e]}」</b><p>顏色：${a.c}<br>方位：${a.d}　幸運數字：${a.n}<br>適合的行業：${a.j}<br>生活習慣：${a.l}</p></div>`}).join('')}`)}
+
+  <section class="rp-sec rp-app"><h2>附錄：給想深入了解的人</h2><p class="rp-intro">以下是命理專業資料，供懂命理的朋友或老師參考。</p>
+    <h3 class="rp-h3">八字四柱</h3>
+    <table class="rp-t"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr><tr><th>天干</th>${D.pillars.map((p,i)=>`<td><b>${p[0]}</b><br><small>${i===2?'日主':shishen(D.dm,p[0])}</small></td>`).join('')}</tr><tr><th>地支</th>${D.pillars.map(p=>`<td><b>${p[1]}</b><br><small>${SX[ZHI.indexOf(p[1])]}</small></td>`).join('')}</tr><tr><th>納音</th>${[D.ec.getYearNaYin(),D.ec.getMonthNaYin(),D.ec.getDayNaYin(),D.ec.getTimeNaYin()].map(n=>`<td><small>${S2T(n)}</small></td>`).join('')}</tr></table>
+    <p>日主${D.dm}${WX[D.dmE]}・${D.strong?'身強':'身弱'}・五行 ${D.cnt.map((c,e)=>WX[e]+c).join(' ')}・喜用 ${D.xi.map(e=>WX[e]).join('')}・忌 ${D.ji.map(e=>WX[e]).join('')}</p>
+    <p>主要十神：${topSS.map(([k,n])=>`${k}×${n}`).join('、')}${ss.length?`；神煞：${ss.map(o=>`${o.n}（${o.w.map(i=>PILLAR_N[i]).join('、')}）`).join('、')}`:''}${rs.length?`；刑沖合害：${rs.map(r=>`${r.k}（${r.who}）`).join('、')}`:''}</p>
+    <p>《滴天髓》論${D.dm}：${DTS[D.dm][0]}</p>
+    <p>大運：${D.yun.slice(0,8).map(x=>`${x.getGanZhi()}（${x.getStartAge()}歲・${shishen(D.dm,x.getGanZhi()[0])}）`).join('、')}</p>
+    ${A?`<h3 class="rp-h3">紫微斗數</h3><p>${A.fiveElementsClass}・命主${A.soul}・身主${A.body}・命宮${ming.heavenlyStem}${ming.earthlyBranch}・身宮${body.name}</p>
+    <table class="rp-t">${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<tr><th>${p.name}</th><td>${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name+(s.brightness?`(${s.brightness})`:'')+(s.mutagen?'化'+s.mutagen:'')).join('、')||'—'}${p.majorStars.length?'':'<small>（借對宮）</small>'}</td><td><small>${p.minorStars.map(s=>s.name+(s.mutagen?'化'+s.mutagen:'')).join('、')}</small></td></tr>`).join('')}</table>`:''}
+    ${nm.ok?`<h3 class="rp-h3">姓名五格</h3><p>天格${nm.g.tian}・人格${nm.g.ren}・地格${nm.g.di}・外格${nm.g.wai}${nm.fixWai?'（單名固定）':''}・總格${nm.g.zong}・三才 ${nm.e.map(e=>WX[e]).join('')}</p>`:''}
+    <h3 class="rp-h3">八宅風水</h3><p>命卦${GUA[g][0]}（${GUA[g][2]}四命）：${STARS.map((st,k)=>`${st[0]}${BZ[g][k]}`).join('、')}</p>
+  </section>
+  <footer class="rp-foot">製表日期 ${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ・ 命理是看清自己的一面鏡子，結果僅供參考，重大決定請綜合考量自身情況。</footer>
   </div>`;
 }
 function openReport(){
@@ -5402,9 +5509,9 @@ function palaceReading(A,i){
   else if(n==='田宅')out.push(`${names.some(x=>['天府','武曲','太陰','紫微'].includes(x))?'置產運不錯，有機會累積不動產。':names.some(x=>['破軍','七殺'].includes(x))?'住所或家庭變動較多，置產宜謹慎。':'家庭與不動產平穩。'}`);
   else if(n==='福德')out.push(`精神上${names.some(x=>['天同','太陰','天府'].includes(x))?'懂得享受生活、福氣好':names.some(x=>['天機','巨門'].includes(x))?'想得多、容易操心，宜學會放鬆':names.some(x=>['七殺','破軍','廉貞'].includes(x))?'閒不下來、勞心勞力':'有自己的興趣與追求'}。`);
   if(own)ms.forEach(s=>{if(['陷','不'].includes(s.brightness))out.push(`${s.name}在這裡力量比較弱（${s.brightness}），這方面需要多花心思經營。`);else if(['廟','旺'].includes(s.brightness))out.push(`${s.name}在這裡發揮得很好（${s.brightness}），是你的優勢所在。`)});
-  [...pl.majorStars,...pl.minorStars].filter(s=>s.mutagen).forEach(s=>out.push({祿:`${s.name}化祿在此，這方面容易得到好處與機會。`,權:`${s.name}化權在此，你在這方面有主導力、想掌控。`,科:`${s.name}化科在此，這方面多貴人、名聲好。`,忌:`${s.name}化忌在此，是一生最需要用心、也最容易執著的地方。`}[s.mutagen]));
+  [...pl.majorStars,...pl.minorStars].filter(s=>s.mutagen).forEach(s=>out.push({祿:`這方面容易得到好處與機會（${s.name}化祿）。`,權:`你在這方面有主導力、想掌控（${s.name}化權）。`,科:`這方面多貴人、名聲好（${s.name}化科）。`,忌:`這是一生最需要用心、也最容易放不下的地方（${s.name}化忌）。`}[s.mutagen]));
   const lucky=pl.minorStars.filter(s=>LUCKY.has(s.name)).map(s=>s.name), sha=pl.minorStars.filter(s=>SHA.has(s.name)).map(s=>s.name);
-  if(lucky.length)out.push(`有${lucky.join('、')}等吉星同宮，增添助力。`);if(sha.length)out.push(`有${sha.join('、')}等煞星，多一分波折，要多一點耐心處理。`);
+  if(lucky.length)out.push(`這方面多了幫手與助力（${lucky.join('、')}）。`);if(sha.length)out.push(`這方面會多一些波折，要多一點耐心處理（${sha.join('、')}）。`);
   return out.join('');
 }
 
@@ -5940,6 +6047,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.10.31-2",
+  "n": "1.12",
+  "d": "10 月 31 日",
+  "items": [
+   [
+    "命盤報告全面白話化",
+    "報告第一頁新增「一頁看懂你」；八字、紫微、大運流年、姓名、風水都改成先講白話結論和建議，術語只用小字附註；十年運勢改成「這十年的主題」；專業的四柱表與原文移到最後的附錄。",
+    null
+   ]
+  ]
+ },
  {
   "v": "2026.10.31",
   "n": "1.11.3",

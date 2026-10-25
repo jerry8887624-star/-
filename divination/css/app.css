@@ -1634,3 +1634,54 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .fchk.fpg-h{padding:8px 0;border-bottom:1px solid var(--line)}
 .fpg-t{flex-direction:row!important;align-items:baseline;gap:8px!important;flex-wrap:wrap}
 .fpick-f{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;gap:6px;padding:12px 0 6px;background:var(--bg);box-shadow:0 -14px 14px -4px var(--bg),0 40px 0 var(--bg)}
+/* ===== 命盤報告（白話版） ===== */
+.rp-term{display:inline-block;margin-left:4px;font-size:11.5px;font-weight:400;color:#8A7F6C;letter-spacing:0}
+.rp-how{margin:10px 0 4px;padding:10px 12px;border-radius:6px;background:rgba(126,91,24,.07);font-size:13.5px;color:#4E4637;line-height:1.7}
+.rp-intro{color:#5E5545;font-size:14px}
+.rp-note{font-size:13.5px;color:#5E5545}
+.rp-sum{margin:14px 0 4px;padding:14px 16px;border-radius:8px;border:1.5px solid #7E5B18;background:rgba(126,91,24,.05);break-inside:avoid-page}
+.rp-sum h2{font-family:var(--f-serif);font-size:20px;color:#7E5B18;margin-bottom:6px}
+.rp-sum>div{padding:7px 0;border-top:1px dashed rgba(120,90,45,.3)}
+.rp-sum>div:first-of-type{border-top:0}
+.rp-sum b{display:block;font-size:15px;color:#2A251F}
+.rp-sum p{margin:2px 0 0;line-height:1.75}
+.rp-bars{display:flex;flex-direction:column;gap:5px;margin:6px 0;max-width:360px}
+.rp-bars div{display:grid;grid-template-columns:22px 1fr 22px;align-items:center;gap:8px}
+.rp-bars i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,#B08A3E,#7E5B18);width:calc(var(--v) * 100%);min-width:4px}
+.rp-bars span,.rp-bars b{font-size:13.5px;text-align:center}
+.rp-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.rp-box{padding:10px 12px;border-radius:6px;border:1px solid rgba(120,90,45,.25);break-inside:avoid}
+.rp-box.good{background:rgba(43,101,55,.06);border-color:rgba(43,101,55,.3)}
+.rp-box.bad{background:rgba(166,31,21,.05);border-color:rgba(166,31,21,.25)}
+.rp-box>b{color:#2A251F}
+.rp-box p{margin:6px 0 0;line-height:1.75;font-size:14px}
+.rp-box+.rp-box{margin-top:8px}.rp-2 .rp-box+.rp-box{margin-top:0}
+.rp-ul{margin:4px 0;padding-left:1.2em;line-height:1.75}
+.rp-ul li{margin:3px 0}
+.rp-when{font-size:12.5px;color:#7A705D}
+.rp-dot{display:inline-block;font-size:11.5px;font-weight:700;padding:0 6px;border-radius:99px;margin-right:6px;vertical-align:1px}
+.rp-dot.good{background:rgba(43,101,55,.12);color:#2B6537}.rp-dot.bad{background:rgba(166,31,21,.1);color:#A61F15}
+.rp-quote{margin:6px 0 8px;padding:10px 14px;border-left:3px solid #7E5B18;background:rgba(126,91,24,.06);font-family:var(--f-serif);font-size:16px;line-height:1.7}
+.rp-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:6px 0 4px}
+.rp-4 div{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:6px;border:1px solid rgba(120,90,45,.22)}
+.rp-4 span{font-size:12px;color:#7A705D}.rp-4 b{font-size:15px}.rp-4 small{font-size:11.5px;color:#7A705D;line-height:1.5}
+.rp-4 .good b{color:#2B6537}.rp-4 .bad b{color:#A61F15}
+.rp-pal{padding:8px 0;border-top:1px dotted rgba(120,90,45,.3);break-inside:avoid}
+.rp-pal p{margin:2px 0 0}
+.rp-dy2{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:6px 0 10px}
+.rp-dy2 div{padding:7px 10px;border-radius:6px;border:1px solid rgba(120,90,45,.22);break-inside:avoid}
+.rp-dy2 div.on{background:rgba(126,91,24,.1);border-color:#7E5B18}
+.rp-dy2 b{display:block;font-size:14px}.rp-dy2 span{font-size:13.5px;line-height:1.6}
+.rp-yr{padding:8px 0;border-top:1px dotted rgba(120,90,45,.3);break-inside:avoid}
+.rp-yr p{margin:3px 0}
+.rp-warn{color:#8F4000}
+.rp-big{font-size:22px;color:#7E5B18}
+.rp-app{font-size:13px;color:#4E4637}
+.rp-app .rp-t{font-size:12.5px}
+@media (max-width:520px){.rp-2,.rp-dy2{grid-template-columns:1fr}.rp-4{grid-template-columns:1fr 1fr}}
+/* 報告分頁：章節可跨頁，避免整節跳頁留下大片空白；標題不與內文分開 */
+.rp .rp-sec{break-inside:auto}
+.rp h2,.rp .rp-h3{break-after:avoid}
+@media print{.rp{font-size:13.5px;padding:0}.rp-sum{margin-top:10px}}
+.rp-4,.rp-2,.rp-sum{break-inside:avoid}
+@media print{.rp-app{break-before:page}}
