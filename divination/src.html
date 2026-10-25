@@ -674,7 +674,7 @@ function renderOverview(){
   const nm=nameAnalysis(P.sur,P.given);
   const cy=now.getFullYear(), ygz=yearGZ(cy), ys=yearInfo(cy);
   const dec=A?A.horoscope(now).decadal:null;
-  const BLK={daily:()=>dailyCard(),quick:()=>`<nav class="quick" aria-label="快速入口"><button type="button" class="qk" data-go="qian"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/></svg></span><span>求籤</span></button><button type="button" class="qk" data-go="jiao"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13c0-4 3-7 7-7-1 3-1 6 0 9-4 0-7-1-7-2Z"/><path d="M20 13c0-4-3-7-7-7 1 3 1 6 0 9 4 0 7-1 7-2Z"/></svg></span><span>擲筊</span></button><button type="button" class="qk" data-go="tarot"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="10" height="15" rx="2" transform="rotate(-10 9 12.5)"/><rect x="10" y="4" width="10" height="15" rx="2" transform="rotate(8 15 11.5)"/></svg></span><span>塔羅</span></button><button type="button" class="qk" data-go="dream"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></span><span>解夢</span></button><button type="button" class="qk" data-go="festival"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v5M9 4.5v3.5M15 4.5v3.5"/><path d="M5 11h14l-1.6 8.5H6.6Z"/></svg></span><span>拜拜</span></button><button type="button" class="qk" data-go="zeri"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg></span><span>擇日</span></button><button type="button" class="qk" data-go="fengshui"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg></span><span>風水</span></button><button type="button" class="qk" data-go="ziwei"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/></svg></span><span>紫微</span></button></nav>${canInstall()&&!store.get('gx_inst',0)?`<button type="button" class="btn block inst-cta" data-act="install"><img src="icons/icon-192.png" alt=""><span><b>${instEvt?'一鍵安裝到手機主畫面':'加到手機主畫面'}</b><small>${instEvt?'按一下就裝好，像 App 一樣使用':isIOS?'依提示按「分享 → 加入主畫面」':'像 App 一樣一點就開'}</small></span></button>`:''}`,guide:()=>guideCard(),tiles:()=>`
+  const BLK={cai:()=>caiCard(),daily:()=>dailyCard(),quick:()=>`<nav class="quick" aria-label="快速入口"><button type="button" class="qk" data-go="qian"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/></svg></span><span>求籤</span></button><button type="button" class="qk" data-go="jiao"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13c0-4 3-7 7-7-1 3-1 6 0 9-4 0-7-1-7-2Z"/><path d="M20 13c0-4-3-7-7-7 1 3 1 6 0 9 4 0 7-1 7-2Z"/></svg></span><span>擲筊</span></button><button type="button" class="qk" data-go="tarot"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="10" height="15" rx="2" transform="rotate(-10 9 12.5)"/><rect x="10" y="4" width="10" height="15" rx="2" transform="rotate(8 15 11.5)"/></svg></span><span>塔羅</span></button><button type="button" class="qk" data-go="dream"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></span><span>解夢</span></button><button type="button" class="qk" data-go="festival"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v5M9 4.5v3.5M15 4.5v3.5"/><path d="M5 11h14l-1.6 8.5H6.6Z"/></svg></span><span>拜拜</span></button><button type="button" class="qk" data-go="zeri"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg></span><span>擇日</span></button><button type="button" class="qk" data-go="fengshui"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg></span><span>風水</span></button><button type="button" class="qk" data-go="ziwei"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/></svg></span><span>紫微</span></button></nav>${canInstall()&&!store.get('gx_inst',0)?`<button type="button" class="btn block inst-cta" data-act="install"><img src="icons/icon-192.png" alt=""><span><b>${instEvt?'一鍵安裝到手機主畫面':'加到手機主畫面'}</b><small>${instEvt?'按一下就裝好，像 App 一樣使用':isIOS?'依提示按「分享 → 加入主畫面」':'像 App 一樣一點就開'}</small></span></button>`:''}`,guide:()=>guideCard(),tiles:()=>`
   <div class="grid3">
     <button class="tile" data-go="ziwei"><span class="stat"><span class="k">紫微命宮</span><span class="v">${mStars}</span><span class="s">${A?A.fiveElementsClass:''}${dec?` · 大限${A.palaces[dec.index].name}`:''}</span></span></button>
     <button class="tile" data-go="name"><span class="stat"><span class="k">姓名評分</span><span class="v num">${nm.ok?nm.score+' 分':'—'}</span><span class="s">${nm.ok?`總格 ${nm.g.zong} ${n81(nm.g.zong)[0]==='半'?'半吉':n81(nm.g.zong)[0]}`:'有字缺筆畫'}</span></span></button>
@@ -1068,20 +1068,48 @@ function qmDetail(c){
   </div>`;
 }
 /* 走財位：生門所落宮位＝此時辰的財位方向（民俗做法；停留時間、距離無古籍統一標準） */
+const BELL_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
+let cwSel=new Map();
+function cwIcs(){
+  const pad=n=>String(n).padStart(2,'0'), f=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`, now=new Date();
+  const url=location.href.split('#')[0].split('?')[0]+'#qimen';
+  const ev=[...cwSel].sort((a,b)=>a[0]-b[0]).map(([ts,dir])=>{const d=new Date(ts);return ['BEGIN:VEVENT',`UID:lingxi-cw-${ts}@lingxi`,`DTSTAMP:${f(now)}`,`DTSTART:${f(d)}`,'DURATION:PT2H',`SUMMARY:走財位：往${dir}方`,
+    `DESCRIPTION:這個時辰的生門（財位）在${dir}方。出門前用靈犀羅盤確認方向，走到安全的地方靜心想想理財目標即可；停留多久沒有統一標準，勿為此借錢或下注。 ${url}`,
+    'BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:10 分鐘後可往${dir}方走財位`,'TRIGGER:-PT10M','END:VALARM','END:VEVENT']}).flat();
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LINGXI//Caiwei//ZH-TW','CALSCALE:GREGORIAN',...ev,'END:VCALENDAR'].join('\r\n');
+  const blob=new Blob([ics],{type:'text/calendar'}), file=new File([blob],'lingxi-caiwei.ics',{type:'text/calendar'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})&&!isIOS){navigator.share({files:[file]}).catch(()=>{})}
+  else{const a=document.createElement('a');a.href=isIOS?'data:text/calendar;charset=utf-8,'+encodeURIComponent(ics):URL.createObjectURL(blob);a.download='lingxi-caiwei.ics';document.body.appendChild(a);a.click();a.remove()}
+  toast(`已產生 ${cwSel.size} 個走財位提醒，請在行事曆按「加入」`,'check');cwSel.clear();
+}
+/* 首頁小卡：此時辰財位 */
+function caiCard(){
+  const t=new Date(), r=cwOf(qimen(t)), h=t.getHours(), end=(h%2?h+2:h+1)%24, P_=PAL[r.c.p];
+  const TAG=[['good','好時機'],['mid','可走'],['bad','先別走']];
+  return `<section class="card cai" aria-label="此時辰財位">
+    <div class="cai-dir" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21"/><g transform="rotate(${[0,45,90,135,180,225,270,315][DIRS.indexOf(P_[1])]||0} 24 24)"><path class="tip" d="M24 6 29.5 24h-11Z"/><path class="tail" d="M24 42 29.5 24h-11Z"/></g><circle class="hub" cx="24" cy="24" r="2.2"/></svg></div>
+    <div class="cai-t"><div class="eyebrow">此時辰財位 · 至 ${String(end).padStart(2,'0')}:00</div><b>${P_[1]}方</b><span class="small muted">${r.c.kong?'正逢空亡，等下個時辰再走':`生門落${P_[0]}宮${r.qi?`，逢${r.c.heaven}奇`:''}`}</span></div>
+    <span class="pill ${TAG[r.lv][0]}">${r.c.kong?'空亡':TAG[r.lv][1]}</span>
+    <button type="button" class="btn sm cai-go" data-cwhome>${r.c.kong?'看之後的時辰':'用羅盤找方向'}</button>
+  </section>`;
+}
 function cwOf(Q){const c=Object.values(Q.cells).find(c=>c.door==='生');const qi='乙丙丁'.includes(c.heaven);
   const lv=c.kong?2:(c.score>=3||qi&&c.score>=1)?0:c.score>=0?1:2;return {c,qi,lv}}
 function caiweiHtml(t,Q){
   const pad=n=>String(n).padStart(2,'0'), h=t.getHours(), st=new Date(t);st.setMinutes(0,0,0);st.setHours(h%2?h:h-1);
   const end=new Date(st.getTime()+7200e3), now=cwOf(Q), TAG=[['good','好時機'],['mid','可走'],['bad','不建議']];
   const left=Math.max(0,Math.round((end-t)/60000));
-  const next=Array.from({length:6},(_,k)=>{const a=new Date(st.getTime()+(k+1)*7200e3), m=new Date(a.getTime()+3600e3), r=cwOf(qimen(m));
-    return `<li><span class="num">${a.getHours()}–${(a.getHours()+2)%24} 點</span><b>${PAL[r.c.p][1]}</b><span class="pill sm ${TAG[r.lv][0]}">${r.c.kong?'空亡':TAG[r.lv][1]}</span></li>`}).join('');
+  const row=k=>{const a=new Date(st.getTime()+(k+1)*7200e3), m=new Date(a.getTime()+3600e3), r=cwOf(qimen(m)), on=cwSel.has(+a), d=a.getDate()!==t.getDate()?'明 ':'';
+    return `<li><span class="num">${d}${a.getHours()}–${(a.getHours()+2)%24} 點</span><span class="cwm"><b>${PAL[r.c.p][1]}</b><span class="pill ${TAG[r.lv][0]}">${r.c.kong?'空亡':TAG[r.lv][1]}</span></span><button type="button" class="bell" data-cwrem="${+a}" data-dir="${PAL[r.c.p][1]}" aria-pressed="${on}" aria-label="${d}${a.getHours()} 點提醒我往${PAL[r.c.p][1]}方走財位"${r.lv===2?' disabled':''}>${BELL_IC}</button></li>`};
+  const next=Array.from({length:6},(_,k)=>row(k)).join(''), more=Array.from({length:6},(_,k)=>row(k+6)).join('');
   const P_=PAL[now.c.p];
   return `<div class="card stack cw">
-    <div class="row between"><div><div class="eyebrow">走財位 · 此時辰（至 ${pad(end.getHours())}:00）</div><h3 class="h3">財位在${P_[1]}方</h3></div><span class="pill ${TAG[now.lv][0]}">${TAG[now.lv][1]}</span></div>
-    <p>這個時辰的「生門」（主生財、生機）落在${P_[0]}宮，也就是<b>${P_[1]}方</b>。${now.qi?`又逢${now.c.heaven}奇，民間視為更好的財利時機。`:''}${now.c.kong?'但此宮正逢<b>空亡</b>，財氣虛而不實，建議等下個時辰再走。':now.lv===2?'生門此時受制，力量不足，可改看下面其他時辰。':`若想走財位，可在剩下約 ${left} 分鐘內出發。`}</p>
+    <div class="row between"><div><div class="eyebrow">走財位 · 此時辰（至 ${pad(end.getHours())}:00）</div><h3 class="h3">財位在${P_[1]}方</h3></div><span class="pill ${TAG[now.lv][0]}">${now.c.kong?'空亡':TAG[now.lv][1]}</span></div>
+    <p>這個時辰的「生門」（主生財、生機）落在${P_[0]}宮，也就是<b>${P_[1]}方</b>。${now.qi&&!now.c.kong?`又逢${now.c.heaven}奇，民間視為更好的財利時機。`:''}${now.c.kong?'但此宮正逢<b>空亡</b>，財氣虛而不實，建議等下個時辰再走。':now.lv===2?'生門此時受制，力量不足，可改看下面其他時辰。':`若想走財位，可在剩下約 ${left} 分鐘內出發。`}</p>
     <button type="button" class="btn primary block" id="cwGo">用羅盤找${P_[1]}方</button>
-    <div><span class="small muted">接下來的時辰</span><ol class="cw-next">${next}</ol></div>
+    <div><div class="row between"><span class="small muted">接下來的時辰</span><span class="small muted">按 🔔 選想去的時辰</span></div><ol class="cw-next">${next}</ol>
+      <details class="disc cw-more"><summary>再往後 6 個時辰</summary><ol class="cw-next">${more}</ol></details>
+      <button type="button" class="btn block" id="cwIcs"${cwSel.size?'':' disabled'}>${cwSel.size?`加到行事曆（${cwSel.size} 個・提前 10 分提醒）`:'先按 🔔 選時辰，再加到行事曆'}</button></div>
     <details class="disc"><summary>怎麼走？要注意什麼</summary><div class="stack small" style="margin-top:8px">
       <p><b>做法</b>　用羅盤確認方向 → 在這個時辰內朝財位方向出門，走到安全、方便停留的地方 → 靜下心想想自己的理財目標，再回家。把它當成提醒自己積極行動的小儀式。</p>
       <p><b>要走多遠、停多久？</b>　目前查不到古籍或各派一致的標準。網路上常見「停留約 20 分鐘」只是個人建議，不是奇門的規定，也不會因為走得更久就更有效。</p>
@@ -1734,7 +1762,7 @@ function qianResult(n,cat,q){
     </div>
     <p><b>白話</b>　${Q[3]}</p>
     ${gy?`<p class="small muted">觀音籤原始資料未附吉凶等級；「${qGrade('gy',Q)}」與白話解說是依籤詩內容的白話判讀，僅供參考。</p>`:''}
-    ${gy?'':`<details class="disc" open><summary>逐句解</summary><div class="qlines">${lines.map((l,k)=>`<div class="ql"><b>${l}</b><span>${(window.QIAN_LINES||[])[n-1]?.[k]||''}</span></div>`).join('')}</div></details>`}
+    <details class="disc" open><summary>逐句解</summary><div class="qlines">${lines.map((l,k)=>`<div class="ql"><b>${l}</b><span>${((gy?window.GUANYIN_LINES:window.QIAN_LINES)||[])[n-1]?.[k]||''}</span></div>`).join('')}</div></details>
     ${!gy&&QS[n]?`<div class="qstory"><span class="eyebrow">典故</span><b>${QS[n][0]}</b><p class="small">${QS[n][1]}</p><p class="small muted">各廟配用的故事版本不一，此為常見版本之一。</p></div>`:''}
     <div class="reader"><div class="seal" aria-hidden="true">籤</div><p>你問的是「${esc(cat)}」${q?`：${esc(q)}`:''}。籤意說：<b>${Q[FIELD[cat]]}</b>${QGUIDE[cat][lv]}${advice}</p></div>
     <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">宜</span><div class="chips">${QDO[lv].map(x=>`<span class="pill good">${x}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">忌</span><div class="chips">${QDONT[lv].map(x=>`<span class="pill bad">${x}</span>`).join('')}</div></div></div>
@@ -2084,7 +2112,7 @@ async function shareCard(k){
 }
 
 /* ---------- 首頁自訂 ---------- */
-const HOME_BLK=[['daily','每日運勢'],['quick','快速入口'],['guide','趨吉避凶指南'],['style','開運穿搭・飲食'],['family','全家今日運勢'],['tiles','紫微・姓名・求籤捷徑'],['year','今年流年'],['chart','我的命盤'],['bazi','八字詳解']];
+const HOME_BLK=[['daily','每日運勢'],['quick','快速入口'],['guide','趨吉避凶指南'],['cai','此時辰財位'],['style','開運穿搭・飲食'],['family','全家今日運勢'],['tiles','紫微・姓名・求籤捷徑'],['year','今年流年'],['chart','我的命盤'],['bazi','八字詳解']];
 function homeOrder(){
   if(simple)return [{k:'daily',on:true},{k:'simple',on:true},{k:'family',on:PEOPLE.length>1}];
   const saved=store.get('gx_home',null), def=HOME_BLK.map(([k])=>({k,on:k!=='family'||PEOPLE.length>1}));
@@ -3390,6 +3418,10 @@ document.addEventListener('click',async e=>{
   if(t.dataset.zy!==undefined){zwYearOn=t.dataset.zy==='1';renderZiwei();return}
   if(t.dataset.yr){const yb=t.closest('.years'),sl=yb?yb.scrollLeft:0,y=scrollY;lnYear=+t.dataset.yr;renderLiunian();const nb=$('#v-liunian .years');if(nb){nb.scrollLeft=sl;const on=nb.querySelector('[aria-pressed="true"]');if(on){const r=on.getBoundingClientRect(),R=nb.getBoundingClientRect();if(r.left<R.left||r.right>R.right)nb.scrollTo({left:on.offsetLeft-(nb.clientWidth-on.clientWidth)/2,behavior:'smooth'})}}scrollTo({top:y});return}
   // 奇門
+  if(t.dataset.cwrem){const ts=+t.dataset.cwrem;cwSel.has(ts)?cwSel.delete(ts):cwSel.set(ts,t.dataset.dir);t.setAttribute('aria-pressed',cwSel.has(ts));buzz();
+    const b=$('#cwIcs');if(b){b.disabled=!cwSel.size;b.textContent=cwSel.size?`加到行事曆（${cwSel.size} 個・提前 10 分提醒）`:'先按 🔔 選時辰，再加到行事曆'}return}
+  if(t.id==='cwIcs'){if(cwSel.size){cwIcs();renderQimen()}return}
+  if(t.dataset.cwhome!==undefined){qmCat='財運';qmTime=null;qmSel=null;go('qimen');setTimeout(()=>$('#v-qimen .cw')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'}),450);return}
   if(t.id==='cwGo'){if(qmCat!=='財運'){qmCat='財運';qmSel=null;renderQimen()}requestAnimationFrame(()=>$('#v-qimen .cmpcard')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'center'}));hud('羅盤已對準生門（財位）');return}
   if(t.dataset.qc){qmCat=t.dataset.qc;qmSel=null;renderQimen();return}
   if(t.dataset.qp){qmSel=+t.dataset.qp;const y=scrollY;renderQimen();scrollTo(0,y);const c=qimen(qmTime||new Date()).cells[qmSel];sheet(`${PAL[qmSel][0]}${qmSel}宮 · ${PAL[qmSel][1]}方`,qmDetail(c).replace('id="qmDetail"',''));return}

@@ -1763,6 +1763,32 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .cw-next li>*{white-space:nowrap}
 .cw-next li .pill{justify-self:end}
 .cw-next li{gap:8px}.cw-next .num{min-width:5.2em}
+/* 走財位提醒鈴 */
+.cw-next li{grid-template-columns:auto auto 1fr auto}
+.cw-next .bell{width:36px;height:36px;border-radius:50%;border:.5px solid var(--line);background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer;transition:background .2s var(--ease),color .2s,transform .2s var(--ease)}
+.cw-next .bell svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.cw-next .bell[aria-pressed="true"]{background:var(--tint);color:var(--tint-ink);border-color:transparent;transform:scale(1.04)}
+.cw-next .bell[aria-pressed="true"] svg{fill:currentColor}
+.cw-next .bell:disabled{opacity:.3;cursor:default}
+.cw-more{margin-top:4px}
+/* 首頁：此時辰財位 */
+.cai{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.cai-dir svg{width:46px;height:46px;display:block}
+.cai-dir circle{fill:none;stroke:var(--line);stroke-width:1.5}
+.cai-dir path{fill:var(--tint);transition:transform .6s var(--ease)}
+.cai-t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cai-t b{font-family:var(--f-serif);font-size:22px;letter-spacing:.06em}
+.cai-a{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.cw-next li{grid-template-columns:auto 1fr auto}
+.cw-next .cwm{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;min-width:0}
+.cw-next .cwm b{white-space:nowrap}
+.cai{grid-template-columns:auto 1fr auto;row-gap:10px}
+.cai>.pill{align-self:start}
+.cai .cai-go{grid-column:1/-1}
+.cai-t .eyebrow{white-space:normal}
+.cai-dir path.tip{fill:var(--tint)}
+.cai-dir path.tail{fill:var(--line)}
+.cai-dir circle.hub{fill:var(--card);stroke:var(--tint);stroke-width:1.2}
 </style>
 </head>
 <body>
@@ -2502,7 +2528,108 @@ window.GUANYIN_DATA=[["","吉","天開地闢結良緣，日吉時良萬事全，
 ["","守","園林月色搖疎影，恍若鋪成滿地瓊，幾度兒童來收拾，豈知收拾總無成。","園林月光下樹影搖曳，地上像鋪滿美玉；孩子們幾次想收拾，卻怎麼也撿不起來——看得到卻得不到。","虛而難成。","一場空。","看得到得不到。","宜務實調養。","勿空想。"],
 ["","守","經商出入事遲疑，恐惹閒愁與是非，如鳥飛投羅網陷，相看能有幾人知。","經商出入猶豫不決，恐惹愁煩是非；像鳥飛入羅網，身陷其中卻少有人知。","防陷阱。","不利。","慎重。","多加注意。","謹慎。"],
 ["","平","等閑騎馬着鞭來，半有憂危半有財，似火方燒頭上屋，天教一雨蕩殃災。","輕鬆騎馬而來，卻是憂與財各半；像火燒到頭上屋頂，幸得老天一場雨，災禍化解。","有驚無險。","半得半失。","有波折。","急症可解。","化險為夷。"],
-["","守","欲就東兮欲就西，逢人說事轉痴迷，登山不見神仙面，莫若歸休更勿提。","想往東又想往西，逢人說事越說越糊塗；登山也見不到神仙，不如回家休息，別再提了。","放下為宜。","不宜。","不成。","休養。","歸家為安。"]];</script>
+["","守","欲就東兮欲就西，逢人說事轉痴迷，登山不見神仙面，莫若歸休更勿提。","想往東又想往西，逢人說事越說越糊塗；登山也見不到神仙，不如回家休息，別再提了。","放下為宜。","不宜。","不成。","休養。","歸家為安。"]];
+// 逐句白話：依字面與通行籤意撰寫，僅供參考
+window.GUANYIN_LINES=[["天地剛開創，結下美好的緣分","日子、時辰都好，萬事齊備","抽到這支籤可不簡單","只要做人正直，必得上位者賞識重用"],
+["大魚還沒化成龍，暫時守在江湖","還不到飛升離開水面的時候","將來有一天會大展頭角、脫胎換骨","一躍就能跳過龍門"],
+["頂著風雨來來回回","辛苦勞碌，像燕子一樣","好不容易啣泥把巢一層層築好","最後巢又崩壞，變回一堆泥"],
+["破掉的鏡子重新合圓","分開的人能再找到伴侶、重組家庭","從此家門換了新氣象","福氣、俸祿與子孫都會增加"],
+["拿著鋤頭挖地想找泉水","只要努力，就能搶先得到","不經意間忽然遇到知己","相遇後攜手一起往高處走"],
+["捨身跳下山崖餵養老虎","這才算得上真正的大丈夫","能捨己為人的人難得再有","走遍天下也找不到第二個"],
+["奔波勞碌，重重危險","拖泥帶水，還要翻山越嶺","若還想去別處另謀出路","恐怕千山萬水回不了頭"],
+["寒冬裡的松柏，是長年栽培出來的","雨雪風霜都摧不倒它","將來必定能被大大重用","成為撐起大局的棟樑之材"],
+["辛苦你來問我心裡的事","這番心意正適合說給你聽","你的心像鏡子一樣明亮","就像明月高掛天空，清清楚楚"],
+["箱子裡就藏著無價珍寶","卻只顧著到外地去尋找","就像拿著燈去找火","不如安靜下來，別白費心思"],
+["想求的好事讓人非常歡喜","親事上大家爭著張羅，只是一時忙亂","到最後終會成就好事","有貴人引你到好地方"],
+["壞運到了盡頭，好運就要來","振作起來，跟著走出陰暗塵埃","若在寅、卯（春天）時節得到好消息","只要立定志向，事情就會和諧"],
+["從小生在富貴人家","眼前一切都豐足講究","若能得到賞賜、受到重用","名聲傳遍四方，值得誇耀"],
+["就像仙鶴飛出了籠子","擺脫束縛，處處暢通","東南西北都沒有阻礙","任你一路直上九霄雲外"],
+["被人言語冒犯最難嚥下這口氣","一時衝動，災禍可能就上門","落得蛋破巢空、無處安身","為求穩當，要把心放寬、多忍讓"],
+["皺著眉頭煩惱的事暫時可以放下","眼前雲開，太陽就要出來","你就像汙泥中的一塊美玉","遇到好工匠一出手，就能脫穎而出"],
+["不要聽信閒話與是非","早晚念佛，讓心安定","如果把謊話當真","就像畫個餅來充飢，一點用也沒有"],
+["太陽西落、月亮東升","日夜循環，自古不變","修行的人得到此籤無往不利","各行各業的人也都能順心"],
+["在急流險灘放船的時候","狂風巨浪，硬闖又能如何","等到風平浪靜之後","穩穩把船開回來，就沒有危險"],
+["春天下了好久的雨，終於放晴","太陽月亮漸漸明亮","舊的事已經完成，新的事也順利","眼看就要一步登上佳境"],
+["陰陽相合是天意","男婚女嫁不是偶然","只要時運開始轉動","就有添丁、團圓的喜事"],
+["四周田地都已乾枯","久旱之後忽然連下三天雨","花果草木都得到滋潤","才知道這場雨價值千金"],
+["想登上月宮折取桂枝（求功名）","不必擔心天門不肯打開","所謀所望都會有好消息","自有高人把機會送上門"],
+["鄰里不和，家也不像家","像水泡、像落花，一場空","想靠上位者提拔也難以得力","最後事情亂得像一團麻"],
+["已經度過好幾重憂患危險","從今以後不再遇到凶事","放寬心，自然有出路","還會遇到高人護佑"],
+["傳來傳去的消息都是虛的","從遠方收到一封信","信裡答應給你功名","等到最後卻還是一場空"],
+["每次謀劃、每次行動都想很多","瞻前顧後，不敢去做","時機到了自然有貴人相助","那時就像住在銅牆鐵壁裡一樣安穩"],
+["東方月亮升起，正是美好","一下子被雲遮住半邊","不要說圓了又會缺","缺的地方終會重新圓滿"],
+["寶劍出鞘，光芒四射","在劍匣中也不會被灰塵掩蓋","有貴人親手提拔你","盡管放心施展，不必懷疑"],
+["勸你千萬不要向外人求","就像鶴飛來時遭到暗箭","又像上山砍柴，草裡藏著蛇","恐怕被人陷害，令人擔憂"],
+["清閒沒事就安靜坐著","餓了吃飯，睏了就睡","放下身心，不必忙碌","自然不會惹上災禍"],
+["前途渺茫，令人疑慮","石頭裡藏著美玉，卻沒人知道","有一天遇到明眼人剖開","才發現裡面的碧玉多麼珍奇"],
+["美玉就藏在石頭中心","有人指點，何必往外找","等高人來替你剖析","就像一場好雨洗淨心中煩悶"],
+["進退舉止都謙恭有禮","說話忠誠，聽話也明白","心裡對事情看得透徹","前途光明，像太陽高掛天空"],
+["重新整理衣冠，恢復往日風采","看似沒有功勞，其實有功","掃除路上的荊棘阻礙","大家一起商量，意見一致"],
+["眼前的病痛、官司不必擔心","實實在在的財利可以去求","就像被鎖住的猿猴脫了金鎖","重獲自由，回到仙洞自在來去"],
+["想問什麼時候平安順遂","現在就像風中的燭火，不合時宜","不如收拾一切，在家靜坐","才能免於搖晃，等待安穩"],
+["明鏡般的月亮剛升上天","一下子被雲霧遮得模糊","放寬心等浮雲散去","調整做法後，就有希望"],
+["遠方的消息難以探問","千萬不要私心強求","若把石頭磨成鏡子","只是白費一場精神"],
+["紅日西落，月亮東升","陰在增長、陽在消退","若是女性求得此籤","福祿增加，稱心如意"],
+["看似無限的好事，你要記清楚","就像把賊當成自己的兒子","不要貪眼前一點甜頭","恐怕以後反而吃苦"],
+["恩澤廣大，滋潤無邊","祈求祝禱，沒有偏私","一切眾生都能受惠","大家共享福利，圓滿周全"],
+["天地交融，萬物煥然一新","各自展現本色，怡然自得","世間萬象都很精彩","事事和諧，稱心如意"],
+["棋逢對手，要把心機藏好","黑白勝負還沒分出來","想知道最後誰會贏","就要搶先一步、見機行事"],
+["溫柔本來就勝過剛強","積善之家必然大吉大昌","若有人求得此籤","就像口渴時喝到甘露"],
+["勸你耐心守住原本的工作","穩住身心，別聽邪說","等到有人輕輕助你一把","滿園枯木也能再開花"],
+["錦上添花，顏色更鮮豔","時運來了，名利雙全","別人不要驚訝你成名得晚","一舉成功，名聲傳遍四海"],
+["鵾鳥在秋天化成大鵬","得意翱翔，一飛衝天","直衝萬里雲霄之外","其他鳥都比不上"],
+["謀劃的事像冰塊融化一樣難以成形","何必小氣貪求，苦苦去做","不如靜下心來，閒坐休息","等情勢變化，還有什麼好懷疑"],
+["五湖四海都能行船","高掛風帆，穩穩掌舵","幸好遇到順風，想去哪就去哪","滿船寶貝，稱心如意"],
+["夏天剛到，太陽正熱","大家都被炎熱弄得心煩","老天也懂得眾人的心意","特地送來涼爽的南風"],
+["在水裡撈月亮，白花工夫","花盡力氣，最後還是沒有","不要相信閒話和空談","白白投入心力也難有成果"],
+["失意的處境轉為得意的時候","龍吟虎嘯，彼此相得益彰","青雲之路終究會走到","功名一定可以期待"],
+["夢裡得到寶物，醒來卻沒有","就像巫山雲雨，只是一場虛幻","若問婚姻、疾病或官司","另找出路、換個方法才妥當"],
+["代代相傳，子孫稱讚","衣食豐足，富貴是天生福分","生活富足快樂","餓了吃飯、睏了睡覺，自在無憂"],
+["山澗窄、石頭多、水聲急","用力撐船恐怕會受傷","要有人指點，從前面的大江走","等風平浪靜，就不妨事"],
+["聽到的是是非非，當作耳邊風","好衣好祿，像太陽高掛","你要記住日後的事","你的心意和神明的心意相同"],
+["好好記住這些忠言善語","不要到別處另學別的本事","勸你安心守住原本的工作","除此之外都不適合"],
+["爬上高樓想躲避災禍","四周卻圍滿了荊棘","誰知道老天早有安排","得意的人反而變成失意"],
+["抱著柴去救火，煙更大","燒掉的範圍越來越廣","若問謀事或出門","不如收手，別再火上加油"],
+["白天吟詩，晚上唱歌","逢場作戲，笑聲不斷","相逢的場合藏不住喜悅","大家齊聲喝采"],
+["早晚全靠佛菩薩扶持","雖然遇到危險，卻能化險為夷","若得到貴人接引","這時福祿自然跟著來"],
+["以前行船時掉了一根針","今天又到海裡去找","就算真的找到那根針","也要花很多工夫和心力"],
+["就像金魚放進碧綠的水中","暗中卻被羅網四面包圍","想盡辦法也翻不了身","處境艱難，只能獨自悲傷"],
+["眼前的歡喜不是真的歡喜","看似危險又不危險，看似安穩又不安穩","何必割肉弄出傷口，自找麻煩","不如守住原本的，才能平安"],
+["路險馬遠，人越走越遠","離群的羊遇上老虎","過危險的灘頭又遇風浪","春末花殘，偏又降霜"],
+["一把金秤衡量你的心","不增不減，不偏不倚","因為你一生正直","就算不懂文章，道理也看得明白"],
+["家門清淨吉祥，夢境也是好兆頭","積善之家大吉大昌","官司有理、婚事可成、收成豐盛","生病也能遇到良藥而康復"],
+["冬天山嶺上的一枝梅花","葉子落了、枝條枯了，仍然不倒","春天的消息已經近了","依舊能拔得頭籌"],
+["每天像蜜蜂一樣忙碌","飛東飛西","春末花謝，找不到地方採蜜","只好不再留戀舊巢，另尋出路"],
+["誰知心愛的人遇上強橫之人","像女子一生嫁了兩次","但一弓射出兩箭，各有所得","最後仍能安穩居住"],
+["逗弄蜜蜂是為了求蜜","只怕被牠尾巴上的針螫到","眼前雖然有另一條路","暗地裡卻藏著荊棘"],
+["春雷驚醒冬眠的蟲","脫離舊地，走出舊牆","忽然遇到風雲際會","自然變化成龍"],
+["懶得飛的野鶴自己飛進籠子","想高飛卻落入陷阱","東南西北處處有阻礙","身心憔悴，遺憾無窮"],
+["就像抱著老虎過山","戰戰兢兢，嚇得膽寒","幸好在山前遇到高手","才保住一身平安"],
+["魚和龍混在一起，看似相同","耐心守在寒潭裡，還沒成功","不知不覺有一天嶄露頭角","一躍過龍門，直上天宮"],
+["在夢中說夢，得了許多財","身外的虛名不要去猜想","路途遙遠，事情難以確定","等貴人一指點，就能開心起來"],
+["冷水澆在白雪上","不冷不熱，剛好溫和","走遍天下沒有別的","只靠自己身懷一技之長"],
+["曾經許下願望、結下善緣","保得平安，卻還沒還願","得到兔子就忘了捕兔的工具","怎能輕忽當初的誓言"],
+["上高山去學仙修道","哪知道有一天被帝王召見","光明磊落，像青天白日","志向遠大，名聲傳遍四海"],
+["深秋時節，庭前落葉","趕路的旅人走得飛快","多謝老天輕輕出力","順風送寶船回來"],
+["熊熊烈火燒到天上","火焰中竟然生出一朵蓮花","根基始終不會壞","枝葉依然鮮豔"],
+["就像初三、四、五的月亮","半有半無，還不完整","要等到十五的好夜晚","處處清光，處處圓滿"],
+["為了名利失了德行，與人不和","切記不要在忙亂中把事情弄糟","像喝醉後不知走到哪裡","在松樹影下昏昏沉沉睡著"],
+["重新開創，把過去的事收起來","好事可以再次團聚","醉中吟詠新詩，更添興致","有貴人引領你直上青雲"],
+["春天花開，映照樓台","萬里行船，載寶而歸","躍過龍門三級浪","像平地一聲雷，一鳴驚人"],
+["人走到半山腰，太陽已經下山","山崖險峻，難以攀登","只能仰望上天保佑","這身子還懸在半空中"],
+["山林裡有一隻木雕的老虎","遠看威風，讓人心驚","雖說它無害，終究令人害怕","這身子像落入大江中心"],
+["出入謀事都大吉大昌","沒有瑕疵的美玉藏在石中","如今幸好得到高人指點","得到寶物，稱心喜悅"],
+["忽然有一天，好消息從天而降","寶貝裝滿整船載回","若問前程能成就什麼","始終會有貴人提拔"],
+["把愁眉舒展開來吧","你這大才會被舉薦重用","前面一條大路平坦如掌","所作所為都稱心如意"],
+["做生意得利，稱心如意","福祿榮華，財富加倍","若問升遷謀事","就像秀才一舉高中狀元"],
+["鸞鳳的羽毛被雨壓得下垂","這時難免被小麻雀欺負","等到有一天雲開天晴","依舊能振翅高飛"],
+["要分清小人與君子、賢與愚","事情出了差錯，就容易起是非","遇到知音才彈琴","不如安定靜守，反而得益"],
+["事業功勳從早到晚累積","榮華豐盛，數也數不完","告訴你要記住雞年（酉年）","福祿與名聲自然超群"],
+["高大的寶塔非比尋常","八面玲瓏，處處放光","勸你誠心勤加禮拜","天龍護佑，降下千種吉祥"],
+["園林月光下樹影搖曳","好像滿地鋪著美玉","孩子們幾次想去收拾","哪知道怎麼也撿不起來"],
+["做生意出入猶豫不決","恐怕惹來閒愁與是非","就像鳥飛進了羅網","身陷其中，卻沒幾個人知道"],
+["輕鬆騎馬揮鞭而來","一半是憂慮危險，一半是財","就像火燒到頭上的屋頂","幸好老天降下一場雨，化解災禍"],
+["想往東又想往西","逢人就說，越說越糊塗","登山也見不到神仙","不如回家休息，別再提了"]];</script>
 <script>// 周公解夢：民間流傳說法＋現代心理提醒。[關鍵字(|分隔), 類別, 吉凶 g吉 m平 b凶, 民間說法, 心理提醒]
 window.DREAM_DATA=[
 ['蛇|大蛇|白蛇|青蛇','動物','g','民間說夢見蛇主財運或桃花將至；蛇入屋、纏身多解為得財。','蛇常代表讓你在意又難以掌握的事，留意最近心裡的不安或渴望。'],
@@ -3420,7 +3547,7 @@ function renderOverview(){
   const nm=nameAnalysis(P.sur,P.given);
   const cy=now.getFullYear(), ygz=yearGZ(cy), ys=yearInfo(cy);
   const dec=A?A.horoscope(now).decadal:null;
-  const BLK={daily:()=>dailyCard(),quick:()=>`<nav class="quick" aria-label="快速入口"><button type="button" class="qk" data-go="qian"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/></svg></span><span>求籤</span></button><button type="button" class="qk" data-go="jiao"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13c0-4 3-7 7-7-1 3-1 6 0 9-4 0-7-1-7-2Z"/><path d="M20 13c0-4-3-7-7-7 1 3 1 6 0 9 4 0 7-1 7-2Z"/></svg></span><span>擲筊</span></button><button type="button" class="qk" data-go="tarot"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="10" height="15" rx="2" transform="rotate(-10 9 12.5)"/><rect x="10" y="4" width="10" height="15" rx="2" transform="rotate(8 15 11.5)"/></svg></span><span>塔羅</span></button><button type="button" class="qk" data-go="dream"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></span><span>解夢</span></button><button type="button" class="qk" data-go="festival"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v5M9 4.5v3.5M15 4.5v3.5"/><path d="M5 11h14l-1.6 8.5H6.6Z"/></svg></span><span>拜拜</span></button><button type="button" class="qk" data-go="zeri"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg></span><span>擇日</span></button><button type="button" class="qk" data-go="fengshui"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg></span><span>風水</span></button><button type="button" class="qk" data-go="ziwei"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/></svg></span><span>紫微</span></button></nav>${canInstall()&&!store.get('gx_inst',0)?`<button type="button" class="btn block inst-cta" data-act="install"><img src="icons/icon-192.png" alt=""><span><b>${instEvt?'一鍵安裝到手機主畫面':'加到手機主畫面'}</b><small>${instEvt?'按一下就裝好，像 App 一樣使用':isIOS?'依提示按「分享 → 加入主畫面」':'像 App 一樣一點就開'}</small></span></button>`:''}`,guide:()=>guideCard(),tiles:()=>`
+  const BLK={cai:()=>caiCard(),daily:()=>dailyCard(),quick:()=>`<nav class="quick" aria-label="快速入口"><button type="button" class="qk" data-go="qian"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9h10l-1.2 11.5H8.2Z"/><path d="M9.5 9V3.5M12 9V2.5M14.5 9V4.5"/></svg></span><span>求籤</span></button><button type="button" class="qk" data-go="jiao"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13c0-4 3-7 7-7-1 3-1 6 0 9-4 0-7-1-7-2Z"/><path d="M20 13c0-4-3-7-7-7 1 3 1 6 0 9 4 0 7-1 7-2Z"/></svg></span><span>擲筊</span></button><button type="button" class="qk" data-go="tarot"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="10" height="15" rx="2" transform="rotate(-10 9 12.5)"/><rect x="10" y="4" width="10" height="15" rx="2" transform="rotate(8 15 11.5)"/></svg></span><span>塔羅</span></button><button type="button" class="qk" data-go="dream"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></span><span>解夢</span></button><button type="button" class="qk" data-go="festival"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v5M9 4.5v3.5M15 4.5v3.5"/><path d="M5 11h14l-1.6 8.5H6.6Z"/></svg></span><span>拜拜</span></button><button type="button" class="qk" data-go="zeri"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg></span><span>擇日</span></button><button type="button" class="qk" data-go="fengshui"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg></span><span>風水</span></button><button type="button" class="qk" data-go="ziwei"><span class="qi"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/></svg></span><span>紫微</span></button></nav>${canInstall()&&!store.get('gx_inst',0)?`<button type="button" class="btn block inst-cta" data-act="install"><img src="icons/icon-192.png" alt=""><span><b>${instEvt?'一鍵安裝到手機主畫面':'加到手機主畫面'}</b><small>${instEvt?'按一下就裝好，像 App 一樣使用':isIOS?'依提示按「分享 → 加入主畫面」':'像 App 一樣一點就開'}</small></span></button>`:''}`,guide:()=>guideCard(),tiles:()=>`
   <div class="grid3">
     <button class="tile" data-go="ziwei"><span class="stat"><span class="k">紫微命宮</span><span class="v">${mStars}</span><span class="s">${A?A.fiveElementsClass:''}${dec?` · 大限${A.palaces[dec.index].name}`:''}</span></span></button>
     <button class="tile" data-go="name"><span class="stat"><span class="k">姓名評分</span><span class="v num">${nm.ok?nm.score+' 分':'—'}</span><span class="s">${nm.ok?`總格 ${nm.g.zong} ${n81(nm.g.zong)[0]==='半'?'半吉':n81(nm.g.zong)[0]}`:'有字缺筆畫'}</span></span></button>
@@ -3814,20 +3941,48 @@ function qmDetail(c){
   </div>`;
 }
 /* 走財位：生門所落宮位＝此時辰的財位方向（民俗做法；停留時間、距離無古籍統一標準） */
+const BELL_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
+let cwSel=new Map();
+function cwIcs(){
+  const pad=n=>String(n).padStart(2,'0'), f=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`, now=new Date();
+  const url=location.href.split('#')[0].split('?')[0]+'#qimen';
+  const ev=[...cwSel].sort((a,b)=>a[0]-b[0]).map(([ts,dir])=>{const d=new Date(ts);return ['BEGIN:VEVENT',`UID:lingxi-cw-${ts}@lingxi`,`DTSTAMP:${f(now)}`,`DTSTART:${f(d)}`,'DURATION:PT2H',`SUMMARY:走財位：往${dir}方`,
+    `DESCRIPTION:這個時辰的生門（財位）在${dir}方。出門前用靈犀羅盤確認方向，走到安全的地方靜心想想理財目標即可；停留多久沒有統一標準，勿為此借錢或下注。 ${url}`,
+    'BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:10 分鐘後可往${dir}方走財位`,'TRIGGER:-PT10M','END:VALARM','END:VEVENT']}).flat();
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LINGXI//Caiwei//ZH-TW','CALSCALE:GREGORIAN',...ev,'END:VCALENDAR'].join('\r\n');
+  const blob=new Blob([ics],{type:'text/calendar'}), file=new File([blob],'lingxi-caiwei.ics',{type:'text/calendar'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})&&!isIOS){navigator.share({files:[file]}).catch(()=>{})}
+  else{const a=document.createElement('a');a.href=isIOS?'data:text/calendar;charset=utf-8,'+encodeURIComponent(ics):URL.createObjectURL(blob);a.download='lingxi-caiwei.ics';document.body.appendChild(a);a.click();a.remove()}
+  toast(`已產生 ${cwSel.size} 個走財位提醒，請在行事曆按「加入」`,'check');cwSel.clear();
+}
+/* 首頁小卡：此時辰財位 */
+function caiCard(){
+  const t=new Date(), r=cwOf(qimen(t)), h=t.getHours(), end=(h%2?h+2:h+1)%24, P_=PAL[r.c.p];
+  const TAG=[['good','好時機'],['mid','可走'],['bad','先別走']];
+  return `<section class="card cai" aria-label="此時辰財位">
+    <div class="cai-dir" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21"/><g transform="rotate(${[0,45,90,135,180,225,270,315][DIRS.indexOf(P_[1])]||0} 24 24)"><path class="tip" d="M24 6 29.5 24h-11Z"/><path class="tail" d="M24 42 29.5 24h-11Z"/></g><circle class="hub" cx="24" cy="24" r="2.2"/></svg></div>
+    <div class="cai-t"><div class="eyebrow">此時辰財位 · 至 ${String(end).padStart(2,'0')}:00</div><b>${P_[1]}方</b><span class="small muted">${r.c.kong?'正逢空亡，等下個時辰再走':`生門落${P_[0]}宮${r.qi?`，逢${r.c.heaven}奇`:''}`}</span></div>
+    <span class="pill ${TAG[r.lv][0]}">${r.c.kong?'空亡':TAG[r.lv][1]}</span>
+    <button type="button" class="btn sm cai-go" data-cwhome>${r.c.kong?'看之後的時辰':'用羅盤找方向'}</button>
+  </section>`;
+}
 function cwOf(Q){const c=Object.values(Q.cells).find(c=>c.door==='生');const qi='乙丙丁'.includes(c.heaven);
   const lv=c.kong?2:(c.score>=3||qi&&c.score>=1)?0:c.score>=0?1:2;return {c,qi,lv}}
 function caiweiHtml(t,Q){
   const pad=n=>String(n).padStart(2,'0'), h=t.getHours(), st=new Date(t);st.setMinutes(0,0,0);st.setHours(h%2?h:h-1);
   const end=new Date(st.getTime()+7200e3), now=cwOf(Q), TAG=[['good','好時機'],['mid','可走'],['bad','不建議']];
   const left=Math.max(0,Math.round((end-t)/60000));
-  const next=Array.from({length:6},(_,k)=>{const a=new Date(st.getTime()+(k+1)*7200e3), m=new Date(a.getTime()+3600e3), r=cwOf(qimen(m));
-    return `<li><span class="num">${a.getHours()}–${(a.getHours()+2)%24} 點</span><b>${PAL[r.c.p][1]}</b><span class="pill sm ${TAG[r.lv][0]}">${r.c.kong?'空亡':TAG[r.lv][1]}</span></li>`}).join('');
+  const row=k=>{const a=new Date(st.getTime()+(k+1)*7200e3), m=new Date(a.getTime()+3600e3), r=cwOf(qimen(m)), on=cwSel.has(+a), d=a.getDate()!==t.getDate()?'明 ':'';
+    return `<li><span class="num">${d}${a.getHours()}–${(a.getHours()+2)%24} 點</span><span class="cwm"><b>${PAL[r.c.p][1]}</b><span class="pill ${TAG[r.lv][0]}">${r.c.kong?'空亡':TAG[r.lv][1]}</span></span><button type="button" class="bell" data-cwrem="${+a}" data-dir="${PAL[r.c.p][1]}" aria-pressed="${on}" aria-label="${d}${a.getHours()} 點提醒我往${PAL[r.c.p][1]}方走財位"${r.lv===2?' disabled':''}>${BELL_IC}</button></li>`};
+  const next=Array.from({length:6},(_,k)=>row(k)).join(''), more=Array.from({length:6},(_,k)=>row(k+6)).join('');
   const P_=PAL[now.c.p];
   return `<div class="card stack cw">
-    <div class="row between"><div><div class="eyebrow">走財位 · 此時辰（至 ${pad(end.getHours())}:00）</div><h3 class="h3">財位在${P_[1]}方</h3></div><span class="pill ${TAG[now.lv][0]}">${TAG[now.lv][1]}</span></div>
-    <p>這個時辰的「生門」（主生財、生機）落在${P_[0]}宮，也就是<b>${P_[1]}方</b>。${now.qi?`又逢${now.c.heaven}奇，民間視為更好的財利時機。`:''}${now.c.kong?'但此宮正逢<b>空亡</b>，財氣虛而不實，建議等下個時辰再走。':now.lv===2?'生門此時受制，力量不足，可改看下面其他時辰。':`若想走財位，可在剩下約 ${left} 分鐘內出發。`}</p>
+    <div class="row between"><div><div class="eyebrow">走財位 · 此時辰（至 ${pad(end.getHours())}:00）</div><h3 class="h3">財位在${P_[1]}方</h3></div><span class="pill ${TAG[now.lv][0]}">${now.c.kong?'空亡':TAG[now.lv][1]}</span></div>
+    <p>這個時辰的「生門」（主生財、生機）落在${P_[0]}宮，也就是<b>${P_[1]}方</b>。${now.qi&&!now.c.kong?`又逢${now.c.heaven}奇，民間視為更好的財利時機。`:''}${now.c.kong?'但此宮正逢<b>空亡</b>，財氣虛而不實，建議等下個時辰再走。':now.lv===2?'生門此時受制，力量不足，可改看下面其他時辰。':`若想走財位，可在剩下約 ${left} 分鐘內出發。`}</p>
     <button type="button" class="btn primary block" id="cwGo">用羅盤找${P_[1]}方</button>
-    <div><span class="small muted">接下來的時辰</span><ol class="cw-next">${next}</ol></div>
+    <div><div class="row between"><span class="small muted">接下來的時辰</span><span class="small muted">按 🔔 選想去的時辰</span></div><ol class="cw-next">${next}</ol>
+      <details class="disc cw-more"><summary>再往後 6 個時辰</summary><ol class="cw-next">${more}</ol></details>
+      <button type="button" class="btn block" id="cwIcs"${cwSel.size?'':' disabled'}>${cwSel.size?`加到行事曆（${cwSel.size} 個・提前 10 分提醒）`:'先按 🔔 選時辰，再加到行事曆'}</button></div>
     <details class="disc"><summary>怎麼走？要注意什麼</summary><div class="stack small" style="margin-top:8px">
       <p><b>做法</b>　用羅盤確認方向 → 在這個時辰內朝財位方向出門，走到安全、方便停留的地方 → 靜下心想想自己的理財目標，再回家。把它當成提醒自己積極行動的小儀式。</p>
       <p><b>要走多遠、停多久？</b>　目前查不到古籍或各派一致的標準。網路上常見「停留約 20 分鐘」只是個人建議，不是奇門的規定，也不會因為走得更久就更有效。</p>
@@ -4480,7 +4635,7 @@ function qianResult(n,cat,q){
     </div>
     <p><b>白話</b>　${Q[3]}</p>
     ${gy?`<p class="small muted">觀音籤原始資料未附吉凶等級；「${qGrade('gy',Q)}」與白話解說是依籤詩內容的白話判讀，僅供參考。</p>`:''}
-    ${gy?'':`<details class="disc" open><summary>逐句解</summary><div class="qlines">${lines.map((l,k)=>`<div class="ql"><b>${l}</b><span>${(window.QIAN_LINES||[])[n-1]?.[k]||''}</span></div>`).join('')}</div></details>`}
+    <details class="disc" open><summary>逐句解</summary><div class="qlines">${lines.map((l,k)=>`<div class="ql"><b>${l}</b><span>${((gy?window.GUANYIN_LINES:window.QIAN_LINES)||[])[n-1]?.[k]||''}</span></div>`).join('')}</div></details>
     ${!gy&&QS[n]?`<div class="qstory"><span class="eyebrow">典故</span><b>${QS[n][0]}</b><p class="small">${QS[n][1]}</p><p class="small muted">各廟配用的故事版本不一，此為常見版本之一。</p></div>`:''}
     <div class="reader"><div class="seal" aria-hidden="true">籤</div><p>你問的是「${esc(cat)}」${q?`：${esc(q)}`:''}。籤意說：<b>${Q[FIELD[cat]]}</b>${QGUIDE[cat][lv]}${advice}</p></div>
     <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">宜</span><div class="chips">${QDO[lv].map(x=>`<span class="pill good">${x}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">忌</span><div class="chips">${QDONT[lv].map(x=>`<span class="pill bad">${x}</span>`).join('')}</div></div></div>
@@ -4830,7 +4985,7 @@ async function shareCard(k){
 }
 
 /* ---------- 首頁自訂 ---------- */
-const HOME_BLK=[['daily','每日運勢'],['quick','快速入口'],['guide','趨吉避凶指南'],['style','開運穿搭・飲食'],['family','全家今日運勢'],['tiles','紫微・姓名・求籤捷徑'],['year','今年流年'],['chart','我的命盤'],['bazi','八字詳解']];
+const HOME_BLK=[['daily','每日運勢'],['quick','快速入口'],['guide','趨吉避凶指南'],['cai','此時辰財位'],['style','開運穿搭・飲食'],['family','全家今日運勢'],['tiles','紫微・姓名・求籤捷徑'],['year','今年流年'],['chart','我的命盤'],['bazi','八字詳解']];
 function homeOrder(){
   if(simple)return [{k:'daily',on:true},{k:'simple',on:true},{k:'family',on:PEOPLE.length>1}];
   const saved=store.get('gx_home',null), def=HOME_BLK.map(([k])=>({k,on:k!=='family'||PEOPLE.length>1}));
@@ -6136,6 +6291,10 @@ document.addEventListener('click',async e=>{
   if(t.dataset.zy!==undefined){zwYearOn=t.dataset.zy==='1';renderZiwei();return}
   if(t.dataset.yr){const yb=t.closest('.years'),sl=yb?yb.scrollLeft:0,y=scrollY;lnYear=+t.dataset.yr;renderLiunian();const nb=$('#v-liunian .years');if(nb){nb.scrollLeft=sl;const on=nb.querySelector('[aria-pressed="true"]');if(on){const r=on.getBoundingClientRect(),R=nb.getBoundingClientRect();if(r.left<R.left||r.right>R.right)nb.scrollTo({left:on.offsetLeft-(nb.clientWidth-on.clientWidth)/2,behavior:'smooth'})}}scrollTo({top:y});return}
   // 奇門
+  if(t.dataset.cwrem){const ts=+t.dataset.cwrem;cwSel.has(ts)?cwSel.delete(ts):cwSel.set(ts,t.dataset.dir);t.setAttribute('aria-pressed',cwSel.has(ts));buzz();
+    const b=$('#cwIcs');if(b){b.disabled=!cwSel.size;b.textContent=cwSel.size?`加到行事曆（${cwSel.size} 個・提前 10 分提醒）`:'先按 🔔 選時辰，再加到行事曆'}return}
+  if(t.id==='cwIcs'){if(cwSel.size){cwIcs();renderQimen()}return}
+  if(t.dataset.cwhome!==undefined){qmCat='財運';qmTime=null;qmSel=null;go('qimen');setTimeout(()=>$('#v-qimen .cw')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'}),450);return}
   if(t.id==='cwGo'){if(qmCat!=='財運'){qmCat='財運';qmSel=null;renderQimen()}requestAnimationFrame(()=>$('#v-qimen .cmpcard')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'center'}));hud('羅盤已對準生門（財位）');return}
   if(t.dataset.qc){qmCat=t.dataset.qc;qmSel=null;renderQimen();return}
   if(t.dataset.qp){qmSel=+t.dataset.qp;const y=scrollY;renderQimen();scrollTo(0,y);const c=qimen(qmTime||new Date()).cells[qmSel];sheet(`${PAL[qmSel][0]}${qmSel}宮 · ${PAL[qmSel][1]}方`,qmDetail(c).replace('id="qmDetail"',''));return}
@@ -6307,6 +6466,28 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.1-4",
+  "n": "1.15",
+  "d": "11 月 1 日",
+  "items": [
+   [
+    "觀音籤加上逐句解",
+    "觀音一百籤的每一句籤詩都配上一句白話，長輩也能一句一句看懂。",
+    "qian"
+   ],
+   [
+    "走財位可以設提醒",
+    "在奇門的「走財位」按 🔔 選想去的時辰（可往後看 12 個時辰），一鍵加到手機行事曆，時間到前 10 分鐘會提醒你往哪個方向走。",
+    "qimen"
+   ],
+   [
+    "首頁新增「此時辰財位」",
+    "今日頁直接看到現在的財位方向與指針，一點就開羅盤找方向；不想看可在「自訂首頁」關掉。",
+    "overview"
+   ]
+  ]
+ },
  {
   "v": "2026.11.1-3",
   "n": "1.14",
