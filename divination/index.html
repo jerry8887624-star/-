@@ -1653,6 +1653,21 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .cmpwrap{container-type:inline-size}
 .cmpmid b{font-size:min(34px,11.5cqw)}
 .cmpmid span{font-size:min(13px,4.4cqw);white-space:nowrap}
+/* 選擇要加入行事曆的節日 */
+.fpick{gap:14px}
+
+
+
+.fchk{display:flex;align-items:center;gap:12px;cursor:pointer;min-height:44px}
+.fchk input{flex:none;width:22px;height:22px;margin:0;accent-color:var(--good)}
+.fchk>span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.fpi{padding:4px 0}
+
+
+.fpg{padding:2px 12px 6px;border-radius:14px;background:var(--fill)}
+.fchk.fpg-h{padding:8px 0;border-bottom:1px solid var(--line)}
+.fpg-t{flex-direction:row!important;align-items:baseline;gap:8px!important;flex-wrap:wrap}
+.fpick-f{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;gap:6px;padding:12px 0 6px;background:var(--bg);box-shadow:0 -14px 14px -4px var(--bg),0 40px 0 var(--bg)}
 </style>
 </head>
 <body>
@@ -4735,8 +4750,8 @@ function renderFestival(){
   <div class="card stack">
     <label class="toggle"><input type="checkbox" id="fY"${opt.y?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>顯示每月初一、十五拜拜</span></label>
     <label class="toggle"><input type="checkbox" id="fZ"${opt.z?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>顯示初二、十六做牙（商家）</span></label>
-    <button type="button" class="btn primary" data-act="festics">全部加到行事曆（未來一年）</button>
-    <p class="small muted">會在每個節日前一天晚上 6 點提醒你準備，${inFrame?'請在正式網站使用此功能。':'iPhone 按「加入全部」、Android 用 Google 日曆開啟即可。'}</p>
+    <button type="button" class="btn primary" data-act="festpick">選擇要加到行事曆的節日</button>
+    <p class="small muted">可以挑選要加入哪些節日、要不要提醒，${inFrame?'請在正式網站使用此功能。':'iPhone 按「加入全部」、Android 用 Google 日曆開啟即可。'}</p>
   </div>
   <div class="card stack"><h3 class="h3">未來 90 天</h3>
     ${list.length?`<div class="flist">${list.map(f=>{const d=f.date,isT=d.toDateString()===today;return `<div class="fi${isT?' today':''}"><div class="fi-d"><b class="num">${d.getMonth()+1}/${d.getDate()}</b><span>${isT?'今天':'週'+WEEK[d.getDay()]}</span></div>
@@ -4745,16 +4760,47 @@ function renderFestival(){
   <div class="card flat stack"><b>安太歲、點光明燈</b><p class="small">民間習俗在農曆正月初一到元宵節（正月十五）之間到廟裡安太歲、點光明燈。今年犯太歲的家人，可在「全家」頁查看。</p></div>
   ${helpBox('festival')}`;
 }
-function festIcs(){
-  const opt=festOpt(), list=festRange(366,opt), pad=n=>String(n).padStart(2,'0'), fmt=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
-  const url=location.href.split('#')[0].split('?')[0]+'#festival', now=new Date();
+// 選擇要加入行事曆的節日：依類別或逐項勾選，可選提醒時間；選擇會記住
+const FGROUP=['神','節','拜','俗','月','牙'];
+const fKey=f=>f.k==='月'||f.k==='牙'?f.k:f.n;
+const FREM={eve:['前一天晚上 6 點','-PT6H'],morn:['當天早上 7 點','PT7H'],none:['不提醒',null]};
+function festPicker(){
+  const all=festRange(366,{y:true,z:true}), opt=festOpt();
+  const items={};all.forEach(f=>{const k=fKey(f);(items[k]=items[k]||{k,kind:f.k,n:f.k==='月'?'每月初一、十五拜拜':f.k==='牙'?'每月初二、十六做牙（商家）':f.n,list:[]}).list.push(f)});
+  const saved=store.get('gx_fsel',null), off=new Set(saved?saved.off:[...(opt.y?[]:['月']),...(opt.z?[]:['牙'])]);
+  let rem=store.get('gx_frem','eve');
+  const md=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  const groups=FGROUP.map(g=>[g,Object.values(items).filter(x=>x.kind===g)]).filter(([,xs])=>xs.length);
+  const body=`<div class="stack fpick">
+    <p class="small muted">勾選要加入的節日（未來一年）。點類別可以整組勾選或取消。</p>
+    ${groups.map(([g,xs])=>`<div class="fpg" role="group" aria-label="${FKIND[g][0]}" data-fg="${g}"><label class="fchk fpg-h"><input type="checkbox" data-fgall="${g}"><span class="fpg-t"><b>${FKIND[g][0]}</b><span class="small muted">${xs.reduce((a,x)=>a+x.list.length,0)} 個</span></span></label>
+      ${xs.map(x=>`<label class="fchk fpi"><input type="checkbox" data-fk="${esc(x.k)}"${off.has(x.k)?'':' checked'}><span><span>${esc(x.n)}</span><span class="small muted">${x.list.length>1?`共 ${x.list.length} 次・下一次 ${md(x.list[0].date)}`:`${md(x.list[0].date)}（週${WEEK[x.list[0].date.getDay()]}）`}</span></span></label>`).join('')}</div>`).join('')}
+    <div class="stack" style="gap:8px"><b>提醒時間</b><div class="seg" role="group" aria-label="提醒時間">${Object.entries(FREM).map(([k,v])=>`<button type="button" data-frem="${k}" aria-pressed="${k===rem}">${v[0]}</button>`).join('')}</div></div>
+    <div class="fpick-f"><div class="row between"><button type="button" class="btn sm ghost" data-fall="1">全選</button><button type="button" class="btn sm ghost" data-fall="0">全不選</button></div>
+      <button type="button" class="btn primary block" data-fgo>加到行事曆</button></div></div>`;
+  const L=sheet('加到行事曆',body), P=L.panel;
+  const sync=()=>{
+    P.querySelectorAll('[data-fgall]').forEach(a=>{const cs=[...P.querySelectorAll(`[data-fg="${a.dataset.fgall}"] [data-fk]`)],n=cs.filter(c=>c.checked).length;a.checked=n===cs.length;a.indeterminate=n>0&&n<cs.length});
+    const on=[...P.querySelectorAll('[data-fk]')].filter(c=>c.checked).map(c=>c.dataset.fk), cnt=on.reduce((a,k)=>a+items[k].list.length,0);
+    const go=P.querySelector('[data-fgo]');go.disabled=!cnt;go.textContent=cnt?`加到行事曆（${cnt} 個節日）`:'請至少勾選一項';return on};
+  P.addEventListener('change',e=>{const a=e.target.closest('[data-fgall]');if(a)P.querySelectorAll(`[data-fg="${a.dataset.fgall}"] [data-fk]`).forEach(c=>c.checked=a.checked);sync()});
+  P.addEventListener('click',e=>{const t=e.target.closest('[data-frem],[data-fall],[data-fgo]');if(!t)return;
+    if(t.dataset.frem){rem=t.dataset.frem;P.querySelectorAll('[data-frem]').forEach(b=>b.setAttribute('aria-pressed',b===t))}
+    else if(t.dataset.fall){P.querySelectorAll('[data-fk]').forEach(c=>c.checked=t.dataset.fall==='1');sync()}
+    else{const on=sync();store.set('gx_fsel',{off:Object.keys(items).filter(k=>!on.includes(k))});store.set('gx_frem',rem);
+      const list=all.filter(f=>on.includes(fKey(f)));closeLayer(L);festIcs(list,rem)}});
+  sync();
+}
+function festIcs(list,rem='eve'){
+  const pad=n=>String(n).padStart(2,'0'), fmt=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+  const url=location.href.split('#')[0].split('?')[0]+'#festival', now=new Date(), trig=FREM[rem]?.[1];
   const ev=list.map((f,i)=>{const d=f.date, e=new Date(d);e.setDate(d.getDate()+1);
-    return ['BEGIN:VEVENT',`UID:lingxi-fest-${fmt(d)}-${i}@lingxi`,`DTSTAMP:${fmt(now)}T000000Z`,`DTSTART;VALUE=DATE:${fmt(d)}`,`DTEND;VALUE=DATE:${fmt(e)}`,`SUMMARY:${f.n}`,`DESCRIPTION:${f.t} ${url}`,'BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:明天是${f.n}`,'TRIGGER:-PT6H','END:VALARM','END:VEVENT'].join('\r\n')});
+    return ['BEGIN:VEVENT',`UID:lingxi-fest-${fmt(d)}-${i}@lingxi`,`DTSTAMP:${fmt(now)}T000000Z`,`DTSTART;VALUE=DATE:${fmt(d)}`,`DTEND;VALUE=DATE:${fmt(e)}`,`SUMMARY:${f.n}`,`DESCRIPTION:${f.t} ${url}`,...(trig?['BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${rem==='eve'?'明天':'今天'}是${f.n}`,`TRIGGER:${trig}`,'END:VALARM']:[]),'END:VEVENT'].join('\r\n')});
   const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//LINGXI//Festival//ZH-TW','CALSCALE:GREGORIAN',...ev,'END:VCALENDAR'].join('\r\n');
   const blob=new Blob([ics],{type:'text/calendar'}), file=new File([blob],'lingxi-festivals.ics',{type:'text/calendar'});
   if(navigator.canShare&&navigator.canShare({files:[file]})&&!isIOS){navigator.share({files:[file]}).catch(()=>{});return}
   const a=document.createElement('a');a.href=isIOS?'data:text/calendar;charset=utf-8,'+encodeURIComponent(ics):URL.createObjectURL(blob);a.download='lingxi-festivals.ics';document.body.appendChild(a);a.click();a.remove();
-  toast(`已產生 ${list.length} 個節日提醒，請在行事曆按「加入」`,'check');
+  toast(`已產生 ${list.length} 個節日${trig?'提醒':''}，請在行事曆按「加入」`,'check');
 }
 
 /* ---------- 周公解夢 ---------- */
@@ -5623,7 +5669,7 @@ document.addEventListener('click',async e=>{
   if(t.dataset.act==='addp'){openSheet();setTimeout(()=>{const a=$('#pAdd');a&&a.click()},60);return}
   if(t.dataset.mic){e.preventDefault();micStart(t.dataset.mic,t);return}
   if(t.dataset.act==='tipsreset'){store.set('gx_tips',{});toast('切換頁面時會重新顯示操作提示','check');return}
-  if(t.dataset.act==='festics')return festIcs();
+  if(t.dataset.act==='festpick')return festPicker();
   if(t.dataset.fsp!==undefined){fsP=+t.dataset.fsp;renderFengshui();return}
   if(t.dataset.dcat){dCat=dCat===t.dataset.dcat?null:t.dataset.dcat;dQ='';renderQian();$('#dres')?.scrollIntoView({behavior:'smooth',block:'start'});return}
   if(t.dataset.act==='dream'){if(cur!=='dream'){go('dream');return}dQ=($('#dQ')?.value||'').trim();dCat=null;if(!dQ){toast('先寫下夢到的東西','info');$('#dQ')?.focus();return}renderQian();const r=$('#dres');r&&r.scrollIntoView({behavior:'smooth',block:'start'});return}
@@ -5877,6 +5923,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.10.30-3",
+  "n": "1.11.2",
+  "d": "10 月 30 日",
+  "items": [
+   [
+    "自選要加到行事曆的節日",
+    "拜拜頁的「加到行事曆」改成可以挑選：依類別整組勾選（神明聖誕、年節、初一十五、做牙…）或逐項勾選，還能選提醒時間（前一天晚上、當天早上或不提醒），選擇會記住。",
+    "festival"
+   ]
+  ]
+ },
  {
   "v": "2026.10.30-2",
   "n": "1.11.1",
