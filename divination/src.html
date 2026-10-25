@@ -146,9 +146,12 @@ setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('�
         </div><p class="perr" id="eName" hidden>請填寫姓和名</p></div>
       <div class="pstep" data-step="gender"><div class="pnum"><i>2</i>性別<em>紫微大限的順逆會用到</em></div>
         <div class="seg" id="pGender" role="group" aria-label="性別"><button type="button" data-g="男">男</button><button type="button" data-g="女">女</button></div></div>
-      <div class="pstep" data-step="date"><div class="pnum"><i>3</i>出生日期<em>只記得農曆生日？切到「農曆」直接選</em></div>
-        <div class="seg" id="pCal" role="group" aria-label="曆法"><button type="button" data-cal="solar" aria-pressed="true">國曆</button><button type="button" data-cal="lunar" aria-pressed="false">農曆</button></div>
+      <div class="pstep" data-step="date"><div class="pnum"><i>3</i>出生日期<em>習慣民國年或只記得農曆生日？切換後直接選</em></div>
+        <div class="seg" id="pCal" role="group" aria-label="曆法"><button type="button" data-cal="solar" aria-pressed="true">西元</button><button type="button" data-cal="roc" aria-pressed="false">民國</button><button type="button" data-cal="lunar" aria-pressed="false">農曆</button></div>
         <label class="f" for="pDate" id="pSolarBox"><span class="sr">國曆生日</span><input id="pDate" type="date" min="1900-01-01" max="2099-12-31" required></label>
+        <div class="lunarsel" id="pRocBox" hidden>
+          <label class="f">民國（年）<select id="pRy"></select></label><label class="f">月<select id="pRm"></select></label><label class="f">日<select id="pRd"></select></label>
+        </div>
         <div class="lunarsel" id="pLunarBox" hidden>
           <label class="f">年<select id="pLy"></select></label><label class="f">月<select id="pLm"></select></label><label class="f">日<select id="pLd"></select></label>
         </div>
@@ -2553,7 +2556,7 @@ function openReport(){
   const el=document.createElement('div');el.id='report';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','命盤解說報告');
   el.innerHTML=`<div class="rp-bar"><button type="button" class="btn sm" data-rp="close">關閉</button><span>命盤解說報告</span><button type="button" class="btn sm primary" data-rp="print">列印／存 PDF</button></div><div class="rp-scroll">${reportHtml()}</div>`;
   document.body.appendChild(el);document.documentElement.classList.add('reporting');
-  el.addEventListener('click',e=>{const b=e.target.closest('[data-rp]');if(!b)return;if(b.dataset.rp==='close'){el.remove();document.documentElement.classList.remove('reporting')}else window.print()});
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-rp]');if(!b)return;if(b.dataset.rp==='close'){el.remove();document.documentElement.classList.remove('reporting');if(el._t0)document.title=el._t0}else{const t0=el._t0=el._t0||document.title,d=new Date(),pad=n=>String(n).padStart(2,'0');document.title=`靈犀命盤報告_${P.sur}${P.given}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;const back=()=>{document.title=t0;removeEventListener('afterprint',back)};addEventListener('afterprint',back);window.print();setTimeout(back,60000)}});
 }
 
 /* ---------- 梅花易數 ---------- */
@@ -3018,17 +3021,25 @@ let pCal='solar';
 function lunarMonths(y){const lp=LunarYear.fromYear(y).getLeapMonth();const o=[];for(let m=1;m<=12;m++){o.push([m,LM_ZH[m-1]+'月']);if(m===lp)o.push([-m,'閏'+LM_ZH[m-1]+'月'])}return o}
 function fillLunar(y,m,d){
   const ys=$('#pLy'),ms=$('#pLm'),ds=$('#pLd');
-  ys.innerHTML=`<option value="">選年</option>`+Array.from({length:200},(_,i)=>1900+i).map(v=>`<option value="${v}"${v===y?' selected':''}>${v}（${LunarYear.fromYear(v).getGanZhi()}）</option>`).join('');
+  ys.innerHTML=`<option value="">選年</option>`+Array.from({length:200},(_,i)=>1900+i).map(v=>`<option value="${v}"${v===y?' selected':''}>${v}${v>1911?`・民國${v-1911}`:''}（${LunarYear.fromYear(v).getGanZhi()}）</option>`).join('');
   ms.innerHTML=`<option value="">選月</option>`+(y?lunarMonths(y).map(([v,t])=>`<option value="${v}"${v===m?' selected':''}>${t}</option>`).join(''):'');
   const n=y&&m?LunarMonth.fromYm(y,m).getDayCount():30;
   ds.innerHTML=`<option value="">選日</option>`+Array.from({length:n},(_,i)=>i+1).map(v=>`<option value="${v}"${v===d?' selected':''}>${v<=10?'初'+'一二三四五六七八九十'[v-1]:v<20?'十'+'一二三四五六七八九'[v-11]:v===20?'二十':v<30?'廿'+'一二三四五六七八九'[v-21]:'三十'}</option>`).join('');
 }
+function fillRoc(y,m,d){
+  const cy=new Date().getFullYear(), dim=y&&m?new Date(y,m,0).getDate():31;
+  $('#pRy').innerHTML=`<option value="">選年</option>`+Array.from({length:cy-1911},(_,i)=>cy-i).map(v=>`<option value="${v}"${v===y?' selected':''}>${v-1911}（${v}）</option>`).join('');
+  $('#pRm').innerHTML=`<option value="">選月</option>`+Array.from({length:12},(_,i)=>i+1).map(v=>`<option value="${v}"${v===m?' selected':''}>${v} 月</option>`).join('');
+  $('#pRd').innerHTML=`<option value="">選日</option>`+Array.from({length:dim},(_,i)=>i+1).map(v=>`<option value="${v}"${v===d?' selected':''}>${v} 日</option>`).join('');
+}
+function rocVal(){const y=+$('#pRy').value,m=+$('#pRm').value,d=+$('#pRd').value;return y&&m&&d?{y,m,d}:null}
 function lunarVal(){const y=+$('#pLy').value,m=+$('#pLm').value,d=+$('#pLd').value;return y&&m&&d?{y,m,d}:null}
-function setCal(c){pCal=c;$$('#pCal button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.cal===c));$('#pSolarBox').hidden=c!=='solar';$('#pLunarBox').hidden=c!=='lunar';syncConv()}
-function formDate(){if(pCal==='lunar'){const v=lunarVal();if(!v)return '';try{return Lunar.fromYmd(v.y,v.m,v.d).getSolar().toYmd()}catch(e){return ''}}return $('#pDate').value}
+function setCal(c){pCal=c;$$('#pCal button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.cal===c));$('#pSolarBox').hidden=c!=='solar';$('#pRocBox').hidden=c!=='roc';$('#pLunarBox').hidden=c!=='lunar';syncConv()}
+function formDate(){if(pCal==='lunar'){const v=lunarVal();if(!v)return '';try{return Lunar.fromYmd(v.y,v.m,v.d).getSolar().toYmd()}catch(e){return ''}}
+  if(pCal==='roc'){const v=rocVal();return v?`${v.y}-${String(v.m).padStart(2,'0')}-${String(v.d).padStart(2,'0')}`:''}return $('#pDate').value}
 function syncConv(){
   const d=formDate(),el=$('#pConv');let t='';
-  if(d){const [y,m,dd]=d.split('-').map(Number);if(pCal==='lunar')t=`＝ 國曆 ${y} 年 ${m} 月 ${dd} 日`;else{try{const l=Solar.fromYmd(y,m,dd).getLunar();t=`＝ 農曆 ${l.getYearInGanZhi()}年 ${l.getMonthInChinese()}月${l.getDayInChinese()}`}catch(e){}}}
+  if(d){const [y,m,dd]=d.split('-').map(Number);if(pCal==='lunar')t=`＝ 國曆 ${y} 年 ${m} 月 ${dd} 日${y>1911?`（民國 ${y-1911} 年）`:''}`;else if(pCal==='roc'){try{const l=Solar.fromYmd(y,m,dd).getLunar();t=S2T(`＝ 西元 ${y} 年 ${m} 月 ${dd} 日・農曆 ${l.getYearInGanZhi()}年 ${l.getMonthInChinese()}月${l.getDayInChinese()}`)}catch(e){}}else{try{const l=Solar.fromYmd(y,m,dd).getLunar();t=S2T(`＝ 農曆 ${l.getYearInGanZhi()}年 ${l.getMonthInChinese()}月${l.getDayInChinese()}`)}catch(e){}}}
   el.textContent=t;el.hidden=!t;markSteps();
 }
 function markSteps(){
@@ -3042,8 +3053,9 @@ function fillForm(x){
   $('#pHour').innerHTML=HOURS.map((h,i)=>`<option value="${i}"${i===(x.hour??6)?' selected':''}>${h}</option>`).join('');
   $$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.g===x.gender));
   const L=x.lunar||null;fillLunar(L&&L.y,L&&L.m,L&&L.d);
+  const [ry,rm,rd]=(x.date||'').split('-').map(Number);fillRoc(ry||0,rm||0,rd||0);
   $$('.pstep').forEach(s=>s.classList.remove('bad'));$('#eName').hidden=$('#eDate').hidden=true;
-  setCal(x.cal==='lunar'?'lunar':'solar');
+  setCal(x.cal==='lunar'?'lunar':x.cal==='roc'?'roc':'solar');
 }
 function renderPeople(){
   $('#people').innerHTML=PEOPLE.length?`<span class="eyebrow">已存的命盤（點名字切換）</span><div class="chips">${PEOPLE.map((x,i)=>`<button type="button" class="chip" data-person="${i}" aria-pressed="${i===curP}">${esc(x.sur+x.given)}</button>`).join('')}<button type="button" class="chip add" id="pAdd" aria-pressed="${edP===-1}">＋ 新增</button></div>`:'';
@@ -3151,9 +3163,13 @@ document.addEventListener('click',async e=>{
   if(t.id==='pAdd'){edP=-1;fillForm({sur:'',given:'',gender:'女',date:'',hour:6});renderPeople();$('#pSur').focus();return}
   if(t.id==='pDel'){const n=PEOPLE[edP].sur+PEOPLE[edP].given;if(!(await alertBox({title:`刪除「${esc(n)}」的命盤？`,msg:'刪除後無法復原，其他人的命盤不受影響。',buttons:[{text:'取消',style:'cancel',value:false},{text:'刪除',style:'destructive',value:true}]})))return;PEOPLE.splice(edP,1);store.set('gx_profiles',PEOPLE);applyPerson(0);closeSheet();hud(`已刪除 ${n}`);return}
   if(t.dataset.g){$$('#pGender button').forEach(b=>b.setAttribute('aria-pressed',b===t));markSteps();return}
-  if(t.dataset.cal){if(t.dataset.cal==='lunar'&&!lunarVal()&&$('#pDate').value){try{const [y,m,d]=$('#pDate').value.split('-').map(Number);const l=Solar.fromYmd(y,m,d).getLunar();fillLunar(l.getYear(),l.getMonth(),l.getDay())}catch(e){}}
-    else if(t.dataset.cal==='solar'&&lunarVal()&&!$('#pDate').value){const d=formDate();if(d)$('#pDate').value=d}
-    setCal(t.dataset.cal);buzz();return}
+  if(t.dataset.cal){const to=t.dataset.cal,cd=formDate();
+    // 切換曆法時把已選的日期帶過去
+    if(cd){const [y,m,d]=cd.split('-').map(Number);
+      if(to==='solar')$('#pDate').value=cd;
+      else if(to==='roc')fillRoc(y,m,d);
+      else if(to==='lunar'&&pCal!=='lunar'){try{const l=Solar.fromYmd(y,m,d).getLunar();fillLunar(l.getYear(),l.getMonth(),l.getDay())}catch(e){}}}
+    setCal(to);buzz();return}
   if(t.dataset.wel!==undefined)return welcomeAct(t.dataset.wel);
   // 今日
   if(t.dataset.day!==undefined){const n=+t.dataset.day,dir=n-dayOff;if(n===dayOff)return;dayOff=n;refreshDaily(dir);return}
@@ -3203,7 +3219,7 @@ document.addEventListener('click',async e=>{
   // 命盤
   if(t.dataset.pal!==undefined){zwSel=+t.dataset.pal;const y=scrollY;renderZiwei();scrollTo(0,y);const d=$('#zwDetail');if(d&&!t.closest('.layer'))sheet(`${D.astro.palaces[zwSel].name}`,`<div class="card stack">${d.innerHTML}</div>`);else if(d)closeLayer();return}
   if(t.dataset.zy!==undefined){zwYearOn=t.dataset.zy==='1';renderZiwei();return}
-  if(t.dataset.yr){lnYear=+t.dataset.yr;renderLiunian();return}
+  if(t.dataset.yr){const yb=t.closest('.years'),sl=yb?yb.scrollLeft:0,y=scrollY;lnYear=+t.dataset.yr;renderLiunian();const nb=$('#v-liunian .years');if(nb){nb.scrollLeft=sl;const on=nb.querySelector('[aria-pressed="true"]');if(on){const r=on.getBoundingClientRect(),R=nb.getBoundingClientRect();if(r.left<R.left||r.right>R.right)nb.scrollTo({left:on.offsetLeft-(nb.clientWidth-on.clientWidth)/2,behavior:'smooth'})}}scrollTo({top:y});return}
   // 奇門
   if(t.dataset.qc){qmCat=t.dataset.qc;qmSel=null;renderQimen();return}
   if(t.dataset.qp){qmSel=+t.dataset.qp;const y=scrollY;renderQimen();scrollTo(0,y);const c=qimen(qmTime||new Date()).cells[qmSel];sheet(`${PAL[qmSel][0]}${qmSel}宮 · ${PAL[qmSel][1]}方`,qmDetail(c).replace('id="qmDetail"',''));return}
@@ -3232,7 +3248,8 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{if(e.target.id==='fY'||e.target.id==='fZ'){const o=festOpt();o[e.target.id==='fY'?'y':'z']=e.target.checked;store.set('gx_fopt',o);renderFestival();return}if(e.target.id==='zrWk'){zrWkend=e.target.checked;renderZeri();return}if(e.target.id==='hhA'||e.target.id==='hhB'){const a=+$('#hhA').value,b=+$('#hhB').value;if(a===b){toast('請選兩個不同的人','info');renderHehun();return}hhA=a;hhB=b;renderHehun();return}if(e.target.id==='qmT'&&e.target.value){const d=new Date(e.target.value);if(!isNaN(d)){qmTime=d;renderQimen()}}if(e.target.id==='qStrict')qStrict=e.target.checked});
 $('#pForm').addEventListener('input',markSteps);
-$('#pForm').addEventListener('change',e=>{const id=e.target.id;if(id==='pLy'||id==='pLm'){const v={y:+$('#pLy').value,m:+$('#pLm').value,d:+$('#pLd').value};
+$('#pForm').addEventListener('change',e=>{const id=e.target.id;if(id==='pRy'||id==='pRm'){const v=rocVal()||{y:+$('#pRy').value,m:+$('#pRm').value,d:+$('#pRd').value};if(v.y&&v.m)v.d=Math.min(v.d,new Date(v.y,v.m,0).getDate());fillRoc(v.y||0,v.m||0,v.d||0)}
+  if(id==='pLy'||id==='pLm'){const v={y:+$('#pLy').value,m:+$('#pLm').value,d:+$('#pLd').value};
   if(id==='pLy'&&v.y&&!lunarMonths(v.y).some(([x])=>x===v.m))v.m=0;if(v.y&&v.m)v.d=Math.min(v.d,LunarMonth.fromYm(v.y,v.m).getDayCount());fillLunar(v.y||0,v.m||0,v.d||0)}
   syncConv()});
 $('#sheetBack').addEventListener('click',e=>{if(e.target.id==='sheetBack')closeSheet()});
@@ -3249,7 +3266,7 @@ $('#pForm').addEventListener('submit',e=>{
     if(miss[0]==='name')($('#pSur').value.trim()?$('#pGiven'):$('#pSur')).focus({preventScroll:true});
     toast(`還差：${miss.map(k=>({name:'姓名',gender:'性別',date:'出生日期'})[k]).join('、')}`,'warn');buzz();return}
   const lv=pCal==='lunar'?lunarVal():null;
-  const np={sur:$('#pSur').value.trim(),given:$('#pGiven').value.trim(),gender:g.dataset.g,date:formDate(),hour:+$('#pHour').value,sample:false,...(lv?{cal:'lunar',lunar:lv}:{})};
+  const np={sur:$('#pSur').value.trim(),given:$('#pGiven').value.trim(),gender:g.dataset.g,date:formDate(),hour:+$('#pHour').value,sample:false,...(lv?{cal:'lunar',lunar:lv}:pCal==='roc'?{cal:'roc'}:{})};
   const yy=+np.date.slice(0,4);if(yy<1900||yy>2099){toast('生日請在 1900–2099 年之間','warn');return}
   if(edP===-1){PEOPLE.push(np);edP=PEOPLE.length-1}else PEOPLE[edP]=np;
   store.set('gx_profiles',PEOPLE);applyPerson(edP);closeSheet();hud(`已排好 ${np.sur+np.given} 的命盤`);a2hsSoon();
