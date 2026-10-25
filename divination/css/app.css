@@ -1729,3 +1729,29 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .cw-next li>*{white-space:nowrap}
 .cw-next li .pill{justify-self:end}
 .cw-next li{gap:8px}.cw-next .num{min-width:5.2em}
+/* 走財位提醒鈴 */
+.cw-next li{grid-template-columns:auto auto 1fr auto}
+.cw-next .bell{width:36px;height:36px;border-radius:50%;border:.5px solid var(--line);background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer;transition:background .2s var(--ease),color .2s,transform .2s var(--ease)}
+.cw-next .bell svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.cw-next .bell[aria-pressed="true"]{background:var(--tint);color:var(--tint-ink);border-color:transparent;transform:scale(1.04)}
+.cw-next .bell[aria-pressed="true"] svg{fill:currentColor}
+.cw-next .bell:disabled{opacity:.3;cursor:default}
+.cw-more{margin-top:4px}
+/* 首頁：此時辰財位 */
+.cai{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.cai-dir svg{width:46px;height:46px;display:block}
+.cai-dir circle{fill:none;stroke:var(--line);stroke-width:1.5}
+.cai-dir path{fill:var(--tint);transition:transform .6s var(--ease)}
+.cai-t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cai-t b{font-family:var(--f-serif);font-size:22px;letter-spacing:.06em}
+.cai-a{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.cw-next li{grid-template-columns:auto 1fr auto}
+.cw-next .cwm{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;min-width:0}
+.cw-next .cwm b{white-space:nowrap}
+.cai{grid-template-columns:auto 1fr auto;row-gap:10px}
+.cai>.pill{align-self:start}
+.cai .cai-go{grid-column:1/-1}
+.cai-t .eyebrow{white-space:normal}
+.cai-dir path.tip{fill:var(--tint)}
+.cai-dir path.tail{fill:var(--line)}
+.cai-dir circle.hub{fill:var(--card);stroke:var(--tint);stroke-width:1.2}
