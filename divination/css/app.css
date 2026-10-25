@@ -1685,3 +1685,20 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 @media print{.rp{font-size:13.5px;padding:0}.rp-sum{margin-top:10px}}
 .rp-4,.rp-2,.rp-sum{break-inside:avoid}
 @media print{.rp-app{break-before:page}}
+/* ===== 命書（報告）敘事版 ===== */
+.rp-open{padding:12px 0 4px;line-height:1.9}
+.rp-open p{margin:8px 0}
+.rp-cn{font-size:12px;letter-spacing:.3em;color:#9C7A36;margin-bottom:2px}
+.rp-basis{margin:2px 0 10px;padding:6px 10px;border-radius:5px;background:rgba(126,91,24,.07);font-size:12.5px;color:#6B6150}
+.rp-sec>p{line-height:1.9;margin:8px 0;text-align:justify}
+.rp-tip{margin:12px 0 4px;padding:10px 14px;border-radius:6px;border:1px solid rgba(43,101,55,.35);background:rgba(43,101,55,.06);line-height:1.8;break-inside:avoid}
+.rp-tip b{display:block;font-family:var(--f-serif);color:#2B6537;margin-bottom:2px}
+.rp-guide th{width:22%;text-align:left}.rp-guide td{text-align:left;line-height:1.7}
+.rp-close p{line-height:1.9}
+.rp-sign{text-align:right;font-family:var(--f-serif);color:#7E5B18;margin-top:14px!important}
+.rp-cn{break-after:avoid}
+.rp-close{break-inside:avoid}
+.rp-yr{break-inside:avoid}
+@media print{.rp-app{font-size:12px}.rp-app .rp-t th,.rp-app .rp-t td{padding:3px 5px}.rp-app p{margin:4px 0}.rp-app .rp-h3{margin:8px 0 2px}}
+.rp-ch{break-inside:avoid;break-after:avoid}
+.rp .rp-close{break-inside:avoid}
