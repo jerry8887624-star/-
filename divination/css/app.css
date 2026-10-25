@@ -1755,3 +1755,10 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .cai-dir path.tip{fill:var(--tint)}
 .cai-dir path.tail{fill:var(--line)}
 .cai-dir circle.hub{fill:var(--card);stroke:var(--tint);stroke-width:1.2}
+/* 走財位：步驟與簽約 */
+.cw-steps ol{margin:0;padding-left:1.3em;display:grid;gap:8px}
+.cw-steps li::marker{color:var(--tint);font-weight:700}
+.cw-sign{padding-top:10px;border-top:.5px solid var(--line);gap:8px}
+.cw-relay{background:var(--tint-soft);border-radius:10px;padding:10px 12px;line-height:1.6}
+:root:not([data-theme="dark"]) .btn.ghost[data-act="home"]{color:var(--tint)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.ghost[data-act="home"]{color:inherit}}

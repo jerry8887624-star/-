@@ -1789,6 +1789,13 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .cai-dir path.tip{fill:var(--tint)}
 .cai-dir path.tail{fill:var(--line)}
 .cai-dir circle.hub{fill:var(--card);stroke:var(--tint);stroke-width:1.2}
+/* 走財位：步驟與簽約 */
+.cw-steps ol{margin:0;padding-left:1.3em;display:grid;gap:8px}
+.cw-steps li::marker{color:var(--tint);font-weight:700}
+.cw-sign{padding-top:10px;border-top:.5px solid var(--line);gap:8px}
+.cw-relay{background:var(--tint-soft);border-radius:10px;padding:10px 12px;line-height:1.6}
+:root:not([data-theme="dark"]) .btn.ghost[data-act="home"]{color:var(--tint)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.ghost[data-act="home"]{color:inherit}}
 </style>
 </head>
 <body>
@@ -3955,6 +3962,30 @@ function cwIcs(){
   else{const a=document.createElement('a');a.href=isIOS?'data:text/calendar;charset=utf-8,'+encodeURIComponent(ics):URL.createObjectURL(blob);a.download='lingxi-caiwei.ics';document.body.appendChild(a);a.click();a.remove()}
   toast(`已產生 ${cwSel.size} 個走財位提醒，請在行事曆按「加入」`,'check');cwSel.clear();
 }
+/* 簽約、談判：選簽約地點的方向，找開門／生門落在那裡的時辰；找不到就用「中繼點」 */
+let cwDest=store.get('gx_cwdest',null);
+const OPP={北:'南',南:'北',東:'西',西:'東',東北:'西南',西南:'東北',東南:'西北',西北:'東南'};
+function cwSignHtml(t){
+  const pad=n=>String(n).padStart(2,'0'), h=t.getHours(), st=new Date(t);st.setMinutes(0,0,0);st.setHours(h%2?h:h-1);
+  const slots=Array.from({length:12},(_,k)=>{const a=new Date(st.getTime()+k*7200e3), Q=qimen(new Date(a.getTime()+3600e3)), C=Object.values(Q.cells);
+    const kai=C.find(c=>c.door==='開'), sh=C.find(c=>c.door==='生');return {a,kai,sh,k}});
+  const lab=x=>`${x.k===0?'現在 ':x.a.getDate()!==t.getDate()?'明 ':''}${x.a.getHours()}–${(x.a.getHours()+2)%24} 點`;
+  let body='';
+  if(cwDest){
+    const hit=slots.filter(x=>[x.kai,x.sh].some(c=>c&&!c.kong&&PAL[c.p][1]===cwDest));
+    const relay=slots.find(x=>x.kai&&!x.kai.kong&&x.k>0);
+    body=hit.length?`<p class="small">簽約地點在你的<b>${cwDest}方</b>，下面這些時辰出發，吉門正好落在那個方向，可以直接前往：</p>
+      <ol class="cw-next">${hit.slice(0,5).map(x=>{const d=[x.kai,x.sh].find(c=>c&&!c.kong&&PAL[c.p][1]===cwDest);return `<li><span class="num">${lab(x)}</span><span class="cwm"><b>${d.door}門</b><span class="pill ${d.door==='開'?'good':'mid'}">${d.door==='開'?'利簽約談判':'利求財'}</span></span><span></span></li>`}).join('')}</ol>`
+      :`<p class="small">接下來 24 小時，吉門都沒有落在${cwDest}方。可以用<b>中繼點</b>：</p>`;
+    if(!hit.length&&relay)body+=`<div class="cw-relay small"><b>中繼點做法（${lab(relay)}）</b>　這個時辰開門在${PAL[relay.kai.p][1]}方。提前半小時以上，先到<b>簽約地點的${OPP[PAL[relay.kai.p][1]]}方</b>（從那裡看過去，簽約地點正好在${PAL[relay.kai.p][1]}方），在那裡停留半小時以上，再於這個時辰內出發前往簽約。</div>`;
+  }
+  return `<div class="cw-sign stack">
+    <div class="eyebrow">要簽約、談判、見客戶？</div>
+    <p class="small muted" style="margin:0">簽約地點在你目前位置的哪個方向？（可用地圖或羅盤看）</p>
+    <div class="chips" role="group" aria-label="簽約地點方向">${DIRS.map(d=>`<button type="button" class="chip" data-cwd="${d}" aria-pressed="${d===cwDest}">${d}</button>`).join('')}</div>
+    ${body}
+  </div>`;
+}
 /* 首頁小卡：此時辰財位 */
 function caiCard(){
   const t=new Date(), r=cwOf(qimen(t)), h=t.getHours(), end=(h%2?h+2:h+1)%24, P_=PAL[r.c.p];
@@ -3983,12 +4014,19 @@ function caiweiHtml(t,Q){
     <div><div class="row between"><span class="small muted">接下來的時辰</span><span class="small muted">按 🔔 選想去的時辰</span></div><ol class="cw-next">${next}</ol>
       <details class="disc cw-more"><summary>再往後 6 個時辰</summary><ol class="cw-next">${more}</ol></details>
       <button type="button" class="btn block" id="cwIcs"${cwSel.size?'':' disabled'}>${cwSel.size?`加到行事曆（${cwSel.size} 個・提前 10 分提醒）`:'先按 🔔 選時辰，再加到行事曆'}</button></div>
-    <details class="disc"><summary>怎麼走？要注意什麼</summary><div class="stack small" style="margin-top:8px">
-      <p><b>做法</b>　用羅盤確認方向 → 在這個時辰內朝財位方向出門，走到安全、方便停留的地方 → 靜下心想想自己的理財目標，再回家。把它當成提醒自己積極行動的小儀式。</p>
-      <p><b>要走多遠、停多久？</b>　目前查不到古籍或各派一致的標準。網路上常見「停留約 20 分鐘」只是個人建議，不是奇門的規定，也不會因為走得更久就更有效。</p>
-      <p><b>安全第一</b>　不要闖進私人土地、工地、車道或水邊；身體不舒服、天氣不好、路線不安全時就停止。</p>
-      <p><b>不要</b>　為此借錢、下注或購買高價開運物。財位不能取代預算、風險評估或專業理財建議。</p>
-      <p class="muted">本 App 採時家奇門轉盤排法，以生門為財位；不同老師、流派的排盤與財位定義可能不同。</p>
+    ${cwSignHtml(t)}
+    <details class="disc"><summary>走財位的步驟</summary><div class="stack small cw-steps" style="margin-top:8px">
+      <ol>
+        <li><b>擇時辨方</b>　時間已定就挑方位，地點已定就挑時辰。先在上面選好要走的時辰與方向。</li>
+        <li><b>定起點</b>　以家或公司為起點，出發前在起點安坐一段時間，再用羅盤對準財位方向。</li>
+        <li><b>時辰內出發</b>　一定要在這個時辰內出門；方位以出發的時辰為準，路上跨到下個時辰沒關係。</li>
+        <li><b>朝方位走</b>　步行約 20～30 分鐘。遇到建築可以繞道、稍微偏離，途中轉彎、休息都無妨，但<b>不可中途去辦別的事</b>，否則要以停留處重新當起點。</li>
+        <li><b>停留定氣</b>　走到宮廟（可順道參拜）、公園綠地或咖啡廳等可安坐的地方，停留約 20～30 分鐘，靜心想著要達成的目標，讓氣定下來。</li>
+        <li><b>回程</b>　回程方向不拘，回到家或公司後再處理正事。</li>
+      </ol>
+      <p class="muted">步行時間與停留長短，各家老師說法略有不同（常見 20～30 分鐘、半小時以上），這裡取多數老師採用的範圍。</p>
+      <p><b>安全與分寸</b>　別走進私人土地、工地、車道或水邊；身體不適、天候不佳就改天。勿為此借錢、下注或購買高價開運物，重大財務決定仍要以合約內容與專業意見為主。</p>
+      <p class="muted">本 App 採時家奇門轉盤排法，以生門為財位、開門為事業簽約之門；不同流派排盤與定義可能不同。</p>
     </div></details>
   </div>`;
 }
@@ -6293,6 +6331,7 @@ document.addEventListener('click',async e=>{
   // 奇門
   if(t.dataset.cwrem){const ts=+t.dataset.cwrem;cwSel.has(ts)?cwSel.delete(ts):cwSel.set(ts,t.dataset.dir);t.setAttribute('aria-pressed',cwSel.has(ts));buzz();
     const b=$('#cwIcs');if(b){b.disabled=!cwSel.size;b.textContent=cwSel.size?`加到行事曆（${cwSel.size} 個・提前 10 分提醒）`:'先按 🔔 選時辰，再加到行事曆'}return}
+  if(t.dataset.cwd){cwDest=cwDest===t.dataset.cwd?null:t.dataset.cwd;store.set('gx_cwdest',cwDest);renderQimen();requestAnimationFrame(()=>$('#v-qimen .cw-sign')?.scrollIntoView({block:'nearest',behavior:reduceMotion()?'auto':'smooth'}));return}
   if(t.id==='cwIcs'){if(cwSel.size){cwIcs();renderQimen()}return}
   if(t.dataset.cwhome!==undefined){qmCat='財運';qmTime=null;qmSel=null;go('qimen');setTimeout(()=>$('#v-qimen .cw')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'}),450);return}
   if(t.id==='cwGo'){if(qmCat!=='財運'){qmCat='財運';qmSel=null;renderQimen()}requestAnimationFrame(()=>$('#v-qimen .cmpcard')?.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'center'}));hud('羅盤已對準生門（財位）');return}
@@ -6466,6 +6505,23 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.1-5",
+  "n": "1.15.1",
+  "d": "11 月 1 日",
+  "items": [
+   [
+    "走財位改成老師的完整步驟",
+    "「走財位的步驟」改寫成六步：擇時辨方 → 定起點 → 時辰內出發 → 朝方位步行約 20～30 分鐘（途中不可辦別的事）→ 到宮廟、公園或咖啡廳停留定氣 → 回程。",
+    "qimen"
+   ],
+   [
+    "新增「簽約、談判」擇時擇方",
+    "選簽約地點在你的哪個方向，App 會列出接下來 24 小時開門、生門正好落在那個方向的時辰；若都不在，會教你用「中繼點」：提前到簽約地點的反方向停留半小時以上，再出發前往。",
+    "qimen"
+   ]
+  ]
+ },
  {
   "v": "2026.11.1-4",
   "n": "1.15",
