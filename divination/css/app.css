@@ -1705,3 +1705,27 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 /* 直排標語收緊字距，確保在大標題區塊內、不壓到下方的分段按鈕 */
 .lt-motto{font-size:12px;line-height:1.08;gap:1px;top:6px}
 .lt-motto i.dot{margin:2px 0}
+/* 求籤神明切換：關聖帝君／觀世音菩薩 */
+.godseg{margin-top:-4px}
+.godseg button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 6px;line-height:1.25}
+.godseg button b{font-family:var(--f-serif);font-size:15px;letter-spacing:.06em}
+.godseg button span{font-size:11.5px;color:var(--muted)}
+.godseg button[aria-pressed="true"] b{color:var(--accent,#A3271D)}
+.shrine.photo.gy .smoke{bottom:8%;left:48.5%}
+.shrine.photo.gy .smoke.s2{left:47%}.shrine.photo.gy .smoke.s3{left:50%}
+.shrine.photo.gy .glow{background:radial-gradient(42% 34% at 50% 30%,rgba(255,236,190,.2),transparent 70%)}
+.shrine-card.compact .shrine.photo.gy img{object-position:50% 26%}
+.shrine-card.swap .shrine.photo img{animation:godIn .7s var(--ease) both}
+@keyframes godIn{from{opacity:0;filter:blur(6px) brightness(1.4);transform:scale(1.04)}to{opacity:1;filter:none;transform:none}}
+.shrine-card.swap .shrine-cap{animation:godIn .7s .1s var(--ease) both}
+@media (prefers-reduced-motion:reduce){.shrine-card.swap .shrine.photo img,.shrine-card.swap .shrine-cap{animation:none}}
+/* 走財位 */
+.cw-next{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:2px}
+.cw-next li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 2px;border-bottom:.5px solid var(--line)}
+.cw-next li:last-child{border-bottom:0}
+.cw-next li b{font-family:var(--f-serif)}
+.cw-next .num{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.cw-next li{grid-template-columns:auto auto 1fr}
+.cw-next li>*{white-space:nowrap}
+.cw-next li .pill{justify-self:end}
+.cw-next li{gap:8px}.cw-next .num{min-width:5.2em}
