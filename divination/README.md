@@ -18,7 +18,7 @@
 - **個人化每日一段話**：依日主喜忌、當日沖合生肖、本月流月、今年太歲與紫微流日四化寫給命主
 - **開運穿搭與飲食**：依喜用五行建議當天的衣服顏色、飾品與五色五味飲食
 - **梅花易數・小六壬**：依問題文字（邵雍字占）、時間或報數起卦，有起卦動畫，名詞附白話解釋；本卦、互卦、變卦與體用生剋，附《周易》卦辭與白話，以及「完整解讀」（說卦傳取象、繫辭爻位、互卦與變卦對體卦的生剋）；小六壬掐指六神
-- **西洋星座**：太陽星座個性，依當天月亮與太陽實際所在星座的相位推算今日與本月運勢
+- **西洋星座**：太陽星座個性，依當天月亮與太陽實際所在星座的相位推算今日與本月運勢；月空時間（現代通行算法：月亮與太陽～冥王星的最後一個主要相位到換星座，未來 7 天）
 - **流月流日**：今年重點月份（換工作、投資、桃花、考試、搬家、健康留意）與可點選的流日月曆
 - **命盤解說報告**：八字、紫微、大運流年、姓名、風水與開運建議彙整成一份，可列印或存 PDF
 - **拜拜與節日**：神明聖誕、年節、初一十五（可選初二十六做牙），一鍵把未來一年的節日加到行事曆；每個節日有專屬、可打勾的供品清單（時間、香數、依神明／祖先／地基主分開的供品與金紙），附節日注意事項、拜拜步驟與通則
@@ -55,6 +55,6 @@ python3 divination/build.py      # 由 src.html + css/ + data/ 產生 index.html
 - `data/kangxi.js`：康熙筆畫表（由 Unicode Unihan `kRSKangXi` 產生）
 - `data/tones.js`：國語聲調表（由 Unihan `kMandarin` 產生），用於名字音律
 
-曆法與紫微排盤使用 [lunar-javascript](https://github.com/6tail/lunar-javascript) 與 [iztro](https://github.com/SylarLong/iztro)，已放在 `vendor/`（MIT 授權，附授權檔），jsDelivr 只作為備援。資料只存在使用者自己的瀏覽器。
+曆法與紫微排盤使用 [lunar-javascript](https://github.com/6tail/lunar-javascript) 、[iztro](https://github.com/SylarLong/iztro)，月空星曆使用 [astronomy-engine](https://github.com/cosinekitty/astronomy)，已放在 `vendor/`（MIT 授權，附授權檔），jsDelivr 只作為備援。資料只存在使用者自己的瀏覽器。
 
 推到 `main` 後，GitHub Actions 會把本資料夾部署到 GitHub Pages 的 `/divination/`。

@@ -1588,3 +1588,21 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .zwmut .good b{color:var(--good,#2f7a46)}.zwmut .bad b{color:var(--bad,#b3362c)}
 .zwgl{margin:10px 0 0;display:flex;flex-direction:column;gap:2px}
 .zwgl dt{font-weight:700;margin-top:8px}.zwgl dd{margin:0;color:var(--muted);line-height:1.6}
+/* 月空時間 */
+.voc-now{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;border-radius:14px;background:var(--fill)}
+.voc-now b{font-size:16.5px}
+.voc-now.on{background:color-mix(in srgb,var(--mid) 12%,var(--fill));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--mid) 35%,transparent)}
+.voc-list{display:flex;flex-direction:column}
+
+.voc-row:last-child{border-bottom:0}
+
+.voc-row b{font-size:15px}
+
+
+.voc-row.cur{background:color-mix(in srgb,var(--mid) 8%,transparent);border-radius:10px;padding-inline:8px}
+.voc-do ul{margin:4px 0 0;padding-left:1.1em;line-height:1.7}
+
+.voc-row{display:flex;flex-direction:column;gap:3px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.voc-l1{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.voc-tag{font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--tint-soft);color:var(--ink);white-space:nowrap}
+.voc-tag.on{background:color-mix(in srgb,var(--mid) 22%,transparent)}
