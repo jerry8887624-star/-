@@ -1095,6 +1095,7 @@ function renderQimen(){
     ${use.ma?'<p class="good-t">逢驛馬，事情變動快，利出行與跑動。</p>':''}
     <div class="reader"><div class="seal" aria-hidden="true">遁</div><p>${us>=3?`此時${qmCat}之事可行，往${PAL[use.p][1]}方向或在此時辰行動最有利。`:us>=0?`${qmCat}之事吉凶參半，可行但要準備備案；若能選擇，改走${PAL[best.p][1]}方較順。`:`此時不利${qmCat}，建議換個時辰再看，或往${PAL[best.p][1]}方（${best.door}門）借力。`}</p></div>
   </div>
+  ${compassLiveHtml(1,{Q,use,best})}
   <p class="small muted" style="text-align:center">點盤面任一宮，查看該方位的詳細解讀</p>
   <div class="card flat stack"><h3 class="h3">此時最佳方位：${PAL[best.p][1]}</h3><p class="small">${best.door}門・${best.star}・${best.god}。談事、出門、坐位面向這個方位，借一點天時地利。</p></div>
   ${helpBox('qimen')}`;
@@ -2350,17 +2351,24 @@ let fsP=null;
 /* ---------- 手機羅盤：用陀螺儀／磁力計即時顯示面向 ---------- */
 const SHAN24=['子','癸','丑','艮','寅','甲','卯','乙','辰','巽','巳','丙','午','丁','未','坤','申','庚','酉','辛','戌','乾','亥','壬'];
 const DIR_GUA=['坎','艮','震','巽','離','坤','兌','乾'];
-let cmpOn=false, cmpH=null, cmpShown=0, cmpLastDir='', cmpRaf=0, cmpG=1;
-function compassLiveHtml(g){cmpG=g;cmpLastDir='';
+const cq=k=>document.querySelector(`#v-${cur} [data-c="${k}"]`);
+let cmpOn=false, cmpH=null, cmpShown=0, cmpLastDir='', cmpRaf=0, cmpG=1, cmpQm=null, cmpGoTxt='';
+// 羅盤共用：風水（八宅吉凶）與奇門（用神方位、各宮門星神）；qm 有值時為奇門模式
+function compassLiveHtml(g,qm){cmpG=g;cmpQm=qm||null;cmpLastDir='';cmpGoTxt='';
   const ticks=Array.from({length:72},(_,i)=>{const a=i*5,l=i%18===0?11:i%2===0?8:5;return `<line x1="100" y1="8" x2="100" y2="${8+l}" transform="rotate(${a} 100 100)" class="${i%18===0?'tk-main':''}"/>`}).join('');
   // 文字標在圓周上但保持正立（羅盤轉動時逐字反向旋轉）
   const at=(a,r)=>[100+r*Math.sin(a*Math.PI/180),100-r*Math.cos(a*Math.PI/180)].map(v=>v.toFixed(1));
   const labels=DIRS.map((d,i)=>{const [x,y]=at(i*45,i%2?51:52);return `<text x="${x}" y="${y}" dy=".35em" class="up${i===0?' n':''}${i%2?' sm':''}">${d}</text>`}).join('');
   const shan=SHAN24.map((z,i)=>{const [x,y]=at(i*15,73);return `<text x="${x}" y="${y}" dy=".35em" class="shan up">${z}</text>`}).join('');
-  return `<div class="card stack cmpcard"><div class="row between"><div><div class="eyebrow">手機羅盤</div><h3 class="h3" id="cmpDir">${cmpOn?'讀取方位中…':'看看你現在面向哪裡'}</h3></div>${cmpOn?'<button type="button" class="btn sm ghost" data-act="cmpoff">關閉</button>':''}</div>
-    <div class="cmpwrap"><svg viewBox="0 0 200 200" class="cmp" aria-hidden="true"><g id="cmpRose">${ticks}${labels}${shan}<circle cx="100" cy="100" r="64" class="ring"/><circle cx="100" cy="100" r="39" class="ring"/></g><path d="M100 2 L107 18 L93 18 Z" class="needle"/></svg>
-      <div class="cmpmid"><b id="cmpDeg">${cmpOn?'—':''}</b><span id="cmpGua"></span></div></div>
-    <p id="cmpLuck" class="cmpluck" aria-live="polite">${cmpOn?'':'手機平放、螢幕朝上，按下方按鈕後慢慢轉動身體，就能看到你正面向哪個方位，以及這個方位對你是吉是凶。'}</p>
+  const wedge=(deg,cls)=>{const p=(a,r)=>at(a,r).join(' ');return `<path d="M${p(deg-22.5,40)} L${p(deg-22.5,63)} A63 63 0 0 1 ${p(deg+22.5,63)} L${p(deg+22.5,40)} A40 40 0 0 0 ${p(deg-22.5,40)} Z" class="${cls}"/>`};
+  const tg=qm?[[qm.best,'tgt-best'],[qm.use,'tgt-use']].filter((x,i,a)=>i===0?x[0].p!==a[1][0].p:true).map(([c,cls])=>wedge(DIRS.indexOf(PAL[c.p][1])*45,cls)).join(''):'';
+  const intro=qm?`手機平放、螢幕朝上，按下方按鈕後慢慢轉動身體：羅盤會標出<b class="mid-t">用神方位（${PAL[qm.use.p][1]}）</b>${qm.best.p!==qm.use.p?`與<b class="good-t">此時最佳方位（${PAL[qm.best.p][1]}）</b>`:''}，並告訴你要往哪邊轉。`:'手機平放、螢幕朝上，按下方按鈕後慢慢轉動身體，就能看到你正面向哪個方位，以及這個方位對你是吉是凶。';
+  return `<div class="card stack cmpcard"><div class="row between"><div><div class="eyebrow">手機羅盤</div><h3 class="h3" data-c="Dir">${cmpOn?'讀取方位中…':'看看你現在面向哪裡'}</h3></div>${cmpOn?'<button type="button" class="btn sm ghost" data-act="cmpoff">關閉</button>':''}</div>
+    <div class="cmpwrap"><svg viewBox="0 0 200 200" class="cmp" aria-hidden="true"><g data-c="Rose">${tg}${ticks}${labels}${shan}<circle cx="100" cy="100" r="64" class="ring"/><circle cx="100" cy="100" r="39" class="ring"/></g><path d="M100 2 L107 18 L93 18 Z" class="needle"/></svg>
+      <div class="cmpmid"><b data-c="Deg">${cmpOn?'—':''}</b><span data-c="Gua"></span></div></div>
+    ${qm?`<p data-c="Go" class="cmpgo" aria-live="polite"></p>`:''}
+    <p data-c="Luck" class="cmpluck" aria-live="polite">${cmpOn?'':intro}</p>
+    ${qm?`<div class="cmpkey"><span><i class="k-use"></i>用神方位</span>${qm.best.p!==qm.use.p?'<span><i class="k-best"></i>此時最佳方位</span>':''}</div>`:''}
     ${cmpOn?'':'<button type="button" class="btn primary block" data-act="cmpon">開啟羅盤</button>'}
     <p class="small muted">上方紅色指針是手機頂端（你面向的方向）。數值以手機的磁北為準，請遠離金屬、磁鐵與電器；若方位不穩，拿著手機在空中畫幾次「8」字校正。</p></div>`;
 }
@@ -2373,23 +2381,29 @@ function cmpRead(e){
   cmpH=((h+so)%360+360)%360;
   if(!cmpRaf)cmpRaf=requestAnimationFrame(cmpPaint);
 }
-function cmpPaint(){cmpRaf=0;const rose=$('#cmpRose');if(!rose){cmpStop();return}if(cmpH==null)return;
+function cmpPaint(){cmpRaf=0;const rose=cq('Rose');if(!rose){cmpStop();return}if(cmpH==null)return;
   // 走最短的角度，避免 359°→0° 時整圈倒轉
   let d=cmpH-cmpShown;d=((d+540)%360)-180;cmpShown+=d;
   rose.setAttribute('transform',`rotate(${(-cmpShown).toFixed(1)} 100 100)`);rose.querySelectorAll('text.up').forEach(t=>t.setAttribute('transform',`rotate(${cmpShown.toFixed(1)} ${t.getAttribute('x')} ${t.getAttribute('y')})`));
   const h=Math.round(cmpH)%360, di=Math.floor(((h+22.5)%360)/45), si=Math.floor(((h+7.5)%360)/15), dir=DIRS[di];
-  $('#cmpDeg').textContent=`${h}°`;$('#cmpGua').textContent=`${DIR_GUA[di]}卦・${SHAN24[si]}山`;
-  if(dir!==cmpLastDir){cmpLastDir=dir;$('#cmpDir').textContent=`你正面向：${dir}`;
+  cq('Deg').textContent=`${h}°`;cq('Gua').textContent=`${DIR_GUA[di]}卦・${SHAN24[si]}山`;
+  if(cmpQm){const tgt=DIRS.indexOf(PAL[cmpQm.use.p][1])*45;let dd=((tgt-h)%360+540)%360-180;const r=Math.round(dd/5)*5;
+    const go=Math.abs(dd)<=22.5?`<span class="pill mid">✓</span> 你正面向用神方位（${PAL[cmpQm.use.p][1]}）`:`<b>向${dd>0?'右':'左'}轉約 ${Math.abs(r)}°</b>，就是用神方位（${PAL[cmpQm.use.p][1]}）`;
+    if(go!==cmpGoTxt){cmpGoTxt=go;const g=cq('Go');if(g)g.innerHTML=go}}
+  if(dir!==cmpLastDir){cmpLastDir=dir;cq('Dir').textContent=`你正面向：${dir}`;
+    if(cmpQm){const p=+Object.keys(PAL).find(k=>PAL[k][1]===dir), c=cmpQm.Q.cells[p];if(!c)return;
+      const lv=c.score>=3?['good','吉']:c.score>=0?['mid','平']:['bad','凶'], tag=c===cmpQm.use?'用神・':c===cmpQm.best?'最佳・':'';
+      cq('Luck').innerHTML=`<span class="pill ${lv[0]}">${tag}${lv[1]}</span> ${dir}方（${PAL[p][0]}${p}宮）：<b>${c.door}門</b>（${DOOR_S[c.door][1]}）；${c.star}，${STAR_S[c.star.split('‧')[0]][1]}；${c.god}，${GOD_S[c.god][1]}。${c.kong?'此方逢空亡，事情較虛。':''}`;return}
     const k=BZ[cmpG].indexOf(dir), st=STARS[k];
-    $('#cmpLuck').innerHTML=st?`<span class="pill ${st[2]}">${st[2]==='good'?'吉方':'凶方'}</span> 對你來說，${dir}方是<b class="${st[2]}-t">${st[0]}</b>（${st[1]}星），${st[3].replace('：','，')}。`:'';}
+    cq('Luck').innerHTML=st?`<span class="pill ${st[2]}">${st[2]==='good'?'吉方':'凶方'}</span> 對你來說，${dir}方是<b class="${st[2]}-t">${st[0]}</b>（${st[1]}星），${st[3].replace('：','，')}。`:'';}
 }
 async function cmpStart(){
   if(!('DeviceOrientationEvent' in window)){toast('這支手機或瀏覽器不支援羅盤','info');return}
   try{if(typeof DeviceOrientationEvent.requestPermission==='function'){const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted'){toast('需要允許「動作與方向」權限才能使用羅盤','info');return}}}catch(e){toast(inFrame?'預覽視窗無法使用羅盤，請用瀏覽器開啟網站':'無法取得方向權限','info');return}
-  cmpOn=true;cmpH=null;cmpLastDir='';
+  cmpOn=true;cmpH=null;cmpLastDir='';cmpGoTxt='';
   window.addEventListener('deviceorientationabsolute',cmpRead);window.addEventListener('deviceorientation',cmpRead);
-  renderFengshui();
-  setTimeout(()=>{if(cmpOn&&cmpH==null&&$('#cmpDir'))$('#cmpDir').textContent='讀不到方位';if(cmpOn&&cmpH==null&&$('#cmpLuck'))$('#cmpLuck').textContent='這個裝置沒有提供指南針資料（電腦或部分瀏覽器不支援）。請用手機的 Safari 或 Chrome 開啟。'},3000);
+  cmpQm?renderQimen():renderFengshui();
+  setTimeout(()=>{if(cmpOn&&cmpH==null&&cq('Dir'))cq('Dir').textContent='讀不到方位';if(cmpOn&&cmpH==null&&cq('Luck'))cq('Luck').textContent='這個裝置沒有提供指南針資料（電腦或部分瀏覽器不支援）。請用手機的 Safari 或 Chrome 開啟。'},3000);
 }
 function cmpStop(){cmpOn=false;cmpH=null;window.removeEventListener('deviceorientationabsolute',cmpRead);window.removeEventListener('deviceorientation',cmpRead)}
 function renderFengshui(){
@@ -3084,7 +3098,7 @@ document.addEventListener('click',async e=>{
   if(t.dataset.act==='report')return openReport();
   if(t.dataset.mhm){mhQ=($('#mhQ')?.value||mhQ).trim();mhMode=t.dataset.mhm;mhRes=null;renderMeihua();return}
   if(t.dataset.act==='cmpon'){cmpStart();return}
-  if(t.dataset.act==='cmpoff'){cmpStop();renderFengshui();return}
+  if(t.dataset.act==='cmpoff'){const q=cmpQm;cmpStop();q?renderQimen():renderFengshui();return}
   if(t.dataset.act==='mhcast'){if(mhBusy)return;mhQ=($('#mhQ')?.value||'').trim();mhA=$('#mhA')?.value||mhA;mhB=$('#mhB')?.value||mhB;
     if(mhMode==='word'&&!mhQ){toast('先寫下想問的事，卦會依你的問題而起','info');$('#mhQ')?.focus();return}
     const r=mhCast();if(!r){toast(mhMode==='num'?'請輸入兩個正整數':'問題裡要有中文字才能起卦','info');return}
