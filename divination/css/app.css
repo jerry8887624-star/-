@@ -1760,7 +1760,7 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .cw-steps li::marker{color:var(--tint);font-weight:700}
 .cw-sign{padding-top:10px;border-top:.5px solid var(--line);gap:8px}
 .cw-relay{background:var(--tint-soft);border-radius:10px;padding:10px 12px;line-height:1.6}
-:root:not([data-theme="dark"]) .btn.ghost[data-act="home"]{color:var(--tint)}
+:root:not([data-theme="dark"]) .btn.ghost[data-act="home"]{color:#6E4E12}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.ghost[data-act="home"]{color:inherit}}
 /* 頁首：音樂開關 */
 .navl{grid-column:1;justify-self:start;display:flex;align-items:center;gap:6px}
