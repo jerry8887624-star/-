@@ -1622,6 +1622,24 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .zwmut .good b{color:var(--good,#2f7a46)}.zwmut .bad b{color:var(--bad,#b3362c)}
 .zwgl{margin:10px 0 0;display:flex;flex-direction:column;gap:2px}
 .zwgl dt{font-weight:700;margin-top:8px}.zwgl dd{margin:0;color:var(--muted);line-height:1.6}
+/* 月空時間 */
+.voc-now{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;border-radius:14px;background:var(--fill)}
+.voc-now b{font-size:16.5px}
+.voc-now.on{background:color-mix(in srgb,var(--mid) 12%,var(--fill));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--mid) 35%,transparent)}
+.voc-list{display:flex;flex-direction:column}
+
+.voc-row:last-child{border-bottom:0}
+
+.voc-row b{font-size:15px}
+
+
+.voc-row.cur{background:color-mix(in srgb,var(--mid) 8%,transparent);border-radius:10px;padding-inline:8px}
+.voc-do ul{margin:4px 0 0;padding-left:1.1em;line-height:1.7}
+
+.voc-row{display:flex;flex-direction:column;gap:3px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.voc-l1{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.voc-tag{font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--tint-soft);color:var(--ink);white-space:nowrap}
+.voc-tag.on{background:color-mix(in srgb,var(--mid) 22%,transparent)}
 </style>
 </head>
 <body>
@@ -5125,6 +5143,73 @@ function eclLon(date){const d=(date.getTime()/86400000+2440587.5)-2451545.0, r=M
 const ASPECT={0:['合相',4,'月亮與你的太陽同星座，直覺與自我一致，適合為自己做決定。'],1:['半六分',3,'變化細微，按部就班即可。'],2:['六分相',4,'小機會出現，適合溝通、拜託別人幫忙。'],3:['四分相',2,'內外拉扯、情緒較緊繃，放慢腳步、避免衝動。'],4:['三分相',5,'最順的一天，做事得心應手，好運自然來。'],5:['梅花相',3,'需要調整心態與節奏，彈性處理。'],6:['對分相',2.5,'人際關係是重點，容易與人意見相左，多聽對方說。']};
 const MOON_THEME={火:'行動與熱情',土:'實際與金錢',風:'溝通與社交',水:'情感與直覺'};
 const ZCOLOR={火:'紅色、橘色',土:'咖啡色、大地色',風:'淺藍色、銀色',水:'深藍色、白色'};
+
+/* ---------- 月空（Void of Course Moon） ----------
+   採現代通行定義：月亮在目前星座與太陽～冥王星形成最後一個主要相位（合、六分、四分、三分、對分）後，到進入下一個星座之前。
+   星曆用 astronomy-engine（MIT），與公開月空表比對到分鐘。 */
+let aeState=window.Astronomy?'ok':'idle';const aeWait=[];
+function aeLoad(){
+  if(aeState==='ok')return Promise.resolve();
+  return new Promise(res=>{aeWait.push(res);if(aeState==='loading')return;aeState='loading';
+    const done=st=>{aeState=st;aeWait.splice(0).forEach(f=>f())};
+    const add=(src,next)=>{const sc=document.createElement('script');sc.src=src;sc.async=true;sc.onload=()=>window.Astronomy?done('ok'):next();sc.onerror=next;document.head.appendChild(sc)};
+    add('vendor/astronomy.min.js',()=>add('https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js',()=>done('fail')));
+  });
+}
+const VOC_B=['Sun','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto'];
+const VOC_ZH={Sun:'太陽',Mercury:'水星',Venus:'金星',Mars:'火星',Jupiter:'木星',Saturn:'土星',Uranus:'天王星',Neptune:'海王星',Pluto:'冥王星'};
+const VOC_ASP={0:'合相',60:'六分相',90:'四分相',120:'三分相',180:'對分相'};
+const aeMoon=t=>Astronomy.EclipticGeoMoon(t).lon;
+const aeLon=(b,t)=>b==='Sun'?Astronomy.SunPosition(t).elon:Astronomy.Ecliptic(Astronomy.GeoVector(b,t,true)).elon;
+const w180=x=>((x%360)+540)%360-180, HR=36e5;
+function vocIngress(t,dir){const s=Math.floor(aeMoon(t)/30);let a=+t,b=+t+dir*2*HR;while(Math.floor(aeMoon(new Date(b))/30)===s){a=b;b+=dir*2*HR}
+  let lo=a,hi=b;while(Math.abs(hi-lo)>2e4){const m=(lo+hi)/2;if(Math.floor(aeMoon(new Date(m))/30)===s)lo=m;else hi=m}return new Date(dir>0?hi:lo)}
+// 月亮停在同一星座的期間 a～b 內，找最後一個精確成相的時間；行星位置用三點二次內插（2.5 天內誤差遠小於 1 分鐘）
+function vocLast(a,b){
+  const A=+a,Bt=+b,span=Bt-A,P={};
+  VOC_B.forEach(x=>{const v=[A,(A+Bt)/2,Bt].map(t=>aeLon(x,new Date(t)));for(let i=1;i<3;i++){while(v[i]-v[i-1]>180)v[i]-=360;while(v[i]-v[i-1]<-180)v[i]+=360}P[x]=v});
+  const ip=(v,t)=>{const u=(t-A)/span*2;return v[0]*(u-1)*(u-2)/2-v[1]*u*(u-2)+v[2]*u*(u-1)/2};
+  const ms=[];for(let t=A;t<Bt+HR;t+=HR)ms.push([Math.min(t,Bt),aeMoon(new Date(Math.min(t,Bt)))]);
+  let best=null;
+  for(const x of VOC_B)for(const ang of [0,60,90,120,180])for(const sg of (ang%180?[1,-1]:[1])){
+    const g=(t,m)=>w180((m??aeMoon(new Date(t)))-ip(P[x],t)-sg*ang);
+    for(let k=1;k<ms.length;k++){const [t0,m0]=ms[k-1],[t1,m1]=ms[k];if(t1<=t0)continue;const g0=g(t0,m0),g1=g(t1,m1);
+      if(g0<0&&g1>=0&&g1-g0<40){let lo=t0,hi=t1;while(hi-lo>2e4){const m=(lo+hi)/2;if(g(m)<0)lo=m;else hi=m}const r=(lo+hi)/2;if(!best||r>best.t)best={t:r,x,ang}}}}
+  return best;
+}
+const vocCache={};
+function vocList(from=new Date(),days=7){
+  const key=Math.floor(+from/HR);if(vocCache[key])return vocCache[key];
+  const out=[];let t=vocIngress(from,-1);const lim=+from+days*864e5;
+  while(+t<lim){const nx=vocIngress(new Date(+t+6e4),1), la=vocLast(t,nx), sign=Math.floor(aeMoon(new Date(+t+6e4))/30);
+    const st=la?la.t:+t;if(+nx>+from&&st<lim)out.push({s:new Date(st),e:nx,from:sign,to:(sign+1)%12,x:la&&la.x,ang:la&&la.ang});t=nx}
+  return vocCache[key]=out;
+}
+const vocT=d=>`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+const vocD=d=>`${d.getMonth()+1}/${d.getDate()}（${'日一二三四五六'[d.getDay()]}）`;
+const vocDur=ms=>{const m=Math.round(ms/6e4),h=Math.floor(m/60);return h?`${h} 小時${m%60?` ${m%60} 分`:''}`:`${m} 分鐘`};
+function vocHtml(){
+  if(aeState!=='ok')return aeState==='fail'?'<h3 class="h3">月空時間</h3><p class="small muted">星曆元件載入失敗，請確認網路後重新開啟這一頁。</p>':'<h3 class="h3">月空時間</h3><p class="small muted" role="status">計算中…</p>';
+  let L;try{L=vocList()}catch(e){console.error(e);return '<h3 class="h3">月空時間</h3><p class="small muted">暫時無法計算月空時間。</p>'}
+  const now=new Date(), curV=L.find(v=>v.s<=now&&now<v.e), next=L.find(v=>v.s>now);
+  const z=k=>ZOD[k][0]+'座';
+  const nextDay=v=>{const d=new Date(v.s);d.setDate(d.getDate()+1);return d.toDateString()===v.e.toDateString()};
+  const span=v=>v.s.toDateString()===v.e.toDateString()?`${vocD(v.s)} ${vocT(v.s)}–${vocT(v.e)}`:`${vocD(v.s)} ${vocT(v.s)} → ${nextDay(v)?'隔天 ':vocD(v.e)+' '}${vocT(v.e)}`;
+  const status=curV?`<div class="voc-now on"><span class="pill mid">現在是月空</span><b>到 ${vocD(curV.e)} ${vocT(curV.e)}</b><span class="small">月亮從${z(curV.from)}進入${z(curV.to)}，還有 ${vocDur(curV.e-now)}。重要的事可以等月空結束再開始。</span></div>`
+    :`<div class="voc-now"><span class="pill good">現在不是月空</span>${next?`<b>下一次：${span(next)}</b><span class="small">約 ${vocDur(next.e-next.s)}，${next.s-now<864e5?`再過 ${vocDur(next.s-now)}開始`:'可以先安排好重要的事'}。</span>`:''}</div>`;
+  const today=now.toDateString();
+  return `<div class="row between"><h3 class="h3">月空時間</h3><span class="small muted">未來 7 天・依手機時區</span></div>
+    ${status}
+    <div class="voc-list">${L.map(v=>`<div class="voc-row${v===curV?' cur':''}"><div class="voc-l1"><b>${span(v)}</b>${v===curV?'<span class="voc-tag on">進行中</span>':v.s.toDateString()===today?'<span class="voc-tag">今天</span>':''}</div><span class="small muted">約 ${vocDur(v.e-v.s)}・月亮 ${ZOD[v.from][0]} → ${ZOD[v.to][0]}${v.x?`・最後與${VOC_ZH[v.x]}${VOC_ASP[v.ang]}`:''}</span></div>`).join('')}</div>
+    <details class="disc"><summary>什麼是月空？</summary><div class="stack" style="gap:8px;margin-top:8px">
+      <p>月亮大約每兩天半換一個星座。換星座之前，月亮和其他行星不再形成主要角度（合、六分、四分、三分、對分），一直到進入下一個星座為止，這段「空檔」就叫<b>月空</b>（Void of Course Moon）。</p>
+      <p>占星裡月亮代表情緒與日常的節奏。月空時月亮「沒有連上」其他行星，做事少了推動力，傳統認為這時開始的事比較容易沒有下文、不如預期，或結果和原本想的不一樣。</p>
+      <div class="grid2 voc-do"><div><b class="good-t">適合</b><ul><li>休息、睡覺、放空</li><li>例行公事、收尾、整理</li><li>冥想、閱讀、寫日記</li><li>處理早就在進行的事</li></ul></div><div><b class="bad-t">盡量避開</b><ul><li>簽約、做重大決定</li><li>開幕、發表、開始新計畫</li><li>面試、告白、談判</li><li>買貴重物品</li></ul></div></div>
+      <p class="small muted">一個月大約有 12～15 次月空，短的幾分鐘、長的超過一天。本頁依現代通行算法（太陽到冥王星、五種主要相位）計算，與國外常用的月空表比對一致；不同占星師的算法略有差異。時間依你手機的時區顯示。月空是參考，不是禁忌，真的必要的事還是可以做。</p>
+    </div></details>`;
+}
+function vocMount(){const c=$('#vocCard');if(!c)return;if(aeState==='ok'){c.innerHTML=vocHtml();return}
+  aeLoad().then(()=>{const c2=$('#vocCard');if(c2)c2.innerHTML=vocHtml()})}
 function renderStar(){
   const [y,m,d]=P.date.split('-').map(Number), z=sunSignOf(m,d), Z=ZOD[z];
   const now=new Date(), E=eclLon(now), ms=Math.floor(E.moon/30), ss=Math.floor(E.sun/30);
@@ -5145,9 +5230,11 @@ function renderStar(){
     <div class="chips">${areas.map(([n,s])=>`<span class="pill ${s>=4?'good':s>=3?'mid':'bad'}">${n} ${'★'.repeat(s)}</span>`).join('')}</div>
     <p class="small">幸運色：${ZCOLOR[el]}　適合：${A[1]>=4?'主動爭取、約重要的人':A[1]>=3?'按計畫進行、整理手邊的事':'休息充電、少做重大決定'}</p>
   </div>
+  <div class="card stack" id="vocCard">${vocHtml()}</div>
   <div class="card stack"><h3 class="h3">本月星象</h3><p>太陽目前在<b>${ZOD[ss][0]}座</b>，與你的星座形成${AS[0]}：${AS[2]}${ss===z?'這是你的生日月，太陽回歸，適合許願、為新的一年訂目標。':''}</p></div>
   <p class="small muted">依今天月亮與太陽實際所在的星座，計算與你太陽星座的相位；西洋占星與八字、紫微是不同體系，可互相參考。</p>
   ${helpBox('star')}`;
+  setTimeout(vocMount,aeState==='ok'?0:30);
 }
 
 /* ---------- 今日開運穿搭與飲食 ---------- */
@@ -5763,6 +5850,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.10.30",
+  "n": "1.11",
+  "d": "10 月 30 日",
+  "items": [
+   [
+    "星座新增月空時間",
+    "星座頁新增「月空時間」：顯示現在是不是月空、下一次什麼時候，以及未來 7 天的月空時段，附白話說明與適合、避開的事。",
+    "star"
+   ]
+  ]
+ },
  {
   "v": "2026.10.29",
   "n": "1.10",
