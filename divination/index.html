@@ -1794,7 +1794,7 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .cw-steps li::marker{color:var(--tint);font-weight:700}
 .cw-sign{padding-top:10px;border-top:.5px solid var(--line);gap:8px}
 .cw-relay{background:var(--tint-soft);border-radius:10px;padding:10px 12px;line-height:1.6}
-:root:not([data-theme="dark"]) .btn.ghost[data-act="home"]{color:var(--tint)}
+:root:not([data-theme="dark"]) .btn.ghost[data-act="home"]{color:#6E4E12}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.ghost[data-act="home"]{color:inherit}}
 /* 頁首：音樂開關 */
 .navl{grid-column:1;justify-self:start;display:flex;align-items:center;gap:6px}
@@ -6128,7 +6128,14 @@ const SND=(()=>{
     return ctx}
   function impulse(sec,dec){const n=Math.floor(ctx.sampleRate*sec),b=ctx.createBuffer(2,n,ctx.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,dec)}return b}
   function noise(len){const n=Math.floor(ctx.sampleRate*len),b=ctx.createBuffer(1,n,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;return b}
-  const ready=()=>{if(!init())return false;if(ctx.state==='suspended')ctx.resume().catch(()=>{});return true};
+  const ready=()=>{if(!init())return false;if(ctx.state==='suspended')ctx.resume().catch(()=>{});loadCards();return true};
+  // 紙牌音效：預先錄製的取樣（audio/sfx，紙板共振＋桌面＋室內殘響），載入前或失敗時用即時合成
+  const CARD={},CARD_FILES={flip:['flip0','flip1','flip2'],deal:['deal0','deal1'],shuffle:['shuffle'],shuffleS:['shuffle_short']};let cardLoading=false;
+  function loadCards(){if(cardLoading||!ctx)return;cardLoading=true;
+    Object.entries(CARD_FILES).forEach(([k,list])=>{CARD[k]=[];list.forEach(n=>fetch(`audio/sfx/${n}.wav`).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})
+      .then(b=>new Promise((ok,no)=>ctx.decodeAudioData(b,ok,no))).then(ab=>CARD[k].push(ab)).catch(()=>{}))})}
+  function sample(k,t,gain=1,rate=1){const L=CARD[k];if(!L||!L.length)return false;const s=ctx.createBufferSource();s.buffer=L[Math.floor(Math.random()*L.length)];
+    s.playbackRate.value=rate*(1+(Math.random()-.5)*.06);const g=ctx.createGain();g.gain.value=gain;s.connect(g);g.connect(sfx);s.start(t||ctx.currentTime);return true}
   function env(g,t,a,peak,dec){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+a+dec)}
   function tone(f,t,peak,dec,type='sine',dest=sfx){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=f;env(g,t,.004,peak,dec);o.connect(g);g.connect(dest);o.start(t);o.stop(t+dec+.05)}
   function burst(t,len,f,q,peak,dest=sfx,type='bandpass'){const s=ctx.createBufferSource();s.buffer=noise(len+.02);const bp=ctx.createBiquadFilter();bp.type=type;bp.frequency.value=f;bp.Q.value=q;const g=ctx.createGain();env(g,t,.002,peak,len);s.connect(bp);bp.connect(g);g.connect(dest);s.start(t);s.stop(t+len+.03)}
@@ -6151,9 +6158,9 @@ const SND=(()=>{
     drop(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;wood(t,1.9,.6);wood(t+.12,2.1,.25)},
     bell(){if(!sfxOn()||!ready())return;bowl(587,ctx.currentTime,.32,sfx)},
     soft(){if(!sfxOn()||!ready())return;tone(440,ctx.currentTime,.1,.5)},
-    flip(major){if(!sfxOn()||!ready())return;const t=ctx.currentTime;burst(t,.16,3200,.7,.35,sfx,'highpass');if(major){[1318,1760,2349].forEach((f,i)=>tone(f,t+.12+i*.07,.12,1.4))}},
-    shuffle(sec=1.6){if(!sfxOn()||!ready())return;const t=ctx.currentTime;for(let i=0;i<Math.floor(sec*7);i++)burst(t+i/7+Math.random()*.04,.09,2400+Math.random()*1800,.9,.22,sfx,'highpass')},
-    deal(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;for(let i=0;i<5;i++)burst(t+i*.07,.07,3600,.8,.2,sfx,'highpass')},
+    flip(major){if(!sfxOn()||!ready())return;const t=ctx.currentTime;if(!sample('flip',t,.9))burst(t,.16,3200,.7,.35,sfx,'highpass');if(major){[1318,1760,2349].forEach((f,i)=>tone(f,t+.16+i*.08,.08,1.6))}},
+    shuffle(sec=1.6){if(!sfxOn()||!ready())return;const t=ctx.currentTime;if(sample(sec>=1.3?'shuffle':'shuffleS',t,.95))return;for(let i=0;i<Math.floor(sec*7);i++)burst(t+i/7+Math.random()*.04,.09,2400+Math.random()*1800,.9,.22,sfx,'highpass')},
+    deal(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;if(CARD.deal&&CARD.deal.length){[0,.11,.2].forEach((d,i)=>sample('deal',t+d,.75-i*.15,1.05+i*.03));return}for(let i=0;i<5;i++)burst(t+i*.07,.07,3600,.8,.2,sfx,'highpass')},
     chime(){if(!sfxOn()||!ready())return;const t=ctx.currentTime;[1047,1319,1568].forEach((f,i)=>tone(f,t+i*.09,.1,1.2))},
     setMood(m){if(mood===m)return;mood=m;if(playing&&!synth&&trackMode()==='auto'&&curTrack&&curTrack.mood!==m)swapTo(pickTrack(),true);
       else if(playing&&synth){fadeTo(0.0001,1.2);setTimeout(()=>{if(!playing||!synth)return;stopPad();startPad();nextT=ctx.currentTime+.3;fadeTo(vol()*.55,2.5)},1300)}},
@@ -6651,6 +6658,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.3-1",
+  "n": "1.17.1",
+  "d": "11 月 3 日",
+  "items": [
+   [
+    "塔羅牌聲重新製作",
+    "翻牌：拇指撥起、空中翻面的氣流、紙牌拍在桌上的「啪」；洗牌：鴿尾洗牌左右兩疊交錯的「嘩啦啦」、彎牌回推的瀑布聲，最後整牌在桌上敲兩下；發牌：牌滑過桌面再落定。每次播放都會有些微不同，不會聽起來一模一樣。每日一抽也一起更新。",
+    "tarot"
+   ]
+  ]
+ },
  {
   "v": "2026.11.3",
   "n": "1.17",
