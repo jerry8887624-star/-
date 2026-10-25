@@ -1736,6 +1736,9 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 @media print{.rp-app{font-size:12px}.rp-app .rp-t th,.rp-app .rp-t td{padding:3px 5px}.rp-app p{margin:4px 0}.rp-app .rp-h3{margin:8px 0 2px}}
 .rp-ch{break-inside:avoid;break-after:avoid}
 .rp .rp-close{break-inside:avoid}
+/* 直排標語收緊字距，確保在大標題區塊內、不壓到下方的分段按鈕 */
+.lt-motto{font-size:12px;line-height:1.08;gap:1px;top:6px}
+.lt-motto i.dot{margin:2px 0}
 </style>
 </head>
 <body>
@@ -5705,7 +5708,7 @@ function renderTabs(){
   $('#tabs').innerHTML=GROUPS.map(g=>`<button class="tab" data-tab="${g.k}" aria-current="${groupOf(cur)===g?'page':'false'}"><svg viewBox="0 0 24 24" aria-hidden="true">${g.icon}</svg><span>${g.n}</span></button>`).join('');
 }
 // 各分頁的標語與直排箴言
-const TAGS={today:['順天應時・日日是好日','天時・地利・人和'],ask:['誠心問事・指點迷津','心誠・則靈'],cal:['擇吉而行・不違農時','敬天・順時・安心'],chart:['知命而不認命','識己・知命・造運'],tools:['好名開運・順勢而行','天時・人和・名正運旺'],fam:['一家平安・福氣滿堂','家和・萬事興']};
+const TAGS={today:['順天應時・日日是好日','天時・地利・人和'],ask:['誠心問事・指點迷津','心誠・則靈'],cal:['擇吉而行・不違農時','敬天・順時・安心'],chart:['知命而不認命','識己・知命・造運'],tools:['好名開運・順勢而行','名正・運旺・順勢'],fam:['一家平安・福氣滿堂','家和・萬事興']};
 function renderTitle(){
   const g=groupOf(cur), now=new Date(), L=Solar.fromDate(now).getLunar();
   $('#ltDate').textContent=cur==='overview'?`${now.getMonth()+1}月${now.getDate()}日 星期${WEEK[now.getDay()]} · 農曆${S2T(L.getMonthInChinese())}月${S2T(L.getDayInChinese())}`:SUBTITLE[cur];
@@ -6134,6 +6137,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.1-2",
+  "n": "1.13.1",
+  "d": "11 月 1 日",
+  "items": [
+   [
+    "修正頁首直排標語壓到分頁按鈕",
+    "各頁右上角的直排標語（例如開運頁）不再蓋到下方的「風水／改名／奇門」等按鈕。",
+    null
+   ]
+  ]
+ },
  {
   "v": "2026.11.1",
   "n": "1.13",

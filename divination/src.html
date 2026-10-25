@@ -3088,7 +3088,7 @@ function renderTabs(){
   $('#tabs').innerHTML=GROUPS.map(g=>`<button class="tab" data-tab="${g.k}" aria-current="${groupOf(cur)===g?'page':'false'}"><svg viewBox="0 0 24 24" aria-hidden="true">${g.icon}</svg><span>${g.n}</span></button>`).join('');
 }
 // 各分頁的標語與直排箴言
-const TAGS={today:['順天應時・日日是好日','天時・地利・人和'],ask:['誠心問事・指點迷津','心誠・則靈'],cal:['擇吉而行・不違農時','敬天・順時・安心'],chart:['知命而不認命','識己・知命・造運'],tools:['好名開運・順勢而行','天時・人和・名正運旺'],fam:['一家平安・福氣滿堂','家和・萬事興']};
+const TAGS={today:['順天應時・日日是好日','天時・地利・人和'],ask:['誠心問事・指點迷津','心誠・則靈'],cal:['擇吉而行・不違農時','敬天・順時・安心'],chart:['知命而不認命','識己・知命・造運'],tools:['好名開運・順勢而行','名正・運旺・順勢'],fam:['一家平安・福氣滿堂','家和・萬事興']};
 function renderTitle(){
   const g=groupOf(cur), now=new Date(), L=Solar.fromDate(now).getLunar();
   $('#ltDate').textContent=cur==='overview'?`${now.getMonth()+1}月${now.getDate()}日 星期${WEEK[now.getDay()]} · 農曆${S2T(L.getMonthInChinese())}月${S2T(L.getDayInChinese())}`:SUBTITLE[cur];

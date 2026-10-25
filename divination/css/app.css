@@ -1702,3 +1702,6 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 @media print{.rp-app{font-size:12px}.rp-app .rp-t th,.rp-app .rp-t td{padding:3px 5px}.rp-app p{margin:4px 0}.rp-app .rp-h3{margin:8px 0 2px}}
 .rp-ch{break-inside:avoid;break-after:avoid}
 .rp .rp-close{break-inside:avoid}
+/* 直排標語收緊字距，確保在大標題區塊內、不壓到下方的分段按鈕 */
+.lt-motto{font-size:12px;line-height:1.08;gap:1px;top:6px}
+.lt-motto i.dot{margin:2px 0}
