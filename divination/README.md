@@ -26,7 +26,7 @@
 - **居家風水**：手機羅盤（陀螺儀／磁力計即時顯示面向的八方位、八卦、二十四山，並標出對你是吉方還是凶方）、八宅命卦、八方吉凶羅盤、床頭書桌大門擺設與家人共同吉方
 - **簡易模式**：只留今日、問事（求籤・擲筊）、全家三個大分頁與大按鈕；各頁第一次使用有小提示；問題可用說的輸入
 - **全家一覽**：全家人今日運勢與今年安太歲名單
-- **聲音與震動**：儀式音效（筊杯、籤筒、磬聲、洗牌翻牌）與背景音樂為 `audio/` 兩首配樂（〈儀式靜心〉〈琉璃雨〉，可依頁面自動切換、固定一首或輪播；載入失敗時退回 Web Audio 合成氛圍音樂），紙牌音效為 `audio/sfx/` 的預先合成取樣（翻牌 3 款、發牌 2 款、洗牌長短各 1，由 `gen_cards.py` 產生），其餘音效以 Web Audio 即時合成；Android 用 vibrate，iPhone（iOS 18+）以 switch 觸發觸感回饋
+- **聲音與震動**：儀式音效（筊杯、籤筒、磬聲、洗牌翻牌）與背景音樂為 `audio/` 兩首配樂（〈儀式靜心〉〈琉璃雨〉，可依頁面自動切換、固定一首或輪播；載入失敗時退回 Web Audio 合成氛圍音樂），儀式音效為 `audio/sfx/` 的真實錄音（Freesound CC0 錄音剪輯：翻牌、發牌、洗牌、筊杯落地、搖籤筒、落籤、磬、頌缽、小鈴、木魚、按鍵輕敲、展開籤詩，由 `make_sfx.py` 從原始檔剪出），載入前或失敗時退回 Web Audio 即時合成；按鍵輕觸音預設關閉；Android 用 vibrate，iPhone（iOS 18+）以 switch 觸發觸感回饋
 - **占卜日記**：求籤、塔羅、擲筊自動記錄，可回顧是否應驗並統計應驗率
 - **自訂首頁**：首頁卡片可開關、排序
 - **加到主畫面引導**：用瀏覽器開啟時，在分頁列上方提醒加到主畫面（iOS 版箭頭指向 Safari 分享鈕），附圖解步驟；依 iPhone Safari、iPhone 其他瀏覽器、Android Chrome、LINE／Facebook／Google App 內建瀏覽器各給對應做法，Android 支援一鍵安裝；「不用了」後 7 天再提醒，最多 3 次；設定裡也能找到
@@ -55,6 +55,8 @@ python3 divination/build.py      # 由 src.html + css/ + data/ 產生 index.html
 - `data/content.js`：81 數理、星曜、十神、五行開運、取名字庫、各頁說明
 - `data/kangxi.js`：康熙筆畫表（由 Unicode Unihan `kRSKangXi` 產生）
 - `data/tones.js`：國語聲調表（由 Unihan `kMandarin` 產生），用於名字音律
+
+音效來源（皆為 [CC0](https://creativecommons.org/publicdomain/zero/1.0/)，非必要標註，仍列出以示感謝）：Freesound 上 snuq [#564128](https://freesound.org/s/564128/)、Vrymaa [#734631](https://freesound.org/s/734631/)、[#753282](https://freesound.org/s/753282/)、VKProduktion [#217503](https://freesound.org/s/217503/)、kingsrow [#194686](https://freesound.org/s/194686/)、CapsLok [#181262](https://freesound.org/s/181262/)、surly [#91196](https://freesound.org/s/91196/)、Coleco [#59159](https://freesound.org/s/59159/)、jonopodmore [#607218](https://freesound.org/s/607218/)、[#607215](https://freesound.org/s/607215/)、Squirrel_404 [#716245](https://freesound.org/s/716245/)。
 
 曆法與紫微排盤使用 [lunar-javascript](https://github.com/6tail/lunar-javascript) 、[iztro](https://github.com/SylarLong/iztro)，月空星曆使用 [astronomy-engine](https://github.com/cosinekitty/astronomy)，已放在 `vendor/`（MIT 授權，附授權檔），jsDelivr 只作為備援。資料只存在使用者自己的瀏覽器。
 
