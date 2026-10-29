@@ -7,6 +7,10 @@ description: 開發、修改、測試與發布「靈犀 LINGXI」命理占卜 We
 
 這份技能整理了靈犀從需求到上線的完整做法。使用者是非工程背景、以繁體中文溝通的 App 擁有者，App 主要給長輩與家人使用，所以「正確、好讀、不嚇人、手機上真的能用」比炫技重要。
 
+## 開工第一件事
+
+先讀 `references/status.md`：裡面有目前版本、網址、還沒做完的事與使用者偏好。新對話接手時，以它為準。
+
 ## 0. 先搞清楚要做什麼
 
 - 截圖是最常見的需求來源：先看清楚截圖裡的每個問題（跑版、遮擋、文字被截斷、顏色），一張圖可能藏兩三個問題，全部處理。
@@ -64,12 +68,13 @@ cd <repo> && git fetch -q origin main && git checkout -q -B claude/divination-ap
    python3 divination/build.py --fragment <scratchpad>/artifact.html
    ```
    Artifact 發布時若頁面引用新的圖片，要用 `files` 一併上傳（例如 `img/bg-day.jpg`）。
-6. 確認 GitHub Actions `deploy.yml` 成功（約 1–2 分鐘）。
+6. 確認 GitHub Actions `deploy.yml` 成功（約 1–2 分鐘）。合併到 main 後 Cloudflare Pages 也會自動部署新網址（這個環境連不到 pages.dev，無法自己驗證）。
+7. 做完一輪，回頭更新 `references/status.md` 的「目前版本」與「待辦」。
 
 ## 6. 回報給使用者
 
 用繁體中文，先講結論，再分點說明做了什麼與為什麼；附上兩個連結：
-- App：https://jerry8887624-star.github.io/-/divination/
+- App：https://lingxi-397.pages.dev/（不要再給舊的 github.io 網址，使用者不想讓帳號名稱曝光）
 - Claude 預覽：https://claude.ai/artifact/Q2UEHLYeWttgayJDgdCgwH
 
 誠實說明沒辦法驗證的部分（例如沒有真機 iPhone、只用模擬事件測過羅盤或安裝提示），並提醒手機上如何拿到新版（完全關閉 App 再開、看到「更新內容」按立即更新）。還沒做的建議項目列出來，問要不要接著做。
