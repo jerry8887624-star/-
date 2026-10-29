@@ -3,7 +3,7 @@
 更新：2026-10-29。新對話接手時先讀這份，再照 SKILL.md 的流程做。
 
 ## 版本與網址
-- 目前版本：1.23（`data/changes.json` 最上面那筆，v = `2026.11.9`）。下次發布版號接著遞增。
+- 目前版本：1.24（`data/changes.json` 最上面那筆，v = `2026.11.10`）。下次發布版號接著遞增。
 - 正式網址：**https://lingxi-397.pages.dev/**（Cloudflare Pages，從 GitHub `main` 自動部署，建置輸出目錄 `divination`，沒有建置命令）。
 - 新網址寫在 `divination/data/site.json`，build.py 會帶入 `SITE_URL`、og 標籤，並產生 `old-site.html`。
 - 舊網址 `…github.io/-/divination/` 現在只放輕量搬家頁：`deploy.yml` 把 `divination/old-site.html` 複製成舊網址的 index.html。來源是 `divination/move.html`，裡面的 `/*SITE_URL*/` 會被替換掉。
@@ -31,6 +31,11 @@
 - 用 cantian-tymext（bazi-mcp 的神煞庫）比對神煞與刑沖合害；已修天德貴人漏看月柱、半合須含子午卯酉。文昌只用日干、羊刃只算陽干、空亡只用日柱，屬主流流派，刻意不改。
 - iztro 已升 2.6.3（比對 988 張命盤含流年 0 差異）。
 - Lighthouse（有壓縮、模擬慢速 4G）：效能約 40、其他三項 100；首次下載 944→641KB。剩下的大頭是 index.html 內嵌資料（約 300KB 壓縮後），要再快需把籤詩、解夢等資料拆成延遲載入的檔案。
+
+## 命書（1.24）
+- `reportHtml()` 依實歲分段：`kid`（<18）、`senior`（≥65）改寫事業、感情、大運建議；`noHour`（時辰不確定）開頭加說明、章節依據註明紫微僅供參考。
+- 流月改由共用的 `liuMonths(年干支)` 產生（流年頁與命書同一套）；星數與文字分級一律用 `Math.round(score)`。
+- 檢查方式：多組命主（長輩、孩子、時辰不確定、複姓、單名）產生命書，掃描 undefined／NaN／重複標點／空格，並看手機截圖與列印 PDF。
 
 ## 音訊（目前做法）
 - 背景音樂 5 首，放在 `audio/*.mp3`（響度 -20 LUFS、112 kbps）：寺院系〈儀式靜心〉〈缽音入定〉〈晨鐘回響〉、星空系〈琉璃雨〉〈靜夜安神〉。用**原生 `<audio>`** 播放、不經 Web Audio，因為接 Web Audio 時捲動會變調、爆音。iOS 不能調網頁音量。
