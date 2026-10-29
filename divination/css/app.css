@@ -1796,3 +1796,8 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .bgmopt[aria-checked="true"]::before{border-color:var(--tint);background:radial-gradient(circle,var(--tint) 0 4px,transparent 4.5px)}
 .rp-fav{font-style:normal;font-size:.78em;margin-left:6px;padding:1px 6px;border-radius:8px;white-space:nowrap}
 .rp-fav.good{background:#E4F1E6;color:#2E6B3A}.rp-fav.bad{background:#F5E6DE;color:#8A3B1E}
+/* 搬家 */
+.mv-url{font-size:18px;text-align:center;padding:10px;border-radius:12px;background:var(--tint-soft);word-break:break-all;margin:0}
+.mv-ol{margin:0;padding-left:1.3em;display:grid;gap:4px}
+.mvcard summary{cursor:pointer;list-style:none}
+.mvcard summary::-webkit-details-marker{display:none}
