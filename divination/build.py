@@ -5,10 +5,13 @@
   預設輸出 divination/index.html（完整 HTML，給 GitHub Pages）
   --fragment 另外輸出不含 <head> 骨架的片段（給 claude.ai Artifact）
 """
-import pathlib, sys
+import pathlib, sys, json
 
 ROOT = pathlib.Path(__file__).resolve().parent
 src = (ROOT / 'src.html').read_text(encoding='utf-8')
+# 正式網址（搬家後的新網址）：寫在 data/site.json，空字串代表還沒設定
+SITE = json.loads((ROOT / 'data/site.json').read_text(encoding='utf-8')).get('url', '').strip()
+src = src.replace("/*SITE_URL*/''", json.dumps(SITE))
 for marker, path in [('/*APP_CSS*/', 'css/app.css'), ('/*KX_DATA*/', 'data/kangxi.js'), ('/*CONTENT*/', 'data/content.js'),
                      ('/*TAROT_DATA*/', 'data/tarot.js'), ('/*QIAN_DATA*/', 'data/qian.js'), ('/*GUANYIN_DATA*/', 'data/guanyin.js'), ('/*DREAM_DATA*/', 'data/dream.js'), ('/*YIJING_DATA*/', 'data/yijing.js'), ('/*TONE_DATA*/', 'data/tones.js'), ('/*CHANGES*/', 'data/changes.json')]:
     assert marker in src, marker
@@ -43,8 +46,8 @@ page = f'''<!doctype html>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://jerry8887624-star.github.io/-/divination/">
-<meta property="og:image" content="https://jerry8887624-star.github.io/-/divination/icons/og.png?v=3">
+{f'<meta property="og:url" content="{SITE}">' if SITE else ''}
+<meta property="og:image" content="{SITE}icons/og.png?v=3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">

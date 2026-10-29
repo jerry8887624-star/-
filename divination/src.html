@@ -196,6 +196,16 @@ addEventListener('unhandledrejection',function(e){window.__gxErr.push('Promise: 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+/* ---------- 網站搬家：舊網址把資料打包成「搬家碼」，帶到新網址 ---------- */
+const SITE_URL=/*SITE_URL*/'';
+const moveKeys=()=>{const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gx_'))o[k]=localStorage.getItem(k)}}catch(e){}return o};
+const movePack=()=>btoa(unescape(encodeURIComponent(JSON.stringify(moveKeys()))));
+function moveApply(code){const o=JSON.parse(decodeURIComponent(escape(atob(code.trim()))));let n=0;Object.entries(o).forEach(([k,v])=>{if(k.startsWith('gx_')&&typeof v==='string'){localStorage.setItem(k,v);n++}});return n}
+(()=>{const h=location.hash;if(!h.startsWith('#move='))return;
+  try{const code=decodeURIComponent(h.slice(6)),had=localStorage.getItem('gx_profiles');
+    if(!had||confirm('要用舊網址帶過來的資料，取代這裡現有的資料嗎？')){moveApply(code);sessionStorage.setItem('gx_moved','1')}}catch(e){}
+  history.replaceState(null,'',location.pathname+location.search)})();
+const onOldSite=()=>!!SITE_URL&&location.hostname.endsWith('github.io');
 /* ---------- 彈出視窗：通知、提示、確認、揭曉、底部面板 ---------- */
 const reduceMotion=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||store.get('gx_motion','full')==='low';
 const ICONS={check:'<path d="M7 12.5l3.2 3.2L17 9" />',info:'<circle cx="12" cy="8" r=".6"/><path d="M12 11v6"/>',heart:'<path d="M12 19s-7-4.4-7-9.2A3.8 3.8 0 0 1 12 7.5a3.8 3.8 0 0 1 7 2.3C19 14.6 12 19 12 19z"/>',warn:'<path d="M12 8v5"/><circle cx="12" cy="16.5" r=".6"/>',star:'<path d="M12 4l2.3 4.9 5.2.6-3.9 3.6 1.1 5.2L12 15.7 7.3 18.3l1.1-5.2-3.9-3.6 5.2-.6z"/>'};
@@ -3382,7 +3392,10 @@ function fitAll(){
 let fitRaf=0;const fitSoon=()=>{cancelAnimationFrame(fitRaf);fitRaf=requestAnimationFrame(fitAll)};
 new MutationObserver(fitSoon).observe(document.body,{childList:true,subtree:true});
 addEventListener('resize',fitSoon);
-function fsSheetBody(){const o=fsGet(),th=store.get('gx_theme','auto');return `${canInstall()?`<div class="card stack"><div class="row between" style="gap:10px"><div><b>加到手機主畫面</b><p class="small muted" style="margin:2px 0 0">像 App 一樣一點就開，也能離線使用</p></div><button type="button" class="btn sm primary" data-act="install">${instEvt?'安裝':'教我'}</button></div></div>`:''}<div class="card stack"><div class="f"><span>外觀</span><div class="seg" role="group" aria-label="外觀">${[['auto','跟隨系統'],['light','淺色'],['dark','深色']].map(([v,n])=>`<button type="button" data-theme-v="${v}" aria-pressed="${th===v}">${n}</button>`).join('')}</div></div></div><div class="card stack"><label class="toggle"><input type="checkbox" id="simpleT"${simple?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span><b>簡易模式</b><br><span class="small muted">只留今日運勢、求籤、全家三大功能，字更大、更好按</span></span></label></div><div class="card stack">
+function fsSheetBody(){const o=fsGet(),th=store.get('gx_theme','auto');return `${canInstall()?`<div class="card stack"><div class="row between" style="gap:10px"><div><b>加到手機主畫面</b><p class="small muted" style="margin:2px 0 0">像 App 一樣一點就開，也能離線使用</p></div><button type="button" class="btn sm primary" data-act="install">${instEvt?'安裝':'教我'}</button></div></div>`:''}<div class="card stack"><div class="f"><span>外觀</span><div class="seg" role="group" aria-label="外觀">${[['auto','跟隨系統'],['light','淺色'],['dark','深色']].map(([v,n])=>`<button type="button" data-theme-v="${v}" aria-pressed="${th===v}">${n}</button>`).join('')}</div></div></div><details class="card stack mvcard"><summary><b>搬家碼</b><span class="small muted">　把資料搬到另一個網址或另一支手機</span></summary><div class="stack" style="margin-top:8px">
+    <button type="button" class="btn sm" data-mvexp>複製我的搬家碼</button>
+    <label class="f" for="mvIn">貼上搬家碼<textarea id="mvIn" rows="3" placeholder="從舊網址或另一支手機複製的搬家碼"></textarea></label>
+    <button type="button" class="btn sm primary" data-mvimp>匯入</button></div></details><div class="card stack"><label class="toggle"><input type="checkbox" id="simpleT"${simple?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span><b>簡易模式</b><br><span class="small muted">只留今日運勢、求籤、全家三大功能，字更大、更好按</span></span></label></div><div class="card stack">
     <div class="fs-preview"><span class="eyebrow">預覽</span><b>今天整體平穩，財運最好。</b><p>子時 23–01　宜：祭祀、會親友</p></div>
     <div class="f"><span>文字大小</span><div class="seg fs-seg" role="group" aria-label="文字大小">${FS_STEPS.map(([z,n])=>`<button type="button" data-fs="${z}" aria-pressed="${o.z===z}">${n}</button>`).join('')}</div></div>
     <div class="f"><span>動態效果</span><div class="seg" role="group" aria-label="動態效果">${[['full','完整動效'],['low','簡化動效']].map(([v,n])=>`<button type="button" data-motion="${v}" aria-pressed="${store.get('gx_motion','full')===v}">${n}</button>`).join('')}</div></div>
@@ -3395,7 +3408,10 @@ function fsSheetBody(){const o=fsGet(),th=store.get('gx_theme','auto');return `$
     <p class="small muted" style="margin:0">iPhone 開著靜音鍵時聽不到音效；iPhone 的音樂音量請用手機側邊的音量鍵調整。音樂只會在你按下開關後播放。</p>
     <label class="toggle"><input type="checkbox" id="fsBold"${o.b?' checked':''}><span class="sw-ui" aria-hidden="true"></span><span>粗體文字，看得更清楚</span></label>
     <p class="small muted">整個 App 會一起放大並重新排版。設定只存在這台裝置，下次打開仍然有效。</p></div>${canSpeak?`<div class="card stack"><div class="f"><span>朗讀速度</span><div class="seg" role="group" aria-label="朗讀速度">${RATES.map(([r,n])=>`<button type="button" data-rate="${r}" aria-pressed="${store.get('gx_rate',.9)===r}">${n}</button>`).join('')}</div></div><button type="button" class="btn sm" data-rtest style="align-self:flex-start">${SPK_IC}<span>試聽</span></button></div>`:''}<div class="card stack"><b>操作提示</b><span class="small muted">每一頁第一次打開時，會用小氣泡提示怎麼用。</span><button type="button" class="btn sm" data-act="tipsreset" style="align-self:flex-start">重新顯示所有提示</button></div>${reminderHtml()}${canInstall()?`<div class="card stack"><b>加到手機主畫面</b><span class="small muted">像 App 一樣一點就開，沒網路也能用。</span><button class="btn sm" data-act="install" style="align-self:flex-start">教我怎麼加</button></div>`:''}`}
-function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const tv=e.target.closest('[data-theme-v]');if(tv){setTheme(tv.dataset.themeV);L.panel.querySelectorAll('[data-theme-v]').forEach(x=>x.setAttribute('aria-pressed',x===tv));buzz();return}const mo=e.target.closest('[data-motion]');if(mo){store.set('gx_motion',mo.dataset.motion);document.documentElement.classList.toggle('lowmo',mo.dataset.motion==='low');L.panel.querySelectorAll('[data-motion]').forEach(x=>x.setAttribute('aria-pressed',x===mo));return}const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}const bt=e.target.closest('[data-bgmt]');if(bt){L.panel.querySelectorAll('[data-bgmt]').forEach(x=>x.setAttribute('aria-checked',x===bt));SND.track(bt.dataset.bgmt);if(!SND.playing){store.set('gx_bgm',true);SND.setMood(MOOD_STAR.has(cur)?'star':'temple');SND.music(true);const c=L.panel.querySelector('#fsBgm');if(c)c.checked=true}musUi();return}const bv=e.target.closest('[data-bgmv]');if(bv){store.set('gx_bgmv',+bv.dataset.bgmv);L.panel.querySelectorAll('[data-bgmv]').forEach(x=>x.setAttribute('aria-pressed',x===bv));SND.volume();return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsHaptic'){store.set('gx_haptic',e.target.checked);if(e.target.checked)buzz(10);return}if(e.target.id==='fsSfx'){store.set('gx_sfx',e.target.checked);if(e.target.checked)SND.bell();return}if(e.target.id==='fsTap'){store.set('gx_tap',e.target.checked);if(e.target.checked)SND.tap();return}if(e.target.id==='fsBgm'){store.set('gx_bgm',e.target.checked);SND.music(e.target.checked);musUi();return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
+function openFs(){const L=sheet('顯示與設定',fsSheetBody());L.panel.addEventListener('click',e=>{const tv=e.target.closest('[data-theme-v]');if(tv){setTheme(tv.dataset.themeV);L.panel.querySelectorAll('[data-theme-v]').forEach(x=>x.setAttribute('aria-pressed',x===tv));buzz();return}const mo=e.target.closest('[data-motion]');if(mo){store.set('gx_motion',mo.dataset.motion);document.documentElement.classList.toggle('lowmo',mo.dataset.motion==='low');L.panel.querySelectorAll('[data-motion]').forEach(x=>x.setAttribute('aria-pressed',x===mo));return}const r=e.target.closest('[data-rate]');if(r){store.set('gx_rate',+r.dataset.rate);L.panel.querySelectorAll('[data-rate]').forEach(x=>x.setAttribute('aria-pressed',x===r));speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-rtest]')){speak('你好，這是靈犀的朗讀速度。');return}if(e.target.closest('[data-mvexp]')){navigator.clipboard?.writeText(movePack()).then(()=>toast('已複製搬家碼','check')).catch(()=>toast('無法自動複製','warn'));return}
+    if(e.target.closest('[data-mvimp]')){const v=(L.panel.querySelector('#mvIn')?.value||'').trim();if(!v)return toast('請先貼上搬家碼','warn');
+      alertBox({title:'匯入搬家碼？',msg:'這支手機上現有的資料會被取代。',buttons:[{text:'取消',style:'cancel',value:false},{text:'匯入',value:true}]}).then(ok=>{if(!ok)return;try{const n=moveApply(v);toast(`已匯入 ${n} 項資料，重新載入中`,'check');setTimeout(()=>location.reload(),900)}catch(err){toast('搬家碼不正確，請重新複製','warn')}});return}
+    const bt=e.target.closest('[data-bgmt]');if(bt){L.panel.querySelectorAll('[data-bgmt]').forEach(x=>x.setAttribute('aria-checked',x===bt));SND.track(bt.dataset.bgmt);if(!SND.playing){store.set('gx_bgm',true);SND.setMood(MOOD_STAR.has(cur)?'star':'temple');SND.music(true);const c=L.panel.querySelector('#fsBgm');if(c)c.checked=true}musUi();return}const bv=e.target.closest('[data-bgmv]');if(bv){store.set('gx_bgmv',+bv.dataset.bgmv);L.panel.querySelectorAll('[data-bgmv]').forEach(x=>x.setAttribute('aria-pressed',x===bv));SND.volume();return}const b=e.target.closest('[data-fs]');if(!b)return;const o=fsGet();o.z=+b.dataset.fs;fsApply(o);L.panel.querySelectorAll('[data-fs]').forEach(x=>x.setAttribute('aria-pressed',x===b));buzz()});L.panel.addEventListener('change',e=>{if(e.target.id==='simpleT'){setSimple(e.target.checked);toast(e.target.checked?'已切換為簡易模式':'已回到完整功能','check');return}if(e.target.id==='fsHaptic'){store.set('gx_haptic',e.target.checked);if(e.target.checked)buzz(10);return}if(e.target.id==='fsSfx'){store.set('gx_sfx',e.target.checked);if(e.target.checked)SND.bell();return}if(e.target.id==='fsTap'){store.set('gx_tap',e.target.checked);if(e.target.checked)SND.tap();return}if(e.target.id==='fsBgm'){store.set('gx_bgm',e.target.checked);SND.music(e.target.checked);musUi();return}if(e.target.id==='fsBold'){const o=fsGet();o.b=e.target.checked;fsApply(o)}})}
 function updateHeader(){
   $('#whoAv').textContent=P.given||P.sur||'命';
   $('#whoBtn').setAttribute('aria-label',`命主：${P.sur}${P.given}${P.sample?'（範例）':''}，點此編輯`);
@@ -3717,7 +3733,21 @@ function welcomeAct(a){
   else toast('隨時點右上角的生肖，或「輸入生辰」都能填寫','info');
 }
 function needProfile(){return !PEOPLE.length}
-function maybeWelcome(){let seen=false;try{seen=sessionStorage.getItem('gx_wel')==='1'}catch(e){}if(needProfile()&&!seen){store.set('gx_ver',APP_VER);showWelcome()}else{maybeNews();a2hsSoon()}}
+function maybeWelcome(){let seen=false;try{seen=sessionStorage.getItem('gx_wel')==='1'}catch(e){}
+  if(sessionStorage.getItem('gx_moved')){sessionStorage.removeItem('gx_moved');setTimeout(()=>toast('資料已從舊網址搬過來了','check'),600)}
+  if(onOldSite()){moveSheet();return}
+  if(needProfile()&&!seen){store.set('gx_ver',APP_VER);showWelcome()}else{maybeNews();a2hsSoon()}}
+/* 舊網址：提示搬到新網址，一鍵帶資料過去；加到主畫面的人用搬家碼 */
+function moveSheet(){const L=sheet('靈犀搬新家了',`<div class="stack">
+  <p>靈犀換了新網址：</p><p class="mv-url"><b>${esc(SITE_URL.replace(/^https?:\/\//,'').replace(/\/$/,''))}</b></p>
+  <p class="small muted">舊網址之後會停用。按下面的按鈕，你的命主資料、求籤紀錄、占卜日記都會一起帶過去。</p>
+  <a class="btn primary block" href="${esc(SITE_URL)}#move=${encodeURIComponent(movePack())}">帶著我的資料搬過去</a>
+  <details class="disc"><summary>我是從手機主畫面打開的</summary><div class="stack small" style="margin-top:8px">
+    <p>主畫面的 App 和瀏覽器的資料是分開存的，請改用「搬家碼」：</p>
+    <ol class="mv-ol"><li>按「複製搬家碼」。</li><li>用 Safari 或 Chrome 打開新網址，重新「加到主畫面」。</li><li>從新的主畫面圖示打開，到左上角「AA 顯示與設定」→「搬家碼」，貼上後按「匯入」。</li></ol>
+    <button type="button" class="btn block" data-mvcopy>複製搬家碼</button></div></details>
+  <button type="button" class="btn ghost block" data-close>之後再說</button></div>`);
+  L.panel.addEventListener('click',e=>{if(e.target.closest('[data-mvcopy]'))navigator.clipboard?.writeText(movePack()).then(()=>toast('已複製搬家碼','check')).catch(()=>toast('無法自動複製，請改用上面的按鈕','warn'))})}
 // 等歡迎頁、更新內容等視窗都關掉後再提醒加到主畫面
 function a2hsSoon(n=0){if(n>8)return;setTimeout(()=>{if($('#updm')||$('.layer.show')||$('#welcome.show')||$('.tipbub'))return a2hsSoon(n+1);maybeA2hs()},n?4000:3000)}
 // 範例資料的提示改由大標題下方的「範例資料」標記常駐顯示（每一頁都看得到），這裡不再重複
@@ -3747,12 +3777,12 @@ function installSteps(){
   const url=location.href.split('#')[0].split('?')[0];
   const icon=`<div class="mk-app"><img src="icons/icon-192.png" alt=""><span>靈犀</span></div>`;
   if(inApp)return `<p class="ilead">你現在是在 <b>LINE、Facebook 或 Google App</b> 裡面開啟，這裡沒辦法加到主畫面，請先改用手機瀏覽器開啟：</p><ol class="isteps">
-    ${step(1,`點右上角（LINE 在右下角）的 <b>「⋯」</b>`,`<div class="mk mk-bar"><span class="mk-url">jerry8887624-star.github.io</span><span class="mk-hl">⋯</span></div>`)}
+    ${step(1,`點右上角（LINE 在右下角）的 <b>「⋯」</b>`,`<div class="mk mk-bar"><span class="mk-url">${location.hostname}</span><span class="mk-hl">⋯</span></div>`)}
     ${step(2,`選 <b>「在瀏覽器中開啟」</b>（iPhone 會寫「用 Safari 開啟」）`,`<div class="mk mk-menu"><span>分享</span><span class="mk-hl">在瀏覽器中開啟</span><span>複製連結</span></div>`)}
     ${step(3,'在瀏覽器裡再點一次「加到主畫面」，照著步驟做。','')}</ol>
     <div class="grid2"><a class="btn primary" href="${url}?openExternalBrowser=1">用瀏覽器開啟</a><button type="button" class="btn" data-copyurl="${url}">複製網址</button></div>`;
   if(iosOther)return `<ol class="isteps">
-    ${step(1,`點網址列右邊的 <b>「分享」</b> ${SHARE_ICO}`,`<div class="mk mk-bar"><span class="mk-url">jerry8887624-star.github.io</span><span class="mk-hl">${SHARE_ICO}</span></div>`)}
+    ${step(1,`點網址列右邊的 <b>「分享」</b> ${SHARE_ICO}`,`<div class="mk mk-bar"><span class="mk-url">${location.hostname}</span><span class="mk-hl">${SHARE_ICO}</span></div>`)}
     ${step(2,`往下滑，點 <b>「加入主畫面」</b>`,`<div class="mk mk-menu"><span>拷貝</span><span class="mk-hl">${ADD_ICO}加入主畫面</span><span>加入書籤</span></div>`)}
     ${step(3,`右上角點 <b>「新增」</b>`,`<div class="mk mk-dlg"><div class="mk-top"><span>取消</span><b>加入主畫面</b><span class="mk-hl">新增</span></div>${icon}</div>`)}</ol>
     <p class="small muted">若沒有「加入主畫面」，請改用 Safari 開啟本頁。</p>`;
@@ -3761,7 +3791,7 @@ function installSteps(){
     ${step(2,`往下滑，點 <b>「加入主畫面」</b>`,`<div class="mk mk-menu"><span>拷貝</span><span>加入書籤</span><span class="mk-hl">${ADD_ICO}加入主畫面</span></div>`)}
     ${step(3,`右上角點 <b>「新增」</b>，桌面就會出現靈犀圖示`,`<div class="mk mk-dlg"><div class="mk-top"><span>取消</span><b>加入主畫面</b><span class="mk-hl">新增</span></div>${icon}</div>`)}</ol>`;
   return `<ol class="isteps">
-    ${step(1,`用 <b>Chrome</b> 開啟本頁，點右上角 <b>「⋮」</b>`,`<div class="mk mk-bar"><span class="mk-url">jerry8887624-star.github.io</span><span class="mk-hl">⋮</span></div>`)}
+    ${step(1,`用 <b>Chrome</b> 開啟本頁，點右上角 <b>「⋮」</b>`,`<div class="mk mk-bar"><span class="mk-url">${location.hostname}</span><span class="mk-hl">⋮</span></div>`)}
     ${step(2,`點 <b>「加到主畫面」</b>或 <b>「安裝應用程式」</b>`,`<div class="mk mk-menu"><span>新增分頁</span><span class="mk-hl">${ADD_ICO}加到主畫面</span><span>設定</span></div>`)}
     ${step(3,`按 <b>「安裝」</b>，桌面就會出現靈犀圖示`,`<div class="mk mk-dlg">${icon}<div class="mk-top end"><span>取消</span><span class="mk-hl">安裝</span></div></div>`)}</ol>`}
 // 用瀏覽器開啟的人：在分頁列上方跳出提示泡泡，箭頭指向瀏覽器的分享按鈕
