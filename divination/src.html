@@ -200,7 +200,7 @@ const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v)
 const SITE_URL=/*SITE_URL*/'';
 const moveKeys=()=>{const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gx_'))o[k]=localStorage.getItem(k)}}catch(e){}return o};
 const movePack=()=>btoa(unescape(encodeURIComponent(JSON.stringify(moveKeys()))));
-function moveApply(code){const o=JSON.parse(decodeURIComponent(escape(atob(code.trim()))));let n=0;Object.entries(o).forEach(([k,v])=>{if(k.startsWith('gx_')&&typeof v==='string'){localStorage.setItem(k,v);n++}});return n}
+function moveApply(code){code=String(code).replace(/^.*#move=/,'');try{code=decodeURIComponent(code)}catch(e){}code=code.replace(/\s+/g,'');const o=JSON.parse(decodeURIComponent(escape(atob(code))));let n=0;Object.entries(o).forEach(([k,v])=>{if(k.startsWith('gx_')&&typeof v==='string'){localStorage.setItem(k,v);n++}});return n}
 (()=>{const h=location.hash;if(!h.startsWith('#move='))return;
   try{const code=decodeURIComponent(h.slice(6)),had=localStorage.getItem('gx_profiles');
     if(!had||confirm('要用舊網址帶過來的資料，取代這裡現有的資料嗎？')){moveApply(code);sessionStorage.setItem('gx_moved','1')}}catch(e){}
@@ -3722,7 +3722,7 @@ function welcomeHtml(){return `<div class="wel" role="dialog" aria-modal="true" 
       <ol><li>姓名</li><li>性別</li><li>出生日期（國曆、農曆都可以）</li><li>出生時辰（不知道也沒關係）</li></ol>
       <span>大約 30 秒。資料只存在這支手機，不會上傳。</span></div>
   </div>
-  <div class="wel-acts"><button type="button" class="btn primary block" data-wel="go">開始填寫我的資料</button><button type="button" class="btn ghost block" data-wel="skip">先看範例</button></div>
+  <div class="wel-acts"><button type="button" class="btn primary block" data-wel="go">開始填寫我的資料</button><button type="button" class="btn ghost block" data-wel="skip">先看範例</button><button type="button" class="btn ghost block wel-mv" data-wel="move">我用過舊網址，有「搬家碼」</button></div>
 </div>`}
 function showWelcome(){if($('#welcome'))return;const w=document.createElement('div');w.id='welcome';w.innerHTML=welcomeHtml();document.body.appendChild(w);document.body.classList.add('modal-open');requestAnimationFrame(()=>w.classList.add('show'));setTimeout(()=>w.querySelector('[data-wel="go"]').focus({preventScroll:true}),400)}
 function hideWelcome(){const w=$('#welcome');if(!w)return;w.classList.remove('show');w.classList.add('hide');if(!layers.length)document.body.classList.remove('modal-open');setTimeout(()=>w.remove(),reduceMotion()?0:420)}
@@ -3730,6 +3730,7 @@ function welcomeAct(a){
   try{sessionStorage.setItem('gx_wel','1')}catch(e){}
   hideWelcome();
   if(a==='go')setTimeout(()=>openSheet(true),reduceMotion()?0:260);
+  else if(a==='move')setTimeout(moveImportSheet,reduceMotion()?0:260);
   else toast('隨時點右上角的生肖，或「輸入生辰」都能填寫','info');
 }
 function needProfile(){return !PEOPLE.length}
@@ -3737,6 +3738,17 @@ function maybeWelcome(){let seen=false;try{seen=sessionStorage.getItem('gx_wel')
   if(sessionStorage.getItem('gx_moved')){sessionStorage.removeItem('gx_moved');setTimeout(()=>toast('資料已從舊網址搬過來了','check'),600)}
   if(onOldSite()){moveSheet();return}
   if(needProfile()&&!seen){store.set('gx_ver',APP_VER);showWelcome()}else{maybeNews();a2hsSoon()}}
+/* 新網址：貼上搬家碼匯入 */
+function moveImportSheet(){const L=sheet('貼上搬家碼',`<div class="stack">
+  <p>在舊網址按「複製搬家碼」之後，到這裡長按下面的框框選「貼上」，再按「匯入」。</p>
+  <textarea id="mvIn2" rows="5" placeholder="長按這裡，選「貼上」" style="width:100%;font-size:14px;border-radius:12px;padding:10px;border:1px solid var(--line);background:var(--field,transparent);color:inherit"></textarea>
+  ${navigator.clipboard&&navigator.clipboard.readText?'<button type="button" class="btn block" data-mvpaste>從剪貼簿貼上</button>':''}
+  <button type="button" class="btn primary block" data-mvgo>匯入我的資料</button>
+  <p class="small muted">命主資料、家人生辰、求籤與塔羅紀錄都會搬過來；資料只存在這支手機。</p></div>`);
+  L.panel.addEventListener('click',async e=>{const ta=L.panel.querySelector('#mvIn2');
+    if(e.target.closest('[data-mvpaste]')){try{ta.value=await navigator.clipboard.readText()}catch(err){toast('請長按框框，選「貼上」','info')}return}
+    if(e.target.closest('[data-mvgo]')){const v=ta.value.trim();if(!v)return toast('請先貼上搬家碼','warn');
+      try{const n=moveApply(v);try{sessionStorage.setItem('gx_moved','1');sessionStorage.setItem('gx_wel','1')}catch(err){}toast(`已匯入 ${n} 項資料，重新載入中`,'check');setTimeout(()=>location.reload(),900)}catch(err){toast('搬家碼不完整，請回舊網址重新複製','warn')}}})}
 /* 舊網址：提示搬到新網址，一鍵帶資料過去；加到主畫面的人用搬家碼 */
 function moveSheet(){const L=sheet('靈犀搬新家了',`<div class="stack">
   <p>靈犀換了新網址：</p><p class="mv-url"><b>${esc(SITE_URL.replace(/^https?:\/\//,'').replace(/\/$/,''))}</b></p>
