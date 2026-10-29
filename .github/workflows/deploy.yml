@@ -30,6 +30,8 @@ jobs:
         run: npm run build
       - name: Add 觀象閣 divination app
         run: cp -r divination dist/divination
+      - name: Old URL shows a lightweight move page (app now lives on Cloudflare Pages)
+        run: test -f divination/old-site.html && cp divination/old-site.html dist/divination/index.html || true
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
