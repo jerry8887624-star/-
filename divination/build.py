@@ -60,6 +60,9 @@ page = f'''<!doctype html>
 </html>
 '''
 (ROOT / 'index.html').write_text(page, encoding='utf-8')
+# 舊網址（GitHub Pages）改放輕量搬家頁：由部署流程複製成舊網址的 index.html
+if SITE:
+    (ROOT / 'old-site.html').write_text((ROOT / 'move.html').read_text(encoding='utf-8').replace('/*SITE_URL*/', SITE), encoding='utf-8')
 import hashlib
 ver = hashlib.sha1(page.encode() + (ROOT / 'sw.src.js').read_bytes()).hexdigest()[:10]
 (ROOT / 'sw.js').write_text((ROOT / 'sw.src.js').read_text(encoding='utf-8').replace('__VERSION__', ver), encoding='utf-8')

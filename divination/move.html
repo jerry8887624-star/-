@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>靈犀搬新家了</title>
+<style>
+:root{--bg:#F1EADB;--card:#FBF7EE;--ink:#2A251F;--muted:#6B6152;--tint:#7E5B18;--soft:rgba(126,91,24,.12);--line:#E2D6C0}
+@media (prefers-color-scheme:dark){:root{--bg:#1C2849;--card:#24315A;--ink:#F3EBDA;--muted:#C9C1B0;--tint:#E7C27A;--soft:rgba(231,194,122,.15);--line:#36447A}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1.7 -apple-system,"PingFang TC","Noto Sans TC",sans-serif;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.c{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px 22px;text-align:center}
+img{width:72px;height:72px;border-radius:18px}
+h1{font-size:24px;margin:12px 0 4px}
+.u{font-size:19px;font-weight:700;background:var(--soft);border-radius:12px;padding:10px;margin:14px 0;word-break:break-all}
+p{margin:8px 0;color:var(--muted)}
+.b{display:block;width:100%;text-align:center;border:0;border-radius:14px;padding:14px;font:inherit;font-weight:700;font-size:17px;margin-top:12px;cursor:pointer;text-decoration:none}
+.p{background:linear-gradient(180deg,#F6E3B6,#E0BB76);color:#3A2810}
+.s{background:transparent;color:var(--tint);border:1px solid var(--line)}
+ol{text-align:left;color:var(--muted);padding-left:1.3em;margin:8px 0}
+#home{display:none;text-align:left}
+.t{font-size:14px}
+</style>
+</head>
+<body>
+<main class="c">
+  <img src="icons/icon-192.png" alt="" onerror="this.remove()">
+  <h1>靈犀搬新家了</h1>
+  <p>靈犀換了新網址，以後請到這裡使用：</p>
+  <div class="u" id="u">lingxi-397.pages.dev</div>
+  <div id="web">
+    <p id="msg">你的命主資料、求籤紀錄、占卜日記會一起帶過去。</p>
+    <a class="b p" id="go" href="#">帶著我的資料搬過去</a>
+  </div>
+  <div id="home">
+    <p>你是從手機主畫面打開的。主畫面的 App 和瀏覽器的資料分開存放，請照這樣搬：</p>
+    <ol>
+      <li>按下面的「複製搬家碼」。</li>
+      <li>用 Safari 或 Chrome 打開上面的新網址，重新「加到主畫面」。</li>
+      <li>從新的主畫面圖示打開，點左上角「AA 顯示與設定」→「搬家碼」，貼上後按「匯入」。</li>
+    </ol>
+    <button class="b p" id="copy" type="button">複製搬家碼</button>
+    <a class="b s" id="go2" href="#">直接打開新網址</a>
+  </div>
+  <p class="t" id="note"></p>
+</main>
+<script>
+(function(){
+  var NEW='/*SITE_URL*/';
+  var data={},n=0;
+  try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('gx_')===0){data[k]=localStorage.getItem(k);n++}}}catch(e){}
+  var code='';try{code=btoa(unescape(encodeURIComponent(JSON.stringify(data))))}catch(e){}
+  var target=NEW+(n?'#move='+encodeURIComponent(code):'');
+  document.getElementById('u').textContent=NEW.replace(/^https?:\/\//,'').replace(/\/$/,'');
+  document.getElementById('go').href=target;document.getElementById('go2').href=NEW;
+  var standalone=window.navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  if(standalone&&n){document.getElementById('web').style.display='none';document.getElementById('home').style.display='block'}
+  else if(!n){document.getElementById('msg').textContent='正在帶你前往新網址…';setTimeout(function(){location.replace(NEW)},1200)}
+  document.getElementById('copy').onclick=function(){var note=document.getElementById('note');
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(function(){note.textContent='已複製搬家碼'},function(){note.textContent='無法自動複製，請改用「直接打開新網址」後重新輸入資料'})}
+    else note.textContent='這個瀏覽器無法自動複製'};
+  // 停用舊網址的離線快取，避免之後又打開舊版
+  try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister()})})}catch(e){}
+  try{if(window.caches)caches.keys().then(function(ks){ks.forEach(function(k){if(k.indexOf('lingxi-')===0)caches.delete(k)})})}catch(e){}
+})();
+</script>
+</body>
+</html>
