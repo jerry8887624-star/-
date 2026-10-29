@@ -848,15 +848,19 @@ function yearInfo(y){
   score=Math.max(1,Math.min(5,Math.round(score*2)/2));
   return {y,gz,ss,tai,score,zw,age:y-D.lunar.getYear()+1};
 }
+// 流月（以節氣換月）：流年干支推月干，評分同流年
+function liuMonths(ygz){
+  const ys=GAN.indexOf(ygz[0]), m0=((ys%5)*2+2)%10;
+  const MN=['正','二','三','四','五','六','七','八','九','十','冬','臘'], JIE=['2/4','3/6','4/5','5/6','6/6','7/7','8/8','9/8','10/8','11/7','12/7','1/6'];
+  return MN.map((n,k)=>{const gz=GAN[(m0+k)%10]+ZHI[(k+2)%12];return {n,gz,ss:shishen(D.dm,gz[0]),s:gzScore(gz),jie:JIE[k]}});
+}
 function renderLiunian(){
   const cy=new Date().getFullYear(), years=[];for(let y=cy-1;y<=cy+8;y++)years.push(yearInfo(y));
   const I=years.find(x=>x.y===lnYear)||yearInfo(lnYear);
   const curDy=D.yun.findIndex(x=>lnYear>=x.getStartYear()&&lnYear<=x.getEndYear());
   const dyHere=curDy>=0?D.yun[curDy]:null;
   // 流月
-  const ys=GAN.indexOf(I.gz[0]), m0=((ys%5)*2+2)%10;
-  const MN=['正','二','三','四','五','六','七','八','九','十','冬','臘'], JIE=['2/4','3/6','4/5','5/6','6/6','7/7','8/8','9/8','10/8','11/7','12/7','1/6'];
-  const months=MN.map((n,k)=>{const gz=GAN[(m0+k)%10]+ZHI[(k+2)%12];return {n,gz,ss:shishen(D.dm,gz[0]),s:gzScore(gz),jie:JIE[k]}});
+  const months=liuMonths(I.gz);
   const curM=lnYear===cy?((ZHI.indexOf(Solar.fromDate(new Date()).getLunar().getMonthInGanZhiExact()[1])-2+12)%12):-1;
   const W=360,Hh=178,pad=18,bw=(W-pad-4)/12;
   const yv=s=>Hh-24-(s-1)/4*(Hh-58);
@@ -2708,7 +2712,7 @@ function reportHtml(){
   const ssTrait=k=>(GC.SS_TXT[k]||'').split('多者')[1]||'';
   const pp=n=>n==='命宮'?'你自身（個人才華與形象）':`「${paln(n)}」`;
   const stage=i=>`「${PILLAR_D[i].replace('・','與')}」`;
-  const chap=(n,t,basis,body,tip)=>`<section class="rp-sec"><header class="rp-ch"><div class="rp-cn">第${'一二三四五六七八九十'[n-1]}章</div><h2>${t}</h2><p class="rp-basis">本章依據：${basis}</p></header>${body}${tip?`<div class="rp-tip"><b>老師的建議</b>${tip}</div>`:''}</section>`;
+  const chap=(n,t,basis,body,tip)=>`<section class="rp-sec"><header class="rp-ch"><div class="rp-cn">第${'一二三四五六七八九十'[n-1]}章</div><h2>${t}</h2><p class="rp-basis">本章依據：${basis}${noHour&&/紫微/.test(basis)?'<br>（時辰不確定：紫微斗數部分暫以午時排盤，僅供參考）':''}</p></header>${body}${tip?`<div class="rp-tip"><b>老師的建議</b>${tip}</div>`:''}</section>`;
   const scoreWord=x=>{const v=Math.round(x);return v>=4?'順勢而為的好年':v>=3?'平穩中帶著機會的一年':v>=2?'起伏較多、宜守不宜攻的一年':'需要沉住氣、穩紮穩打的一年'};
   const goodSha=ss.filter(o=>['天乙貴人','天德貴人','月德貴人','文昌','將星','祿神','華蓋','天喜'].includes(o.n));
   const loveSha=ss.filter(o=>['桃花','紅鸞','天喜'].includes(o.n));
@@ -2716,17 +2720,19 @@ function reportHtml(){
   const strongPal=A?A.palaces.filter(p=>p.name!=='命宮'&&p.majorStars.some(x=>['廟','旺'].includes(x.brightness))).sort((a,b)=>Object.keys(PALACE).indexOf(a.name)-Object.keys(PALACE).indexOf(b.name)).slice(0,3):[];
   const weakPal=A?A.palaces.filter(p=>p.majorStars.some(x=>['陷','不'].includes(x.brightness))).slice(0,2):[];
   const decIdx=A?(()=>{try{return A.horoscope(now).decadal.index}catch(e){return -1}})():-1;
+  const age=now.getFullYear()-D.y-((now.getMonth()+1<D.m||(now.getMonth()+1===D.m&&now.getDate()<D.d))?1:0), kid=age<18, senior=age>=65, noHour=P.hour===13;
   const mx=Math.max(...D.cnt), mn=Math.min(...D.cnt), most=D.cnt.map((c,e)=>c===mx?WX[e]:null).filter(Boolean), least=D.cnt.map((c,e)=>c===mn?WX[e]:null).filter(Boolean);
 
   // 開場
   const opening=`<p>${name}，你好：</p>
     <p>這份命書是依照你出生的那一刻——西元 ${D.y} 年 ${D.m} 月 ${D.d} 日${P.hour===13?'（時辰不確定，與時辰有關的部分僅供參考）':`${HOURS[P.hour].split(' ')[0]}`}——所排出的命盤寫成的。我同時用了兩套傳統方法來看你：一是<b>八字</b>，從出生的年、月、日、時看你天生的性格與能量；二是<b>紫微斗數</b>，把人生分成十二個方面，看你在感情、事業、財運等各方面的特質。兩套方法看的角度不同，彼此印證之下，結論會更可靠。</p>
-    <p>接下來會先給你一頁重點摘要，再分九個章節慢慢說明。每一章開頭都會告訴你「依據什麼來看」；文中灰色的小字是命理術語，不懂可以跳過，不影響閱讀。</p>`;
+    <p>接下來會先給你一頁重點摘要，再分九個章節慢慢說明。每一章開頭都會告訴你「依據什麼來看」；文中灰色的小字是命理術語，不懂可以跳過，不影響閱讀。</p>
+    ${noHour?`<div class="rp-how"><b>關於出生時辰</b><br>因為時辰不確定，這份命書暫以午時排盤。八字的年、月、日三柱，以及大運、流年都不受時辰影響，可以放心參考；八字時柱與五行多寡會略有出入，而紫微斗數十二宮的位置完全由時辰決定，書中與紫微有關的內容只能當作參考。日後問到確切時辰，可以在 App 修改後重新產生。</div>`:''}`;
   // 摘要
   const sumRows=[
     ['你的本質',`${DMTXT[D.dm].split('：')[1]||''}${M&&S?`內心${M.in}，做事時${S.out.replace(/^做事/,'')}。`:''}`],
-    ['你的優勢',`${mut['祿']?`好運落在${pp(mut['祿'].p)}：${cut1(SIHUA_PAL.祿[mut['祿'].p])}。`:''}${mut['權']?`最能掌握主導權的是${pp(mut['權'].p)}。`:''}`],
-    ['人生功課',`${mut['忌']?`最容易讓你放不下的是${pp(mut['忌'].p)}：${cut1(SIHUA_PAL.忌[mut['忌'].p])}。`:''}${DM_TIP[D.dm][D.strong?0:1].split('：')[0]}。`],
+    ['你的優勢',`${mut['祿']?`好運落在${pp(mut['祿'].p)}：${cut1(SIHUA_PAL.祿[mut['祿'].p])}。`:''}${mut['權']?`最能掌握主導權的是${pp(mut['權'].p)}：${cut1(SIHUA_PAL.權[mut['權'].p])}。`:''}`],
+    ['人生功課',`${mut['忌']?`最容易讓你放不下的是${pp(mut['忌'].p)}：${cut1(SIHUA_PAL.忌[mut['忌'].p])}。`:''}提醒自己：${DM_TIP[D.dm][D.strong?0:1].split('：').slice(1).join('：')}`],
     ['現在的階段',curDy>=0?`${D.yun[curDy].getStartAge()}–${D.yun[curDy].getStartAge()+9} 歲是${DY_TXT[shishen(D.dm,D.yun[curDy].getGanZhi()[0])]}的十年。`:''],
     [`${cy} 年`,`${stars(Y0.score)}　${scoreWord(Y0.score)}${Y0.tai?'，今年犯太歲，宜低調、安太歲':''}。`],
     ['開運關鍵',`多用${join(xiA.map(a=>a.c.split('、')[0]))}，往${join(xiA.map(a=>a.d.split('、')[0]))}發展；床頭朝${BZ[g][1]}，書桌面向${BZ[g][0]}。`]].filter(r=>r[1]);
@@ -2741,7 +2747,8 @@ function reportHtml(){
 
   // 第二章 天賦與貴人
   const c2=chap(2,'你的天賦與貴人',`八字神煞${A?'；紫微斗數生年化祿、化科與發揮得最好的宮位':''}`,`
-    ${goodSha.length?`<p>你的命盤裡帶著${goodSha.length>1?'幾顆':'一顆'}福星${T('神煞')}：</p><ul class="rp-ul">${goodSha.slice(0,4).map(o=>`<li><b>${o.n}</b>：${(SHA_TXT[o.n]||'').replace(/。$/,'')}。這份福氣特別容易出現在${join(o.w.map(i=>STAGE_SCENE[i]))}。</li>`).join('')}</ul>`:'<p>你的命盤沒有特別顯眼的福星，代表你的成就多半靠自己一步一腳印累積而來，基礎反而更紮實。</p>'}
+    ${goodSha.length?`<p>你的命盤裡帶著${goodSha.length>1?'幾顆':'一顆'}福星${T('神煞')}：</p>${(()=>{const L=goodSha.slice(0,4),sc=o=>join(o.w.map(i=>STAGE_SCENE[i])),one=new Set(L.map(sc)).size===1;
+      return `<ul class="rp-ul">${L.map(o=>`<li><b>${o.n}</b>：${(SHA_TXT[o.n]||'').replace(/。$/,'')}${one?'':`。這份福氣特別容易出現在${sc(o)}`}。</li>`).join('')}</ul>${one?`<p>${L.length>1?'這些福氣':'這份福氣'}特別容易出現在${sc(L[0])}。</p>`:''}`})()}`:'<p>你的命盤沒有特別顯眼的福星，代表你的成就多半靠自己一步一腳印累積而來，基礎反而更紮實。</p>'}
     ${A&&mut['祿']?`<p>紫微斗數中，你天生的好運${T(mut['祿'].s+'化祿')}落在${pp(mut['祿'].p)}。${SIHUA_PAL.祿[mut['祿'].p]}</p>`:''}
     ${A&&mut['科']?`<p>${mut['科'].p===mut['祿']?.p?'而你的貴人也在同一個地方':`你的貴人則在${pp(mut['科'].p)}`}${T(mut['科'].s+'化科')}：${SIHUA_PAL.科[mut['科'].p]}</p>`:''}
     ${A&&mut['權']?`<p>至於你最能掌握主導權、最有魄力的地方，是${pp(mut['權'].p)}${T(mut['權'].s+'化權')}：${SIHUA_PAL.權[mut['權'].p]}</p>`:''}
@@ -2765,22 +2772,22 @@ function reportHtml(){
 
   // 第四章 感情與家庭
   const fq=pal('夫妻'), fqS=majOf(fq).map(x=>x.name), zn=pal('子女'), fm=pal('父母'), tz=pal('田宅');
-  const c4=A?chap(4,'感情與家庭',`紫微斗數夫妻宮、子女宮、父母宮、田宅宮；八字日支（配偶的位置）與桃花類神煞`,`
-    <p>先看感情。你的夫妻宮${fq.majorStars.length?`有${join(fqS)}`:`沒有主星，借${join(fqS)}來看`}${T('夫妻宮')}，代表你容易被${fqS.map(n=>ZW_PEOPLE[n]).join('，或')}的人吸引，另一半也多半帶有這樣的特質。這類星曜在感情上的特點是：${fqS.map(n=>(GC.STAR[n]||[])[4]).filter(Boolean).join('；')}。${fq.majorStars.some(x=>x.mutagen==='忌')||mut['忌']?.p==='夫妻'?'感情是你特別在意的課題，遇到摩擦時多溝通、少猜測。':''}</p>
+  const c4=A?chap(4,kid?'家庭與人際':'感情與家庭',`紫微斗數夫妻宮、子女宮、父母宮、田宅宮；八字日支（配偶的位置）與桃花類神煞`,`
+    <p>${kid?'感情是長大以後的事，這裡先寫下來，供將來參考。':'先看感情。'}你的夫妻宮${fq.majorStars.length?`有${join(fqS)}`:`沒有主星，借${join(fqS)}來看`}${T('夫妻宮')}，代表你容易被${fqS.map(n=>ZW_PEOPLE[n]).join('，或')}的人吸引，另一半也多半帶有這樣的特質。這類星曜在感情上的特點是：${fqS.map(n=>(GC.STAR[n]||[])[4]).filter(Boolean).join('；')}。${fq.majorStars.some(x=>x.mutagen==='忌')||mut['忌']?.p==='夫妻'?'感情是你特別在意的課題，遇到摩擦時多溝通、少猜測。':''}</p>
     ${loveSha.length?`<p>你的命盤帶有${join(loveSha.map(o=>`「${o.n}」`))}${T('桃花類神煞')}，人緣好、有魅力，異性緣不缺；有伴的時候，記得適度保持界線，感情會更穩定。</p>`:''}
     ${(()=>{const r=rs.filter(r=>(r.i===2||r.j===2)&&(r.t==='good'||r.t==='bad')),o=x=>stage(x.i===2?x.j:x.i),gd=[...new Set(r.filter(x=>x.t==='good').map(o))],bd=[...new Set(r.filter(x=>x.t==='bad').map(o))];return r.length?`<p>八字中代表自己與配偶的位置${T('日柱')}，${gd.length?`和${gd.join('、')}都相處和諧、互相幫忙`:''}${gd.length&&bd.length?'；':''}${bd.length?`和${bd.join('、')}之間${gd.length?'則':''}有些拉扯`:''}。${r.some(x=>x.t==='bad')?'婚後若與長輩或子女的意見不同，多站在對方角度想一想。':'這是家庭關係穩定的好跡象。'}</p>`:''})()}
     <p>家庭方面，你的父母與長輩${fm&&majOf(fm).length?`多半${ZW_PEOPLE[majOf(fm)[0].name]}`:'與你的緣分比較平淡'}；子女與晚輩${zn&&majOf(zn).length?`多半${ZW_PEOPLE[majOf(zn)[0].name]}`:'各有自己的個性'}；居家與置產則${tz&&majOf(tz).some(x=>['天府','武曲','太陰','紫微'].includes(x.name))?'有不錯的運勢，有機會累積不動產':tz&&majOf(tz).some(x=>['破軍','七殺'].includes(x.name))?'變動較多，買房換屋要多比較、多考慮':'整體平穩'}。</p>`,
-    `${LOVE_TIP[fqS[0]]||'選擇伴侶時，找一個欣賞你本來的樣子、願意好好溝通的人。'}家裡可以在${BZ[g][2]}方位擺放全家福或兩人的合照${T('延年位')}，有助感情和睦。`):'';
+    kid?`多陪伴、多聽孩子說話，比什麼都重要。家裡可以在${BZ[g][2]}方位擺放全家福${T('延年位')}，有助家庭和睦。`:`${LOVE_TIP[fqS[0]]||'選擇伴侶時，找一個欣賞你本來的樣子、願意好好溝通的人。'}家裡可以在${BZ[g][2]}方位擺放全家福或兩人的合照${T('延年位')}，有助感情和睦。`):'';
 
   // 第五章 事業與財運
   const gl=pal('官祿'), cb=pal('財帛'), qy=pal('遷移'), glS=majOf(gl).map(x=>x.name), cbS=majOf(cb).map(x=>x.name);
   const caiSS=['正財','偏財'].filter(k=>ssCnt[k]), guanSS=['正官','七殺'].filter(k=>ssCnt[k]);
   const c5=chap(5,'事業與財運',`紫微斗數官祿宮、財帛宮、遷移宮；八字財星、官星與對你有利的五行`,`
-    ${A?`<p>工作上，你的官祿宮${gl.majorStars.length?`有${join(glS)}`:`借${join(glS)}來看`}${T('官祿宮')}，你適合${glS.map(n=>((GC.STAR[n]||[])[2]||'').replace(/^適合/,'')).filter(Boolean).join('；')}等領域。這類工作能發揮你${glS.map(n=>(ZW_PLAIN[n]||{k:''}).k.split('・').slice(0,2).join('、')).join('、')}的特質。</p>
+    ${A?`<p>${kid?'將來的工作上':'工作上'}，你的官祿宮${gl.majorStars.length?`有${join(glS)}`:`借${join(glS)}來看`}${T('官祿宮')}，你${kid?'將來適合往':senior?'的專長在':'適合'}${[...new Set(glS.flatMap(n=>((GC.STAR[n]||[])[2]||'').replace(/^適合/,'').split(/[、；，]/)).map(x=>x.trim()).filter(Boolean))].join('、')}等領域${kid?'發展':''}。這類工作能發揮你${glS.map(n=>(ZW_PLAIN[n]||{k:''}).k.split('・').slice(0,2).join('、')).join('、')}的特質。</p>
     <p>財運方面，你的財帛宮${cb.majorStars.length?`有${join(cbS)}`:`借${join(cbS)}來看`}${T('財帛宮')}：${cbS.map(n=>(GC.STAR[n]||[])[3]).filter(Boolean).join('；')}。${mut['權']?.p==='財帛'?'而且你對金錢很有主見、懂得掌握，適合自己規劃理財。':''}${qy&&majOf(qy).some(x=>['天機','天梁','太陽','天同'].includes(x.name))?'到外地或往外發展時，也常會遇到貴人。':''}</p>`:''}
-    <p>從八字來看，${caiSS.length?`你的命盤有${caiSS.join('與')}${T('財星')}，${caiSS.includes('偏財')?'人脈廣、偏財機會多，適合業務與拓展型的工作；':'賺錢靠的是穩定與踏實，適合長期累積；'}`:'你的命盤財星不明顯，錢財多半要靠專業與時間慢慢累積，不適合投機；'}${guanSS.length?`也帶有${guanSS.join('與')}${T('官星')}，有責任感、能扛事，適合在組織中往管理職發展。`:'比起受人管理，你更適合有自主空間的工作。'}</p>
+    <p>從八字來看，${caiSS.length?`你的命盤有${caiSS.join('與')}${T('財星')}，${caiSS.includes('偏財')?'人脈廣、偏財機會多，適合業務與拓展型的工作；':'賺錢靠的是穩定與踏實，適合長期累積；'}`:'你的命盤財星不明顯，錢財多半要靠專業與時間慢慢累積，不適合投機；'}${guanSS.length?`也帶有${guanSS.join('與')}${T('官星')}，有責任感、能扛事，${kid?'長大後適合在組織中擔任要職。':senior?'這份能扛事的本領，現在很適合用在照顧家族、傳承經驗上。':'適合在組織中往管理職發展。'}`:kid?'將來比較適合有自主空間的工作。':senior?'比起受人安排，你更喜歡自己決定生活的節奏。':'比起受人管理，你更適合有自主空間的工作。'}</p>
     <p>再配合對你有幫助的五行，${xi.map(e=>`${WX[e]}相關的行業包括${GC.WX_ADV[e].j}`).join('；')}，都是值得考慮的方向。</p>`,
-    `${guanSS.length?'把握升遷或接下重要任務的機會，你扛得起；':'爭取有自主空間的職位或副業；'}理財上${caiSS.includes('偏財')?'可以小額嘗試投資，但設好停損，別把雞蛋放在同一個籃子。':'以定期存款、穩健的基金等長期方式為主。'}`);
+    kid?'現在把心力放在學業與培養興趣，找到自己真正喜歡的事；也可以從小練習存零用錢、記帳，養成好的金錢觀念。':senior?'把一生的經驗傳承給晚輩，或投入志工與興趣，都是很好的舞台；理財以保本為先，遇到「保證獲利」的投資或陌生來電要錢，一律先問家人、打 165 反詐騙專線查證。':`${guanSS.length?'把握升遷或接下重要任務的機會，你扛得起；':'爭取有自主空間的職位或副業；'}理財上${caiSS.includes('偏財')?'可以小額嘗試投資，但設好停損，別把雞蛋放在同一個籃子。':'以定期存款、穩健的基金等長期方式為主。'}`);
 
   // 第六章 健康
   const jg=pal('疾厄'), jgS=majOf(jg).map(x=>x.name);
@@ -2788,7 +2795,7 @@ function reportHtml(){
     ${A?`<p>紫微斗數中看健康的宮位${T('疾厄宮')}${jg.majorStars.length?`有${join(jgS)}`:`借${join(jgS)}來看`}，提醒你平時可以多留意${join([...new Set(jgS.map(n=>ZW_HEALTH[n]).filter(Boolean))])}。</p>`:''}
     <p>在八字上，五行代表身體不同的系統。你的命盤中${join(least)}最少${mn===0?'（完全沒有）':''}：${least.map(w=>`${w}對應${WX_ORGAN[WX.indexOf(w)]}`).join('，')}，這些地方比較容易成為身體的弱點。${most.length<3?`反過來，${join(most)}最多，${most.map(w=>WX_EXCESS[WX.indexOf(w)]).join('；同時也')}。`:''}</p>
     <p class="rp-note">命理只能提醒容易疏忽的方向，身體不適時請一定要就醫，以醫師的診斷為準。</p>`,
-    `你最需要照顧的是${WX_ORGAN[WX.indexOf(least[0])]}：${WX_CARE[WX.indexOf(least[0])]}。${D.strong?'你容易一忙就停不下來，記得排固定的休息日。':'你的體力比較容易透支，睡眠充足比什麼都重要。'}`);
+    `你最需要照顧的是${WX_ORGAN[WX.indexOf(least[0])]}：${WX_CARE[WX.indexOf(least[0])]}。${kid?'成長期最重要的是作息規律、睡眠充足、多到戶外活動。':D.strong?'你容易一忙就停不下來，記得排固定的休息日。':'你的體力比較容易透支，睡眠充足比什麼都重要。'}`);
 
   // 第七章 人生節奏
   const dys=D.yun.slice(0,8), cur=dys[curDy], nxt=dys[curDy+1], prv=dys[curDy-1];
@@ -2797,18 +2804,21 @@ function reportHtml(){
   const favTag=x=>['<em class="rp-fav bad">要穩著走</em>','','<em class="rp-fav good">順風</em>'][dyFav(x)+1];
   const favTxt=x=>{const gz=x.getGanZhi();return [`這十年的五行（${WX[gWx(gz[0])]}、${WX[zWx(gz[1])]}）偏向對你不利的元素，同樣的事要多花一點力氣，宜守成、穩紮穩打，別急著做大決定`,`這十年的五行（${WX[gWx(gz[0])]}、${WX[zWx(gz[1])]}）對你的影響有好有壞，順逆參半，關鍵在於選對方向`,`這十年的五行（${WX[gWx(gz[0])]}、${WX[zWx(gz[1])]}）正好是對你有幫助的元素，做起事來比較順手，可以積極一點`][dyFav(x)+1]};
   const c7=chap(7,'人生的節奏：每十年的主題',`八字大運${A?'；紫微斗數大限':''}`,`
-    <p>命理上，人生大約每十年會換一次主題${T('大運')}。你從 ${dys[0]?.getStartAge()} 歲起運，下表是你一生各階段的主題：</p>
-    <div class="rp-dy2">${dys.map((x,i)=>`<div${i===curDy?' class="on"':''}><b>${x.getStartAge()}–${x.getStartAge()+9} 歲${i===curDy?'・現在':''}</b><span>${dyT(x)}的十年${favTag(x)}</span>${T(x.getGanZhi()+'・'+shishen(D.dm,x.getGanZhi()[0]))}</div>`).join('')}</div>
+    <p>命理上，人生大約每十年會換一次主題${T('大運')}。你從 ${dys[0]?.getStartAge()} 歲（西元 ${dys[0]?.getStartYear()} 年）起運，下表是你一生各階段的主題。表中年齡是傳統的虛歲，另附西元年份方便對照：</p>
+    <div class="rp-dy2">${dys.map((x,i)=>`<div${i===curDy?' class="on"':''}><b><span>${x.getStartAge()}–${x.getStartAge()+9} 歲${i===curDy?'・現在':''}</span>${favTag(x)}</b><small class="rp-when">西元 ${x.getStartYear()}–${x.getEndYear()}・${x.getGanZhi()}${shishen(D.dm,x.getGanZhi()[0])}運</small><span>${dyT(x)}的十年</span></div>`).join('')}</div>
     ${cur?`<p>${prv?`回顧過去十年，是${dyT(prv)}的階段；`:''}現在，你正走在 ${cur.getStartAge()}–${cur.getStartAge()+9} 歲這一步，正值人生${AGE_CTX(cur.getStartAge())}的時期，主題是<b>${dyT(cur)}</b>。${favTxt(cur)}。${A&&decIdx>=0?`紫微斗數也顯示，這十年你的重心會放在「${paln(A.palaces[decIdx].name)}」${T('大限')}。`:''}${nxt?`而 ${nxt.getStartAge()} 歲之後，將轉入${dyT(nxt)}的十年，可以從現在開始為那個階段做準備。`:''}</p>`:''}`,
-    cur?`${['這是需要沉住氣的十年，','',"這是順風的十年，"][dyFav(cur)+1]}適合${(GC.YEAR_DO[shishen(D.dm,cur.getGanZhi()[0])]||[]).join('、')}，少碰${(GC.YEAR_DONT[shishen(D.dm,cur.getGanZhi()[0])]||[]).join('、')}。${nxt?`${nxt.getStartAge()} 歲之後${dyFav(nxt)>dyFav(cur)?'運勢會更順，現在打好的基礎到時都會開花':dyFav(nxt)<dyFav(cur)?'節奏會放慢，趁現在多存一點本錢與人脈':'節奏相近，持續累積就好'}。`:''}`:'');
+    kid&&cur?`這個階段最重要的是學業、品格與健康；陪孩子找到真正的興趣，比成績更重要。${nxt?`${nxt.getStartAge()} 歲之後會進入${dyT(nxt)}的十年，現在打好的基礎到時都用得上。`:''}`:cur?`${['這十年宜穩著走；在不冒險的前提下，','',"這是順風的十年，"][dyFav(cur)+1]}適合${(GC.YEAR_DO[shishen(D.dm,cur.getGanZhi()[0])]||[]).join('、')}，少碰${(GC.YEAR_DONT[shishen(D.dm,cur.getGanZhi()[0])]||[]).join('、')}。${nxt?`${nxt.getStartAge()} 歲之後${dyFav(nxt)>dyFav(cur)?'運勢會更順，現在打好的基礎到時都會開花':dyFav(nxt)<dyFav(cur)?'節奏會放慢，趁現在多存一點本錢與人脈':'節奏相近，持續累積就好'}。`:''}`:'');
 
   // 第八章 今明兩年
   const yp=Y=>`<div class="rp-yr"><b>${Y.y} 年　${stars(Y.score)}</b>${T(Y.gz+'年・'+Y.ss)}<p>${Y.y===cy?'今年':'明年'}對你來說是${scoreWord(Y.score)}。這一年的主題是：${YEARSS[Y.ss]}${Math.round(Y.score)<=2?(Y.tai?'只是犯太歲讓整體運勢打了折扣，好機會出現時也要多一分謹慎、量力而為。':'只是整體運勢偏弱，機會出現時要量力而為，不要勉強。'):''}${Y.zw?`這一年你的心思會比較放在${FOCUS[Y.zw.palace]||Y.zw.palace}上。`:''}</p>${Y.tai?`<p class="rp-warn">另外，${Y.y===cy?'今年':'明年'}的太歲和你的生肖有衝突，民間俗稱「犯太歲」${T(Y.tai.detail)}。建議年初到廟裡安太歲，凡事低調、多一分謹慎，重大決定多找人商量。</p>`:''}${GC.YEAR_DO&&GC.YEAR_DO[Y.ss]?`<p>這一年適合${GC.YEAR_DO[Y.ss].join('、')}；盡量避免${GC.YEAR_DONT[Y.ss].join('、')}。</p>`:''}</div>`;
-  const c8=chap(8,`${cy} 與 ${cy+1} 年的運勢`,`流年干支與你八字的關係、流年太歲${A?'；紫微斗數流年命宮':''}`,`${yp(Y0)}${yp(Y1)}`,'');
+  const MS=liuMonths(Y0.gz), byM=a=>a.sort((x,y)=>MS.indexOf(x)-MS.indexOf(y)), mBest=byM([...MS].sort((a,b)=>b.s-a.s).slice(0,2)), mWorst=byM([...MS].sort((a,b)=>a.s-b.s).slice(0,2));
+  const mTbl=`<h3 class="rp-h3">${cy} 年每月重點</h3><p class="rp-note">命理上以節氣換月，日期為約略值。${mBest.map(m=>m.n+'月').join('、')}比較順，${mWorst.map(m=>m.n+'月').join('、')}宜放慢腳步。</p>
+    <table class="rp-t rp-mon"><tr><th>月份</th><th>約從</th><th>運勢</th><th>重點</th></tr>${MS.map((m,k)=>`<tr><th>${m.n}月<small>${m.gz}</small></th><td>${m.jie}${k===11?'<small>（隔年）</small>':''}</td><td class="rp-st">${stars(m.s)}</td><td>${Math.round(m.s)>=4?`順：適合${(GC.YEAR_DO[m.ss]||[])[0]||'主動出擊'}`:Math.round(m.s)>=3?`平：可以${(GC.YEAR_DO[m.ss]||[])[0]||'按部就班'}`:`宜守：避免${(GC.YEAR_DONT[m.ss]||[])[0]||'重大決定'}`}</td></tr>`).join('')}</table>`;
+  const c8=chap(8,`${cy} 與 ${cy+1} 年的運勢`,`流年干支與你八字的關係、流年太歲、以節氣換月的流月${A?'；紫微斗數流年命宮':''}`,`${yp(Y0)}${mTbl}${yp(Y1)}`,'');
 
   // 第九章 開運指南
   const c9=chap(9,'專屬於你的開運指南',`八字喜用神${nm.ok?'、姓名筆畫':''}、八宅風水命卦`,`
-    <p>前面提到，對你有幫助的元素是${join(xi.map(e=>WX[e]))}${T('喜用神')}。${xi.map(e=>`${WX[e]}是${wxRole(e,D.dmE)}`).join('；')}。把它們放進日常生活，就是最簡單的開運方法：</p>
+    <p>前面提到，對你有幫助的元素是${join(xi.map(e=>WX[e]))}${T('喜用神')}。${xi.map(e=>{const r=wxRole(e,D.dmE);return `${WX[e]}${/^代表/.test(r)?'':'是'}${r}`}).join('；')}。把它們放進日常生活，就是最簡單的開運方法：</p>
     <table class="rp-t rp-guide"><tr><th>幸運色</th><td>${xiA.map(a=>a.c).join('；')}</td></tr><tr><th>有利方位</th><td>${xiA.map(a=>a.d).join('、')}</td></tr><tr><th>幸運數字</th><td>${xiA.map(a=>a.n).join('、')}</td></tr><tr><th>生活習慣</th><td>${xiA.map(a=>a.l).join('；')}</td></tr>
     <tr><th>居家擺設</th><td>你屬於${GUA[g][2]}四命${T('命卦'+GUA[g][0])}。床頭朝${BZ[g][1]}或${BZ[g][2]}，書桌面向${BZ[g][0]}；大門、床、爐灶盡量避開${BZ[g][4]}與${BZ[g][5]}。</td></tr>
     ${nm.ok?`<tr><th>你的名字</th><td>筆畫評分 ${nm.score} 分（滿分 100）。名字的主要五行是${WX[nm.e[1]]}${T('人格')}，${xi.includes(nm.e[1])?'正好是對你有幫助的元素，能為你加分。':ji.includes(nm.e[1])?'剛好是要少一點的元素，可以用常用的字號或暱稱來補強。':'和你的命盤沒有衝突。'}${nm.score<65?'如果想改善，可以參考 App「開運 → 改名」的建議。':''}</td></tr>`:''}</table>`,'');
@@ -2819,19 +2829,21 @@ function reportHtml(){
     <p class="rp-sign">靈犀 敬上　${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日</p></section>`;
 
   return `<div class="rp">
-  <header class="rp-head"><div><div class="rp-k">靈犀 LINGXI ・ 個人命書</div><h1>${esc(P.sur+P.given)}</h1><p>${P.gender==='男'?'男':'女'}・屬${SX[ZHI.indexOf(D.birthZ)]}・西元 ${D.y}/${D.m}/${D.d}${D.y>1911?`（民國 ${D.y-1911} 年）`:''}・農曆${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())}・${P.hour===13?'時辰不確定':HOURS[P.hour].replace(' ','（')+' 點）'}</p></div><div class="rp-seal" aria-hidden="true"><i>靈</i><i>犀</i></div></header>
+  <header class="rp-head"><div><div class="rp-k">靈犀 LINGXI ・ 個人命書</div><h1>${esc(P.sur+P.given)}</h1><p>${P.gender==='男'?'男':'女'}・屬${SX[ZHI.indexOf(D.birthZ)]}・${age} 歲<br>國曆 ${D.y} 年 ${D.m} 月 ${D.d} 日${D.y>1911?`（民國 ${D.y-1911} 年）`:''}<br>農曆 ${S2T(D.lunar.getYearInGanZhi())}年${S2T(D.lunar.getMonthInChinese())}月${S2T(D.lunar.getDayInChinese())}・${noHour?'時辰不確定':HOURS[P.hour].replace(' ','（')+' 點）'}</p></div><div class="rp-seal" aria-hidden="true"><i>靈</i><i>犀</i></div></header>
   <section class="rp-open">${opening}</section>
   <section class="rp-sum"><h2>命書摘要</h2>${sumRows.map(([k,v])=>`<div><b>${k}</b><p>${v}</p></div>`).join('')}</section>
   ${c1}${c2}${c3}${c4}${c5}${c6}${c7}${c8}${c9}${closing}
   <section class="rp-sec rp-app"><h2>附錄：給想深入了解的人</h2><p class="rp-intro">以下是命理專業資料，供懂命理的朋友或老師參考。</p>
     <h3 class="rp-h3">八字四柱</h3>
-    <table class="rp-t"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr><tr><th>天干</th>${D.pillars.map((p,i)=>`<td><b>${p[0]}</b><br><small>${i===2?'日主':shishen(D.dm,p[0])}</small></td>`).join('')}</tr><tr><th>地支</th>${D.pillars.map(p=>`<td><b>${p[1]}</b><br><small>${SX[ZHI.indexOf(p[1])]}</small></td>`).join('')}</tr><tr><th>納音</th>${[D.ec.getYearNaYin(),D.ec.getMonthNaYin(),D.ec.getDayNaYin(),D.ec.getTimeNaYin()].map(n=>`<td><small>${S2T(n)}</small></td>`).join('')}</tr></table>
-    <p>日主${D.dm}${WX[D.dmE]}・${D.strong?'身強':'身弱'}・五行 ${D.cnt.map((c,e)=>WX[e]+c).join(' ')}・喜用 ${D.xi.map(e=>WX[e]).join('')}・忌 ${D.ji.map(e=>WX[e]).join('')}</p>
+    <table class="rp-t"><tr><th></th><th>年柱</th><th>月柱</th><th>日柱</th><th>時柱</th></tr><tr><th>天干</th>${D.pillars.map((p,i)=>`<td><b>${p[0]}</b><br><small>${i===2?'日主':shishen(D.dm,p[0])}</small></td>`).join('')}</tr><tr><th>地支</th>${D.pillars.map(p=>`<td><b>${p[1]}</b><br><small>${SX[ZHI.indexOf(p[1])]}</small></td>`).join('')}</tr><tr><th>藏干</th>${D.pillars.map(p=>`<td><small>${[...ZHI_HIDE[p[1]]].map(g=>g+shishen(D.dm,g)).join('<br>')}</small></td>`).join('')}</tr><tr><th>納音</th>${[D.ec.getYearNaYin(),D.ec.getMonthNaYin(),D.ec.getDayNaYin(),D.ec.getTimeNaYin()].map(n=>`<td><small>${S2T(n)}</small></td>`).join('')}</tr></table>
+    <p>日主${D.dm}${WX[D.dmE]}・${D.strong?'身強':'身弱'}・五行 ${D.cnt.map((c,e)=>WX[e]+c).join(' ')}・喜用 ${D.xi.map(e=>WX[e]).join('')}・忌 ${D.ji.map(e=>WX[e]).join('')}・日空亡 ${D.ec.getDayXunKong()}</p>
+    ${(()=>{const yn=D.ec.getYun(P.gender==='男'?1:0);return `<p>起運：出生後 ${yn.getStartYear()} 年 ${yn.getStartMonth()} 個月 ${yn.getStartDay()} 天（${(([a,b,c])=>`${a} 年 ${+b} 月 ${+c} 日`)(yn.getStartSolar().toYmd().split('-'))}）・${yn.isForward()?'順行':'逆行'}</p>`})()}
     <p>主要十神：${topSS.map(([k,n])=>`${k}×${n}`).join('、')}${ss.length?`；神煞：${ss.map(o=>`${o.n}（${o.w.map(i=>PILLAR_N[i]).join('、')}）`).join('、')}`:''}${rs.length?`；刑沖合害：${rs.map(r=>`${r.k}（${r.who}）`).join('、')}`:''}</p>
     <p>《滴天髓》論${D.dm}：${DTS[D.dm][0]}</p>
-    <p>大運：${D.yun.slice(0,8).map(x=>`${x.getGanZhi()}（${x.getStartAge()}歲・${shishen(D.dm,x.getGanZhi()[0])}）`).join('、')}</p>
+    <p>大運（虛歲・起始西元年）：${D.yun.slice(0,8).map(x=>`${x.getGanZhi()}（${x.getStartAge()}歲・${x.getStartYear()}・${shishen(D.dm,x.getGanZhi()[0])}）`).join('、')}</p>
     ${A?`<h3 class="rp-h3">紫微斗數</h3><p>${A.fiveElementsClass}・命主${A.soul}・身主${A.body}・命宮${ming.heavenlyStem}${ming.earthlyBranch}・身宮${body.name}</p>
-    <table class="rp-t">${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<tr><th>${p.name}</th><td>${(p.majorStars.length?p.majorStars:A.palaces[(i+6)%12].majorStars).map(s=>s.name+(s.brightness?`(${s.brightness})`:'')+(s.mutagen?'化'+s.mutagen:'')).join('、')||'—'}${p.majorStars.length?'':'<small>（借對宮）</small>'}</td><td><small>${p.minorStars.map(s=>s.name+(s.mutagen?'化'+s.mutagen:'')).join('、')}</small></td></tr>`).join('')}</table>`:''}
+    <p>生年四化：${['祿','權','科','忌'].filter(k=>mut[k]).map(k=>`${mut[k].s}化${k}（入${mut[k].p}）`).join('、')}</p>
+    <table class="rp-t rp-zw"><tr><th>宮位</th><th>干支</th><th>主星（亮度）</th><th>輔星・煞星</th><th>大限<small>（虛歲）</small></th></tr>${A.palaces.map((p,i)=>({p,i})).sort((a,b)=>Object.keys(PALACE).indexOf(a.p.name)-Object.keys(PALACE).indexOf(b.p.name)).map(({p,i})=>`<tr${p.name==='命宮'?' class="on"':''}><th>${p.name}${p.isBodyPalace?'<small>身宮</small>':''}</th><td>${p.heavenlyStem}${p.earthlyBranch}</td><td>${p.majorStars.length?p.majorStars.map(s=>`<span class="nw">${s.name}${s.brightness?`(${s.brightness})`:''}${s.mutagen?'化'+s.mutagen:''}</span>`).join('、'):`<small>無主星，借對宮${A.palaces[(i+6)%12].majorStars.map(s=>s.name).join('、')||'—'}</small>`}</td><td><small>${p.minorStars.map(s=>s.name+(s.mutagen?'化'+s.mutagen:'')).join('、')||'—'}</small></td><td><small>${p.decadal.range.join('–')}</small></td></tr>`).join('')}</table>`:''}
     ${nm.ok?`<h3 class="rp-h3">姓名五格</h3><p>天格${nm.g.tian}・人格${nm.g.ren}・地格${nm.g.di}・外格${nm.g.wai}${nm.fixWai?'（單名固定）':''}・總格${nm.g.zong}・三才 ${nm.e.map(e=>WX[e]).join('')}</p>`:''}
     <h3 class="rp-h3">八宅風水</h3><p>命卦${GUA[g][0]}（${GUA[g][2]}四命）：${STARS.map((st,k)=>`${st[0]}${BZ[g][k]}`).join('、')}</p>
   </section>
@@ -2841,7 +2853,7 @@ function reportHtml(){
 function openReport(){
   if(!D.astro&&zwState!=='fail'){zwLoad().then(openReport);toast('正在準備紫微命盤…','info');return}
   const el=document.createElement('div');el.id='report';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','命盤解說報告');
-  el.innerHTML=`<div class="rp-bar"><button type="button" class="btn sm" data-rp="close">關閉</button><span>命盤解說報告</span><button type="button" class="btn sm primary" data-rp="print">列印／存 PDF</button></div><div class="rp-scroll">${reportHtml()}</div>`;
+  el.innerHTML=`<div class="rp-bar"><button type="button" class="btn sm" data-rp="close">關閉</button><span>命盤解說報告</span><button type="button" class="btn sm primary" data-rp="print">列印／存 PDF</button></div><div class="rp-scroll" tabindex="0">${reportHtml()}</div>`;
   document.body.appendChild(el);document.documentElement.classList.add('reporting');
   el.addEventListener('click',e=>{const b=e.target.closest('[data-rp]');if(!b)return;if(b.dataset.rp==='close'){el.remove();document.documentElement.classList.remove('reporting');if(el._t0)document.title=el._t0}else{const t0=el._t0=el._t0||document.title,d=new Date(),pad=n=>String(n).padStart(2,'0');document.title=`靈犀命盤報告_${P.sur}${P.given}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;const back=()=>{document.title=t0;removeEventListener('afterprint',back)};addEventListener('afterprint',back);window.print();setTimeout(back,60000)}});
 }

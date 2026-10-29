@@ -1809,3 +1809,18 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 /* 觀音籤：籤紙解曰（四句）與十五項斷語 */
 .slip-jie.gy>div{grid-template-columns:repeat(auto-fit,minmax(5.2em,1fr));white-space:nowrap;font-family:var(--f-brush,inherit);font-size:15px;letter-spacing:.06em}
 .gyomen .catrow b small{display:block;font-size:11.5px;font-weight:400;color:var(--ink);margin-top:1px}
+/* 命書：大運卡片、流月表、紫微附錄、列印字級 */
+.rp-dy2 b{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.rp-dy2 .rp-when{display:block;margin:1px 0 2px}
+.rp-dy2 .rp-fav{margin-left:0}
+.rp-mon th small,.rp-zw th small{display:block;font-weight:400;font-size:11.5px;color:#5E5545}
+.rp-mon td,.rp-zw td{text-align:left;line-height:1.55}
+.rp-mon td:nth-child(2),.rp-mon td.rp-st{text-align:center;white-space:nowrap}
+.rp-st{color:#7E5B18;letter-spacing:.05em}
+.rp-zw tr.on th,.rp-zw tr.on td{background:rgba(126,91,24,.1)}
+.rp-how b{color:#7E5B18}
+.rp-head p{line-height:1.7}
+@media print{.rp{font-size:14.5px}.rp-app{font-size:12.5px}.rp-sec>p{line-height:1.85}.rp-ch{break-after:avoid-page}}
+.rp-zw .nw{white-space:nowrap}
+.rp-zw,.rp-mon{break-inside:avoid}
+.rp-term{color:#6B6150}.rp-cn{color:#7E5B18}.rp-scroll:focus{outline:none}.rp-scroll:focus-visible{outline:2px solid #7E5B18;outline-offset:-2px}
