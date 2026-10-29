@@ -1802,3 +1802,6 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .mvcard summary{cursor:pointer;list-style:none}
 .mvcard summary::-webkit-details-marker{display:none}
 .wel-mv{font-size:14px;opacity:.9}
+/* 觀音籤：籤紙解曰（四句）與十五項斷語 */
+.slip-jie.gy>div{grid-template-columns:repeat(auto-fit,minmax(5.2em,1fr));white-space:nowrap;font-family:var(--f-brush,inherit);font-size:15px;letter-spacing:.06em}
+.gyomen .catrow b small{display:block;font-size:11.5px;font-weight:400;color:var(--ink);margin-top:1px}
