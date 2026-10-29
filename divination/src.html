@@ -1539,8 +1539,8 @@ const QGODS={gg:{call:'恩主公',name:'關聖帝君',short:'關公',cap:'恩主
 let qGod=store.get('gx_qgod','gg');if(!QGODS[qGod])qGod='gg';
 const GD=()=>QGODS[qGod], qdOf=g=>QGODS[QGODS[g]?g:'gg'].data;
 const qLv=Q=>/^上|^吉/.test(Q[1])?0:/^中|^平/.test(Q[1])?1:2;
-// 籤等文字：關公籤為「上上籤」等；觀音籤原始資料未附等級，用白話判讀的「吉／平／宜守」
-const qGrade=(g,Q)=>g==='gy'?({吉:'吉',平:'平',守:'宜守'}[Q[1]]||Q[1])+'籤':Q[1]+'籤';
+// 籤等文字：關公籤為「上上籤」等；觀音籤依傳統籤譜為上／中／下籤
+const qGrade=(g,Q)=>Q[1]+'籤';
 const qTag=(g,n)=>{const Q=qdOf(g)[n-1];return g==='gy'?`觀音第 ${n} 籤・${qGrade(g,Q)}`:`第 ${n} 籤・${qGrade(g,Q)}`};
 const GUANGONG=`<svg viewBox="0 -6 244 306" class="deity" role="img" aria-label="關聖帝君神像">
 <defs>
@@ -1762,7 +1762,7 @@ function renderQian(){
   ${qMode==='jiao'||qStep===0||qStep===4?`<div class="seg godseg" role="group" aria-label="請示的神明">${Object.entries(QGODS).map(([k,g])=>`<button type="button" data-qgod="${k}" aria-pressed="${k===qGod}"><b>${g.name}</b><span>${qMode==='jiao'?(k==='gy'?'慈悲・觀音':'恩主公'):g.set}</span></button>`).join('')}</div>`:''}`}
   ${body}
   ${qMode==='qian'&&hist.length?`<div class="card stack"><div class="row between"><h3 class="h3">求籤紀錄</h3><button type="button" class="btn sm ghost" id="qClear">清除</button></div><div class="list">${hist.map((h,k)=>`<button type="button" class="li" data-qhist="${k}"><span class="q">${qTag(h.g,h.n).replace('・',' · ')}</span><span class="small muted">${esc(h.t)}</span><span class="small muted">${esc(h.cat)}${h.q?' · '+esc(h.q):''}</span><span class="chev" aria-hidden="true"></span></button>`).join('')}</div></div>`:''}
-  ${qMode==='dream'?'':`<p class="small muted note">本頁為個人參考工具，並非任何宮廟的官方服務。${qGod==='gy'?'觀音一百籤籤詩採用台灣好廟網所列版本，各寺廟用字、籤序可能不同；原始資料未附吉凶等級，「吉／平／宜守」與白話解說為本 App 依籤詩內容所寫，僅供參考。':'籤詩採用民間流傳的六十甲子籤，用字可能與廟方籤紙略有出入。'}正式求籤請親赴宮廟。</p>`}
+  ${qMode==='dream'?'':`<p class="small muted note">本頁為個人參考工具，並非任何宮廟的官方服務。${qGod==='gy'?'觀音一百籤籤詩採用台灣好廟網所列版本，各寺廟用字、籤序可能不同；籤等、聖意、解曰與典故依傳統籤譜，白話解說為本 App 依籤意所寫，僅供參考。':'籤詩採用民間流傳的六十甲子籤，用字可能與廟方籤紙略有出入。'}正式求籤請親赴宮廟。</p>`}
   ${helpBox(qMode==='dream'&&GC.HELP.dream?'dream':'qian')}`;
   if(swapNow)qGodSwap=false;
   if(qScroll){qScroll=false;
@@ -1798,30 +1798,43 @@ const QTIME=['近期即可見到轉機，大約在一個月內。','需要一段
 const QDO=[['積極行動','把握時機','行善回饋'],['守本分','多做準備','耐心等待'],['暫緩決定','守成保守','多行善事']];
 const QDONT=[['得意忘形','鬆懈怠慢'],['急躁冒進','聽信傳言'],['勉強硬來','借貸擔保']];
 const QS=window.QIAN_STORY||{};
+const GYM=window.GUANYIN_META||[], GYK=window.GUANYIN_KEYS||[];
+const GY_HINT={六甲:'懷孕生產',行人:'出門在外的人',田蠶:'農作收成',六畜:'家中牲畜',移徙:'搬家遷移',山墳:'祖墳風水'};
+const GY_WORD={祈福:'向神明祈求福佑',祈保:'祈求神明保佑',作福:'行善、祈福',設送:'備辦祭品送走不順',禳星:'祭星解厄、改運',還願:'向神明還願',許經:'許願誦經',杳:'沒有消息',虧:'容易吃虧',損:'會有損失',守舊:'維持現狀',中平:'普通',五分:'約五成',待時:'等待時機'};
 const qianStory=n=>QS[n]?`典故：${QS[n][0]}。${QS[n][1]}`:'';
+const gyStory=n=>GYM[n-1]?`典故：${GYM[n-1][3][0]}。${GYM[n-1][4]}`:'';
+const storyOf=n=>qGod==='gy'?gyStory(n):qianStory(n);
 function qianShareText(n,cat,q){const Q=GD().data[n-1];return `【靈犀・求籤】${qGod==='gy'?`觀音靈籤第 ${n} 籤（${qGrade('gy',Q)}）`:`第 ${n} 籤（${Q[0]}・${Q[1]}籤）`}\n${Q[2]}\n白話：${Q[3]}\n所問：${cat}${q?'——'+q:''}`}
+function gyOmen(M){
+  if(!M[5])return `<details class="disc"><summary>籤譜斷語</summary><p class="small" style="margin-top:8px">這支籤的籤譜不分項目，以上面的聖意、解曰為準。</p></details>`;
+  const used=[...new Set(M[5].flatMap(v=>Object.keys(GY_WORD).filter(w=>v.includes(w))))];
+  return `<details class="disc"><summary>籤譜斷語（十五項）</summary><p class="small muted" style="margin-top:6px">舊式籤紙上逐項列出的簡短斷語，用字精簡，可與上面的白話對照。</p><div class="catgrid gyomen" style="margin-top:8px">${GYK.map((k,i)=>M[5][i]?`<div class="catrow"><b>${k}${GY_HINT[k]?`<small>${GY_HINT[k]}</small>`:''}</b><span>${M[5][i]}</span></div>`:'').join('')}</div>${used.length?`<p class="small muted" style="margin-top:8px">${used.map(w=>`「${w}」${GY_WORD[w]}`).join('；')}。</p>`:''}</details>`;
+}
 function qianResult(n,cat,q){
   const gy=qGod==='gy', Q=GD().data[n-1], lines=Q[2].replace(/。$/,'').split('，');
-  const lv=qLv(Q), lvCls=['good','mid','bad'][lv];
+  const lv=qLv(Q), lvCls=['good','mid','bad'][lv], M=gy?GYM[n-1]:null;
   const FIELD={家運:8,事業:4,求財:5,婚姻:6,健康:7,出行:8,功名:4,失物:8,訴訟:8};
   const advice=[`這是一支好籤。順勢而為，但別因順利而鬆懈；得償所願後記得${gy?'回寺廟向菩薩還願':'回宮謝神'}、行善回饋。`,'吉凶參半，關鍵在你的作法：守本分、多準備，時機到了自然轉好。','這支籤是提早示警，不必害怕。照著籤意調整，可以避開損失；情況改變後可以再來請示。'][lv];
   return `<div class="stack">
-    <div class="slip${gy?' gy':''}" aria-label="${gy?'觀音靈籤':''}第 ${n} 籤，${gy?'':Q[0]+'，'}${qGrade(qGod,Q)}：${Q[2]}">
+    <div class="slip${gy?' gy':''}" role="group" aria-label="${gy?'觀音靈籤':''}第 ${n} 籤，${gy?'':Q[0]+'，'}${qGrade(qGod,Q)}：${Q[2]}">
       <div class="slip-top" aria-hidden="true">靈犀 ・ ${GD().set}</div>
       <div class="slip-body" aria-hidden="true">
-        <div class="slip-no"><b>第${cnNum(n)}籤</b><span class="slip-gz">${gy?'觀音靈籤':Q[0]}</span><div class="slip-seal ${lvCls}"><span>${gy?{吉:'吉',平:'平',守:'守'}[Q[1]]:Q[1]}</span><span>籤</span></div></div>
+        <div class="slip-no"><b>第${cnNum(n)}籤</b><span class="slip-gz">${gy?'觀音靈籤':Q[0]}</span><div class="slip-seal ${lvCls}"><span>${Q[1]}</span><span>籤</span></div></div>
         <div class="slip-poem">${lines.map(l=>`<p>${l}</p>`).join('')}</div>
       </div>
-      <div class="slip-jie" aria-hidden="true"><b>解曰</b><div>${[['事業',4],['求財',5],['婚姻',6],['健康',7],['平安',8]].map(([k,i])=>`<span><em>${k}</em>${Q[i]}</span>`).join('')}</div></div>
+      <div class="slip-jie${M?' gy':''}" aria-hidden="true"><b>解曰</b><div>${M?M[2].replace(/。$/,'').split('。').map(x=>`<span>${x}</span>`).join(''):[['事業',4],['求財',5],['婚姻',6],['健康',7],['平安',8]].map(([k,i])=>`<span><em>${k}</em>${Q[i]}</span>`).join('')}</div></div>
     </div>
     <p><b>白話</b>　${Q[3]}</p>
-    ${gy?`<p class="small muted">觀音籤原始資料未附吉凶等級；「${qGrade('gy',Q)}」與白話解說是依籤詩內容的白話判讀，僅供參考。</p>`:''}
+    ${M?`<p class="small"><b>聖意</b>　${M[1]}</p>
+    <p class="small muted">籤等、聖意、解曰依傳統觀音籤譜${M[0]?`（部分版本列為${M[0]}籤）`:''}；白話與分類解說是依籤意撰寫，僅供參考。</p>`:''}
     <details class="disc" open><summary>逐句解</summary><div class="qlines">${lines.map((l,k)=>`<div class="ql"><b>${l}</b><span>${((gy?window.GUANYIN_LINES:window.QIAN_LINES)||[])[n-1]?.[k]||''}</span></div>`).join('')}</div></details>
+    ${M?`<div class="qstory"><span class="eyebrow">典故</span><b>${M[3][0]}</b><p class="small">${M[4]}</p><p class="small muted">${M[3].length>1?`另有${M[3].slice(1).map(x=>`「${x}」`).join('')}等版本；`:''}各廟配用的故事不一，此為常見版本之一。</p></div>`:''}
     ${!gy&&QS[n]?`<div class="qstory"><span class="eyebrow">典故</span><b>${QS[n][0]}</b><p class="small">${QS[n][1]}</p><p class="small muted">各廟配用的故事版本不一，此為常見版本之一。</p></div>`:''}
     <div class="reader"><div class="seal" aria-hidden="true">籤</div><p>你問的是「${esc(cat)}」${q?`：${esc(q)}`:''}。籤意說：<b>${Q[FIELD[cat]]}</b>${QGUIDE[cat][lv]}${advice}</p></div>
     <div class="grid2"><div class="stack" style="gap:6px"><span class="small muted">宜</span><div class="chips">${QDO[lv].map(x=>`<span class="pill good">${x}</span>`).join('')}</div></div><div class="stack" style="gap:6px"><span class="small muted">忌</span><div class="chips">${QDONT[lv].map(x=>`<span class="pill bad">${x}</span>`).join('')}</div></div></div>
     <p class="small"><b>應期</b>　${QTIME[lv]}</p>
     <details class="disc"><summary>九類解籤</summary><div class="catgrid" style="margin-top:8px">${QCATS.map(c=>`<div class="catrow${c===cat?' on':''}"><b>${c}</b><span><b>${Q[FIELD[c]]}</b>${QGUIDE[c][lv]}</span></div>`).join('')}</div></details>
+    ${M?gyOmen(M):''}
     <div class="row acts">${spkHtml('qian')}${shrHtml('qian')}</div>
     <div class="grid2"><button type="button" class="btn" id="qShare">分享文字</button><button type="button" class="btn" id="qAgain">再求一籤</button></div></div>`;
 }
@@ -2050,7 +2063,7 @@ const shrHtml=k=>`<button type="button" class="btn sm spk" data-card="${k}">${SH
 function speakText(k){
   if(k==='daily'){const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+dayOff);const F=fortune(date);
     return `${P.given}，${dayOff===0?'今天':dayOff===1?'明天':''}${date.getMonth()+1}月${date.getDate()}日，星期${WEEK[date.getDay()]}，農曆${S2T(F.L.getMonthInChinese())}月${S2T(F.L.getDayInChinese())}。整體運勢${F.total}分，${F.word}。${F.sum}${personalNote(F,date).replace(/<[^>]+>/g,'')}${F.areas.map(a=>`${a.n}${Math.round(a.s*20)}分`).join('，')}。${F.note}幸運色是${F.la.c.split('、')[0]}，幸運數字${F.la.n}，財喜方位在${F.la.d.split('、')[0]}。吉時有${F.good.map(x=>ZHI[x.k]+'時').join('、')}。今天宜${F.yi.slice(0,5).join('、')}；忌${F.ji.slice(0,5).join('、')}。`}
-  if(k==='qian'&&qNo){const Q=GD().data[qNo-1];return `${qGod==='gy'?'觀音靈籤，':''}第${qNo}籤，${qGod==='gy'?'':Q[0]+'，'}${qGrade(qGod,Q)}。籤詩：${Q[2]}白話：${Q[3]}${qGod!=='gy'&&typeof qianStory==='function'?qianStory(qNo):''}${$('#v-qian .reader p')?$('#v-qian .reader p').textContent:''}`}
+  if(k==='qian'&&qNo){const Q=GD().data[qNo-1];return `${qGod==='gy'?'觀音靈籤，':''}第${qNo}籤，${qGod==='gy'?'':Q[0]+'，'}${qGrade(qGod,Q)}。籤詩：${Q[2]}白話：${Q[3]}${storyOf(qNo)}${$('#v-qian .reader p')?$('#v-qian .reader p').textContent:''}`}
   if(k==='tarot'&&tReading){const d=TD.spreads.find(s=>s.k===tReading.s);return `${tReading.q||'塔羅解讀'}，${d.n}。`+tReading.c.map((x,i)=>{const c=tcard(x.i);return `第${i+1}張，${d.pos[i]}：${c.zh}，${x.rev?'逆位':'正位'}。${x.rev?c.rev:c.up}`}).join('')+($('#v-tarot .reader p')?$('#v-tarot .reader p').textContent:'')}
   return '';
 }
@@ -2143,7 +2156,7 @@ function cardSpec(k){
       body:[{t:F.sum},{k:'五大面向',t:F.areas.map(a=>`${a.n} ${Math.round(a.s*20)}`).join('　')},{k:'開運',t:`幸運色 ${F.la.c.split('、')[0]}　幸運數字 ${F.la.n}　財喜方位 ${F.la.d.split('、')[0]}`},{k:'宜',t:F.yi.slice(0,8).join('、')||'—'},{k:'忌',t:F.ji.slice(0,8).join('、')||'—'}],
       text:`【靈犀・每日運勢】${date.getMonth()+1}/${date.getDate()} ${F.total}分 ${F.word}\n${F.sum}`}}
   if(k==='qian'&&qNo){const gy=qGod==='gy', Q=GD().data[qNo-1];
-    const FI={家運:8,事業:4,求財:5,婚姻:6,健康:7,出行:8,功名:4,失物:8,訴訟:8}, st=!gy&&typeof qianStory==='function'?qianStory(qNo):'';
+    const FI={家運:8,事業:4,求財:5,婚姻:6,健康:7,出行:8,功名:4,失物:8,訴訟:8}, st=storyOf(qNo);
     return {tag:GD().set,title:`第${cnNum(qNo)}籤`,seal:Q[1],sub:`${gy?'觀音靈籤':Q[0]}　所問：${qCat}${qQ?`・${qQ}`:''}`,seed:qNo,poem:Q[2].replace(/。$/,'').split('，'),
       body:[{k:'白話',t:Q[3]},{k:`所問「${qCat}」`,t:Q[FI[qCat]||8]},{k:'解曰',t:[['事業',4],['求財',5],['婚姻',6],['健康',7],['平安',8]].map(([k,i])=>`${k}：${Q[i]}`).join('\n'),size:28},...(st?[{k:'典故',t:st,size:28}]:[])],text:qianShareText(qNo,qCat,qQ)}}
   if(k==='tarot'&&tReading){const d=TD.spreads.find(s=>s.k===tReading.s), few=tReading.c.length<=5;

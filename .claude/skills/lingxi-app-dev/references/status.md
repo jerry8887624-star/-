@@ -3,7 +3,7 @@
 更新：2026-10-29。新對話接手時先讀這份，再照 SKILL.md 的流程做。
 
 ## 版本與網址
-- 目前版本：1.21（`data/changes.json` 最上面那筆，v = `2026.11.7`）。下次發布版號接著遞增。
+- 目前版本：1.22（`data/changes.json` 最上面那筆，v = `2026.11.8`）。下次發布版號接著遞增。
 - 正式網址：**https://lingxi-397.pages.dev/**（Cloudflare Pages，從 GitHub `main` 自動部署，建置輸出目錄 `divination`，沒有建置命令）。
 - 新網址寫在 `divination/data/site.json`，build.py 會帶入 `SITE_URL`、og 標籤，並產生 `old-site.html`。
 - 舊網址 `…github.io/-/divination/` 現在只放輕量搬家頁：`deploy.yml` 把 `divination/old-site.html` 複製成舊網址的 index.html。來源是 `divination/move.html`，裡面的 `/*SITE_URL*/` 會被替換掉。
@@ -20,8 +20,11 @@
 
 ## 待辦
 1. **GitHub 專案改成私人**：等使用者搬完（約 1–2 週後）再帶使用者操作（Settings → Danger Zone → Change visibility）。改了之後舊網址會停用，Cloudflare 照常運作。專案根目錄另有幾份與靈犀無關、使用者個人的 PDF，改成私人後就不會公開。
-2. 觀音一百籤的**籤題、典故、正式籤等**還沒補：目前的吉／平／守是依籤意判讀，已在畫面上標註。資料來源（temples.tw、qiangua.temple01.com、goodfate.tw）在這個環境被網路政策擋住，要使用者把這些網域加進 Allowed domains，或提供 PDF。
-3. 紫微「時辰不確定」提醒：使用者先前沒選，未做。
+2. 紫微「時辰不確定」提醒：使用者先前沒選，未做。
+
+## 觀音一百籤（1.22）
+- `data/guanyin.js`：`GUANYIN_DATA[i][0]` 宮位、`[1]` 上／中／下；`GUANYIN_META` 存異說籤等、聖意、解曰、典故名稱、典故白話（自撰）、十五項斷語（`GUANYIN_KEYS`）。
+- 籤譜資料取自 GitHub 兩份整理（yuleshow/M5Stack-Paper-S3-Chinese-Books 的 kuanyin.csv、yangnine.github.io 的 Goddess100.json）互相核對；只取傳統籤譜文字，不抄其現代長篇故事。raw.githubusercontent.com 在此環境可連。
 
 ## 音訊（目前做法）
 - 背景音樂 5 首，放在 `audio/*.mp3`（響度 -20 LUFS、112 kbps）：寺院系〈儀式靜心〉〈缽音入定〉〈晨鐘回響〉、星空系〈琉璃雨〉〈靜夜安神〉。用**原生 `<audio>`** 播放、不經 Web Audio，因為接 Web Audio 時捲動會變調、爆音。iOS 不能調網頁音量。
