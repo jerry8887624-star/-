@@ -3744,7 +3744,8 @@ function moveImportSheet(){const L=sheet('貼上搬家碼',`<div class="stack">
   <textarea id="mvIn2" rows="5" placeholder="長按這裡，選「貼上」" style="width:100%;font-size:14px;border-radius:12px;padding:10px;border:1px solid var(--line);background:var(--field,transparent);color:inherit"></textarea>
   ${navigator.clipboard&&navigator.clipboard.readText?'<button type="button" class="btn block" data-mvpaste>從剪貼簿貼上</button>':''}
   <button type="button" class="btn primary block" data-mvgo>匯入我的資料</button>
-  <p class="small muted">命主資料、家人生辰、求籤與塔羅紀錄都會搬過來；資料只存在這支手機。</p></div>`);
+  <p class="small muted">命主資料、家人生辰、求籤與塔羅紀錄都會搬過來；資料只存在這支手機。</p>
+  <details class="disc"><summary>還沒複製搬家碼？</summary><p class="small" style="margin-top:6px">別擔心，舊資料還在。打開<b>舊的靈犀圖示</b>（或舊網址），按「① 複製搬家碼」，再回到這裡貼上就好。舊圖示刪掉了的話，用瀏覽器打開舊網址也一樣。</p></details></div>`);
   L.panel.addEventListener('click',async e=>{const ta=L.panel.querySelector('#mvIn2');
     if(e.target.closest('[data-mvpaste]')){try{ta.value=await navigator.clipboard.readText()}catch(err){toast('請長按框框，選「貼上」','info')}return}
     if(e.target.closest('[data-mvgo]')){const v=ta.value.trim();if(!v)return toast('請先貼上搬家碼','warn');
