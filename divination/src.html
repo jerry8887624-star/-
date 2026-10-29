@@ -472,7 +472,7 @@ function zwLoad(){
     const add=(src,next)=>{const sc=document.createElement('script');sc.src=src;sc.async=true;
       sc.onload=()=>window.iztro?done('ok'):next();sc.onerror=next;document.head.appendChild(sc)};
     const done=st=>{zwState=st;if(st==='ok'&&D&&P){D.astro=zwChart(P);if(['overview','ziwei','liunian'].includes(cur)){const y=scrollY;render(cur);scrollTo(0,y)}}zwWait.splice(0).forEach(f=>f())};
-    add('vendor/iztro.min.js',()=>add('https://cdn.jsdelivr.net/npm/iztro@2.6.1/dist/iztro.min.js',()=>{done('fail');if(cur==='ziwei')render('ziwei')}));
+    add('vendor/iztro.min.js',()=>add('https://cdn.jsdelivr.net/npm/iztro@2.6.3/dist/iztro.min.js',()=>{done('fail');if(cur==='ziwei')render('ziwei')}));
   });
 }
 function gzScore(gz){let s=3;const a=gWx(gz[0]),b=zWx(gz[1]);if(D.xi.includes(a))s+=1;if(D.ji.includes(a))s-=1;if(D.xi.includes(b))s+=.5;if(D.ji.includes(b))s-=.5;return Math.max(1,Math.min(5,s))}
@@ -501,7 +501,7 @@ function bzShensha(){
   const mg=grp(pz[1]);const yd='壬丙庚甲'[mg];const ydHit=pg.map((g,i)=>g===yd?i:-1).filter(i=>i>=0);if(ydHit.length)out.push({n:'月德貴人',w:ydHit});
   // 天德貴人（以月支查）：寅丁 卯申 辰壬 巳辛 午亥 未甲 申癸 酉寅 戌丙 亥乙 子巳 丑庚
   const TD_={寅:'丁',卯:'申',辰:'壬',巳:'辛',午:'亥',未:'甲',申:'癸',酉:'寅',戌:'丙',亥:'乙',子:'巳',丑:'庚'}[pz[1]];
-  const tdHit=D.pillars.map((p,i)=>i!==1&&(p[0]===TD_||p[1]===TD_)?i:-1).filter(i=>i>=0);if(tdHit.length)out.push({n:'天德貴人',w:tdHit});
+  const tdHit=D.pillars.map((p,i)=>p[0]===TD_||p[1]===TD_?i:-1).filter(i=>i>=0);if(tdHit.length)out.push({n:'天德貴人',w:tdHit});
   if(['庚辰','庚戌','壬辰','戊戌'].includes(D.pillars[2]))out.push({n:'魁罡',w:[2]});
   const kong=D.ec.getDayXunKong();const kHit=pz.map((z,i)=>i!==2&&kong.includes(z)?i:-1).filter(i=>i>=0);if(kHit.length)out.push({n:'空亡',w:kHit,x:kong});
   return out;
@@ -514,6 +514,7 @@ function bzRelations(){
     const he=GHE[a+b]||GHE[b+a];if(he)out.push({t:'good',k:`${a}${b}合${he}`,who,i,j,d:'天干五合：彼此吸引、有情，代表這兩個面向互相牽絆、合作。'});
     if(pairIn(GCH,a,b))out.push({t:'bad',k:`${a}${b}相沖`,who,i,j,d:'天干相沖：想法與外在表現上的矛盾、拉扯。'});
     for(const r of zhiRel(x,y)){if(r==='同支')continue;
+      if(r==='三合'&&!'子午卯酉'.includes(x)&&!'子午卯酉'.includes(y))continue; // 半合須含子午卯酉（中神）；寅戌、申辰等為拱合，力量弱，不列
       const map={六合:['good','和合、助力'],三合:['good','同氣相求，形成一股合力（半合）'],六沖:['bad','變動、衝突、聚少離多'],六害:['bad','暗中損耗、被誤解'],相刑:['bad','摩擦、是非、自尋煩惱'],自刑:['bad','容易鑽牛角尖、自我消耗'],相破:['mid','小破損、計畫被打亂']};
       const m=map[r];if(m)out.push({t:m[0],k:`${x}${y}${r==='三合'?'半合':r}`,who,i,j,d:`地支${r==='三合'?'半合':r}：${m[1]}。`})}
   }

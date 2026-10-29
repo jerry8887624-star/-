@@ -75,6 +75,6 @@ cd <repo> && git fetch -q origin main && git checkout -q -B claude/divination-ap
 
 用繁體中文，先講結論，再分點說明做了什麼與為什麼；附上兩個連結：
 - App：https://lingxi-397.pages.dev/（不要再給舊的 github.io 網址，使用者不想讓帳號名稱曝光）
-- Claude 預覽：https://claude.ai/artifact/Q2UEHLYeWttgayJDgdCgwH
+- Claude 預覽：https://claude.ai/artifact/NFMsVktuVdW4jCLPHc2rVb
 
 誠實說明沒辦法驗證的部分（例如沒有真機 iPhone、只用模擬事件測過羅盤或安裝提示），並提醒手機上如何拿到新版（完全關閉 App 再開、看到「更新內容」按立即更新）。還沒做的建議項目列出來，問要不要接著做。

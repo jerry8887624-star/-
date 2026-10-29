@@ -1384,8 +1384,12 @@ html,body{background-image:none!important}
 body{background:transparent!important}
 .bgart{position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--bg)}
 .bgart::before,.bgart::after{content:"";position:absolute;inset:0;background:center top/cover no-repeat;transition:opacity .35s ease}
-.bgart::before{background-image:url(img/bg-day.jpg);opacity:var(--day-op)}
-.bgart::after{background-image:url(img/bg-night.jpg);opacity:var(--night-op)}
+.bgart::before{background-image:url(img/bg-day.jpg);background-image:image-set(url(img/bg-day.webp) type("image/webp"),url(img/bg-day.jpg) type("image/jpeg"));opacity:var(--day-op)}
+.bgart::after{opacity:var(--night-op)}
+/* 只下載目前主題用得到的那一張背景（WebP，舊裝置退回 JPG） */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .bgart::before{background-image:none}:root:not([data-theme="light"]) .bgart::after{background-image:url(img/bg-night.jpg);background-image:image-set(url(img/bg-night.webp) type("image/webp"),url(img/bg-night.jpg) type("image/jpeg"))}}
+:root[data-theme="dark"] .bgart::before{background-image:none}
+:root[data-theme="dark"] .bgart::after{background-image:url(img/bg-night.jpg);background-image:image-set(url(img/bg-night.webp) type("image/webp"),url(img/bg-night.jpg) type("image/jpeg"))}
 body::before{background:color-mix(in srgb,var(--bg) 70%,transparent)!important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 /* 卡片：半透明紙面＋細金邊 */
 .card,.spread,.tile,.quick{background:var(--glass)!important;border:1px solid var(--glass-line)!important;box-shadow:var(--glass-shadow)!important}
