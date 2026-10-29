@@ -17,8 +17,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta property="og:type" content="website">
-
-<meta property="og:image" content="icons/og.png?v=3">
+<meta property="og:url" content="https://lingxi-397.pages.dev/">
+<meta property="og:image" content="https://lingxi-397.pages.dev/icons/og.png?v=3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -3116,7 +3116,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 /* ---------- 網站搬家：舊網址把資料打包成「搬家碼」，帶到新網址 ---------- */
-const SITE_URL="";
+const SITE_URL="https://lingxi-397.pages.dev/";
 const moveKeys=()=>{const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gx_'))o[k]=localStorage.getItem(k)}}catch(e){}return o};
 const movePack=()=>btoa(unescape(encodeURIComponent(JSON.stringify(moveKeys()))));
 function moveApply(code){const o=JSON.parse(decodeURIComponent(escape(atob(code.trim()))));let n=0;Object.entries(o).forEach(([k,v])=>{if(k.startsWith('gx_')&&typeof v==='string'){localStorage.setItem(k,v);n++}});return n}
@@ -6738,6 +6738,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.7",
+  "n": "1.21",
+  "d": "11 月 7 日",
+  "items": [
+   [
+    "靈犀搬新家",
+    "新網址：lingxi-397.pages.dev。舊網址會提示你一鍵帶著資料搬過去；從主畫面打開的人，可以用「AA 顯示與設定」裡的「搬家碼」把資料帶到新的 App。",
+    null
+   ]
+  ]
+ },
  {
   "v": "2026.11.6",
   "n": "1.20",
