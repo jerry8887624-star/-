@@ -6,61 +6,113 @@
 <meta name="robots" content="noindex">
 <title>靈犀搬新家了</title>
 <style>
-:root{--bg:#F1EADB;--card:#FBF7EE;--ink:#2A251F;--muted:#6B6152;--tint:#7E5B18;--soft:rgba(126,91,24,.12);--line:#E2D6C0}
-@media (prefers-color-scheme:dark){:root{--bg:#1C2849;--card:#24315A;--ink:#F3EBDA;--muted:#C9C1B0;--tint:#E7C27A;--soft:rgba(231,194,122,.15);--line:#36447A}}
+:root{--bg:#F1EADB;--card:#FBF7EE;--ink:#2A251F;--muted:#6B6152;--tint:#7E5B18;--soft:rgba(126,91,24,.12);--line:#E2D6C0;--ok:#2E6B3A;--okbg:#E4F1E6;--warn:#8A3B1E;--warnbg:#F5E6DE}
+@media (prefers-color-scheme:dark){:root{--bg:#1C2849;--card:#24315A;--ink:#F3EBDA;--muted:#C9C1B0;--tint:#E7C27A;--soft:rgba(231,194,122,.15);--line:#36447A;--ok:#9FD8AB;--okbg:rgba(80,160,100,.18);--warn:#F2B49A;--warnbg:rgba(200,90,50,.18)}}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1.7 -apple-system,"PingFang TC","Noto Sans TC",sans-serif;display:flex;align-items:center;justify-content:center;padding:24px 16px}
-.c{width:100%;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px 22px;text-align:center}
-img{width:72px;height:72px;border-radius:18px}
-h1{font-size:24px;margin:12px 0 4px}
-.u{font-size:19px;font-weight:700;background:var(--soft);border-radius:12px;padding:10px;margin:14px 0;word-break:break-all}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1.7 -apple-system,"PingFang TC","Noto Sans TC",sans-serif;padding:max(24px,env(safe-area-inset-top)) 16px 32px}
+.c{max-width:440px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px 20px}
+.hd{text-align:center}
+img.logo{width:68px;height:68px;border-radius:17px}
+h1{font-size:24px;margin:10px 0 2px}
+.u{font-size:19px;font-weight:700;background:var(--soft);border-radius:12px;padding:10px;margin:12px 0;word-break:break-all;text-align:center}
 p{margin:8px 0;color:var(--muted)}
-.b{display:block;width:100%;text-align:center;border:0;border-radius:14px;padding:14px;font:inherit;font-weight:700;font-size:17px;margin-top:12px;cursor:pointer;text-decoration:none}
+.b{display:block;width:100%;border:0;border-radius:14px;padding:14px;font:inherit;font-weight:700;font-size:17px;margin-top:12px;cursor:pointer;text-decoration:none;text-align:center}
 .p{background:linear-gradient(180deg,#F6E3B6,#E0BB76);color:#3A2810}
 .s{background:transparent;color:var(--tint);border:1px solid var(--line)}
-ol{text-align:left;color:var(--muted);padding-left:1.3em;margin:8px 0}
-#home{display:none;text-align:left}
-.t{font-size:14px}
+.steps{list-style:none;padding:0;margin:14px 0 4px;display:grid;gap:10px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;background:var(--soft);border-radius:14px;padding:12px;color:var(--ink);font-size:15px;line-height:1.6}
+.steps li::before{counter-increment:s;content:counter(s);width:28px;height:28px;border-radius:50%;background:var(--tint);color:var(--card);display:grid;place-items:center;font-weight:700}
+.steps b{color:var(--ink)}
+.steps .done{background:var(--okbg)}
+.steps .done::before{content:'✓';background:var(--ok)}
+.st{border-radius:12px;padding:10px 12px;margin:10px 0;font-size:15px;display:none}
+.st.ok{display:block;background:var(--okbg);color:var(--ok)}
+.st.bad{display:block;background:var(--warnbg);color:var(--warn)}
+textarea{width:100%;font:13px/1.5 ui-monospace,Menlo,monospace;border-radius:12px;padding:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);display:none;margin-top:8px}
+.t{font-size:13.5px;text-align:center}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;padding:16px}
+.mask.on{display:flex}
+.dlg{background:var(--card);border-radius:20px;padding:22px 18px;max-width:440px;width:100%}
+.dlg h2{margin:0 0 6px;font-size:19px}
 </style>
 </head>
 <body>
 <main class="c">
-  <img src="icons/icon-192.png" alt="" onerror="this.remove()">
-  <h1>靈犀搬新家了</h1>
-  <p>靈犀換了新網址，以後請到這裡使用：</p>
+  <div class="hd">
+    <img class="logo" src="icons/icon-192.png" alt="" onerror="this.remove()">
+    <h1>靈犀搬新家了</h1>
+    <p>以後請到新網址使用：</p>
+  </div>
   <div class="u" id="u">lingxi-397.pages.dev</div>
-  <div id="web">
-    <p id="msg">你的命主資料、求籤紀錄、占卜日記會一起帶過去。</p>
-    <a class="b p" id="go" href="#">帶著我的資料搬過去</a>
-  </div>
-  <div id="home">
-    <p>你是從手機主畫面打開的。主畫面的 App 和瀏覽器的資料分開存放，請照這樣搬：</p>
-    <ol>
-      <li>按下面的「複製搬家碼」。</li>
-      <li>用 Safari 或 Chrome 打開上面的新網址，重新「加到主畫面」。</li>
-      <li>從新的主畫面圖示打開，點左上角「AA 顯示與設定」→「搬家碼」，貼上後按「匯入」。</li>
+
+  <!-- 一般瀏覽器 -->
+  <section id="web">
+    <p id="msg">按下面的按鈕，你的命主資料、家人生辰、求籤與塔羅紀錄會一起帶過去。</p>
+    <button class="b p" id="go" type="button">帶著我的資料搬過去</button>
+    <p class="t">按下時也會自動複製一份「搬家碼」備用。</p>
+  </section>
+
+  <!-- 從主畫面打開 -->
+  <section id="home" hidden>
+    <p>你是從<b>手機主畫面</b>打開的。主畫面的 App 和瀏覽器資料分開存放，請照下面 3 步搬家：</p>
+    <ol class="steps">
+      <li id="s1"><div><b>複製搬家碼</b><br>按下面的金色按鈕。</div></li>
+      <li id="s2"><div><b>到新網址加到主畫面</b><br>用 Safari 打開 <b class="u2">新網址</b>，按「分享」→「加入主畫面」。</div></li>
+      <li id="s3"><div><b>貼上搬家碼</b><br>從<b>新的</b>主畫面圖示打開，按「我用過舊網址，有搬家碼」→「從剪貼簿貼上」→「匯入我的資料」。</div></li>
     </ol>
-    <button class="b p" id="copy" type="button">複製搬家碼</button>
-    <a class="b s" id="go2" href="#">直接打開新網址</a>
-  </div>
-  <p class="t" id="note"></p>
+    <button class="b p" id="copy" type="button">① 複製搬家碼</button>
+    <div class="st" id="st"></div>
+    <textarea id="code" rows="5" readonly></textarea>
+    <button class="b s" id="go2" type="button">② 打開新網址</button>
+  </section>
+
+  <p class="t" id="safe">放心：舊網址裡的資料不會被刪除。搬家沒成功，隨時可以回到這裡再複製一次。</p>
 </main>
+
+<div class="mask" id="mask" role="dialog" aria-modal="true" aria-labelledby="dt">
+  <div class="dlg">
+    <h2 id="dt">還沒複製搬家碼喔</h2>
+    <p>沒有搬家碼，新的 App 會是空的，家人生辰和紀錄都帶不過去。</p>
+    <button class="b p" id="dcopy" type="button">先複製搬家碼，再打開新網址</button>
+    <button class="b s" id="dskip" type="button">我不需要舊資料，直接打開</button>
+  </div>
+</div>
+
 <script>
 (function(){
   var NEW='/*SITE_URL*/';
-  var data={},n=0;
-  try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('gx_')===0){data[k]=localStorage.getItem(k);n++}}}catch(e){}
+  var $=function(id){return document.getElementById(id)};
+  var data={},n=0,hasProfile=false;
+  try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('gx_')===0){data[k]=localStorage.getItem(k);n++}}
+    hasProfile=!!localStorage.getItem('gx_profiles')}catch(e){}
   var code='';try{code=btoa(unescape(encodeURIComponent(JSON.stringify(data))))}catch(e){}
-  var target=NEW+(n?'#move='+encodeURIComponent(code):'');
-  document.getElementById('u').textContent=NEW.replace(/^https?:\/\//,'').replace(/\/$/,'');
-  document.getElementById('go').href=target;document.getElementById('go2').href=NEW;
+  var withData=NEW+(n?'#move='+encodeURIComponent(code):'');
+  var copied=false;try{copied=sessionStorage.getItem('mv_copied')==='1'}catch(e){}
+  var host=NEW.replace(/^https?:\/\//,'').replace(/\/$/,'');$('u').textContent=host;[].forEach.call(document.querySelectorAll('.u2'),function(e){e.textContent=host});
+
+  function markCopied(){copied=true;try{sessionStorage.setItem('mv_copied','1')}catch(e){}
+    $('s1').className='done';$('st').className='st ok';$('st').textContent='已複製搬家碼。接著按「② 打開新網址」。';$('copy').textContent='已複製，可以再複製一次'}
+  function showManual(){$('st').className='st bad';$('st').textContent='這支手機不允許自動複製。請長按下面的框框 →「全選」→「拷貝」。';
+    var ta=$('code');ta.style.display='block';ta.value=code;ta.focus();ta.select();try{ta.setSelectionRange(0,code.length)}catch(e){}}
+  function copy(then){
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(function(){markCopied();then&&then(true)},function(){legacy(then)})}else legacy(then)}
+  function legacy(then){var ta=$('code');ta.style.display='block';ta.value=code;ta.select();try{ta.setSelectionRange(0,code.length)}catch(e){}
+    var ok=false;try{ok=document.execCommand('copy')}catch(e){}if(ok){markCopied();ta.style.display='none'}else showManual();then&&then(ok)}
+
   var standalone=window.navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
-  if(standalone&&n){document.getElementById('web').style.display='none';document.getElementById('home').style.display='block'}
-  else if(!n){document.getElementById('msg').textContent='正在帶你前往新網址…';setTimeout(function(){location.replace(NEW)},1200)}
-  document.getElementById('copy').onclick=function(){var note=document.getElementById('note');
-    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(function(){note.textContent='已複製搬家碼'},function(){note.textContent='無法自動複製，請改用「直接打開新網址」後重新輸入資料'})}
-    else note.textContent='這個瀏覽器無法自動複製'};
-  // 停用舊網址的離線快取，避免之後又打開舊版
+  if(!n){$('msg').textContent='正在帶你前往新網址…';$('go').style.display='none';$('safe').style.display='none';setTimeout(function(){location.replace(NEW)},1200)}
+  else if(standalone){$('web').hidden=true;$('home').hidden=false;if(copied)markCopied()}
+
+  // 一般瀏覽器：同時複製搬家碼備用，再帶著資料前往
+  $('go').onclick=function(){copy(function(){location.href=withData})};
+  $('copy').onclick=function(){copy()};
+  // 主畫面：沒複製就要離開時攔下來
+  $('go2').onclick=function(){if(copied||!hasProfile){location.href=withData;return}$('mask').className='mask on'};
+  $('dcopy').onclick=function(){copy(function(ok){$('mask').className='mask';if(ok)setTimeout(function(){location.href=withData},700)})};
+  $('dskip').onclick=function(){location.href=NEW};
+  $('mask').onclick=function(e){if(e.target===this)this.className='mask'};
+
+  // 停用舊網址的離線快取，避免之後又打開舊版（資料仍保留在舊網址）
   try{if(navigator.serviceWorker)navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister()})})}catch(e){}
   try{if(window.caches)caches.keys().then(function(ks){ks.forEach(function(k){if(k.indexOf('lingxi-')===0)caches.delete(k)})})}catch(e){}
 })();
