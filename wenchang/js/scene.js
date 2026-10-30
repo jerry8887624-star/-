@@ -22,6 +22,7 @@ export const SPOTS = {
   qianTube: { x: 5.5, z: -16.4, f: Math.PI, cam: -0.45 },
   wall: { x: 16.4, z: 8, f: Math.PI / 2 },
   lingxi: { x: 16.3, z: 14.6, f: Math.PI / 2, cam: 0.35 },
+  bang: { x: 16.4, z: 1.8, f: Math.PI / 2, cam: 0.3 },
 };
 // 名牌標示（可點擊走過去）
 export const MARKS = [
@@ -32,6 +33,7 @@ export const MARKS = [
   { id: 'wall', name: '祈福牆', pos: [18.2, 3.4, 8] },
   { id: 'jinlu', name: '金爐', pos: [JINLU.x, 4.6, JINLU.z] },
   { id: 'lingxi', name: '靈犀占卜', pos: [18.6, 4.3, 14.6] },
+  { id: 'bang', name: '還願紅榜', pos: [18.6, 3.9, 1.8] },
 ];
 // 鏡頭特寫用的位置
 export const FOCUS = { altar: [0, 2.2, -19.5], censer: [0, 2.2, L.CZ], wcCenser: [0, 1.6, WC_CENSER_Z], jinlu: [JINLU.x, 1.6, JINLU.z], wall: [18.2, 2, 8] };
@@ -60,6 +62,7 @@ const BOXES = [
   [5, -18.1, 6, -17.1],             // 籤筒桌
   [17.6, 5.2, 19.2, 10.8],          // 祈福牆
   [18.1, 12.8, 19.4, 16.4],         // 靈犀占卜電子牆
+  [18.1, 0.1, 19.3, 3.5],           // 還願紅榜
   [-L.CW - 0.4, L.GZ - 0.2, -3.3, L.GZ + 0.4], [3.3, L.GZ - 0.2, L.CW + 0.4, L.GZ + 0.4], // 前牆
 ];
 const FRONT_PILLARS = [-14.2, -8.5, -3.4, 3.4, 8.5, 14.2];
@@ -143,7 +146,7 @@ export class Temple {
     const step = new THREE.Mesh(new THREE.BoxGeometry(L.HW * 2 + 0.4, 0.12, 0.5), lam('#a89580')); step.position.set(0, 0.06, L.HF + 0.45); S.add(step);
 
     this.buildHall(); this.buildGate(); this.buildCourt(); this.buildGod();
-    this.buildCenser(); this.buildWenchangCenser(); this.buildJinlu(); this.buildLingxiScreen(); this.buildCounter(); this.buildWall(); this.buildTrees();
+    this.buildCenser(); this.buildWenchangCenser(); this.buildJinlu(); this.buildLingxiScreen(); this.buildBang(); this.buildCounter(); this.buildWall(); this.buildTrees();
 
     this.ground = [outer, court, hallFloor];
   }
@@ -533,6 +536,44 @@ export class Temple {
     this.lxTex.needsUpdate = true;
   }
 
+  // 還願紅榜：考上的人回來答謝，名字掛上紅榜
+  buildBang() {
+    const S = this.scene, g = new THREE.Group(); g.position.set(18.7, 0, 1.8); g.rotation.y = -Math.PI / 2; S.add(g);
+    const wood = lam('#3a1a10'), gold = lam('#d8ab45');
+    [-1.55, 1.55].forEach(x => { const p = new THREE.Mesh(new THREE.BoxGeometry(0.18, 3.3, 0.18), wood); p.position.set(x, 1.65, 0); g.add(p); });
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.14, 0.7), lam('#2f6b5c')); roof.position.set(0, 3.38, 0); g.add(roof);
+    const c = document.createElement('canvas'); c.width = 512; c.height = 400; this.bangCanvas = c;
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; this.bangTex = tex;
+    const board = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.34, 0.1), [gold, gold, gold, gold, basic('#fff', { map: tex }), lam('#8a1a14')]);
+    board.position.set(0, 2.0, 0); g.add(board); this.bangBoard = board;
+    this.drawBang([]);
+  }
+  drawBang(list, label = () => '') {
+    const c = this.bangCanvas, g = c.getContext('2d'), W = c.width, H = c.height;
+    g.fillStyle = '#b8241c'; g.fillRect(0, 0, W, H); g.strokeStyle = '#f3d27a'; g.lineWidth = 6; g.strokeRect(10, 10, W - 20, H - 20);
+    g.fillStyle = '#f6dc94'; g.textAlign = 'center'; g.font = '900 52px "Noto Serif TC",serif'; g.fillText('還 願 紅 榜', W / 2, 72);
+    g.font = '500 20px "Noto Serif TC",serif'; g.fillStyle = '#ffe9b0'; g.fillText('金榜題名・回來答謝文昌帝君', W / 2, 104);
+    const show = list.slice(-12).reverse();
+    g.font = '700 24px "Noto Serif TC",serif'; g.fillStyle = '#fff4d6';
+    if (!show.length) { g.fillText('等你考上，回來掛第一個名字', W / 2, 220); }
+    show.forEach((e, i) => { const col = i % 2, row = Math.floor(i / 2); g.textAlign = 'left'; g.fillText(`✦ ${label(e)}`, 36 + col * 240, 150 + row * 40); });
+    this.bangTex.needsUpdate = true;
+  }
+  // 文昌帝君聖誕：殿前掛紅布條、多掛一排燈籠
+  setFestival(on) {
+    if (!!this.fest === on) return;
+    if (!on) { this.scene.remove(this.fest); this.fest = null; return; }
+    const g = new THREE.Group(); this.fest = g; this.scene.add(g);
+    const tex = plaqueTex('恭祝 文昌帝君聖誕', { bg: '#c8241c', fg: '#f6dc94', w: 1024, h: 140, font: 92 });
+    const banner = new THREE.Mesh(new THREE.PlaneGeometry(6.6, 0.9), basic('#fff', { map: tex, side: THREE.DoubleSide })); banner.position.set(0, 4.9, L.HF + 0.45); g.add(banner);
+    const gt = plaqueTex('文昌聖誕・考生祈福', { bg: '#c8241c', fg: '#f6dc94', w: 1024, h: 140, font: 92 });
+    // 山門兩面各一張，從廟裡、廟外看都是正的字
+    [[L.GZ + 0.25, 0], [L.GZ - 0.25, Math.PI]].forEach(([z, r]) => { const gb = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 0.7), basic('#fff', { map: gt })); gb.position.set(0, 5.95, z); gb.rotation.y = r; g.add(gb); });
+    const before = this.lanterns.length;
+    for (let x = -14; x <= 14; x += 2.8) { const l = this.addLantern(x, 5.0, L.HF + 1.2); l.scale.setScalar(0.7); this.scene.remove(l); g.add(l); }
+    this.lanterns.length = before;
+  }
+
   buildWall() {
     const S = this.scene, wood = lam('#6a3a22');
     const g = new THREE.Group(); g.position.set(18.4, 0, 8); g.rotation.y = -Math.PI / 2; S.add(g); this.wall = g;
@@ -553,8 +594,8 @@ export class Temple {
     const shared = list.slice(-this.slots.length);
     this.slots.forEach((sl, i) => {
       const c = shared[i];
-      if (c) sl.pivot = this.addCard(sl.x, sl.y, colors[c.c] || colors[0], this.smallCardTex(colors[c.c] || colors[0], label(c)));
-      else if (sl.deco) sl.pivot = this.addCard(sl.x, sl.y, colors[i % colors.length]);
+      if (c) { sl.pivot = this.addCard(sl.x, sl.y, colors[c.c] || colors[0], this.smallCardTex(colors[c.c] || colors[0], label(c), c.b)); sl.pivot.userData.card = c; }
+      else if (sl.deco) { sl.pivot = this.addCard(sl.x, sl.y, colors[i % colors.length]); sl.pivot.userData.card = { deco: true }; }
     });
     this.sharedCount = shared.length;
   }
@@ -563,16 +604,25 @@ export class Temple {
     const i = (this.sharedCount || 0) % this.slots.length, sl = this.slots[i];
     if (sl.pivot) { this.wall.remove(sl.pivot); this.cards.splice(this.cards.indexOf(sl.pivot), 1); }
     const col = this.cardColors[c.c] || this.cardColors[0];
-    sl.pivot = this.addCard(sl.x, sl.y, col, this.smallCardTex(col, this.cardLabel(c)));
+    sl.pivot = this.addCard(sl.x, sl.y, col, this.smallCardTex(col, this.cardLabel(c), c.b)); sl.pivot.userData.card = c;
     sl.pivot.scale.setScalar(0.01); this.tween(500, k => sl.pivot.scale.setScalar(0.01 + 0.99 * k), 0, t => 1 - Math.pow(1 - t, 3));
     this.sharedCount = (this.sharedCount || 0) + 1;
   }
-  smallCardTex(hex, text) {
+  // 有人加持：更新那張卡上的加持數，卡片輕輕跳一下
+  setCardBless(id, b) {
+    const sl = this.slots.find(s => s.pivot?.userData.card?.id === id); if (!sl) return null;
+    const c = sl.pivot.userData.card; c.b = b; const m = sl.pivot.children[0], col = this.cardColors[c.c] || this.cardColors[0];
+    m.material.map?.dispose(); m.material.map = this.smallCardTex(col, this.cardLabel(c), b); m.material.needsUpdate = true;
+    this.tween(500, k => sl.pivot.scale.setScalar(1 + Math.sin(k * Math.PI) * 0.35));
+    return sl.pivot;
+  }
+  smallCardTex(hex, text, bless = 0) {
     return canvasTex(96, 160, (g, W, H) => {
       g.fillStyle = hex; g.fillRect(0, 0, W, H);
       g.strokeStyle = 'rgba(255,240,200,.7)'; g.lineWidth = 3; g.strokeRect(6, 6, W - 12, H - 12);
       g.fillStyle = hex.toLowerCase() === '#e2b13c' ? '#3a2408' : '#fff4d6'; g.textAlign = 'center'; g.font = '900 22px "Noto Serif TC",serif';
-      [...(text || '祈福')].slice(0, 5).forEach((ch, i, a) => g.fillText(ch, W / 2, H / 2 + (i - (a.length - 1) / 2) * 25 + 8));
+      [...(text || '祈福')].slice(0, 5).forEach((ch, i, a) => g.fillText(ch, W / 2, H / 2 + (i - (a.length - 1) / 2) * 25 + 8 - (bless ? 10 : 0)));
+      if (bless) { g.font = '700 17px sans-serif'; g.fillText(`🙏${bless > 99 ? '99+' : bless}`, W / 2, H - 16); }
     });
   }
   addCard(x, y, color, tex) {
@@ -770,6 +820,9 @@ export class Temple {
       const hitA = ray.intersectObjects(avs, true)[0];
       if (hitA) { this.emit('tapAvatar', hitA.object.userData.avatar, e); return; }
       if (ray.intersectObject(this.lxScreen, false)[0]) { this.emit('tapLingxi'); return; }
+      if (ray.intersectObject(this.bangBoard, true)[0]) { this.emit('tapBang'); return; }
+      const hitK = ray.intersectObject(this.wall, true)[0];
+      if (hitK) { let o = hitK.object; while (o && !o.userData.card && o !== this.wall) o = o.parent; this.emit('tapWall', o?.userData.card || null); return; }
       const hitC = ray.intersectObjects(this.cushionMeshes, false)[0];
       if (hitC && hitC.instanceId != null) { this.emit('tapCushion', hitC.instanceId); return; }
       const hit = ray.intersectObjects(this.ground, false)[0];

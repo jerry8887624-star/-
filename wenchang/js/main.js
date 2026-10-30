@@ -1,7 +1,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS, TIANGONG_SEAT0, MAIN_CUSHIONS } from './scene.js';
-import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES } from './avatar.js';
-import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI } from './data.js';
+import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES, ACCS } from './avatar.js';
+import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI, DAILY, ACC_UNLOCK, FEAST_DATES, FEAST_DAYS_BEFORE } from './data.js';
 import { Net } from './net.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
@@ -125,8 +125,8 @@ function renderPicker() {
     `<div class="crow" data-part="${k}"><span>${name}</span><button type="button" data-d="-1" aria-label="上一個${name}">◀</button><b>${fmt(look[k] % n)}</b><button type="button" data-d="1" aria-label="下一個${name}">▶</button></div>`).join('');
 }
 function setLook(l) { look = l; store.set('look', l); me.setLook(l); me.hold(state.carry.incense); net.setLook(l); renderPicker(); }
-document.querySelectorAll('[data-gender]').forEach(b => b.onclick = () => setLook(randomLook(b.dataset.gender)));
-$('#pick-shuffle').onclick = () => setLook(randomLook(look.gender));
+document.querySelectorAll('[data-gender]').forEach(b => b.onclick = () => setLook({ ...randomLook(b.dataset.gender), acc: look.acc | 0 }));
+$('#pick-shuffle').onclick = () => setLook({ ...randomLook(look.gender), acc: look.acc | 0 });
 $('#pick-custom').onclick = e => { const open = $('#customize').hidden; $('#customize').hidden = !open; e.currentTarget.setAttribute('aria-expanded', open); };
 $('#customize').onclick = e => {
   const b = e.target.closest('button'); if (!b) return; const row = b.closest('.crow'), k = row.dataset.part, n = parts.find(p => p[0] === k)[2];
@@ -154,7 +154,7 @@ $('#enter-btn').onclick = async () => {
   net.connect(look, nick);
   if (!wsUrl) startNpcs();
   else setTimeout(() => { if (!net.alive) startNpcs(); }, 5000); // 連不上伺服器就先放示意香客
-  refresh();
+  refresh(); startToday();
   setTimeout(showNewsOnce, 900);
   setTimeout(() => toast(innerWidth < 720 ? '點地板走動、拖曳轉動視角。下方按鈕會帶你一步步參拜。' : '點地板或用 WASD／方向鍵走動，拖曳轉動視角。下方按鈕會帶你一步步參拜。', 4200), 700);
 };
@@ -239,6 +239,7 @@ const markEls = MARKS.map(m => {
     if (cur && ids.includes(cur.id)) act(cur.id);
     else if (m.id === 'qianTube') act('qian');
     else if (m.id === 'lingxi') act('lingxi');
+    else if (m.id === 'bang') { if (!state.busy) { state.busy = true; arrive('bang').then(ok => { if (ok) openToday('bang'); }).finally(() => { state.busy = false; }); } }
     else if (!state.busy) { const sp = m.id === 'censer' ? 'censerOut' : m.id; state.busy = true; arrive(sp).finally(() => { state.busy = false; }); }
   };
   return { m, el, v: new THREE.Vector3(...m.pos) };
@@ -311,7 +312,7 @@ function kneelIfOnCushion(tapped) {
 })();
 $('#kneel-bow').onclick = async () => { if (me.bowT >= 0) return; sound.bell(0.1); await me.bow(3); };
 // 叩拜時配木魚聲（每拜一下敲一聲）
-const _bow = me.bow.bind(me); me.bow = n => { for (let k = 0; k < (n || 3); k++) sound.sample('moku', 0.5, 0.45 + k * 1.1); return _bow(n); };
+const _bow = me.bow.bind(me); me.bow = n => { for (let k = 0; k < (n || 3); k++) sound.sample('moku', 0.5, 0.45 + k * 1.1); if (me.kneeling) setTimeout(() => task('bow'), 1500); return _bow(n); };
 $('#kneel-up').onclick = () => { me.kneel(false); };
 temple.on('tapAvatar', av => openCheer(av));
 async function walkTo(spot) { me.faceTo = null; const ok = await temple.goSpot(me, spot); return ok; }
@@ -445,6 +446,7 @@ async function wenchang() {
   if (r.exam) bubble(me, `保佑${r.exam}順利`, 'bubble', 2400);
   sound.bell(); await me.bow(3); clearForm();
   complete('wenchang');
+  if (!exam) setTimeout(() => feed('⏳ 可以在左上「📅 今日」設定考試倒數'), 2500);
 }
 async function plant() {
   if (!need(state.carry.incense, '手上沒有香。請先到<b>辦事處</b>領香。')) return;
@@ -622,10 +624,10 @@ function shakeTube() {
 const NUM = n => { const d = '〇一二三四五六七八九'; if (n <= 10) return n === 10 ? '十' : d[n]; if (n < 20) return '十' + d[n - 10]; return d[Math.floor(n / 10)] + '十' + (n % 10 ? d[n % 10] : ''); };
 function rankKey(r) { return r.startsWith('上上') ? '上上' : r.startsWith('上') ? '上' : r.startsWith('下') ? '下' : '中'; }
 let shownLot = 0;
-function showLot(n) {
+function showLot(n, isDaily) {
   const q = window.QIAN_DATA[n - 1], lines = (window.QIAN_LINES || [])[n - 1] || [], story = (window.QIAN_STORY || {})[n];
   shownLot = n; store.set('lastLot', n);
-  $('#lot-number').textContent = `第${NUM(n)}籤・${q[0]}`;
+  $('#lot-number').textContent = `${isDaily ? '今日一籤・' : ''}第${NUM(n)}籤・${q[0]}`;
   $('#lot-rank').textContent = q[1];
   $('#lot-poem').innerHTML = q[2].split(/[，。]/).filter(Boolean).map((l, i) => `<span style="animation-delay:${i * 180}ms">${esc(l)}</span>`).join('');
   $('#lot-plain').textContent = q[3];
@@ -717,9 +719,30 @@ const net = new Net(wsUrl, {
     renderPeople();
   },
   message(m) {
-    if (m.t === 'welcome') { myId = m.you; temple.setSharedCards(m.cards || [], CARD_COLORS.map(c => c.hex), cardLabel); if (m.cards?.length) feed(`祈福牆上已經有 ${m.cards.length} 張大家的卡`); }
+    if (m.t === 'welcome') {
+      myId = m.you; temple.setSharedCards(m.cards || [], CARD_COLORS.map(c => c.hex), cardLabel); if (m.cards?.length) feed(`祈福牆上已經有 ${m.cards.length} 張大家的卡`);
+      blessing.clear(); blessOk.clear(); if (m.bang) setBang(m.bang);
+      if (typeof m.myBless === 'number' && m.myBless > myBless) { myBless = m.myBless; store.set('myBless', myBless); }
+      renderToday();
+    }
+    else if (m.t === 'bless') {
+      const pv = temple.setCardBless(m.id, m.b);
+      // 自己剛送出的加持：伺服器確認後才算數
+      if (blessing.has(m.id) && !blessOk.has(m.id)) { blessOk.add(m.id); const c = pv?.userData.card; blessFx(c ? cardLabel(c) : ''); task('bless'); }
+    }
+    else if (m.t === 'bless-no') toast('這張卡不能加持（可能是你自己的，或已經加持過了）。');
+    else if (m.t === 'blessed') {
+      myBless++; store.set('myBless', myBless); renderToday(); sound.chime(); buzz(15);
+      toast(`🙏 ${m.from ? esc(m.from) : '有人'}幫你的祈福卡加持了！（這張共 ${m.b} 次）`, 4200);
+    }
+    else if (m.t === 'bang') {
+      setBang([...bang, m.e].slice(-60));
+      if (m.from === myId) bangDone(m.e);
+      else { feed(`🎉 ${bangLabel(m.e)}，回來還願了！`); const av = remotes.get(m.from); if (av) { av.emote('jump'); bubble(av, '🎉 金榜題名', 'bubble', 2600); } }
+    }
+    else if (m.t === 'bang-dup') toast('這項考試你已經還願過了，紅榜上有你的名字。');
     else if (m.t === 'state') {
-      $('#presence .online').textContent = `${m.online} 人在廟裡`;
+      $('#presence .online').textContent = `${m.online} 人`; $('#presence').setAttribute('aria-label', `${m.online} 人在廟裡，點開互動`);
       const seen = new Set();
       for (const p of m.players) {
         if (p.id === myId) continue; seen.add(p.id);
@@ -770,7 +793,7 @@ const net = new Net(wsUrl, {
     else if (m.t === 'dm-reject') dmLine(m.to, 'sys', CHAT_WHY[m.why] || '這則密語沒有送出。');
     else if (m.t === 'dm-fail') dmLine(m.to, 'sys', m.why === 'gone' ? '對方已經離開廟裡了。' : '對方目前不接收密語。');
     else if (m.t === 'slow' && m.kind === 'msg') { if (dm.cur) dmLine(dm.cur, 'sys', '說慢一點喔。'); }
-    else if (m.t === 'slow') toast(m.kind === 'card' ? '祈福卡剛掛過，等一下再換。' : '慢一點喔，稍等一下再送。');
+    else if (m.t === 'slow') { if (m.kind === 'bless') { blessing.clear(); } toast(m.kind === 'card' ? '祈福卡剛掛過，等一下再換。' : m.kind === 'bang' ? '剛剛才還願過，等一分鐘再試。' : m.kind === 'bless' ? '加持慢一點，一張一張來。' : '慢一點喔，稍等一下再送。'); }
   },
 });
 function openCheer(av) {
@@ -792,7 +815,7 @@ function openCheerFor(id, av = remotes.get(id)) {
   menu.style.left = Math.max(12, Math.min(innerWidth - w - 12, p.x - w / 2)) + 'px'; menu.style.top = Math.max(70, Math.min(innerHeight - 320, p.y - 230)) + 'px';
 }
 function hideCheer() { $('#cheer-menu').hidden = true; }
-$('#cheer-list').onclick = e => { const b = e.target.closest('button'); if (!b) return; net.cheer(+$('#cheer-menu').dataset.id, +b.dataset.i); hideCheer(); buzz(10); };
+$('#cheer-list').onclick = e => { const b = e.target.closest('button'); if (!b) return; net.cheer(+$('#cheer-menu').dataset.id, +b.dataset.i); hideCheer(); buzz(10); task('cheer'); };
 function blockUser(id) { blockedNames[id] = who(id); sess.set('blockedNames', blockedNames); blocked.add(id); sess.set('blocked', [...blocked]); net.block(id); renderPeople(); }
 function unblockUser(id) {
   blocked.delete(id); delete blockedNames[id]; sess.set('blocked', [...blocked]); sess.set('blockedNames', blockedNames); net.unblock(id); renderPeople();
@@ -868,7 +891,7 @@ $('#emote-list').innerHTML = EMOTES.map((e, i) => `<button type="button" data-e=
 let lastEmote = 0;
 $('#emote-list').onclick = e => {
   const b = e.target.closest('button'); if (!b) return; const now = performance.now(); if (now - lastEmote < 1000) return; lastEmote = now;
-  const em = EMOTES[+b.dataset.e]; me.emote(em.id); bubble(me, em.icon, 'bubble', 1800); net.emote(+b.dataset.e); buzz(10); hideSocial();
+  const em = EMOTES[+b.dataset.e]; me.emote(em.id); bubble(me, em.icon, 'bubble', 1800); net.emote(+b.dataset.e); buzz(10); hideSocial(); task('cheer');
 };
 function openSocial() { hideCheer(); renderPeople(); $('#social').hidden = false; $('#social-btn').setAttribute('aria-expanded', 'true'); }
 function hideSocial() { $('#social').hidden = true; $('#social-btn').setAttribute('aria-expanded', 'false'); }
@@ -908,6 +931,179 @@ function feed(text) {
   while (ol.children.length > 3) ol.lastChild.remove(); // 最新的在最下面
   setTimeout(() => li.classList.add('out'), 5500); setTimeout(() => li.remove(), 6100);
 }
+
+// ---------- 今日：考試倒數、每日一籤、每日小任務、祈福牆加持、還願紅榜、文昌帝君聖誕 ----------
+// 匿名代碼：隨機產生、只存在這支手機，用來認出「哪張祈福卡是你掛的」；不含任何個資
+const uid = store.get('uid', '') || (() => { const v = [...crypto.getRandomValues(new Uint8Array(12))].map(b => (b % 36).toString(36)).join(''); store.set('uid', v); return v; })();
+net.uid = uid;
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayNum = s => { const [y, m, d] = s.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 864e5); };
+const today = () => ymd(new Date());
+const daysTo = s => dayNum(s) - dayNum(today());
+// 聖誕：農曆二月初三前兩天到當天是活動期間；本機測試可加 ?fest=1
+function feast() {
+  const t = dayNum(today()), force = location.hostname === 'localhost' && new URLSearchParams(location.search).get('fest');
+  for (const d of FEAST_DATES) { const n = dayNum(d) - t; if (n >= 0) return { date: d, n, on: !!force || n <= FEAST_DAYS_BEFORE }; }
+  return { date: '', n: -1, on: !!force };
+}
+let daily = store.get('daily', null);
+const freshDaily = () => { if (!daily || daily.d !== today()) daily = { d: today(), t: {}, bless: 0 }; return daily; };
+freshDaily();
+const saveDaily = () => store.set('daily', daily);
+function task(id, n = 1) {
+  freshDaily(); if (daily.t[id]) return;
+  const def = DAILY.find(x => x.id === id);
+  if (def.need) { daily.bless = (daily.bless || 0) + n; if (daily.bless < def.need) { saveDaily(); renderToday(); return; } }
+  daily.t[id] = 1; saveDaily();
+  const left = DAILY.filter(x => !daily.t[x.id]).length;
+  toast(left ? `✅ 每日任務：${def.name}（還有 ${left} 項）` : '🎉 今天的每日任務全部完成！', 3000); sound.chime();
+  if (!left) dayDone();
+  renderToday();
+}
+function dayDone() {
+  const prev = store.get('lastDay', ''), days = store.get('days', 0) + 1;
+  const streak = prev && dayNum(today()) - dayNum(prev) === 1 ? store.get('streak', 0) + 1 : 1;
+  store.set('days', days); store.set('lastDay', today()); store.set('streak', streak);
+  const got = ACC_UNLOCK.filter(u => u.days === days).map(u => u.acc);
+  if (feast().on && !store.get('accFest', false)) { store.set('accFest', true); got.push(3); }
+  if (got.length) setTimeout(() => toast(`解鎖新配件：<b>${got.map(a => ACCS[a]).join('、')}</b>！到「📅 今日」戴上它。`, 5000), 3200);
+}
+const accOpen = a => a === 0 || (a === 3 ? store.get('accFest', false) : store.get('days', 0) >= ACC_UNLOCK.find(u => u.acc === a).days);
+
+// 考試倒數
+let exam = store.get('exam', null); // { x: 考試名稱, d: 'YYYY-MM-DD' }
+$('#exam-name').innerHTML = EXAMS.map(x => `<option>${x}</option>`).join('');
+$('#bang-exam').innerHTML = EXAMS.map((x, i) => `<option value="${i}">${x}</option>`).join('');
+$('#exam-save').onclick = () => {
+  const d = $('#exam-date').value; if (!d) { toast('先選考試日期。'); return; }
+  exam = { x: $('#exam-name').value, d }; store.set('exam', exam); renderToday();
+  const n = daysTo(d); toast(n > 0 ? `記住了：距離${exam.x}還有 ${n} 天，加油！` : n === 0 ? '就是今天！深呼吸，你可以的。' : '這個日期已經過了，考完了嗎？可以回來還願喔。');
+};
+$('#exam-clear').onclick = () => { exam = null; store.set('exam', null); $('#exam-date').value = ''; renderToday(); };
+// 加到手機行事曆：下載 .ics，考前一天提醒
+$('#exam-ics').onclick = () => {
+  if (!exam) return; const d = exam.d.replace(/-/g, ''), [y, m, dd] = exam.d.split('-').map(Number), next = ymd(new Date(y, m - 1, dd + 1)).replace(/-/g, '');
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//wenchang//exam//ZH', 'BEGIN:VEVENT', `UID:${uid}-${d}@wenchang`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
+    `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${next}`, `SUMMARY:${exam.x}（金榜題名！）`, 'DESCRIPTION:記得帶准考證、文具。考完回線上文昌祠還願。',
+    'BEGIN:VALARM', 'TRIGGER:-PT15H', 'ACTION:DISPLAY', `DESCRIPTION:明天就是${exam.x}，早點睡！`, 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' })); a.download = `${exam.x}.ics`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+
+// 每日一籤：每天每支手機固定一支（用日期＋匿名代碼算出來），明天換新的
+function dailyLotNo() { let h = 2166136261; for (const ch of uid + today()) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return 1 + ((h >>> 0) % 60); }
+$('#daily-lot-btn').onclick = () => { $('#today-dlg').close(); showLot(dailyLotNo(), true); task('lot'); };
+
+// 祈福牆加持：點別人掛的卡
+let myBless = store.get('myBless', 0);
+const blessing = new Set(), blessOk = new Set(), blessedLocal = new Set();
+temple.on('tapWall', c => {
+  if (state.busy) return;
+  if (!c) { toast('點牆上別人掛的小卡，就能幫他加持 🙏'); return; }
+  if (c.mine) { toast(`這是你掛的卡，目前收到 <b>${c.b || 0}</b> 次加持。`); return; }
+  if (c.deco || !net.alive) { // 裝飾卡（或沒連線時）只在自己畫面上加持
+    if (blessedLocal.has(c)) { toast('這張已經加持過了，換一張吧。'); return; }
+    blessedLocal.add(c); blessFx(); task('bless'); return;
+  }
+  if (blessing.has(c.id)) { toast('這張已經加持過了，換一張吧。'); return; }
+  blessing.add(c.id); net.bless(c.id);
+});
+function blessFx(label) { me.emote('bow'); bubble(me, '🙏', 'bubble', 1500); sound.sample('ting', 0.5); buzz(10); toast(label ? `幫這張「${esc(label)}」祈福卡加持了 🙏` : '加持了 🙏 願他金榜題名'); }
+
+// 還願紅榜
+let bang = [];
+const bangLabel = e => `${e.n || '一位考生'}・${(EXAMS[e.x] || '考試').replace('期中期末考', '期中期末')}`;
+function setBang(list) { bang = list; temple.drawBang(bang, bangLabel); renderToday(); }
+setBang(store.get('bangLocal', []));
+$('#bang-btn').onclick = async () => {
+  const x = +$('#bang-exam').value;
+  if (!confirm(`確定考上「${EXAMS[x]}」了嗎？\n名字會掛上還願紅榜，廟裡的人都看得到（只顯示${nick ? `暱稱「${nick}」` : '「一位考生」'}和考試）。`)) return;
+  if (!net.alive) { const e = { x, n: nick, d: Date.now() }; const l = store.get('bangLocal', []); l.push(e); store.set('bangLocal', l); setBang(l); bangDone(e); return; }
+  net.bang(x);
+};
+function bangDone(e) {
+  $('#today-dlg').close(); sound.bell(); sound.chime(); me.emote('jump'); bubble(me, '🎉 金榜題名', 'result-chip', 3000);
+  toast(`恭喜考上<b>${esc(EXAMS[e.x])}</b>！名字掛上紅榜了。<button type="button" class="reply" data-share="bang:${e.x}">分享圖卡</button>`, 7000);
+  temple.focus = new THREE.Vector3(18.6, 2, 1.8); setTimeout(() => { temple.focus = null; }, 2200);
+}
+temple.on('tapBang', () => openToday('bang'));
+
+// 今日面板
+function openToday(part) {
+  renderToday(); const d = $('#today-dlg'); d.showModal();
+  if (part === 'bang') setTimeout(() => $('#bang-box').scrollIntoView({ block: 'start' }), 60); else d.scrollTop = 0;
+}
+$('#today-btn').onclick = () => openToday();
+$('#task-list').onclick = e => {
+  const b = e.target.closest('[data-go]'); if (!b) return; const go = b.dataset.go; $('#today-dlg').close();
+  if (go === 'lot') { showLot(dailyLotNo(), true); task('lot'); }
+  else if (go === 'social') openSocial();
+  else if (go === 'cushion') { if (!state.busy) { state.busy = true; arrive('cushion').then(ok => { if (ok) toast('按「叩拜」拜三拜。'); }).finally(() => { state.busy = false; refresh(); }); } }
+  else if (go === 'wall') { if (!state.busy) { state.busy = true; arrive('wall').then(ok => { if (ok) toast('點牆上別人掛的小卡幫他加持 🙏'); }).finally(() => { state.busy = false; refresh(); }); } }
+};
+$('#acc-list').onclick = e => { const b = e.target.closest('[data-acc]'); if (!b || b.disabled) return; setLook({ ...look, acc: +b.dataset.acc }); renderToday(); };
+function renderToday() {
+  freshDaily(); const f = feast();
+  $('#today-date').textContent = today().replace(/-/g, '/');
+  // 頂端按鈕：有設定考試就顯示倒數
+  const n = exam ? daysTo(exam.d) : null;
+  $('#today-label').textContent = exam ? (n > 0 ? `${exam.x} ${n} 天` : n === 0 ? `今天${exam.x}！` : '考完了？來還願') : f.on ? '文昌聖誕' : '今日';
+  $('#today-btn').classList.toggle('fest', f.on);
+  const left = DAILY.filter(x => !daily.t[x.id]).length; $('#today-dot').hidden = !left;
+  $('#exam-count').innerHTML = exam ? (n > 0 ? `距離 ${esc(exam.x)} 還有<b>${n}</b>天` : n === 0 ? `<b>今天</b>就是 ${esc(exam.x)}，加油！` : `${esc(exam.x)}已經考完了，辛苦了！`) : '還沒設定考試日期。';
+  if (exam) { $('#exam-name').value = exam.x; $('#exam-date').value = exam.d; }
+  $('#exam-clear').hidden = $('#exam-ics').hidden = !exam;
+  const done = !!daily.t.lot; $('#daily-lot-btn').textContent = done ? '再看一次今日一籤' : '抽今日一籤';
+  $('#daily-lot-text').textContent = done ? `今天抽到第 ${dailyLotNo()} 籤，明天再來換新的。` : '每天可以抽一支屬於你的籤，明天再來換新的。';
+  $('#task-count').textContent = `${DAILY.length - left} / ${DAILY.length}`;
+  $('#task-list').innerHTML = DAILY.map(t => { const ok = !!daily.t[t.id]; const p = t.need && !ok ? `（${daily.bless || 0}/${t.need}）` : '';
+    return `<li class="${ok ? 'ok' : ''}"><i>${ok ? '✓' : ''}</i><span>${t.name}${p}</span>${ok ? '' : `<button type="button" data-go="${t.go}">前往</button>`}</li>`; }).join('');
+  const days = store.get('days', 0), streak = store.get('streak', 0), last = store.get('lastDay', '');
+  const alive = last && dayNum(today()) - dayNum(last) <= 1;
+  $('#task-days').textContent = days ? `已累積完成 ${days} 天${alive && streak > 1 ? `，連續 ${streak} 天` : ''}。` : '四項都完成算一天，累積天數可以解鎖配件。';
+  $('#acc-list').innerHTML = ACCS.map((name, a) => { const open = accOpen(a), how = ACC_UNLOCK.find(u => u.acc === a)?.how;
+    if (a === 3 && !open && !f.on) return '';
+    return `<button type="button" data-acc="${a}" aria-pressed="${(look.acc | 0) === a}" ${open ? '' : 'disabled'}>${open ? '' : '🔒 '}${name}${open ? '' : `<small>${how}</small>`}</button>`; }).join('');
+  $('#bless-mine').textContent = store.get('card', null) || myBless ? `你掛的祈福卡共收到 ${myBless} 次加持。` : '還沒掛祈福卡。完成參拜第七步就能掛上去。';
+  $('#bang-list').innerHTML = bang.length ? bang.slice(-30).reverse().map(e => `<li>${esc(bangLabel(e))}<small>${new Date(e.d).toLocaleDateString('zh-TW')}</small></li>`).join('') : '<li>還沒有人還願，等你來當第一個！</li>';
+  const fb = $('#fest-box'); fb.hidden = !f.date && !f.on;
+  if (f.on) fb.innerHTML = `<h3>🎊 文昌帝君聖誕活動中</h3><p class="say">農曆二月初三是文昌帝君聖誕${f.n > 0 && f.n <= FEAST_DAYS_BEFORE ? `（還有 ${f.n} 天）` : f.n === 0 ? '，就是今天' : ''}。殿前掛起紅布條和燈籠，活動期間完成每日任務，可以拿到限定配件「魁星金冠」！</p>`;
+  else if (f.date) fb.innerHTML = `<h3>🏮 文昌帝君聖誕倒數</h3><p class="say">農曆二月初三（國曆 ${f.date.replace(/-/g, '/')}）還有 <b>${f.n}</b> 天。聖誕前後會有限定活動與配件。</p>`;
+}
+
+// 分享圖卡：圖片上不放網址，分享的文字才附上連結
+async function shareImage(kind, x) {
+  const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, 1350); bg.addColorStop(0, '#7a1a12'); bg.addColorStop(1, '#2a0c08'); g.fillStyle = bg; g.fillRect(0, 0, 1080, 1350);
+  g.strokeStyle = '#e8c15a'; g.lineWidth = 12; g.strokeRect(46, 46, 988, 1258); g.lineWidth = 3; g.strokeRect(72, 72, 936, 1206);
+  g.textAlign = 'center'; g.fillStyle = '#f6dc94'; g.font = '700 40px "Noto Serif TC",serif'; g.fillText('線 上 文 昌 祠', 540, 170);
+  const title = kind === 'bang' ? '金榜題名' : '參拜完成', sub = kind === 'bang' ? `考上 ${EXAMS[x] || ''}，回來還願` : `第 ${store.get('rounds', 1)} 次完整參拜文昌帝君`;
+  g.fillStyle = '#fff4d6'; g.font = '900 150px "Noto Serif TC",serif'; g.fillText(title, 540, 470);
+  g.fillStyle = '#f6dc94'; g.font = '700 50px "Noto Serif TC",serif'; g.fillText(sub, 540, 580);
+  if (nick) { g.fillStyle = '#fff4d6'; g.font = '700 46px "Noto Serif TC",serif'; g.fillText(nick, 540, 680); }
+  const ex = exam && daysTo(exam.d) > 0 && kind !== 'bang' ? `距離${exam.x}還有 ${daysTo(exam.d)} 天` : '';
+  g.font = '500 40px "Noto Serif TC",serif'; g.fillStyle = '#ffe9b0';
+  [ex, kind === 'bang' ? '感謝文昌帝君保佑' : '祝考試頭腦清楚、下筆順利'].filter(Boolean).forEach((t, i) => g.fillText(t, 540, 830 + i * 70));
+  g.fillStyle = '#e8c15a'; g.beginPath(); g.arc(540, 1080, 70, 0, 7); g.fill(); g.fillStyle = '#7a1a12'; g.font = '900 80px "Noto Serif TC",serif'; g.fillText(kind === 'bang' ? '榜' : '文', 540, 1108);
+  g.font = '500 26px sans-serif'; g.fillStyle = '#c9a874'; g.fillText('非官方教育作品', 540, 1250);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  const file = new File([blob], `文昌祠-${title}.png`, { type: 'image/png' });
+  const link = location.origin + location.pathname, text = `${title}！一起來線上文昌祠拜拜：${link}`;
+  try { if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast('圖卡已存到手機。');
+}
+$('#done-share').onclick = () => shareImage('done');
+$('#toast').addEventListener('click', e => { const b = e.target.closest('[data-share]'); if (b) { const [k, x] = b.dataset.share.split(':'); shareImage(k, +x); } });
+
+// 進廟時：聖誕活動、提醒今天還有每日任務
+function startToday() {
+  const f = feast(); temple.setFestival(f.on);
+  renderToday();
+  if (f.on) setTimeout(() => { feed('🎊 文昌帝君聖誕活動中！完成每日任務可得限定配件'); }, 2500);
+  else if (exam && daysTo(exam.d) >= 0 && daysTo(exam.d) <= 7) setTimeout(() => feed(`⏳ 距離${exam.x}只剩 ${daysTo(exam.d)} 天，加油！`), 2500);
+}
+// 跨過午夜也會換新的每日任務
+setInterval(() => { if (daily.d !== today()) { freshDaily(); startToday(); } }, 60000);
 
 // 沒有連線時：幾位示意香客在廟裡走動、拜拜
 const npcs = [];

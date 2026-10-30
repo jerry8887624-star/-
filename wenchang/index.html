@@ -51,6 +51,7 @@
     <button type="button" id="info-btn" class="icon" aria-label="說明">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.5" /></svg>
     </button>
+    <button type="button" id="today-btn" aria-label="今日：考試倒數、每日一籤、每日任務"><span aria-hidden="true">📅</span><span id="today-label">今日</span><b class="dot" id="today-dot" hidden></b></button>
     <button type="button" id="update-chip" hidden>有新版本</button>
     <div class="tools">
       <button type="button" id="presence" hidden aria-label="在廟裡的香客"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><circle cx="17" cy="9" r="2.4" /><path d="M16 13.6c2.9.1 5 2 5 4.9" /></svg><b class="online"></b></button>
@@ -292,7 +293,49 @@
     <li>考上了，記得回來還願（帶供品答謝，或捐些文具給需要的人）。</li>
     <li>還想問問題？可以「擲筊」請示，或「求籤」抽一支籤。</li>
   </ul>
-  <div class="row"><button type="button" class="ghost" id="again-btn">再參拜一次（從頭開始）</button><button type="button" data-close>好</button></div>
+  <div class="row"><button type="button" class="ghost" id="done-share">分享圖卡</button><button type="button" class="ghost" id="again-btn">再參拜一次（從頭開始）</button><button type="button" data-close>好</button></div>
+</dialog>
+
+<!-- 今日：考試倒數、每日一籤、每日任務、加持、還願紅榜、聖誕 -->
+<dialog id="today-dlg" class="today">
+  <h2>今日 <small id="today-date"></small></h2>
+  <section id="fest-box" class="tbox fest" hidden></section>
+  <section class="tbox">
+    <h3>⏳ 考試倒數</h3>
+    <p id="exam-count" class="big-count"></p>
+    <div id="exam-edit">
+      <div class="exam-row">
+        <select id="exam-name" aria-label="考試"></select>
+        <input id="exam-date" type="date" aria-label="考試日期">
+      </div>
+      <div class="row tight"><button type="button" class="ghost small" id="exam-clear" hidden>清除</button><button type="button" class="ghost small" id="exam-ics" hidden>加到手機行事曆</button><button type="button" id="exam-save">儲存</button></div>
+    </div>
+    <p class="pending">只存在這支手機。加到行事曆會在考前一天提醒你。</p>
+  </section>
+  <section class="tbox">
+    <h3>🎋 每日一籤</h3>
+    <p class="say" id="daily-lot-text">每天可以抽一支屬於你的籤，明天再來換新的。</p>
+    <div class="row tight"><button type="button" id="daily-lot-btn">抽今日一籤</button></div>
+  </section>
+  <section class="tbox">
+    <h3>✅ 每日小任務 <small id="task-count"></small></h3>
+    <ul id="task-list" class="task-list"></ul>
+    <p class="say" id="task-days"></p>
+    <p class="lbl">配件（完成每日任務解鎖，大家都看得到）</p>
+    <div id="acc-list" class="chips"></div>
+  </section>
+  <section class="tbox">
+    <h3>🙏 祈福牆加持</h3>
+    <p class="say" id="bless-mine"></p>
+    <p class="pending">到祈福牆點別人掛的小卡，就能幫他加持；你的卡被加持時會通知你。</p>
+  </section>
+  <section class="tbox" id="bang-box">
+    <h3>🏮 還願紅榜</h3>
+    <ol id="bang-list" class="bang-list"></ol>
+    <p class="say">考上了嗎？回來向文昌帝君答謝，名字會掛上紅榜（只顯示暱稱與考試）。</p>
+    <div class="exam-row"><select id="bang-exam" aria-label="考上的考試"></select><button type="button" id="bang-btn">我考上了，回來還願</button></div>
+  </section>
+  <div class="row"><button type="button" data-close>關閉</button></div>
 </dialog>
 
 <!-- 版本更新 -->
