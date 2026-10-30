@@ -121,13 +121,14 @@ function finish(full){const s=sess.get();if(!s||s.mode==='done')return;clearInte
   if(s.mode==='flow')sec=s.left!=null?s.left:(now-s.segStart)/1e3;
   else{const left=s.left!=null?s.left:(s.endAt-now)/1e3;sec=s.min*60-Math.max(0,left)}
   addSec(s.recId,sec);if(full&&s.mode==='run'){const r=recs(),x=r.find(x=>x.id===s.recId);if(x){x.done=true;saveRecs(r)}}
-  s.mode='done';s.last=Math.round(sec);s.full=!!full;s.acc=(s.acc||0)+Math.round(sec);sess.set(s);keepAwake(false);
+  if(!full&&!s.rounds&&s.mode==='run'&&sec<10){const r=recs().filter(x=>x.id!==s.recId);saveRecs(r);sess.clear();closeFocus();go('home');toast('還沒真的開始，不算數。準備好再按一次就好');return}
+  s.prev=s.mode;s.rounds=(s.rounds||0)+1;s.mode='done';s.last=Math.round(sec);s.full=!!full;s.acc=(s.acc||0)+Math.round(sec);sess.set(s);keepAwake(false);
   buzz(full?[20,60,20]:12);if(full)chime();openFocus()}
 function drawDone(L,s){const n=recs().length,acc=s.acc||0;const t=acc>=60?`${Math.floor(acc/60)} 分 ${acc%60} 秒`:`${acc} 秒`;
   L.classList.remove('paused');L.classList.add('isdone');
   L.innerHTML=`<div class="f-mid done"><div class="burst" aria-hidden="true">${Array.from({length:14},(_,i)=>`<i style="--a:${i*360/14}deg;--d:${60+(i%3)*22}px"></i>`).join('')}</div>${ember('d')}
-    <h2 class="d-title">${s.full?'你開始了！':'這也算開始！'}</h2>
-    <p class="d-sub">「${esc(s.task)}」做了 ${t}<br>這是你的第 ${n} 次開始，火苗罐又多一顆。</p></div>
+    <h2 class="d-title">${s.prev==='flow'?'做得好！':s.full?(s.rounds>1?'又完成一輪！':'你開始了！'):'這也算開始！'}</h2>
+    <p class="d-sub">「${esc(s.task)}」${s.rounds>1?'這次一共':''}做了 ${t}<br>${s.rounds>1?'火苗燒得更旺了。想停隨時都可以。':`這是你的第 ${n} 次開始，火苗罐又多一顆。`}</p></div>
     <div class="f-btns col"><button class="btn primary block big" data-a="more">再 ${s.min} 分鐘</button><button class="btn block" data-a="flow">不計時，順著做下去</button><button class="btn block" data-a="end">今天先到這裡</button></div>`;
   if(!reduceMotion()){L.querySelector('.done').classList.add('go')}}
 function closeFocus(){clearInterval(tick);keepAwake(false);$('.focus')?.remove();document.body.classList.remove('modal-open','focusing')}

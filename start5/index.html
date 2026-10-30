@@ -211,7 +211,13 @@ label.h3{display:block}
 body.focusing .tabbar{transform:translateY(calc(100% + 2px))}
 .focus.isdone{justify-content:center;gap:40px}
 .hero-h{display:flex;align-items:center;justify-content:space-between;gap:10px}.hero-h .h3{margin:0;font-size:21px}
-.hero-ember{float:none;flex:none;width:52px;margin:-10px 0 -4px}</style>
+.hero-ember{float:none;flex:none;width:52px;margin:-10px 0 -4px}
+/* 小螢幕／大字級：火苗圈依螢幕高度縮小，確保按鈕一定看得到 */
+.ringwrap{width:min(64vw,250px,30vh)}
+.f-time{font-size:clamp(36px,7vh,52px)}
+.f-line{min-height:0;font-size:16px}
+@media (max-height:700px){.focus{gap:8px;padding-top:calc(14px + env(safe-area-inset-top))}.f-step{padding:10px 14px}.f-step p{font-size:16.5px}.f-line{margin-top:6px}}
+body.focusing{overflow:hidden}</style>
 </head>
 <body>
 
@@ -364,13 +370,14 @@ function finish(full){const s=sess.get();if(!s||s.mode==='done')return;clearInte
   if(s.mode==='flow')sec=s.left!=null?s.left:(now-s.segStart)/1e3;
   else{const left=s.left!=null?s.left:(s.endAt-now)/1e3;sec=s.min*60-Math.max(0,left)}
   addSec(s.recId,sec);if(full&&s.mode==='run'){const r=recs(),x=r.find(x=>x.id===s.recId);if(x){x.done=true;saveRecs(r)}}
-  s.mode='done';s.last=Math.round(sec);s.full=!!full;s.acc=(s.acc||0)+Math.round(sec);sess.set(s);keepAwake(false);
+  if(!full&&!s.rounds&&s.mode==='run'&&sec<10){const r=recs().filter(x=>x.id!==s.recId);saveRecs(r);sess.clear();closeFocus();go('home');toast('還沒真的開始，不算數。準備好再按一次就好');return}
+  s.prev=s.mode;s.rounds=(s.rounds||0)+1;s.mode='done';s.last=Math.round(sec);s.full=!!full;s.acc=(s.acc||0)+Math.round(sec);sess.set(s);keepAwake(false);
   buzz(full?[20,60,20]:12);if(full)chime();openFocus()}
 function drawDone(L,s){const n=recs().length,acc=s.acc||0;const t=acc>=60?`${Math.floor(acc/60)} 分 ${acc%60} 秒`:`${acc} 秒`;
   L.classList.remove('paused');L.classList.add('isdone');
   L.innerHTML=`<div class="f-mid done"><div class="burst" aria-hidden="true">${Array.from({length:14},(_,i)=>`<i style="--a:${i*360/14}deg;--d:${60+(i%3)*22}px"></i>`).join('')}</div>${ember('d')}
-    <h2 class="d-title">${s.full?'你開始了！':'這也算開始！'}</h2>
-    <p class="d-sub">「${esc(s.task)}」做了 ${t}<br>這是你的第 ${n} 次開始，火苗罐又多一顆。</p></div>
+    <h2 class="d-title">${s.prev==='flow'?'做得好！':s.full?(s.rounds>1?'又完成一輪！':'你開始了！'):'這也算開始！'}</h2>
+    <p class="d-sub">「${esc(s.task)}」${s.rounds>1?'這次一共':''}做了 ${t}<br>${s.rounds>1?'火苗燒得更旺了。想停隨時都可以。':`這是你的第 ${n} 次開始，火苗罐又多一顆。`}</p></div>
     <div class="f-btns col"><button class="btn primary block big" data-a="more">再 ${s.min} 分鐘</button><button class="btn block" data-a="flow">不計時，順著做下去</button><button class="btn block" data-a="end">今天先到這裡</button></div>`;
   if(!reduceMotion()){L.querySelector('.done').classList.add('go')}}
 function closeFocus(){clearInterval(tick);keepAwake(false);$('.focus')?.remove();document.body.classList.remove('modal-open','focusing')}
@@ -435,7 +442,8 @@ async function doInstall(){if(instEvt){instEvt.prompt();const r=await instEvt.us
 
 /* ---------- 版本更新：先列內容再更新；更新後介紹一次 ---------- */
 const CHANGES=[
- {"v":"0.1.0","n":"0.1","d":"10 月 30 日","items":[["第一版上線","寫下你在拖延的事，App 幫你找出小到不好意思不做的第一步。","home"],["小火苗陪你專注","按下開始後有 2／5／10 分鐘計時與陪伴角色，時間到想停就停。",null],["火苗罐紀錄","不算連續天數，只累積「開始了幾次」，中斷不會歸零。","log"]]}
+ {"v": "0.1.1", "n": "0.1.1", "d": "10 月 30 日", "items": [["誤按不會留紀錄", "按下開始 10 秒內就停，不會算成一次開始。", null], ["連續好幾輪的文字更正確", "第二輪以後改成顯示「又完成一輪」與這次總共做了多久，不會重複說火苗罐多一顆。", null], ["小螢幕也看得到按鈕", "火苗圈會依螢幕高度縮小，暫停和停止按鈕不會被擠到畫面外。", null]]},
+ {"v": "0.1.0", "n": "0.1", "d": "10 月 30 日", "items": [["第一版上線", "寫下你在拖延的事，App 幫你找出小到不好意思不做的第一步。", "home"], ["小火苗陪你專注", "按下開始後有 2／5／10 分鐘計時與陪伴角色，時間到想停就停。", null], ["火苗罐紀錄", "不算連續天數，只累積「開始了幾次」，中斷不會歸零。", "log"]]}
 ],APP_VER=CHANGES[0].v;
 function updModal(list,mode){if($('.updm'))return;const top=list[0]||{},items=list.flatMap(c=>c.items).slice(0,6);const m=document.createElement('div');m.className='updm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
   m.innerHTML=`<div class="scrim" style="position:absolute;inset:0;background:rgba(6,10,24,.55)"></div><div class="box"><div class="card"><h2>${top.n?`<span>${esc(top.n)}</span>`:''}${mode==='pre'?'更新內容':'已更新到新版'}</h2><ol>${items.map(([t,d])=>`<li><b>${esc(t)}</b><span>${esc(d)}</span></li>`).join('')}</ol></div>

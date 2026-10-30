@@ -199,3 +199,9 @@ body.focusing .tabbar{transform:translateY(calc(100% + 2px))}
 .focus.isdone{justify-content:center;gap:40px}
 .hero-h{display:flex;align-items:center;justify-content:space-between;gap:10px}.hero-h .h3{margin:0;font-size:21px}
 .hero-ember{float:none;flex:none;width:52px;margin:-10px 0 -4px}
+/* 小螢幕／大字級：火苗圈依螢幕高度縮小，確保按鈕一定看得到 */
+.ringwrap{width:min(64vw,250px,30vh)}
+.f-time{font-size:clamp(36px,7vh,52px)}
+.f-line{min-height:0;font-size:16px}
+@media (max-height:700px){.focus{gap:8px;padding-top:calc(14px + env(safe-area-inset-top))}.f-step{padding:10px 14px}.f-step p{font-size:16.5px}.f-line{margin-top:6px}}
+body.focusing{overflow:hidden}
