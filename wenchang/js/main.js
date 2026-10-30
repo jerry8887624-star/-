@@ -1,5 +1,5 @@
 import * as THREE from '../vendor/three.module.min.js';
-import { Temple, SPOTS, MARKS } from './scene.js';
+import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS } from './scene.js';
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES } from './avatar.js';
 import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES } from './data.js';
 import { Net } from './net.js';
@@ -25,11 +25,11 @@ const temple = new Temple($('#stage'));
 let look = store.get('look', null) || randomLook();
 const me = temple.addAvatar(new Avatar(look));
 temple.setPlayer(me);
-me.speed = 3.6;
+me.speed = 4.8;
 // 開場：角色站在中庭，鏡頭在前方，背後是正殿
-const SPLASH = { x: -3.6 + Math.random() * 1.2, z: 0.6 + Math.random() * 1.4, f: 0.3 }; // 每個人出生點略有不同，才不會疊在一起
+const SPLASH = { x: -4.4 + Math.random() * 1.6, z: 1.8 + Math.random() * 1.4, f: 0.3 }; // 每個人出生點略有不同，才不會疊在一起
 me.root.position.set(SPLASH.x, 0, SPLASH.z); me.root.rotation.y = SPLASH.f;
-temple.camYaw = temple.camYawTarget = SPLASH.f; temple.camDist = 5.6; temple.camH = 1.9;
+temple.camYaw = temple.camYawTarget = SPLASH.f; temple.camDist = 5.6; temple.camPitch = 0.14;
 temple.focus = new THREE.Vector3(SPLASH.x, 0.75, SPLASH.z);
 let night = store.get('night', false);
 if (night) { document.body.classList.add('night'); temple.setNight(true); }
@@ -116,7 +116,7 @@ $('#enter-btn').onclick = async () => {
   $('#splash').classList.add('leaving');
   setTimeout(() => { $('#splash').hidden = true; }, 500);
   $('#hud').hidden = false;
-  temple.focus = null; temple.camDist = innerWidth < innerHeight ? 8 : 7; temple.camH = 3.6;
+  temple.focus = null; temple.camDist = innerWidth < innerHeight ? 9 : 8; temple.camPitch = 0.32;
   temple.frame(Math.PI, 0.35);
   me.faceTo = Math.PI;
   net.connect(look);
@@ -228,7 +228,32 @@ function placeLabels() {
 }
 
 // ---------- 走動 ----------
-temple.on('tapGround', p => { if (state.busy) return; hideCheer(); hideSocial(); me.faceTo = null; temple.walk(me, p.x, p.z); });
+temple.on('tapGround', p => { if (state.busy) return; hideCheer(); hideSocial(); me.faceTo = null; temple.walk(me, p.x, p.z).then(ok => { if (ok) kneelIfOnCushion(); }); });
+// 拜墊：點拜墊或走到拜墊上就會跪下（面向文昌帝君），可以叩拜；一走動就起身
+temple.on('tapCushion', i => { if (state.busy) return; hideCheer(); hideSocial(); const c = CUSHIONS[i]; temple.walk(me, c.x, c.z, Math.PI).then(ok => { if (ok) kneelIfOnCushion(true); }); });
+function kneelIfOnCushion(tapped) {
+  const i = temple.freeCushion(me.root.position.x, me.root.position.z, 0.6);
+  if (i < 0) { if (tapped) toast('這個拜墊有人了，換一個吧。'); return; }
+  const c = CUSHIONS[i]; me.root.position.x = c.x; me.root.position.z = c.z; me.faceTo = Math.PI; me.kneel(true);
+  if (!store.get('kneelTip', false)) { toast('跪在拜墊上了。按「叩拜」拜三拜；移動就會起身。', 3600); store.set('kneelTip', true); }
+}
+// 方向搖桿：按住往哪推就往哪走（推越遠走越快），以鏡頭方向為「前」
+(() => {
+  const el = $('#stick'), knob = $('#stick-knob'); let id = null;
+  const set = e => {
+    const r = el.getBoundingClientRect(), R = r.width / 2 - 14;
+    let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2); const d = Math.hypot(dx, dy);
+    if (d > R) { dx = dx / d * R; dy = dy / d * R; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`; temple.stick.x = dx / R; temple.stick.y = -dy / R;
+  };
+  const end = () => { id = null; el.classList.remove('on'); knob.style.transform = ''; temple.stick.x = temple.stick.y = 0; };
+  el.addEventListener('pointerdown', e => { if (state.busy) return; id = e.pointerId; el.setPointerCapture(id); el.classList.add('on'); hideCheer(); hideSocial(); me.faceTo = null; set(e); });
+  el.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); });
+  el.addEventListener('pointerup', e => { if (e.pointerId === id) { end(); kneelIfOnCushion(); } });
+  el.addEventListener('pointercancel', end);
+})();
+$('#kneel-bow').onclick = async () => { if (me.bowT >= 0) return; sound.bell(0.1); await me.bow(3); };
+$('#kneel-up').onclick = () => { me.kneel(false); };
 temple.on('tapAvatar', av => openCheer(av));
 async function walkTo(spot) { me.faceTo = null; const ok = await temple.goSpot(me, spot); return ok; }
 
@@ -249,7 +274,9 @@ function complete(id) {
 function need(cond, msg) { if (!cond) { toast(msg, 3600); buzz([10, 60, 10]); } return cond; }
 async function arrive(spot) {
   const ok = await walkTo(spot); if (!ok) return false;
-  temple.frame(SPOTS[spot].f, SPOTS[spot].cam ?? 0.22); await wait(350); return true;
+  temple.frame(SPOTS[spot].f, SPOTS[spot].cam ?? 0.22);
+  if (SPOTS[spot].kneel) me.kneel(true);
+  await wait(350); return true;
 }
 
 // 1. 備供品
@@ -318,7 +345,7 @@ async function wenchang() {
   if (!(await arrive('cushion'))) return;
   temple.setOfferings(OFFERINGS.filter(o => state.carry.offerings.includes(o.id)));
   toast('供品擺上供桌了。', 1800);
-  temple.focus = new THREE.Vector3(0, 2.2, -7.5);
+  temple.focus = new THREE.Vector3(...FOCUS.altar);
   await wait(1200); temple.focus = null;
   examPick = ''; document.querySelectorAll('#exam-chips button').forEach(x => x.setAttribute('aria-pressed', 'false'));
   const r = await introduce('wenchang'); if (!r) return;
@@ -341,7 +368,7 @@ async function pass() {
   if (state.done.has('pass')) { toast('准考證已經過爐了。'); return; }
   if (!need(state.done.has('plant') || state.done.has('wenchang'), '先拜完文昌帝君、<b>插香</b>，再來過爐。')) return;
   if (!(await arrive('censer'))) return;
-  temple.focus = new THREE.Vector3(0, 2.2, 4);
+  temple.focus = new THREE.Vector3(...FOCUS.censer);
   const ok = await circleGesture();
   temple.focus = null;
   if (ok) complete('pass');
@@ -404,7 +431,7 @@ async function card() {
   store.set('card', data);
   net.card(CARD_COLORS.indexOf(c), EXAMS.indexOf(lastExam)); // 只分享顏色和考試類別，寫的字只在自己手機
   const p = temple.hangMyCard(data); p.scale.setScalar(0.01); temple.tween(600, k => p.scale.setScalar(0.01 + 1.69 * k), 0, t => 1 - Math.pow(1 - t, 3));
-  temple.focus = new THREE.Vector3(8.2, 2, 4); await wait(1400); temple.focus = null;
+  temple.focus = new THREE.Vector3(...FOCUS.wall); await wait(1400); temple.focus = null;
   if (state.done.has('card')) { toast('祈福卡換新了。'); return; }
   complete('card');
 }
@@ -533,7 +560,7 @@ const net = new Net(wsUrl, {
         if (!av) { av = temple.addAvatar(new Avatar(p.look)); av.netId = p.id; av.root.position.set(p.x, 0, p.z); av.speed = 4.5; remotes.set(p.id, av); }
         else if (JSON.stringify(av.look) !== JSON.stringify(p.look)) av.setLook(p.look);
         if (Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z) > 0.1) { av.path = null; av.target = { x: p.x, z: p.z, face: p.f }; } else av.faceTo = p.f;
-        av.hold(!!p.h); if (p.b && av.bowT < 0) av.bow(1);
+        av.hold(!!p.h); av.kneel(!!p.k); if (p.b && av.bowT < 0) av.bow(1);
         peers.set(p.id, { s: p.s || 0 });
       }
       for (const id of [...peers.keys()]) if (!seen.has(id)) peers.delete(id);
@@ -702,13 +729,18 @@ function startNpcs() {
   if (npcs.length || net.alive) return;
   const gen = ++npcGen;
   const route = ['censerOut', 'cushion', 'wall', 'counter', 'censer', 'qianTube'];
-  for (let i = 0; i < 4; i++) {
-    const av = temple.addAvatar(new Avatar(randomLook())); av.npc = true; av.speed = 1.8 + Math.random() * 0.6;
+  for (let i = 0; i < 6; i++) {
+    const av = temple.addAvatar(new Avatar(randomLook())); av.npc = true; av.speed = 2.2 + Math.random() * 0.8;
     av.root.position.set(-4 + i * 2.6, 0, 7 - i * 2.2);
     npcs.push(av);
     (async function life() {
       await wait(800 + i * 1500);
       while (gen === npcGen) {
+        if (Math.random() < 0.4) { // 找個空拜墊跪拜
+          const free = CUSHIONS.map((c, k) => k).filter(k => k > 2 && temple.freeCushion(CUSHIONS[k].x, CUSHIONS[k].z, 0.3) === k && Math.hypot(me.root.position.x - CUSHIONS[k].x, me.root.position.z - CUSHIONS[k].z) > 1);
+          const c = CUSHIONS[free[Math.floor(Math.random() * free.length)]];
+          if (c && await temple.walk(av, c.x, c.z, Math.PI)) { av.kneel(true); await wait(600); await av.bow(3); await wait(3000 + Math.random() * 4000); av.kneel(false); continue; }
+        }
         const s = SPOTS[route[Math.floor(Math.random() * route.length)]];
         const ox = (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random()), oz = (Math.random() - 0.5) * 1.2; // 站兩側，不擋住玩家的位置
         await temple.walk(av, s.x + ox, s.z + oz, s.f);
@@ -727,7 +759,9 @@ function loop() {
     placeLabels();
     if (!tags.has(me) && myId) tagFor(me, `你・考生 #${myId}`, true);
     for (const [id, av] of remotes) tagFor(av, `考生 #${id}`).classList.toggle('done', (peers.get(id)?.s || 0) >= 6);
-    const p = me.root.position; net.pos(p.x, p.z, me.root.rotation.y, me.holding, me.bowT >= 0);
+    const p = me.root.position; net.pos(p.x, p.z, me.root.rotation.y, me.holding, me.bowT >= 0, me.kneeling);
+    $('#kneel-bar').hidden = !me.kneeling || state.busy;
+    document.body.classList.toggle('kneeling', !!me.kneeling);
   }
   requestAnimationFrame(loop);
 }
