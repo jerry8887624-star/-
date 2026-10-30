@@ -3,7 +3,7 @@
 更新：2026-10-29。新對話接手時先讀這份，再照 SKILL.md 的流程做。
 
 ## 版本與網址
-- 目前版本：1.25（`data/changes.json` 最上面那筆，v = `2026.11.11`）。下次發布版號接著遞增。
+- 目前版本：1.26（`data/changes.json` 最上面那筆，v = `2026.11.12`）。下次發布版號接著遞增。
 - 正式網址：**https://lingxi-397.pages.dev/**（Cloudflare Pages，從 GitHub `main` 自動部署，建置輸出目錄 `divination`，沒有建置命令）。
 - 新網址寫在 `divination/data/site.json`，build.py 會帶入 `SITE_URL`、og 標籤，並產生 `old-site.html`。
 - 舊網址 `…github.io/-/divination/` 現在只放輕量搬家頁：`deploy.yml` 把 `divination/old-site.html` 複製成舊網址的 index.html。來源是 `divination/move.html`，裡面的 `/*SITE_URL*/` 會被替換掉。
@@ -40,7 +40,7 @@
 
 ## 拜訪人次（1.25）
 - `functions/api/visit.js`（repo 根目錄，Cloudflare Pages Function）＋ D1，綁定名稱 `DB`；表 `hits(day, n)` 會自動建立。累計人次 = 1800（`BASE`，使用者指定）＋資料庫合計。GET 讀、POST 今天加一；以台灣時間換日。
-- App：`visitPing()` 在 boot 呼叫，`gx_vday` 記錄今天是否已計；結果存 `gx_visits`；顯示在歡迎畫面 `#welVisits`。API 不通時隱藏。SW 不快取 `/api/`。
+- App：`visitPing()` 在 boot 呼叫，`gx_vday` 記錄今天是否已計；結果存 `gx_visits`；顯示在頁首 `#navVisits`（1.26 起；空間不夠時 `visitFit()` 依序省略「累計」「今日」，再不夠改用標題上方的 `#ltVisits`）。API 不通時隱藏。SW 不快取 `/api/`。
 - 本機測試：scratchpad 安裝 wrangler，在含 functions/ 的暫存資料夾執行 `wrangler pages dev divination --d1 DB=xxx --persist-to <scratch>`，避免 .wrangler 寫進 repo。不要用 pkill -f 比對含相同字串的指令（會把自己的 shell 一起砍掉）。
 - 使用者需在 Cloudflare 後台建立 D1 並綁定到 Pages 專案（變數名 DB），之後重新部署一次才生效。
 
