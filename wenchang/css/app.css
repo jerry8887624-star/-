@@ -421,3 +421,11 @@ body.chatting #stick, body.chatting #kneel-bar { display: none; }
 #lx-frame { flex: 1; width: 100%; border: 0; background: #fff; }
 body.lx-open #hud, body.lx-open #labels { visibility: hidden; }
 .again-guide { margin-top: 10px; width: 100%; padding: 9px; border-radius: 12px; border: 1px solid var(--gold); background: rgba(184, 50, 42, .45); font-weight: 700; min-height: 40px; }
+
+/* ---------- 已封鎖的人 ---------- */
+#blocked-wrap { margin-top: 12px; }
+.blocked-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.blocked-list li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; border-radius: 12px; background: rgba(255, 255, 255, .05); }
+.blocked-list b { font-weight: 600; font-size: 14px; }
+.blocked-list small { display: block; color: var(--muted); font-size: 12px; }
+.blocked-list button { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; font-size: 13px; min-height: 36px; }

@@ -703,6 +703,7 @@ temple.on('tapLingxi', () => act('lingxi'));
 // ---------- 其他香客：多人連線或示意香客 ----------
 const remotes = new Map(); // id -> avatar
 let myId = 0, blocked = new Set(sess.get('blocked', []));
+const blockedNames = sess.get('blockedNames', {}); // 封鎖時記下暱稱，名單上才認得出是誰
 // 本機測試可用 ?ws=ws://127.0.0.1:8787/ws
 const wsUrl = (location.hostname === 'localhost' && new URLSearchParams(location.search).get('ws'))
   || (WS_URL === 'auto' ? (/github\.io$/.test(location.hostname) || !/^https?:$/.test(location.protocol) ? '' : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`) : WS_URL);
@@ -711,7 +712,7 @@ const who = id => id === myId ? (nick || `考生 #${id}`) : (peers.get(id)?.n ||
 const net = new Net(wsUrl, {
   status(on, was) {
     $('#presence').hidden = !on;
-    if (on) { stopNpcs(); net.step(state.done.size); net.dmOff(!dmAllow); renderDm(); }
+    if (on) { stopNpcs(); net.step(state.done.size); net.dmOff(!dmAllow); blocked.forEach(id => net.block(id)); renderDm(); }
     else { for (const c of dm.convs.values()) c.gone = true; renderDm(); for (const av of remotes.values()) temple.removeAvatar(av); remotes.clear(); peers.clear(); if (was) feed('連線中斷，正在重新連線…'); }
     renderPeople();
   },
@@ -781,7 +782,9 @@ function openCheer(av) {
 function openCheerFor(id, av = remotes.get(id)) {
   const menu = $('#cheer-menu'); hideSocial();
   menu.hidden = false; menu.dataset.id = id;
-  $('#cheer-name').textContent = `對 ${who(id)} 說：`;
+  const isB = blocked.has(id);
+  $('#cheer-name').textContent = isB ? `${who(id)}（已封鎖）` : `對 ${who(id)} 說：`;
+  $('#cheer-list').hidden = isB; $('#cheer-invite').hidden = isB; $('#cheer-block').hidden = isB; $('#cheer-unblock').hidden = !isB;
   $('#cheer-list').innerHTML = CHEERS.map((c, i) => `<button type="button" data-i="${i}">${c}</button>`).join('');
   const w = Math.min(280, innerWidth - 24); menu.style.width = w + 'px';
   if (!av) { menu.style.left = (innerWidth - w) / 2 + 'px'; menu.style.top = Math.max(70, innerHeight / 2 - 160) + 'px'; return; }
@@ -790,8 +793,13 @@ function openCheerFor(id, av = remotes.get(id)) {
 }
 function hideCheer() { $('#cheer-menu').hidden = true; }
 $('#cheer-list').onclick = e => { const b = e.target.closest('button'); if (!b) return; net.cheer(+$('#cheer-menu').dataset.id, +b.dataset.i); hideCheer(); buzz(10); };
-function blockUser(id) { blocked.add(id); sess.set('blocked', [...blocked]); net.block(id); }
-$('#cheer-block').onclick = () => { blockUser(+$('#cheer-menu').dataset.id); hideCheer(); toast('已封鎖，不會再收到他的密語和打氣。'); };
+function blockUser(id) { blockedNames[id] = who(id); sess.set('blockedNames', blockedNames); blocked.add(id); sess.set('blocked', [...blocked]); net.block(id); renderPeople(); }
+function unblockUser(id) {
+  blocked.delete(id); delete blockedNames[id]; sess.set('blocked', [...blocked]); sess.set('blockedNames', blockedNames); net.unblock(id); renderPeople();
+  toast(`已解除封鎖 ${esc(who(id))}，可以再收到他的密語和打氣。`);
+}
+$('#cheer-block').onclick = () => { blockUser(+$('#cheer-menu').dataset.id); hideCheer(); toast('已封鎖，不會再收到他的密語和打氣。之後可以在「互動」裡解除封鎖。'); };
+$('#cheer-unblock').onclick = () => { unblockUser(+$('#cheer-menu').dataset.id); hideCheer(); };
 $('#cheer-invite').onclick = () => { const id = +$('#cheer-menu').dataset.id; hideCheer(); openDm(id, true); };
 
 // ---------- 密語：點人就能直接傳，可以同時和好幾個人聊 ----------
@@ -848,7 +856,7 @@ if (window.visualViewport) {
   const fit = () => { const v = visualViewport; $('#chat').style.bottom = Math.max(0, innerHeight - v.height - v.offsetTop) + 'px'; };
   visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit);
 }
-$('#chat-block').onclick = () => { const id = dm.cur; blockUser(id); dm.convs.delete(id); dm.cur = [...dm.convs.keys()].pop() || 0; renderDm(); toast(`已封鎖 ${esc(who(id))}，不會再收到他的密語。`); };
+$('#chat-block').onclick = () => { const id = dm.cur; blockUser(id); dm.convs.delete(id); dm.cur = [...dm.convs.keys()].pop() || 0; renderDm(); toast(`已封鎖 ${esc(who(id))}，不會再收到他的密語。可以在「互動」裡解除封鎖。`); };
 $('#presence').onclick = () => openSocial();
 $('#toast').addEventListener('click', e => {
   const b = e.target.closest('[data-reply]'); if (b) { $('#toast').classList.remove('show'); openCheerFor(+b.dataset.reply); }
@@ -866,12 +874,16 @@ function openSocial() { hideCheer(); renderPeople(); $('#social').hidden = false
 function hideSocial() { $('#social').hidden = true; $('#social-btn').setAttribute('aria-expanded', 'false'); }
 $('#social-btn').onclick = () => $('#social').hidden ? openSocial() : hideSocial();
 function renderPeople() {
+  const bl = [...blocked];
+  $('#blocked-wrap').hidden = !bl.length;
+  const bh = bl.map(id => `<li><span><b>${esc(blockedNames[id] || who(id))}</b><small>${peers.has(id) ? '在廟裡' : '已離開'}・#${id}</small></span><button type="button" data-unblock="${id}">解除封鎖</button></li>`).join('');
+  if ($('#blocked-list').innerHTML !== bh) $('#blocked-list').innerHTML = bh;
   const online = net.alive;
   $('#social-offline').hidden = online; $('#people-wrap').hidden = !online;
   const ids = [...peers.keys()].filter(id => id !== myId).sort((a, b) => a - b);
   $('#people-title').textContent = `在廟裡的考生（${ids.length + (online ? 1 : 0)} 人，含你）`;
   $('#people-empty').hidden = ids.length > 0;
-  const html = ids.map(id => { const s = peers.get(id).s; return `<li><span><b>${esc(who(id))}</b><small>${peers.get(id).n ? `#${id}・` : ''}${s >= STEPS.length ? '已完成參拜 ✓' : s ? `參拜中・${s}/${STEPS.length}` : '剛進廟'}</small></span><span class="acts"><button type="button" data-cheer="${id}">打氣</button><button type="button" class="alt" data-whisper="${id}">密語</button></span></li>`; }).join('');
+  const html = ids.map(id => { const s = peers.get(id).s; return `<li><span><b>${esc(who(id))}</b><small>${peers.get(id).n ? `#${id}・` : ''}${s >= STEPS.length ? '已完成參拜 ✓' : s ? `參拜中・${s}/${STEPS.length}` : '剛進廟'}</small></span><span class="acts">${blocked.has(id) ? '' : `<button type="button" data-cheer="${id}">打氣</button>`}${blocked.has(id) ? `<button type="button" data-unblock-p="${id}">解除封鎖</button>` : `<button type="button" class="alt" data-whisper="${id}">密語</button>`}</span></li>`; }).join('');
   if ($('#people-list').innerHTML !== html) $('#people-list').innerHTML = html;
   const btn = $('#social-btn'); let dot = btn.querySelector('.dot');
   if (online && ids.length) { if (!dot) { dot = document.createElement('b'); dot.className = 'dot'; btn.appendChild(dot); } dot.textContent = ids.length; } else dot?.remove();
@@ -883,9 +895,11 @@ $('#my-nick-save').onclick = () => {
   if (!r.ok) { toast(NAME_WHY[r.why] || '這個暱稱不能用。'); return; }
   nick = r.text; store.set('nick', nick); $('#nick-input').value = nick; net.setName(nick); toast(nick ? `暱稱改成「${esc(nick)}」了。` : '已清除暱稱，會顯示考生編號。');
 };
+$('#blocked-list').onclick = e => { const b = e.target.closest('[data-unblock]'); if (b) unblockUser(+b.dataset.unblock); };
 $('#people-list').onclick = e => {
   const b = e.target.closest('[data-cheer]'); if (b) openCheerFor(+b.dataset.cheer);
   const w = e.target.closest('[data-whisper]'); if (w) openDm(+w.dataset.whisper, true);
+  const u = e.target.closest('[data-unblock-p]'); if (u) unblockUser(+u.dataset.unblockP);
 };
 
 // 動態：誰進來、誰掛卡、誰完成參拜
