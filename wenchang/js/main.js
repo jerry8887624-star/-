@@ -5,6 +5,7 @@ import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CH
 import { Net } from './net.js';
 import { checkChat, CHAT_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
+import { initUpdates, showNewsOnce } from './update.js';
 
 const $ = s => document.querySelector(s);
 const store = {
@@ -122,6 +123,7 @@ $('#enter-btn').onclick = async () => {
   if (!wsUrl) startNpcs();
   else setTimeout(() => { if (!net.alive) startNpcs(); }, 5000); // 連不上伺服器就先放示意香客
   refresh();
+  setTimeout(showNewsOnce, 900);
   setTimeout(() => toast(innerWidth < 720 ? '點地板走動、拖曳轉動視角。下方按鈕會帶你一步步參拜。' : '點地板或用 WASD／方向鍵走動，拖曳轉動視角。下方按鈕會帶你一步步參拜。', 4200), 700);
 };
 
@@ -723,5 +725,6 @@ function loop() {
 }
 temple.on('manualMove', () => { hideCheer(); hideSocial(); });
 refresh();
+initUpdates();
 requestAnimationFrame(loop);
 window.__wc = { temple, me, state, act, net };

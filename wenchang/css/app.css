@@ -305,3 +305,10 @@ dialog.lot .row { padding: 0 18px 16px; }
 #chat-form input { flex: 1; min-width: 0; }
 #chat-form button { padding: 0 18px; border-radius: 12px; border: 1px solid var(--gold); background: linear-gradient(180deg, var(--red-2), var(--red)); color: #fff6e0; font-weight: 700; min-height: 44px; }
 body.chatting #dock, body.chatting #next, body.chatting #social-btn, body.chatting #feed { display: none; }
+
+/* ---------- 版本更新 ---------- */
+#update-chip { margin-right: auto; margin-left: 8px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--gold); background: linear-gradient(180deg, var(--red-2), var(--red)); color: #fff4d6; font-size: 13.5px; font-weight: 700; animation: breathe 2.6s ease-in-out infinite; }
+.update-list { margin: 4px 0 0; padding-left: 1.3em; display: grid; gap: 10px; }
+.update-list li b { display: block; color: var(--ink); font-size: 15px; }
+.update-list li span { display: block; color: var(--muted); font-size: 14px; line-height: 1.6; margin-top: 2px; }
+#app-ver { display: block; margin-top: 4px; }
