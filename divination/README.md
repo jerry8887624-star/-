@@ -64,4 +64,4 @@ python3 divination/build.py      # 由 src.html + css/ + data/ 產生 index.html
 
 ## 拜訪人次
 
-歡迎畫面顯示累計與今日人次（每支手機每天記一次）。後端是 `functions/api/visit.js`（Cloudflare Pages Function），資料存在 Cloudflare D1，綁定名稱 `DB`，只存日期與次數兩欄，第一次呼叫會自動建表；累計人次從 1800 起算（`BASE` 常數）。尚未綁定資料庫時 API 回 503，App 端自動隱藏人次。
+頁首中間顯示累計與今日人次（每支手機每天記一次）。後端是 `functions/api/visit.js`（Cloudflare Pages Function），資料存在 Cloudflare D1，綁定名稱 `DB`，只存日期與次數兩欄，第一次呼叫會自動建表；累計人次從 1800 起算（`BASE` 常數）。尚未綁定資料庫時 API 回 503，App 端自動隱藏人次。

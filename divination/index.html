@@ -1866,6 +1866,15 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .wel-mv{opacity:1}
 :root:not([data-theme="dark"]) .wel-list .wi{color:#734E12}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .wel-list .wi{color:var(--tint)}}
+/* 頁首：拜訪人次（與捲動後的頁面標題共用中間位置） */
+.navbar #navTitle,.navbar .nav-visits{grid-row:1;grid-column:2}
+.nav-visits{justify-self:center;min-width:0;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12.5px;line-height:1.5;padding:3px 11px;border-radius:99px;background:color-mix(in srgb,var(--card) 82%,transparent);border:1px solid var(--glass-line);color:var(--ink);font-variant-numeric:tabular-nums;transition:opacity .25s var(--ease)}
+.nav-visits[hidden]{display:none}
+.nav-visits b{font-weight:700}
+.collapsed .nav-visits{opacity:0;pointer-events:none}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.nav-visits.c1 .v1,.nav-visits.c2 .v2{display:none}
+.lt-visits{align-self:flex-start;margin-bottom:6px}.lt-visits[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -1964,8 +1973,8 @@ setTimeout(function(){if(!window.__gxBooted&&window.__gxBail)window.__gxBail('�
 </defs></svg>
 <div class="bgart" aria-hidden="true"></div>
 <div class="app">
-  <header class="navbar"><span class="navl"><button class="aa" id="fsBtn" aria-label="文字大小與粗細"><span>A</span><span>A</span></button><button class="mus" id="musBtn" aria-label="背景音樂" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/><path class="x" d="M3 3l18 18"/></svg><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i></button></span><span id="navTitle" aria-hidden="true">今日</span><button class="who" id="whoBtn" aria-label="編輯命主資料"><span id="whoAv">命</span></button></header>
-  <div class="largetitle"><small id="ltDate">　</small><h1 id="ltTitle">今日</h1><p class="lt-tag" id="ltTag"></p><button type="button" class="lt-sample" id="ltSample" data-act="profile" hidden>範例資料 · 點此輸入你的生辰</button><div class="lt-motto" id="ltMotto" aria-hidden="true"></div><svg class="lt-doodle" viewBox="0 0 140 80" aria-hidden="true"><g filter="url(#crayonFill)"><path d="M104 8a24 24 0 1 0 16 41 20 20 0 1 1-16-41z" fill="var(--doodle-moon)"/><path d="M30 20l2.2 6.8 6.8 2.2-6.8 2.2L30 38l-2.2-6.8L21 29l6.8-2.2z" fill="var(--doodle-star)"/><path d="M70 50l1.6 4.6 4.6 1.6-4.6 1.6L70 62.4l-1.6-4.6-4.6-1.6 4.6-1.6z" fill="var(--doodle-sage)"/><path d="M128 62l1.3 3.7 3.7 1.3-3.7 1.3-1.3 3.7-1.3-3.7-3.7-1.3 3.7-1.3z" fill="var(--doodle-ink)"/><circle cx="56" cy="14" r="2" fill="var(--doodle-sage)"/><circle cx="12" cy="58" r="1.6" fill="var(--doodle-star)"/></g></svg></div>
+  <header class="navbar"><span class="navl"><button class="aa" id="fsBtn" aria-label="文字大小與粗細"><span>A</span><span>A</span></button><button class="mus" id="musBtn" aria-label="背景音樂" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/><path class="x" d="M3 3l18 18"/></svg><i class="eq" aria-hidden="true"><b></b><b></b><b></b></i></button></span><span id="navTitle" aria-hidden="true">今日</span><span id="navVisits" class="nav-visits" hidden></span><button class="who" id="whoBtn" aria-label="編輯命主資料"><span id="whoAv">命</span></button></header>
+  <div class="largetitle"><span id="ltVisits" class="nav-visits lt-visits" hidden></span><small id="ltDate">　</small><h1 id="ltTitle">今日</h1><p class="lt-tag" id="ltTag"></p><button type="button" class="lt-sample" id="ltSample" data-act="profile" hidden>範例資料 · 點此輸入你的生辰</button><div class="lt-motto" id="ltMotto" aria-hidden="true"></div><svg class="lt-doodle" viewBox="0 0 140 80" aria-hidden="true"><g filter="url(#crayonFill)"><path d="M104 8a24 24 0 1 0 16 41 20 20 0 1 1-16-41z" fill="var(--doodle-moon)"/><path d="M30 20l2.2 6.8 6.8 2.2-6.8 2.2L30 38l-2.2-6.8L21 29l6.8-2.2z" fill="var(--doodle-star)"/><path d="M70 50l1.6 4.6 4.6 1.6-4.6 1.6L70 62.4l-1.6-4.6-4.6-1.6 4.6-1.6z" fill="var(--doodle-sage)"/><path d="M128 62l1.3 3.7 3.7 1.3-3.7 1.3-1.3 3.7-1.3-3.7-3.7-1.3 3.7-1.3z" fill="var(--doodle-ink)"/><circle cx="56" cy="14" r="2" fill="var(--doodle-sage)"/><circle cx="12" cy="58" r="1.6" fill="var(--doodle-star)"/></g></svg></div>
   <div id="subnav" hidden></div>
   <main>
     <div id="boot" class="loading">正在排盤…</div>
@@ -6466,6 +6475,7 @@ function fsApply(o){const r=document.documentElement;r.style.zoom=o.z>1?o.z:'';r
 function fitAll(){
   const r=document.documentElement, z=parseFloat(r.style.zoom)||1, w=innerWidth/z;
   r.classList.toggle('vw400',w<=400);r.classList.toggle('narrow',w<340);
+  if(typeof visitFit==='function')visitFit();
   document.querySelectorAll('[data-fit]').forEach(el=>{el.style.zoom='';const pe=el.parentElement,cs=getComputedStyle(pe),cw=pe.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);if(cw<=0)return;const m=+el.dataset.fit;if(cw<m)el.style.zoom=(cw/m).toFixed(3)});
 }
 let fitRaf=0;const fitSoon=()=>{cancelAnimationFrame(fitRaf);fitRaf=requestAnimationFrame(fitAll)};
@@ -6799,14 +6809,18 @@ function visitPing(){
     VISITS={total:j.total,today:j.today,day:d};store.set('gx_visits',VISITS);visitShow();
   }).catch(()=>{});
 }
-function visitHtml(){if(!VISITS)return '';const n=x=>Number(x).toLocaleString('zh-TW');return `已有 <b>${n(VISITS.total)}</b> 人次造訪・今天 <b>${n(VISITS.day===twDay()?VISITS.today:0)}</b> 人次`}
-function visitShow(){const e=$('#welVisits');if(e&&VISITS){e.innerHTML=visitHtml();e.hidden=false}}
+function visitHtml(){if(!VISITS)return '';const n=x=>Number(x).toLocaleString('zh-TW'),t=VISITS.day===twDay()?VISITS.today:0;return `<span aria-hidden="true"><span class="v1">累計 </span><b>${n(VISITS.total)}</b> 人次<span class="v2">・今日 <b>${n(t)}</b></span></span><span class="sr-only">累計 ${n(VISITS.total)} 人次造訪，今天 ${n(t)} 人次</span>`}
+function visitShow(){const e=$('#navVisits'),l=$('#ltVisits');if(e&&VISITS){e.innerHTML=visitHtml();if(l)l.innerHTML=visitHtml();e.hidden=false;visitFit()}}
+// 頁首空間不夠時（窄螢幕、放大字級）依序省略「累計」「今日」，避免壓到兩側按鈕
+function visitFit(){const e=$('#navVisits'),l=$('#ltVisits');if(!e||!VISITS)return;e.hidden=false;if(l)l.hidden=true;e.classList.remove('c1','c2');
+  const L=$('.navbar .navl'),R=$('#whoBtn'),hit=()=>{const r=e.getBoundingClientRect();return e.scrollWidth>e.clientWidth+1||(L&&r.left<L.getBoundingClientRect().right+4)||(R&&r.right>R.getBoundingClientRect().left-4)};
+  if(hit())e.classList.add('c1');if(hit())e.classList.add('c2');
+  if(hit()&&l){e.hidden=true;l.hidden=false}} // 連精簡版都放不下：改放在頁面標題上方一行
 function welcomeHtml(){return `<div class="wel" role="dialog" aria-modal="true" aria-labelledby="welT">
   <div class="wel-in" tabindex="0">
     <img class="wel-logo" src="icons/icon-192.png" alt="" onerror="this.remove()">
     <h1 id="welT">歡迎來到靈犀</h1>
     <p class="wel-sub">你的口袋命理師</p>
-    <p class="wel-visits" id="welVisits" aria-live="polite"${VISITS?'':' hidden'}>${visitHtml()}</p>
     <ul class="wel-list">
       <li><i class="wi">☀︎</i><div><b>每日運勢與行動指南</b><span>今天適合做什麼、避開什麼，一看就懂</span></div></li>
       <li><i class="wi">✦</i><div><b>塔羅占卜・求籤擲筊</b><span>心裡有事時，問一問</span></div></li>
@@ -6926,6 +6940,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.12",
+  "n": "1.26",
+  "d": "11 月 12 日",
+  "items": [
+   [
+    "拜訪人次移到頁首",
+    "每一頁最上方中間都會顯示「累計多少人次・今日多少」；往下捲時會讓位給頁面標題。字放大或螢幕較窄時會自動精簡或改放在日期上方。",
+    null
+   ]
+  ]
+ },
  {
   "v": "2026.11.11",
   "n": "1.25",
@@ -7624,7 +7650,7 @@ function boot(){
   {const th=store.get('gx_theme','auto');if(th!=='auto')setTheme(th,false)}
   document.documentElement.classList.toggle('simple',simple);document.documentElement.classList.toggle('lowmo',store.get('gx_motion','full')==='low');
   spReady=true;
-  visitPing();
+  visitShow();visitPing();
   if(!window.Solar){hideSplash(true);$('#boot').innerHTML='<b>命理曆法元件載入失敗</b><br><span style="font-size:13px">'+(window.__gxErr.join('；')||'程式庫未載入')+'<br>請確認網路後重新整理，或改用 Safari／Chrome 開啟。</span>';return}
   try{
   try{derive()}catch(err){console.error(err);P=SAMPLE;derive()}
