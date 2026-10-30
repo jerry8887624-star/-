@@ -1824,10 +1824,6 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .rp-zw .nw{white-space:nowrap}
 .rp-zw,.rp-mon{break-inside:avoid}
 .rp-term{color:#6B6150}.rp-cn{color:#7E5B18}.rp-scroll:focus{outline:none}.rp-scroll:focus-visible{outline:2px solid #7E5B18;outline-offset:-2px}
-/* 歡迎畫面：拜訪人次 */
-.wel-visits{margin-top:4px;padding:4px 12px;border-radius:99px;background:var(--tint-soft);color:var(--ink);font-size:13.5px;font-variant-numeric:tabular-nums}
-.wel-visits b{color:var(--tint);font-weight:700}
-.wel-visits[hidden]{display:none}
 .wel-in:focus{outline:none}.wel-in:focus-visible{outline:2px solid var(--tint);outline-offset:-4px}
 .wel-mv{opacity:1}
 :root:not([data-theme="dark"]) .wel-list .wi{color:#734E12}
