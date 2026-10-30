@@ -1,0 +1,375 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>國軍平戰轉換</title>
+<style>html,body{margin:0;background:#06101c}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const W = 1920, H = 1080;
+const ctx = document.getElementById('c').getContext('2d');
+const FONT = '"WenQuanYi Zen Hei", sans-serif';
+
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const easeOut = x => 1 - Math.pow(1 - clamp(x), 3);
+const easeInOut = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const prog = (t, a, d) => clamp((t - a) / d);
+
+function txt(s, x, y, size, color, opt = {}) {
+  ctx.save();
+  ctx.font = `${opt.weight || 400} ${size}px ${FONT}`;
+  ctx.fillStyle = color;
+  ctx.textAlign = opt.align || 'left';
+  ctx.textBaseline = opt.base || 'alphabetic';
+  ctx.globalAlpha *= opt.alpha ?? 1;
+  if (opt.spacing) ctx.letterSpacing = opt.spacing + 'px';
+  if (opt.glow) { ctx.shadowColor = opt.glow; ctx.shadowBlur = 24; }
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+function rrect(x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+// ---------- 內容 ----------
+const STAGES = [
+  { key: '經常戰備', en: 'ROUTINE READINESS', color: '#3fbf86', level: .15,
+    title: '平時・經常戰備', sub: '平時即戰時——備戰而不求戰',
+    cards: [
+      ['戰備值勤', '各軍種輪值待命，防空與海空偵巡常態運作'],
+      ['聯合情監偵', '持續掌握周邊共機、共艦動態，早期預警'],
+      ['灰色地帶應處', '監控、廣播查證與伴飛伴航，避免意外升級'],
+      ['訓練與驗證', '基地訓練、聯合演訓，以漢光演習檢驗戰備'],
+    ] },
+  { key: '應變戰備', en: 'HEIGHTENED READINESS', color: '#e9c63f', level: .38,
+    title: '應變戰備・提升等級', sub: '敵情升高——逐級提升戰備，壓縮反應時間',
+    cards: [
+      ['應變中心開設', '各級應變中心開設，情資即時匯整與研判'],
+      ['人員歸建', '停止休假、召回在外人員，確保兵力到位'],
+      ['裝備彈藥整備', '裝備檢整、彈藥油料撥補，提高妥善率'],
+      ['戰力防護', '分散、掩蔽、偽裝與欺敵，降低首擊損害'],
+    ] },
+  { key: '立即備戰', en: 'IMMEDIATE COMBAT READINESS', color: '#f28c38', level: .62,
+    title: '立即備戰・演轉戰', sub: '對手演習可能轉為攻擊——部隊依令立即就位',
+    cards: [
+      ['依令啟動', '依「立即備戰操演」機制，部隊快速轉入戰備'],
+      ['進入作戰位置', '機動部隊出營、分散部署，進入預定陣地'],
+      ['指揮所開設', '各作戰區指揮所運作，採任務式指揮'],
+      ['依規應處', '依授權與交戰規則行動，防止誤判擴大'],
+    ] },
+  { key: '全民動員', en: 'NATIONAL MOBILIZATION', color: '#e8613c', level: .82,
+    title: '全民防衛動員', sub: '動員準備階段 → 動員實施階段',
+    cards: [
+      ['後備召集', '後備部隊動員編成，接替守備、支援作戰'],
+      ['物力徵用', '民間車輛、船舶、物資依法徵購徵用'],
+      ['民防與防護', '民防團隊投入救護、避難與關鍵設施防護'],
+      ['全社會韌性', '政府與民間協力，維持社會運作不中斷'],
+    ],
+    foot: '法制基礎：總統依憲法發布緊急命令・《全民防衛動員準備法》等' },
+  { key: '防衛作戰', en: 'DEFENSIVE OPERATIONS', color: '#e5484d', level: 1,
+    title: '防衛作戰', sub: '防衛固守・重層嚇阻' },
+];
+
+// ---------- 時間軸（秒） ----------
+const T_TITLE = 0, T_OVER = 7, T_S = [15, 28, 41, 54, 67], T_SUM = 84, T_END = 94, TOTAL = 100;
+window.TOTAL = TOTAL;
+
+// ---------- 背景 ----------
+function background(t, tint) {
+  const g = ctx.createRadialGradient(W / 2, H * .45, 100, W / 2, H / 2, W * .75);
+  g.addColorStop(0, '#0d2033'); g.addColorStop(1, '#040a12');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  if (tint) { ctx.fillStyle = hexA(tint.c, .07 * tint.a); ctx.fillRect(0, 0, W, H); }
+  // 網格
+  ctx.save(); ctx.strokeStyle = 'rgba(120,170,210,0.06)'; ctx.lineWidth = 1;
+  const off = (t * 12) % 60;
+  for (let x = -60 + off; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.restore();
+  // 雷達掃描
+  ctx.save(); ctx.translate(W - 160, H - 150);
+  ctx.strokeStyle = 'rgba(120,200,255,0.10)';
+  for (let r = 40; r <= 120; r += 40) { ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke(); }
+  const a = t * 1.6;
+  const sg = ctx.createConicGradient(a, 0, 0);
+  sg.addColorStop(0, 'rgba(120,220,255,0.28)'); sg.addColorStop(.12, 'rgba(120,220,255,0)'); sg.addColorStop(1, 'rgba(120,220,255,0)');
+  ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(0, 0, 120, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // 暗角
+  const v = ctx.createRadialGradient(W / 2, H / 2, H * .45, W / 2, H / 2, W * .7);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+}
+
+// 頂部進度列（各階段持續顯示）
+function progressBar(t, activeIdx, alpha) {
+  if (alpha <= 0) return;
+  ctx.save(); ctx.globalAlpha = alpha;
+  const x0 = 160, x1 = W - 160, y = 70, seg = (x1 - x0) / 5;
+  STAGES.forEach((s, i) => {
+    const x = x0 + i * seg + 6, w = seg - 12, on = i <= activeIdx, cur = i === activeIdx;
+    rrect(x, y, w, 10, 5); ctx.fillStyle = on ? s.color : 'rgba(255,255,255,0.12)'; ctx.fill();
+    if (cur) { ctx.save(); ctx.shadowColor = s.color; ctx.shadowBlur = 20; rrect(x, y, w, 10, 5); ctx.fill(); ctx.restore(); }
+    txt(`${i + 1}  ${s.key}`, x, y + 44, 24, cur ? '#fff' : on ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.35)', { weight: cur ? 700 : 400 });
+  });
+  ctx.restore();
+}
+
+// 威脅指數（左側直條）
+function threatMeter(level, color, alpha) {
+  if (alpha <= 0) return;
+  ctx.save(); ctx.globalAlpha = alpha;
+  const x = 70, y = 200, h = 720;
+  rrect(x, y, 14, h, 7); ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fill();
+  const g = ctx.createLinearGradient(0, y + h, 0, y);
+  g.addColorStop(0, '#3fbf86'); g.addColorStop(.4, '#e9c63f'); g.addColorStop(.7, '#f28c38'); g.addColorStop(1, '#e5484d');
+  const fh = h * level;
+  ctx.save(); rrect(x, y, 14, h, 7); ctx.clip(); ctx.fillStyle = g; ctx.fillRect(x, y + h - fh, 14, fh); ctx.restore();
+  ctx.save(); ctx.translate(x + 7, y + h - fh); ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.translate(x - 22, y + h / 2); ctx.rotate(-Math.PI / 2);
+  txt('情勢緊張程度', 0, 0, 20, 'rgba(255,255,255,.5)', { align: 'center', spacing: 6 }); ctx.restore();
+  ctx.restore();
+}
+
+// ---------- 場景 ----------
+function sceneTitle(t) {
+  const a = easeOut(prog(t, .3, 1.4)) * (1 - prog(t, T_OVER - 1, 1));
+  ctx.save(); ctx.globalAlpha = a;
+  const lw = 720 * easeInOut(prog(t, .5, 1.6));
+  ctx.fillStyle = '#e5484d'; ctx.fillRect(W / 2 - lw / 2, 470, lw, 3);
+  txt('ROC ARMED FORCES · PEACETIME TO WARTIME TRANSITION', W / 2, 400, 26, 'rgba(160,210,255,.7)', { align: 'center', spacing: 6 });
+  txt('國軍平戰轉換', W / 2, 590, 120, '#fff', { align: 'center', weight: 700, spacing: 16, glow: 'rgba(120,200,255,.35)' });
+  txt('從平時到戰時，各階段在做什麼？', W / 2, 680, 40, 'rgba(255,255,255,.82)', { align: 'center', alpha: easeOut(prog(t, 1.6, 1)) });
+  txt('依公開資料整理之概念示意', W / 2, 760, 24, 'rgba(255,255,255,.45)', { align: 'center', alpha: easeOut(prog(t, 2.4, 1)) });
+  ctx.restore();
+}
+
+function sceneOverview(t) {
+  const lt = t - T_OVER;
+  const a = easeOut(prog(lt, 0, .8)) * (1 - prog(t, T_S[0] - .8, .8));
+  ctx.save(); ctx.globalAlpha = a;
+  txt('平戰轉換五階段（概念）', W / 2, 200, 56, '#fff', { align: 'center', weight: 700 });
+  txt('隨情勢升高，國軍由平時戰備逐步轉入作戰狀態', W / 2, 260, 28, 'rgba(255,255,255,.6)', { align: 'center' });
+  // 階梯
+  const bx = 220, bw = 280, gap = 22, base = 860;
+  STAGES.forEach((s, i) => {
+    const p = easeOut(prog(lt, .6 + i * .55, .9));
+    const h = (190 + i * 85) * p, x = bx + i * (bw + gap);
+    const g = ctx.createLinearGradient(0, base - h, 0, base);
+    g.addColorStop(0, hexA(s.color, .9)); g.addColorStop(1, hexA(s.color, .25));
+    rrect(x, base - h, bw, h, 14); ctx.fillStyle = g; ctx.fill();
+    ctx.save(); ctx.globalAlpha *= p;
+    txt(String(i + 1).padStart(2, '0'), x + 24, base - h + 62, 48, 'rgba(255,255,255,.95)', { weight: 700 });
+    txt(s.key, x + 24, base - h + 112, 38, '#fff', { weight: 700 });
+    txt(s.en, x + 24, base - h + 146, 14, 'rgba(255,255,255,.75)', { spacing: 1 });
+    ctx.restore();
+  });
+  // 箭頭
+  const ap = easeInOut(prog(lt, 3.6, 1.6));
+  ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(bx, base + 50); ctx.lineTo(bx + (5 * bw + 4 * gap) * ap, base + 50); ctx.stroke();
+  if (ap > .98) {
+    const ex = bx + 5 * bw + 4 * gap;
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath();
+    ctx.moveTo(ex + 6, base + 50); ctx.lineTo(ex - 14, base + 40); ctx.lineTo(ex - 14, base + 60); ctx.fill();
+  }
+  txt('平時', bx, base + 92, 24, 'rgba(255,255,255,.6)', { alpha: ap });
+  txt('戰時', bx + 5 * bw + 4 * gap, base + 92, 24, 'rgba(255,255,255,.6)', { align: 'right', alpha: ap });
+  ctx.restore();
+}
+
+function stageHeader(i, lt, a) {
+  const s = STAGES[i];
+  ctx.save(); ctx.globalAlpha = a;
+  const sl = easeOut(prog(lt, 0, .9));
+  txt(String(i + 1).padStart(2, '0'), 170 - 40 * (1 - sl), 300, 150, hexA(s.color, .9), { weight: 700, glow: hexA(s.color, .5) });
+  txt('STAGE', 178, 158, 22, hexA(s.color, .9), { spacing: 8, alpha: sl });
+  txt(s.title, 400, 230, 66, '#fff', { weight: 700, alpha: sl });
+  txt(s.en, 404, 272, 20, hexA(s.color, .95), { spacing: 5, alpha: sl });
+  txt(s.sub, 404, 322, 32, 'rgba(255,255,255,.78)', { alpha: easeOut(prog(lt, .6, .8)) });
+  ctx.restore();
+}
+
+function stageCards(i, lt, a) {
+  const s = STAGES[i];
+  ctx.save(); ctx.globalAlpha = a;
+  const cw = 760, ch = 220, gx = 36, gy = 34, x0 = (W - 2 * cw - gx) / 2 + 40, y0 = 400;
+  s.cards.forEach((c, k) => {
+    const p = easeOut(prog(lt, 1.4 + k * 1.1, .8));
+    if (p <= 0) return;
+    const x = x0 + (k % 2) * (cw + gx), y = y0 + Math.floor(k / 2) * (ch + gy) + 30 * (1 - p);
+    ctx.save(); ctx.globalAlpha *= p;
+    rrect(x, y, cw, ch, 18); ctx.fillStyle = 'rgba(14,30,48,.85)'; ctx.fill();
+    ctx.strokeStyle = hexA(s.color, .45); ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = s.color; rrect(x, y, 10, ch, 5); ctx.fill();
+    // 編號圓
+    ctx.beginPath(); ctx.arc(x + 76, y + 78, 34, 0, Math.PI * 2); ctx.fillStyle = hexA(s.color, .18); ctx.fill();
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.stroke();
+    txt(String(k + 1), x + 76, y + 80, 34, s.color, { align: 'center', base: 'middle', weight: 700 });
+    txt(c[0], x + 136, y + 92, 44, '#fff', { weight: 700 });
+    txt(c[1], x + 44, y + 172, 30, 'rgba(255,255,255,.8)');
+    ctx.restore();
+  });
+  if (s.foot) txt(s.foot, W / 2 + 40, 1000, 24, 'rgba(255,255,255,.55)', { align: 'center', alpha: easeOut(prog(lt, 6, 1)) });
+  ctx.restore();
+}
+
+// 防衛作戰：重層嚇阻剖面示意
+function defenseDiagram(lt, a) {
+  ctx.save(); ctx.globalAlpha = a;
+  const top = 420, bot = 900, L = 200, R = 1800;
+  // 區域：對岸 | 海峽 | 濱海 | 灘岸 | 本島縱深
+  const zones = [
+    { x0: L, x1: 470, name: '對岸', color: '#5a2328' },
+    { x0: 470, x1: 1000, name: '海峽', color: '#0f3557' },
+    { x0: 1000, x1: 1300, name: '濱海', color: '#14507a' },
+    { x0: 1300, x1: 1470, name: '灘岸', color: '#7a6a3c' },
+    { x0: 1470, x1: R, name: '本島縱深', color: '#24452f' },
+  ];
+  const zp = easeOut(prog(lt, .8, 1));
+  ctx.save(); ctx.globalAlpha *= zp;
+  zones.forEach(z => {
+    const g = ctx.createLinearGradient(0, top, 0, bot);
+    g.addColorStop(0, hexA(z.color, .25)); g.addColorStop(1, hexA(z.color, .85));
+    ctx.fillStyle = g; ctx.fillRect(z.x0, top + 120, z.x1 - z.x0, bot - top - 120);
+    txt(z.name, (z.x0 + z.x1) / 2, bot + 44, 26, 'rgba(255,255,255,.7)', { align: 'center' });
+  });
+  // 波浪
+  ctx.strokeStyle = 'rgba(160,210,255,.35)'; ctx.lineWidth = 2;
+  for (let row = 0; row < 3; row++) {
+    ctx.beginPath();
+    for (let x = 470; x <= 1300; x += 8) {
+      const y = top + 160 + row * 60 + Math.sin(x / 40 + lt * 2 + row) * 6;
+      x === 470 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 敵方來襲箭頭
+  const ep = prog(lt, 1.5, 9);
+  ctx.save(); ctx.globalAlpha *= easeOut(prog(lt, 1.5, .6)) * (1 - prog(lt, 10.5, 1));
+  for (let k = 0; k < 4; k++) {
+    const x = 380 + (1250 - 380) * ((ep + k * .18) % 1), y = top + 190 + k * 50;
+    ctx.fillStyle = 'rgba(255,90,90,.85)';
+    ctx.beginPath(); ctx.moveTo(x + 26, y); ctx.lineTo(x - 10, y - 12); ctx.lineTo(x - 2, y); ctx.lineTo(x - 10, y + 12); ctx.fill();
+  }
+  ctx.restore();
+
+  // 三層
+  const layers = [
+    { t: 2.0, x0: 470, x1: R, y: top, name: '戰力防護', desc: '分散、機動、偽裝，保存戰力並承受首擊', color: '#4fa3e0' },
+    { t: 4.6, x0: 1000, x1: 1300, y: top + 66, name: '濱海決勝', desc: '海空聯合火力，於濱海區截擊', color: '#e9c63f' },
+    { t: 7.2, x0: 1300, x1: 1470, y: top + 66, name: '灘岸殲敵', desc: '泊地、灘岸聚殲登陸部隊', color: '#e5484d' },
+  ];
+  layers.forEach((ly, k) => {
+    const p = easeOut(prog(lt, ly.t, .9));
+    if (p <= 0) return;
+    ctx.save(); ctx.globalAlpha *= p;
+    const w = (ly.x1 - ly.x0) * easeInOut(prog(lt, ly.t, 1.1));
+    rrect(ly.x0, ly.y, w, 46, 10); ctx.fillStyle = hexA(ly.color, .28); ctx.fill();
+    ctx.strokeStyle = ly.color; ctx.lineWidth = 2; ctx.stroke();
+    txt(ly.name, ly.x0 + 18, ly.y + 33, 26, '#fff', { weight: 700 });
+    // 高亮區
+    ctx.fillStyle = hexA(ly.color, .14 + .06 * Math.sin(lt * 3));
+    ctx.fillRect(ly.x0, top + 120, ly.x1 - ly.x0, bot - top - 120);
+    ctx.restore();
+  });
+  // 下方說明列
+  ctx.save();
+  layers.forEach((ly, k) => {
+    const p = easeOut(prog(lt, ly.t + .4, .8));
+    const x = L + k * 545;
+    ctx.globalAlpha = a * p;
+    ctx.fillStyle = ly.color; ctx.fillRect(x, 985, 6, 44);
+    txt(ly.name, x + 20, 1004, 26, '#fff', { weight: 700 });
+    txt(ly.desc, x + 20, 1036, 21, 'rgba(255,255,255,.72)');
+  });
+  ctx.restore();
+  // 本島韌性
+  const rp = easeOut(prog(lt, 9.6, .8));
+  if (rp > 0) {
+    ctx.save(); ctx.globalAlpha *= rp;
+    rrect(1490, top + 140, 290, 110, 14); ctx.fillStyle = 'rgba(10,25,15,.75)'; ctx.fill();
+    ctx.strokeStyle = '#3fbf86'; ctx.lineWidth = 2; ctx.stroke();
+    txt('縱深持續抵抗', 1635, top + 186, 28, '#fff', { align: 'center', weight: 700 });
+    txt('後備・民防・全社會韌性', 1635, top + 226, 21, 'rgba(255,255,255,.75)', { align: 'center' });
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function sceneStage(i, t) {
+  const start = T_S[i], end = i < 4 ? T_S[i + 1] : T_SUM, lt = t - start;
+  const a = easeOut(prog(lt, 0, .7)) * (1 - prog(t, end - .7, .7));
+  stageHeader(i, lt, a);
+  if (i < 4) stageCards(i, lt, a); else defenseDiagram(lt, a);
+}
+
+function sceneSummary(t) {
+  const lt = t - T_SUM;
+  const a = easeOut(prog(lt, 0, .8)) * (1 - prog(t, T_END - .8, .8));
+  ctx.save(); ctx.globalAlpha = a;
+  txt('平戰轉換的三個關鍵', W / 2, 250, 60, '#fff', { align: 'center', weight: 700 });
+  txt('（個人理解歸納）', W / 2, 305, 26, 'rgba(255,255,255,.5)', { align: 'center' });
+  const items = [
+    ['快', '縮短轉換時間', '應變機制常態演練，接令即動', '#e9c63f'],
+    ['散', '分散與戰力保存', '不讓首擊癱瘓關鍵戰力', '#4fa3e0'],
+    ['韌', '全社會防衛韌性', '軍民一體，社會持續運作', '#3fbf86'],
+  ];
+  items.forEach((it, k) => {
+    const p = easeOut(prog(lt, .8 + k * .9, .9));
+    const cx = W / 2 + (k - 1) * 520, cy = 560;
+    ctx.save(); ctx.globalAlpha *= p;
+    ctx.beginPath(); ctx.arc(cx, cy - 20 * (1 - p), 120, 0, Math.PI * 2);
+    ctx.fillStyle = hexA(it[3], .14); ctx.fill(); ctx.strokeStyle = it[3]; ctx.lineWidth = 4; ctx.stroke();
+    txt(it[0], cx, cy - 20 * (1 - p) + 4, 120, it[3], { align: 'center', base: 'middle', weight: 700, glow: hexA(it[3], .5) });
+    txt(it[1], cx, cy + 200, 40, '#fff', { align: 'center', weight: 700 });
+    txt(it[2], cx, cy + 252, 27, 'rgba(255,255,255,.72)', { align: 'center' });
+    ctx.restore();
+  });
+  ctx.restore();
+}
+
+function sceneEnd(t) {
+  const lt = t - T_END;
+  const a = easeOut(prog(lt, 0, 1)) * (1 - prog(t, TOTAL - .8, .8));
+  ctx.save(); ctx.globalAlpha = a;
+  txt('備戰才能止戰', W / 2, 470, 84, '#fff', { align: 'center', weight: 700, spacing: 12, glow: 'rgba(120,200,255,.35)' });
+  ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(W / 2 - 200, 530, 400, 2);
+  txt('本片依公開報導與政策文件之概念整理，屬個人理解示意，', W / 2, 620, 28, 'rgba(255,255,255,.62)', { align: 'center' });
+  txt('非國防部官方定義，不涉及任何實際兵力部署或作戰計畫。', W / 2, 666, 28, 'rgba(255,255,255,.62)', { align: 'center' });
+  ctx.restore();
+}
+
+window.renderAt = function (t) {
+  // 目前階段（供進度列、威脅條、底色使用）
+  let idx = -1;
+  for (let i = 0; i < 5; i++) if (t >= T_S[i]) idx = i;
+  const inStages = t >= T_S[0] - .5 && t < T_SUM;
+  const chromeA = easeOut(prog(t, T_S[0] - .6, .8)) * (1 - prog(t, T_SUM - .6, .6));
+  // 威脅條連續插值
+  let level = 0, col = STAGES[0].color;
+  if (idx >= 0) {
+    const s = STAGES[idx], prev = idx > 0 ? STAGES[idx - 1].level : 0;
+    level = prev + (s.level - prev) * easeInOut(prog(t, T_S[idx], 1.6));
+    col = s.color;
+  }
+  background(t, idx >= 0 && inStages ? { c: col, a: chromeA } : null);
+  progressBar(t, idx, chromeA);
+  threatMeter(level, col, chromeA);
+  if (t < T_OVER) sceneTitle(t);
+  if (t >= T_OVER - .5 && t < T_S[0]) sceneOverview(t);
+  for (let i = 0; i < 5; i++) {
+    const end = i < 4 ? T_S[i + 1] : T_SUM;
+    if (t >= T_S[i] && t < end) sceneStage(i, t);
+  }
+  if (t >= T_SUM && t < T_END) sceneSummary(t);
+  if (t >= T_END) sceneEnd(t);
+};
+window.renderAt(Number(new URLSearchParams(location.search).get('t') || 0));
+</script></body></html>
