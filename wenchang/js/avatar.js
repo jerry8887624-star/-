@@ -86,7 +86,8 @@ export class Avatar {
     back.position.z = -0.03; head.add(back);
     const add = (geo, x, y, z, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(geo, hair); m.position.set(x, y, z); m.scale.set(sx, sy, sz); head.add(m); return m; };
     const h = L.hair % HAIRS.length;
-    if (h === 1) { add(new THREE.CylinderGeometry(0.46, 0.48, 0.42, 20, 1, true, Math.PI * 0.62, Math.PI * 1.76), 0, -0.1, 0); }
+    // 鮑伯頭：圓柱 theta=0 在正前方，缺口要留在前面露出臉
+    if (h === 1) { add(new THREE.CylinderGeometry(0.46, 0.48, 0.42, 20, 1, true, Math.PI * 0.32, Math.PI * 1.36), 0, -0.1, 0); }
     if (h === 2) { add(new THREE.SphereGeometry(0.15, 12, 10), -0.3, 0.33, -0.05); add(new THREE.SphereGeometry(0.15, 12, 10), 0.3, 0.33, -0.05); }
     if (h === 3) { add(new THREE.SphereGeometry(0.13, 12, 10), 0, 0.12, -0.44); add(new THREE.CapsuleGeometry(0.1, 0.3, 4, 8), 0, -0.18, -0.5); }
     if (h === 4) { add(new THREE.SphereGeometry(0.17, 12, 10), 0, 0.46, -0.08); }
