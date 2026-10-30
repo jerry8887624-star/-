@@ -41,6 +41,7 @@ export class Temple {
     this.state = state;
     this.players = new Map(); // ws -> player
     this.byId = new Map();    // id -> player
+    this.seats = new Map();   // 座位編號（拜墊、天公爐拜位）-> 玩家 id，一位一人
     this.timer = null;
     state.blockConcurrencyWhile(async () => {
       this.total = (await state.storage.get('total')) || 0;
@@ -57,7 +58,7 @@ export class Temple {
     const p = { id: this.seq, x: 0, z: 13, f: Math.PI, h: 0, b: 0, s: 0, look: null, last: {}, ws: server, dmOff: false, blocked: new Set() };
     this.players.set(server, p); this.byId.set(p.id, p);
     server.addEventListener('message', e => this.onMessage(p, e.data));
-    const bye = () => { if (this.players.delete(server)) { this.byId.delete(p.id); this.broadcast({ t: 'leave', id: p.id }); } };
+    const bye = () => { if (this.players.delete(server)) { this.byId.delete(p.id); this.freeSeat(p); this.broadcast({ t: 'leave', id: p.id }); } };
     server.addEventListener('close', bye); server.addEventListener('error', bye);
     this.tick();
     return new Response(null, { status: 101, webSocket: client });
@@ -114,10 +115,18 @@ export class Temple {
       send(q, { t: 'dm', from: p.id, text: r.text }); send(p, { t: 'dm-ok', to: q.id, text: r.text });
     } else if (m.t === 'dmoff') {
       p.dmOff = !!m.off;
+    } else if (m.t === 'seat') {
+      // 搶座位：有人坐了就回 ok:0；成功就釋放原本的座位
+      const i = int(m.i, -1, 999), owner = this.seats.get(i);
+      if (i < 0) { this.freeSeat(p); return; }
+      if (owner && owner !== p.id && this.byId.has(owner)) return send(p, { t: 'seat', i, ok: 0 });
+      this.freeSeat(p); this.seats.set(i, p.id); p.seat = i; send(p, { t: 'seat', i, ok: 1 });
     } else if (m.t === 'block') {
       p.blocked.add(int(m.id, 0, 1e9));
     }
   }
+
+  freeSeat(p) { if (p.seat != null && this.seats.get(p.seat) === p.id) this.seats.delete(p.seat); p.seat = null; }
 
   broadcast(o, except) {
     const s = JSON.stringify(o);
@@ -129,7 +138,7 @@ export class Temple {
     if (this.timer) return;
     const loop = () => {
       if (!this.players.size) { this.timer = null; return; }
-      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, n: p.name || '', look: p.look }));
+      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, n: p.name || '', st: p.seat ?? -1, look: p.look }));
       this.broadcast({ t: 'state', players: list, online: list.length, total: this.total });
       this.timer = setTimeout(loop, 250);
     };

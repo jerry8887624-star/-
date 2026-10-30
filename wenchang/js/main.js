@@ -1,5 +1,5 @@
 import * as THREE from '../vendor/three.module.min.js';
-import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS } from './scene.js';
+import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS, TIANGONG_SEAT0, MAIN_CUSHIONS } from './scene.js';
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES } from './avatar.js';
 import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI } from './data.js';
 import { Net } from './net.js';
@@ -280,10 +280,15 @@ function placeLabels() {
 // ---------- 走動 ----------
 temple.on('tapGround', p => { if (state.busy) return; hideCheer(); hideSocial(); hideMusic(); me.faceTo = null; temple.walk(me, p.x, p.z).then(ok => { if (ok) kneelIfOnCushion(); }); });
 // 拜墊：點拜墊或走到拜墊上就會跪下（面向文昌帝君），可以叩拜；一走動就起身
-temple.on('tapCushion', i => { if (state.busy) return; hideCheer(); hideSocial(); const c = CUSHIONS[i]; temple.walk(me, c.x, c.z, Math.PI).then(ok => { if (ok) kneelIfOnCushion(true); }); });
+temple.on('tapCushion', async i => {
+  if (state.busy) return; hideCheer(); hideSocial();
+  if (!temple.cushionFree(i) || !(await takeSeat(i))) { toast('這個拜墊有人了，換一個吧。'); return; }
+  const c = CUSHIONS[i]; if (await temple.walk(me, c.x, c.z, Math.PI)) kneelIfOnCushion(true); else leaveSeat();
+});
 function kneelIfOnCushion(tapped) {
-  const i = temple.freeCushion(me.root.position.x, me.root.position.z, 0.6);
+  const i = mySeat && mySeat.id < TIANGONG_SEAT0 ? mySeat.id : temple.freeCushion(me.root.position.x, me.root.position.z, 0.6);
   if (i < 0) { if (tapped) toast('這個拜墊有人了，換一個吧。'); return; }
+  if (!mySeat || mySeat.id !== i) takeSeat(i).then(ok => { if (!ok) { me.kneel(false); toast('這個拜墊剛好有人了，換一個吧。'); } });
   const c = CUSHIONS[i]; me.root.position.x = c.x; me.root.position.z = c.z; me.faceTo = Math.PI; me.kneel(true);
   if (!store.get('kneelTip', false)) { toast('跪在拜墊上了。按「叩拜」拜三拜；移動就會起身。', 3600); store.set('kneelTip', true); }
 }
@@ -324,28 +329,40 @@ function complete(id) {
   if (state.done.size === STEPS.length) setTimeout(showDone, 1600);
 }
 function need(cond, msg) { if (!cond) { toast(msg, 3600); buzz([10, 60, 10]); } return cond; }
+// 向伺服器登記座位（拜墊編號 0…、天公爐拜位 500…），一位一人，兩個人不會搶到同一個
+let mySeat = null;
+async function takeSeat(id) { const ok = await net.seat(id); if (ok) mySeat = { id, x: seatPos(id).x, z: seatPos(id).z }; else temple.takenSeats.add(id); return ok; }
+const seatPos = id => id >= TIANGONG_SEAT0 ? TIANGONG_SLOTS[id - TIANGONG_SEAT0] : CUSHIONS[id];
+function leaveSeat() { if (mySeat) { net.leaveSeat(); mySeat = null; } }
+
 async function arrive(spot) {
   const S = SPOTS[spot]; me.faceTo = null;
   let ok;
   if (S.kneel) {
-    // 主拜墊有人就換旁邊的；三個都有人就找最近的空拜墊
-    const mine = CUSHIONS.findIndex(c => Math.hypot(c.x - me.root.position.x, c.z - me.root.position.z) < 0.3);
-    const order = [1, 0, 2].concat(CUSHIONS.map((c, i) => i).slice(3).sort((a, b) => Math.hypot(CUSHIONS[a].x, CUSHIONS[a].z - S.z) - Math.hypot(CUSHIONS[b].x, CUSHIONS[b].z - S.z)));
-    const i = order.find(k => k === mine || temple.freeCushion(CUSHIONS[k].x, CUSHIONS[k].z, 0.3) === k);
-    if (i == null) { toast('拜墊都有人在拜，稍等一下再來。'); return false; }
-    if (i > 2) toast('主拜墊有人在拜，先到旁邊的拜墊。', 2600);
-    ok = await temple.walk(me, CUSHIONS[i].x, CUSHIONS[i].z, S.f);
+    // 已經跪在拜墊上就不用動；否則依序找：前排主拜墊 → 最近的空拜墊（向伺服器登記，搶不到就換下一個）
+    if (me.kneeling && mySeat && mySeat.id < TIANGONG_SEAT0) { temple.frame(S.f, S.cam ?? 0.22); return true; }
+    const p = me.root.position;
+    const order = CUSHIONS.map((c, k) => k).sort((a, b) => (a < MAIN_CUSHIONS ? a - 100 : Math.hypot(CUSHIONS[a].x, CUSHIONS[a].z - S.z)) - (b < MAIN_CUSHIONS ? b - 100 : Math.hypot(CUSHIONS[b].x, CUSHIONS[b].z - S.z)));
+    let got = -1;
+    for (const k of order) { if (!temple.cushionFree(k)) continue; if (await takeSeat(k)) { got = k; break; } }
+    if (got < 0) { toast('拜墊都有人了，就在這裡跪拜吧。', 2600); me.faceTo = Math.PI; me.kneel(true); await wait(350); return true; }
+    if (got >= MAIN_CUSHIONS) toast('前排拜墊有人，幫你找了後面的空拜墊。', 2400);
+    ok = await temple.walk(me, CUSHIONS[got].x, CUSHIONS[got].z, S.f);
   } else if (spot === 'censerOut') {
-    // 天公爐前一人一個拜位，滿了就請使用者稍等
-    const mine = TIANGONG_SLOTS.findIndex(sl => Math.hypot(sl.x - me.root.position.x, sl.z - me.root.position.z) < 0.3);
-    const i = mine >= 0 ? mine : temple.freeSlot(TIANGONG_SLOTS);
-    if (i < 0) { toast('天公爐前的拜位都有人，稍等一下再拜。'); return false; }
-    ok = await temple.walk(me, TIANGONG_SLOTS[i].x, TIANGONG_SLOTS[i].z, 0);
+    // 天公爐前一人一個拜位（兩排共 13 位）；都滿了就在後面遙拜，不會卡住
+    if (mySeat && mySeat.id >= TIANGONG_SEAT0) ok = true;
+    else {
+      let got = -1;
+      for (let k = 0; k < TIANGONG_SLOTS.length; k++) { if (temple.freeSlot([TIANGONG_SLOTS[k]], me, TIANGONG_SEAT0 + k) !== 0) continue; if (await takeSeat(TIANGONG_SEAT0 + k)) { got = k; break; } }
+      if (got < 0) { toast('天公爐前人很多，在後面遙拜也可以。', 2600); const b = temple.freeSpot((Math.random() - 0.5) * 6, SPOTS.censerOut.z - 3.2, 0); ok = await temple.walk(me, b.x, b.z, 0); }
+      else ok = await temple.walk(me, TIANGONG_SLOTS[got].x, TIANGONG_SLOTS[got].z, 0);
+    }
   } else {
+    leaveSeat();
     const p = temple.freeSpot(S.x, S.z, S.f);
     ok = await temple.walk(me, p.x, p.z, S.f);
   }
-  if (!ok) return false;
+  if (!ok) { leaveSeat(); return false; }
   temple.frame(S.f, S.cam ?? 0.22);
   if (S.kneel) me.kneel(true);
   await wait(350); return true;
@@ -430,11 +447,14 @@ async function wenchang() {
 async function plant() {
   if (!need(state.carry.incense, '手上沒有香。請先到<b>辦事處</b>領香。')) return;
   if (!need(state.done.has('wenchang'), '先跪在拜墊上向<b>文昌帝君</b>稟告，再把香插進文昌爐。')) return;
-  if (!(await arrive('wcCenser'))) return;
+  // 不用擠到爐前：跪在拜墊上，把香送進文昌爐
+  if (!(await arrive('cushion'))) return;
   temple.focus = new THREE.Vector3(...FOCUS.wcCenser);
   sound.bell(0.1); await me.bow(1);
-  temple.plantIncense('wenchang', Math.max(1, state.carry.sticks ?? 2)); me.hold(false); state.carry.incense = false; state.carry.sticks = 0; save();
-  await wait(700); temple.focus = null;
+  const n = Math.max(1, state.carry.sticks ?? 2);
+  me.hold(false); await temple.flyIncense(me.root.position, n);
+  temple.plantIncense('wenchang', n); state.carry.incense = false; state.carry.sticks = 0; save();
+  await wait(500); temple.focus = null;
   complete('plant');
 }
 
@@ -443,7 +463,7 @@ async function pass() {
   if (!need(state.carry.ticket, '你沒有帶准考證影本。可以重新到<b>辦事處</b>備供品時勾選。')) return;
   if (state.done.has('pass')) { toast('准考證已經過爐了。'); return; }
   if (!need(state.done.has('plant') || state.done.has('wenchang'), '先拜完文昌帝君、<b>插香</b>，再來過爐。')) return;
-  if (!(await arrive('wcCenser'))) return;
+  if (!(await arrive('cushion'))) return; // 跪在拜墊上就能過爐，不用擠到爐前
   temple.focus = new THREE.Vector3(...FOCUS.wcCenser);
   const ok = await circleGesture();
   temple.focus = null;
@@ -671,6 +691,7 @@ const net = new Net(wsUrl, {
         peers.set(p.id, { s: p.s || 0, n: p.n || '' });
       }
       for (const id of [...peers.keys()]) if (!seen.has(id)) peers.delete(id);
+      temple.takenSeats = new Set(m.players.filter(p => p.id !== myId && p.st >= 0).map(p => p.st));
       renderPeople();
       for (const [id, av] of remotes) if (!seen.has(id)) { temple.removeAvatar(av); remotes.delete(id); }
     }
@@ -852,7 +873,7 @@ function startNpcs() {
       await wait(800 + i * 1500);
       while (gen === npcGen) {
         if (Math.random() < 0.4) { // 找個空拜墊跪拜（主拜墊留給玩家）
-          const free = CUSHIONS.map((c, k) => k).filter(k => k > 2 && temple.freeCushion(CUSHIONS[k].x, CUSHIONS[k].z, 0.3) === k && Math.hypot(me.root.position.x - CUSHIONS[k].x, me.root.position.z - CUSHIONS[k].z) > 1);
+          const free = CUSHIONS.map((c, k) => k).filter(k => k >= MAIN_CUSHIONS && temple.cushionFree(k, av) && Math.hypot(me.root.position.x - CUSHIONS[k].x, me.root.position.z - CUSHIONS[k].z) > 1);
           const c = CUSHIONS[free[Math.floor(Math.random() * free.length)]];
           if (c && await temple.walk(av, c.x, c.z, Math.PI)) { av.kneel(true); await wait(600); await av.bow(3); await wait(3000 + Math.random() * 4000); av.kneel(false); continue; }
         }
@@ -881,9 +902,13 @@ function loop() {
   temple.update();
   if (!$('#hud').hidden) {
     placeLabels();
+    const p = me.root.position;
     if (myId) tagFor(me, `你・${who(myId)}`, true);
-    for (const [id, av] of remotes) tagFor(av, who(id)).classList.toggle('done', (peers.get(id)?.s || 0) >= STEPS.length);
-    const p = me.root.position; net.pos(p.x, p.z, me.root.rotation.y, me.holding, me.bowT >= 0, me.kneeling);
+    // 人多時只顯示離你最近的 12 個名牌，畫面才不會被名字蓋滿
+    const near = [...remotes].map(([id, av]) => [id, av, Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z)]).sort((a, b) => a[2] - b[2]);
+    near.forEach(([id, av, d], k) => { const el = tagFor(av, who(id)); el.classList.toggle('done', (peers.get(id)?.s || 0) >= STEPS.length); el.classList.toggle('far', k >= 12 || d > 14); });
+    net.pos(p.x, p.z, me.root.rotation.y, me.holding, me.bowT >= 0, me.kneeling);
+    if (mySeat && Math.hypot(p.x - mySeat.x, p.z - mySeat.z) > 0.7) leaveSeat(); // 離開拜墊／拜位就釋放座位
     $('#kneel-bar').hidden = !me.kneeling || state.busy;
     document.body.classList.toggle('kneeling', !!me.kneeling);
   }

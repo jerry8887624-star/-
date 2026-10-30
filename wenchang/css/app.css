@@ -403,3 +403,5 @@ body.chatting #stick, body.chatting #kneel-bar { display: none; }
 .my-nick { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; color: var(--muted); }
 .my-nick input { padding: 7px 10px; border-radius: 10px; }
 .my-nick button { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--gold); background: var(--red); min-height: 36px; font-size: 13px; }
+
+.tag.far { display: none !important; }
