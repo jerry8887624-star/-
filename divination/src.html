@@ -3734,11 +3734,26 @@ function hideSplash(force){
 document.addEventListener('pointerdown',e=>{if(e.target.closest('#splash')&&spReady)hideSplash(true)},true);
 
 /* ---------- 初次使用引導 ---------- */
+/* ---------- 拜訪人次：每台手機每天記一次（Cloudflare Pages Function＋D1，只存日期與次數） ---------- */
+let VISITS=store.get('gx_visits',null);
+const twDay=()=>new Date(Date.now()+8*36e5).toISOString().slice(0,10);
+function visitPing(){
+  if(location.protocol==='file:'||onOldSite())return;
+  const d=twDay(), counted=store.get('gx_vday','')===d;
+  fetch('/api/visit',{method:counted?'GET':'POST',cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+    if(!j||typeof j.total!=='number')return;
+    if(!counted)store.set('gx_vday',d);
+    VISITS={total:j.total,today:j.today,day:d};store.set('gx_visits',VISITS);visitShow();
+  }).catch(()=>{});
+}
+function visitHtml(){if(!VISITS)return '';const n=x=>Number(x).toLocaleString('zh-TW');return `已有 <b>${n(VISITS.total)}</b> 人次造訪・今天 <b>${n(VISITS.day===twDay()?VISITS.today:0)}</b> 人次`}
+function visitShow(){const e=$('#welVisits');if(e&&VISITS){e.innerHTML=visitHtml();e.hidden=false}}
 function welcomeHtml(){return `<div class="wel" role="dialog" aria-modal="true" aria-labelledby="welT">
-  <div class="wel-in">
+  <div class="wel-in" tabindex="0">
     <img class="wel-logo" src="icons/icon-192.png" alt="" onerror="this.remove()">
     <h1 id="welT">歡迎來到靈犀</h1>
     <p class="wel-sub">你的口袋命理師</p>
+    <p class="wel-visits" id="welVisits" aria-live="polite"${VISITS?'':' hidden'}>${visitHtml()}</p>
     <ul class="wel-list">
       <li><i class="wi">☀︎</i><div><b>每日運勢與行動指南</b><span>今天適合做什麼、避開什麼，一看就懂</span></div></li>
       <li><i class="wi">✦</i><div><b>塔羅占卜・求籤擲筊</b><span>心裡有事時，問一問</span></div></li>
@@ -3903,6 +3918,7 @@ function boot(){
   {const th=store.get('gx_theme','auto');if(th!=='auto')setTheme(th,false)}
   document.documentElement.classList.toggle('simple',simple);document.documentElement.classList.toggle('lowmo',store.get('gx_motion','full')==='low');
   spReady=true;
+  visitPing();
   if(!window.Solar){hideSplash(true);$('#boot').innerHTML='<b>命理曆法元件載入失敗</b><br><span style="font-size:13px">'+(window.__gxErr.join('；')||'程式庫未載入')+'<br>請確認網路後重新整理，或改用 Safari／Chrome 開啟。</span>';return}
   try{
   try{derive()}catch(err){console.error(err);P=SAMPLE;derive()}

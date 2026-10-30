@@ -3,7 +3,7 @@
 更新：2026-10-29。新對話接手時先讀這份，再照 SKILL.md 的流程做。
 
 ## 版本與網址
-- 目前版本：1.24（`data/changes.json` 最上面那筆，v = `2026.11.10`）。下次發布版號接著遞增。
+- 目前版本：1.25（`data/changes.json` 最上面那筆，v = `2026.11.11`）。下次發布版號接著遞增。
 - 正式網址：**https://lingxi-397.pages.dev/**（Cloudflare Pages，從 GitHub `main` 自動部署，建置輸出目錄 `divination`，沒有建置命令）。
 - 新網址寫在 `divination/data/site.json`，build.py 會帶入 `SITE_URL`、og 標籤，並產生 `old-site.html`。
 - 舊網址 `…github.io/-/divination/` 現在只放輕量搬家頁：`deploy.yml` 把 `divination/old-site.html` 複製成舊網址的 index.html。來源是 `divination/move.html`，裡面的 `/*SITE_URL*/` 會被替換掉。
@@ -20,7 +20,8 @@
 
 ## 待辦
 1. **GitHub 專案改成私人**：等使用者搬完（約 1–2 週後）再帶使用者操作（Settings → Danger Zone → Change visibility）。改了之後舊網址會停用，Cloudflare 照常運作。專案根目錄另有幾份與靈犀無關、使用者個人的 PDF，改成私人後就不會公開。
-2. 紫微「時辰不確定」提醒：使用者先前沒選，未做。
+2. 紫微「時辰不確定」提醒：命書已做（1.24）；紫微頁本身尚未加，待使用者決定。
+3. **帶使用者在 Cloudflare 建 D1 並綁定 DB**（拜訪人次要靠它；一次一步、等截圖）。
 
 ## 觀音一百籤（1.22）
 - `data/guanyin.js`：`GUANYIN_DATA[i][0]` 宮位、`[1]` 上／中／下；`GUANYIN_META` 存異說籤等、聖意、解曰、典故名稱、典故白話（自撰）、十五項斷語（`GUANYIN_KEYS`）。
@@ -36,6 +37,12 @@
 - `reportHtml()` 依實歲分段：`kid`（<18）、`senior`（≥65）改寫事業、感情、大運建議；`noHour`（時辰不確定）開頭加說明、章節依據註明紫微僅供參考。
 - 流月改由共用的 `liuMonths(年干支)` 產生（流年頁與命書同一套）；星數與文字分級一律用 `Math.round(score)`。
 - 檢查方式：多組命主（長輩、孩子、時辰不確定、複姓、單名）產生命書，掃描 undefined／NaN／重複標點／空格，並看手機截圖與列印 PDF。
+
+## 拜訪人次（1.25）
+- `functions/api/visit.js`（repo 根目錄，Cloudflare Pages Function）＋ D1，綁定名稱 `DB`；表 `hits(day, n)` 會自動建立。GET 讀、POST 今天加一；以台灣時間換日。
+- App：`visitPing()` 在 boot 呼叫，`gx_vday` 記錄今天是否已計；結果存 `gx_visits`；顯示在歡迎畫面 `#welVisits`。API 不通時隱藏。SW 不快取 `/api/`。
+- 本機測試：scratchpad 安裝 wrangler，在含 functions/ 的暫存資料夾執行 `wrangler pages dev divination --d1 DB=xxx --persist-to <scratch>`，避免 .wrangler 寫進 repo。不要用 pkill -f 比對含相同字串的指令（會把自己的 shell 一起砍掉）。
+- 使用者需在 Cloudflare 後台建立 D1 並綁定到 Pages 專案（變數名 DB），之後重新部署一次才生效。
 
 ## 音訊（目前做法）
 - 背景音樂 5 首，放在 `audio/*.mp3`（響度 -20 LUFS、112 kbps）：寺院系〈儀式靜心〉〈缽音入定〉〈晨鐘回響〉、星空系〈琉璃雨〉〈靜夜安神〉。用**原生 `<audio>`** 播放、不經 Web Audio，因為接 Web Audio 時捲動會變調、爆音。iOS 不能調網頁音量。

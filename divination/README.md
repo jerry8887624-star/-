@@ -61,3 +61,7 @@ python3 divination/build.py      # 由 src.html + css/ + data/ 產生 index.html
 曆法與紫微排盤使用 [lunar-javascript](https://github.com/6tail/lunar-javascript) 、[iztro](https://github.com/SylarLong/iztro)，月空星曆使用 [astronomy-engine](https://github.com/cosinekitty/astronomy)，已放在 `vendor/`（MIT 授權，附授權檔），jsDelivr 只作為備援。資料只存在使用者自己的瀏覽器。
 
 推到 `main` 後，GitHub Actions 會把本資料夾部署到 GitHub Pages 的 `/divination/`。
+
+## 拜訪人次
+
+歡迎畫面顯示累計與今日人次（每支手機每天記一次）。後端是 `functions/api/visit.js`（Cloudflare Pages Function），資料存在 Cloudflare D1，綁定名稱 `DB`，只存日期與次數兩欄，第一次呼叫會自動建表。尚未綁定資料庫時 API 回 503，App 端自動隱藏人次。
