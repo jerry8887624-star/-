@@ -1,8 +1,9 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Temple, SPOTS, MARKS } from './scene.js';
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES } from './avatar.js';
-import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES } from './data.js';
+import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES } from './data.js';
 import { Net } from './net.js';
+import { checkChat, CHAT_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
 
 const $ = s => document.querySelector(s);
@@ -516,7 +517,7 @@ const net = new Net(wsUrl, {
   status(on, was) {
     $('#presence').hidden = !on;
     if (on) { stopNpcs(); net.step(state.done.size); }
-    else { for (const av of remotes.values()) temple.removeAvatar(av); remotes.clear(); peers.clear(); if (was) feed('連線中斷，正在重新連線…'); }
+    else { if (chat.with) closeChat('lost'); for (const av of remotes.values()) temple.removeAvatar(av); remotes.clear(); peers.clear(); if (was) feed('連線中斷，正在重新連線…'); }
     renderPeople();
   },
   message(m) {
@@ -531,7 +532,7 @@ const net = new Net(wsUrl, {
         else if (JSON.stringify(av.look) !== JSON.stringify(p.look)) av.setLook(p.look);
         if (Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z) > 0.1) { av.path = null; av.target = { x: p.x, z: p.z, face: p.f }; } else av.faceTo = p.f;
         av.hold(!!p.h); if (p.b && av.bowT < 0) av.bow(1);
-        peers.set(p.id, { s: p.s || 0 });
+        peers.set(p.id, { s: p.s || 0, c: !!p.c });
       }
       for (const id of [...peers.keys()]) if (!seen.has(id)) peers.delete(id);
       renderPeople();
@@ -557,10 +558,22 @@ const net = new Net(wsUrl, {
       const text = CHEERS[m.i] || CHEERS[0];
       const from = m.from === myId ? me : remotes.get(m.from);
       if (from) bubble(from, text);
-      if (m.to === myId && m.from !== myId) {
+      if (m.to === myId && m.from !== myId && !blocked.has(m.from)) {
         toast(`考生 #${m.from} 對你說：<b>${esc(text)}</b><button type="button" class="reply" data-reply="${m.from}">回覆</button>`, 5000); sound.chime(); buzz(20);
       }
     }
+    else if (m.t === 'invite') onInvite(m.from);
+    else if (m.t === 'invited') toast(`已邀請考生 #${m.to}，等待對方回覆…`, 3000);
+    else if (m.t === 'busy') toast(`考生 #${m.id} 正在和別人說悄悄話，等一下再試。`);
+    else if (m.t === 'declined') toast('對方婉拒了邀請。');
+    else if (m.t === 'chat-open') openChat(m.with);
+    else if (m.t === 'chat-close') closeChat(m.why);
+    else if (m.t === 'chat-err') toast(m.why === 'inChat' ? '你正在說悄悄話，先結束再邀請別人。' : '邀請已經過期了。');
+    else if (m.t === 'msg') { if (chat.with === m.from) { chatLine('them', m.text); sound.chime(); buzz(10); const av = remotes.get(m.from); if (av) bubble(av, '💬', 'bubble', 1500); } }
+    else if (m.t === 'msg-ok') { chatLine('me', m.text); bubble(me, '💬', 'bubble', 1500); }
+    else if (m.t === 'msg-reject') chatLine('sys', CHAT_WHY[m.why] || '這則訊息沒有送出。');
+    else if (m.t === 'slow' && m.kind === 'msg') chatLine('sys', '說慢一點喔。');
+    else if (m.t === 'slow' && m.kind === 'invite') toast('邀請太頻繁，請稍等一下再邀請。');
     else if (m.t === 'slow') toast(m.kind === 'card' ? '祈福卡剛掛過，等一下再換。' : '慢一點喔，稍等一下再送。');
   },
 });
@@ -582,7 +595,59 @@ function openCheerFor(id, av = remotes.get(id)) {
 }
 function hideCheer() { $('#cheer-menu').hidden = true; }
 $('#cheer-list').onclick = e => { const b = e.target.closest('button'); if (!b) return; net.cheer(+$('#cheer-menu').dataset.id, +b.dataset.i); hideCheer(); buzz(10); };
-$('#cheer-block').onclick = () => { blocked.add(+$('#cheer-menu').dataset.id); sess.set('blocked', [...blocked]); hideCheer(); toast('之後不會再顯示他的打氣。'); };
+function blockUser(id) { blocked.add(id); sess.set('blocked', [...blocked]); net.block(id); }
+$('#cheer-block').onclick = () => { blockUser(+$('#cheer-menu').dataset.id); hideCheer(); toast('已封鎖，他不能再邀請你說悄悄話，也不會再看到他的打氣。'); };
+$('#cheer-invite').onclick = () => { const id = +$('#cheer-menu').dataset.id; hideCheer(); inviteChat(id); };
+
+// ---------- 悄悄話 ----------
+const chat = { with: 0 };
+let inviteFrom = 0, inviteT;
+function inviteChat(id) {
+  if (chat.with) { toast('你正在說悄悄話，先結束再邀請別人。'); return; }
+  if (peers.get(id)?.c) { toast(`考生 #${id} 正在和別人說悄悄話。`); return; }
+  net.invite(id);
+}
+function onInvite(from) {
+  if (blocked.has(from)) { net.decline(from); return; }
+  if (chat.with) { net.decline(from); return; }
+  inviteFrom = from; $('#invite-text').innerHTML = `<b>考生 #${from}</b> 想跟你說悄悄話`;
+  $('#invite-card').hidden = false; sound.chime(); buzz([20, 60, 20]);
+  clearTimeout(inviteT); inviteT = setTimeout(() => { if (inviteFrom === from) { $('#invite-card').hidden = true; net.decline(from); inviteFrom = 0; } }, 25000);
+}
+$('#invite-accept').onclick = () => { $('#invite-card').hidden = true; net.accept(inviteFrom); inviteFrom = 0; };
+$('#invite-decline').onclick = () => { $('#invite-card').hidden = true; net.decline(inviteFrom); inviteFrom = 0; };
+$('#invite-block').onclick = () => { $('#invite-card').hidden = true; net.decline(inviteFrom); blockUser(inviteFrom); toast('已封鎖，他不能再邀請你。'); inviteFrom = 0; };
+function openChat(id) {
+  chat.with = id; hideCheer(); hideSocial();
+  $('#chat-title').textContent = `和考生 #${id} 說悄悄話`;
+  $('#chat-log').innerHTML = ''; chatLine('sys', '開始說悄悄話了。');
+  $('#chat').hidden = false; document.body.classList.add('chatting');
+}
+function closeChat(why) {
+  if (!chat.with) return;
+  chat.with = 0; $('#chat').hidden = true; document.body.classList.remove('chatting'); $('#chat-input').blur();
+  toast(chat.blocking ? '已封鎖，悄悄話結束了。他不能再邀請你。' : why === 'left' ? '對方已離開，悄悄話結束了。' : why === 'lost' ? '連線中斷，悄悄話結束了。' : '悄悄話結束了。');
+  chat.blocking = false;
+}
+function chatLine(who, text) {
+  const li = document.createElement('li'); li.className = who; li.textContent = text;
+  const log = $('#chat-log'); log.appendChild(li); while (log.children.length > 60) log.firstChild.remove(); log.scrollTop = log.scrollHeight;
+}
+function sendChat(text) {
+  const r = checkChat(text);
+  if (!r.ok) { chatLine('sys', CHAT_WHY[r.why]); return false; }
+  net.say(r.text); return true;
+}
+$('#chat-phrases').innerHTML = CHAT_PHRASES.map(t => `<button type="button">${t}</button>`).join('');
+$('#chat-phrases').onclick = e => { const b = e.target.closest('button'); if (b) sendChat(b.textContent); };
+$('#chat-form').onsubmit = e => { e.preventDefault(); const i = $('#chat-input'); if (sendChat(i.value)) i.value = ''; };
+$('#chat-end').onclick = () => { net.endChat(); };
+// 手機鍵盤跳出來時，把悄悄話視窗往上推，輸入框才不會被擋住
+if (window.visualViewport) {
+  const fit = () => { const v = visualViewport; $('#chat').style.bottom = Math.max(0, innerHeight - v.height - v.offsetTop) + 'px'; };
+  visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit);
+}
+$('#chat-block').onclick = () => { chat.blocking = true; blockUser(chat.with); };
 $('#presence').onclick = () => openSocial();
 $('#toast').addEventListener('click', e => { const b = e.target.closest('[data-reply]'); if (b) { $('#toast').classList.remove('show'); openCheerFor(+b.dataset.reply); } });
 
@@ -602,12 +667,15 @@ function renderPeople() {
   const ids = [...peers.keys()].filter(id => id !== myId).sort((a, b) => a - b);
   $('#people-title').textContent = `在廟裡的考生（${ids.length + (online ? 1 : 0)} 人，含你）`;
   $('#people-empty').hidden = ids.length > 0;
-  const html = ids.map(id => { const s = peers.get(id).s; return `<li><span><b>考生 #${id}</b><small>${s >= 6 ? '已完成參拜 ✓' : s ? `參拜中・${s}/6` : '剛進廟'}</small></span><button type="button" data-cheer="${id}">打氣</button></li>`; }).join('');
+  const html = ids.map(id => { const s = peers.get(id).s; const c = peers.get(id).c; return `<li><span><b>考生 #${id}</b><small>${c ? '悄悄話中' : s >= 6 ? '已完成參拜 ✓' : s ? `參拜中・${s}/6` : '剛進廟'}</small></span><span class="acts"><button type="button" data-cheer="${id}">打氣</button><button type="button" class="alt" data-whisper="${id}"${c ? ' disabled' : ''}>悄悄話</button></span></li>`; }).join('');
   if ($('#people-list').innerHTML !== html) $('#people-list').innerHTML = html;
   const btn = $('#social-btn'); let dot = btn.querySelector('.dot');
   if (online && ids.length) { if (!dot) { dot = document.createElement('b'); dot.className = 'dot'; btn.appendChild(dot); } dot.textContent = ids.length; } else dot?.remove();
 }
-$('#people-list').onclick = e => { const b = e.target.closest('[data-cheer]'); if (b) openCheerFor(+b.dataset.cheer); };
+$('#people-list').onclick = e => {
+  const b = e.target.closest('[data-cheer]'); if (b) openCheerFor(+b.dataset.cheer);
+  const w = e.target.closest('[data-whisper]'); if (w) { hideSocial(); inviteChat(+w.dataset.whisper); }
+};
 
 // 動態：誰進來、誰掛卡、誰完成參拜
 function feed(text) {
