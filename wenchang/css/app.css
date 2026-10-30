@@ -18,6 +18,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body, button { touch-action: manipulation; } /* 連點按鈕不會放大畫面 */
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font-family: var(--sans); }
 body { background: linear-gradient(#f3c99a, #e9b07e 40%, #c98a5e); overscroll-behavior: none; }
 body.night { background: linear-gradient(#0b1030, #1c2250 55%, #3a2a4a); }
