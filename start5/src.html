@@ -45,7 +45,7 @@ function setTheme(v){const r=document.documentElement;r.classList.add('theming')
 function openSettings(){const th=store.get('ax_theme','auto'),mo=store.get('ax_motion','full');
   const L=sheet('顯示與設定',`<div class="card"><b>外觀</b><div class="seg">${[['auto','跟隨系統'],['light','淺色'],['dark','深色']].map(([v,n])=>`<button data-th="${v}" aria-pressed="${th===v}">${n}</button>`).join('')}</div>
     <b>動態效果</b><div class="seg">${[['full','完整動效'],['low','簡化動效']].map(([v,n])=>`<button data-mo="${v}" aria-pressed="${mo===v}">${n}</button>`).join('')}</div>
-    <label><input type="checkbox" id="hap"${store.get('ax_haptic',true)?' checked':''}> 震動回饋</label><label><input type="checkbox" id="snd"${store.get('s5_sound',true)?' checked':''}> 時間到播放提示音</label></div>${installCta()}`);
+    <label><input type="checkbox" id="hap"${store.get('ax_haptic',true)?' checked':''}> 震動回饋</label><button class="btn block" data-a="rem" style="margin:8px 0">⏰ 每日提醒（加入行事曆）</button><label><input type="checkbox" id="snd"${store.get('s5_sound',true)?' checked':''}> 時間到播放提示音</label></div>${installCta()}`);
   L.addEventListener('click',e=>{const t=e.target.closest('[data-th]');if(t){setTheme(t.dataset.th);L.querySelectorAll('[data-th]').forEach(x=>x.setAttribute('aria-pressed',x===t))}
     const m=e.target.closest('[data-mo]');if(m){store.set('ax_motion',m.dataset.mo);document.documentElement.classList.toggle('lowmo',m.dataset.mo==='low');L.querySelectorAll('[data-mo]').forEach(x=>x.setAttribute('aria-pressed',x===m))}});
   L.addEventListener('change',e=>{if(e.target.id==='hap')store.set('ax_haptic',e.target.checked);if(e.target.id==='snd')store.set('s5_sound',e.target.checked)})}

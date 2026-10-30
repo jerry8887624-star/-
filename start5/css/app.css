@@ -132,7 +132,6 @@ label.h3{display:block}
 .plan .seg{margin-bottom:14px}.plan .seg button{font-size:15px}
 /* 小火苗 */
 .ember{display:block;width:100%;height:auto;overflow:visible}
-.ember .eglow{fill:#FF9A4A;opacity:.22;filter:blur(10px)}
 .ember .eye{fill:#5A2A10}
 @media (prefers-reduced-motion:no-preference){
   .ember .ebody{transform-box:fill-box;transform-origin:50% 100%;animation:flick 2.6s ease-in-out infinite}
@@ -205,3 +204,42 @@ body.focusing .tabbar{transform:translateY(calc(100% + 2px))}
 .f-line{min-height:0;font-size:16px}
 @media (max-height:700px){.focus{gap:8px;padding-top:calc(14px + env(safe-area-inset-top))}.f-step{padding:10px 14px}.f-step p{font-size:16.5px}.f-line{margin-top:6px}}
 body.focusing{overflow:hidden}
+/* ===== 0.2 ===== */
+.mood{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px}
+.mood button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;min-height:58px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:12.5px;line-height:1.2;cursor:pointer;color:var(--muted);word-break:keep-all}
+.mood button i{font:700 17px var(--ui);font-style:normal;color:var(--ink)}
+.mood button[aria-pressed="true"]{background:var(--seg-act);color:var(--seg-ink);border-color:transparent;box-shadow:inset 0 0 0 1.5px var(--tint)}
+.mood button[aria-pressed="true"] i{color:var(--seg-ink)}
+.lbl small{font-weight:400}
+.post{margin-top:18px;width:100%;text-align:left}.post .mood{margin-bottom:4px}#postMsg{text-align:center;min-height:1.4em;margin:6px 0 0}
+.evo{margin-bottom:6px;padding:6px 14px;border-radius:999px;background:var(--tint-soft);color:var(--tint);font-weight:700;animation:lin .5s var(--ease)}
+.people{display:block;color:var(--tint);font-size:13.5px;margin-top:2px}
+.sndbtn{margin-top:8px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;color:var(--muted);cursor:pointer}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.sgrid button{padding:12px 4px;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;font-weight:600}
+.sgrid button[aria-pressed="true"]{background:var(--seg-act);color:var(--seg-ink);box-shadow:inset 0 0 0 1.5px var(--tint)}
+.vol{display:flex;flex-direction:column;gap:6px;font-weight:600;margin-bottom:10px}.vol input[type=range]{width:100%;accent-color:#F0763A}
+.sharepic{display:block;width:100%;border-radius:14px;margin-bottom:10px}
+.stage{display:flex;align-items:center;gap:14px}.stage-art{width:96px;flex:none}.stage>div:last-child{flex:1;min-width:0}.stage .h3{margin:2px 0}
+.prog{height:8px;border-radius:4px;background:var(--tint-soft);overflow:hidden;margin:10px 0 4px}.prog i{display:block;height:100%;border-radius:4px;background:var(--gold)}
+.mbar{display:grid;grid-template-columns:4em 1fr 2.4em;align-items:center;gap:8px;margin:8px 0;font-size:14px}
+.mbar>div{height:12px;border-radius:6px;background:var(--tint-soft);overflow:hidden}.mbar i{display:block;height:100%;border-radius:6px;background:#E8692E}
+.mbar.after i{background:#5DA06A}.mbar b{text-align:right}
+.hl{color:var(--tint)}
+.wk{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:8px 0}.wk div{display:flex;flex-direction:column;padding:10px 4px;border-radius:12px;background:var(--tint-soft)}
+.wk b{font:700 24px var(--serif);color:var(--tint)}.wk span{font-size:12.5px;color:var(--muted)}
+.wkl{list-style:none;margin:6px 0;padding:0}.wkl li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px}.wkl span{color:var(--muted)}.wkl b{text-align:right;overflow-wrap:anywhere}
+.addrow{display:flex;gap:8px;align-items:center}.addrow .inp{margin:10px 0;flex:1;min-width:0}.addrow .btn{flex:none}
+.todo{list-style:none;margin:4px 0 0;padding:0}.todo li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.todo span{flex:1;min-width:0;overflow-wrap:anywhere}
+.tick{width:36px;height:36px;flex:none;border-radius:50%;border:1.5px solid var(--line);background:none;color:var(--muted);cursor:pointer;font-size:16px}
+.tick:active{background:var(--tint-soft)}
+.btn.block+.btn.block{margin-top:10px}.log-gap{height:6px}
+/* 火苗進化的動態 */
+@media (prefers-reduced-motion:no-preference){
+  .ember .side{transform-box:fill-box;transform-origin:50% 100%;animation:flick 2.1s ease-in-out infinite}.ember .side.r{animation-delay:-1s}
+  .ember .orbit{transform-box:view-box;transform-origin:60px 80px;animation:spin 9s linear infinite}
+  .ember .rays{transform-box:view-box;transform-origin:60px 90px;animation:spin 30s linear infinite}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.layer{z-index:70}
+.stage,.jar-card{flex-wrap:wrap;justify-content:center}.stage>div:last-child{min-width:13em}.jar-txt{min-width:9em}
+.stage-art{width:88px}

@@ -4,9 +4,10 @@
 import pathlib, sys, hashlib
 ROOT = pathlib.Path(__file__).resolve().parent
 src = (ROOT / 'src.html').read_text(encoding='utf-8')
-for marker, path in [('/*APP_CSS*/', 'css/app.css'), ('/*CHANGES*/', 'data/changes.json'), ('/*APP_JS*/', 'js/app.js')]:
+for marker, path in [('/*APP_CSS*/', 'css/app.css'), ('/*CHANGES*/', 'data/changes.json'), ('/*APP_JS*/', ['js/app.js', 'js/v2.js'])]:
     assert marker in src, marker
-    src = src.replace(marker, (ROOT / path).read_text(encoding='utf-8').strip())
+    paths = path if isinstance(path, list) else [path]
+    src = src.replace(marker, '\n'.join((ROOT / x).read_text(encoding='utf-8').strip() for x in paths))
 (ROOT / 'changes.json').write_text((ROOT / 'data/changes.json').read_text(encoding='utf-8'), encoding='utf-8')
 if '--fragment' in sys.argv:
     out = pathlib.Path(sys.argv[sys.argv.index('--fragment') + 1]); out.write_text(src, encoding='utf-8'); print('fragment ->', out)

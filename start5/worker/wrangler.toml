@@ -1,0 +1,7 @@
+name = "start5-presence"
+main = "presence.js"
+compatibility_date = "2026-10-01"
+
+[[kv_namespaces]]
+binding = "PRESENCE"
+id = "填入建立的 KV namespace id"
