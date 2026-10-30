@@ -123,6 +123,8 @@ export class Temple {
       this.freeSeat(p); this.seats.set(i, p.id); p.seat = i; send(p, { t: 'seat', i, ok: 1 });
     } else if (m.t === 'block') {
       p.blocked.add(int(m.id, 0, 1e9));
+    } else if (m.t === 'unblock') {
+      p.blocked.delete(int(m.id, 0, 1e9));
     }
   }
 

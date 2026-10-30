@@ -35,6 +35,7 @@ export class Net {
   dm(to, text) { this.send({ t: 'dm', to, text }); }
   dmOff(off) { this.send({ t: 'dmoff', off: off ? 1 : 0 }); }
   block(id) { this.send({ t: 'block', id }); }
+  unblock(id) { this.send({ t: 'unblock', id }); }
   // 向伺服器要一個座位（拜墊／拜位）；離線時直接當作成功
   seat(i) {
     if (!this.alive) return Promise.resolve(true);

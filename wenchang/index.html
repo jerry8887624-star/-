@@ -92,6 +92,10 @@
       <ul id="people-list"></ul>
       <p class="pending" id="people-empty">目前只有你一個人。分享網址給同學，一起來拜拜、互相打氣吧！</p>
     </div>
+    <div id="blocked-wrap" hidden>
+      <p class="pop-title">已封鎖的人</p>
+      <ul id="blocked-list" class="blocked-list"></ul>
+    </div>
     <div class="my-nick"><label for="my-nick">我的暱稱</label><input id="my-nick" maxlength="8" autocomplete="off" placeholder="可不填"><button type="button" id="my-nick-save">儲存</button></div>
     <label class="check dm-toggle"><input type="checkbox" id="dm-allow" checked> 接收別人的密語</label>
     <p class="pending" id="social-offline" hidden>現在沒有連上多人伺服器，廟裡是示意香客；動作只有你自己看得到。</p>
@@ -109,6 +113,7 @@
     <div id="cheer-list"></div>
     <button type="button" id="cheer-invite" class="invite-btn">💬 密語</button>
     <button type="button" id="cheer-block" class="ghost small">封鎖這位考生</button>
+    <button type="button" id="cheer-unblock" class="ghost small" hidden>解除封鎖</button>
   </div>
 
   <button type="button" id="dm-btn" aria-label="密語">
