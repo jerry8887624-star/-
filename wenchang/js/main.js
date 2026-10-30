@@ -3,7 +3,7 @@ import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS } from './scene.j
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES } from './avatar.js';
 import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI } from './data.js';
 import { Net } from './net.js';
-import { checkChat, CHAT_WHY } from './chatfilter.js';
+import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
 import { initUpdates, showNewsOnce } from './update.js';
 import { music, MUSIC_TRACKS } from './music.js';
@@ -134,7 +134,15 @@ $('#customize').onclick = e => {
 };
 renderPicker();
 
+// 暱稱：進廟前輸入，會顯示在頭上、名單和密語裡；空白就用「考生 #編號」
+let nick = store.get('nick', '');
+$('#nick-input').value = nick;
+$('#nick-input').addEventListener('input', () => { $('#nick-msg').textContent = ''; });
+$('#nick-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#enter-btn').click(); } });
 $('#enter-btn').onclick = async () => {
+  const nr = checkName($('#nick-input').value);
+  if (!nr.ok) { $('#nick-msg').textContent = NAME_WHY[nr.why] || '這個暱稱不能用，換一個吧。'; $('#nick-input').focus(); return; }
+  nick = nr.text; store.set('nick', nick); $('#nick-input').blur();
   sound.init(); sound.bell(0.12);
   music.night = night; music.muted = !sound.on; music.start();
   $('#splash').classList.add('leaving');
@@ -143,7 +151,7 @@ $('#enter-btn').onclick = async () => {
   temple.focus = null; temple.camDist = innerWidth < innerHeight ? 9 : 8; temple.camPitch = 0.32;
   temple.frame(Math.PI, 0.35);
   me.faceTo = Math.PI;
-  net.connect(look);
+  net.connect(look, nick);
   if (!wsUrl) startNpcs();
   else setTimeout(() => { if (!net.alive) startNpcs(); }, 5000); // 連不上伺服器就先放示意香客
   refresh();
@@ -639,7 +647,8 @@ let myId = 0, blocked = new Set(sess.get('blocked', []));
 // 本機測試可用 ?ws=ws://127.0.0.1:8787/ws
 const wsUrl = (location.hostname === 'localhost' && new URLSearchParams(location.search).get('ws'))
   || (WS_URL === 'auto' ? (/github\.io$/.test(location.hostname) || !/^https?:$/.test(location.protocol) ? '' : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`) : WS_URL);
-const peers = new Map(); // id -> { s: 參拜進度 }
+const peers = new Map(); // id -> { s: 參拜進度, n: 暱稱 }
+const who = id => id === myId ? (nick || `考生 #${id}`) : (peers.get(id)?.n || `考生 #${id}`);
 const net = new Net(wsUrl, {
   status(on, was) {
     $('#presence').hidden = !on;
@@ -659,7 +668,7 @@ const net = new Net(wsUrl, {
         else if (JSON.stringify(av.look) !== JSON.stringify(p.look)) av.setLook(p.look);
         if (Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z) > 0.1) { av.path = null; av.target = { x: p.x, z: p.z, face: p.f }; } else av.faceTo = p.f;
         av.hold(!!p.h); av.kneel(!!p.k); if (p.b && av.bowT < 0) av.bow(1);
-        peers.set(p.id, { s: p.s || 0 });
+        peers.set(p.id, { s: p.s || 0, n: p.n || '' });
       }
       for (const id of [...peers.keys()]) if (!seen.has(id)) peers.delete(id);
       renderPeople();
@@ -673,12 +682,12 @@ const net = new Net(wsUrl, {
     }
     else if (m.t === 'card') {
       temple.addSharedCard(m.card);
-      if (m.card.by !== myId) feed(`考生 #${m.card.by} 掛上一張「${cardLabel(m.card)}」祈福卡`);
+      if (m.card.by !== myId) feed(`${who(m.card.by)} 掛上一張「${cardLabel(m.card)}」祈福卡`);
     }
     else if (m.t === 'feed') {
       if (m.from === myId) return;
-      if (m.k === 'join') feed(`考生 #${m.from} 走進了文昌祠`);
-      if (m.k === 'done') feed(`考生 #${m.from} 完成參拜了！點「互動」幫他加油`);
+      if (m.k === 'join') feed(`${m.n || who(m.from)} 走進了文昌祠`);
+      if (m.k === 'done') feed(`${who(m.from)} 完成參拜了！點「互動」幫他加油`);
     }
     else if (m.t === 'cheer') {
       if (blocked.has(m.from)) return;
@@ -686,7 +695,7 @@ const net = new Net(wsUrl, {
       const from = m.from === myId ? me : remotes.get(m.from);
       if (from) bubble(from, text);
       if (m.to === myId && m.from !== myId && !blocked.has(m.from)) {
-        toast(`考生 #${m.from} 對你說：<b>${esc(text)}</b><button type="button" class="reply" data-reply="${m.from}">回覆</button>`, 5000); sound.chime(); buzz(20);
+        toast(`${esc(who(m.from))} 對你說：<b>${esc(text)}</b><button type="button" class="reply" data-reply="${m.from}">回覆</button>`, 5000); sound.chime(); buzz(20);
       }
     }
     else if (m.t === 'dm') {
@@ -694,7 +703,7 @@ const net = new Net(wsUrl, {
       dmLine(m.from, 'them', m.text);
       const av = remotes.get(m.from); if (av) bubble(av, '💬', 'bubble', 1500);
       sound.chime(); buzz(15);
-      if (!(dm.open && dm.cur === m.from)) toast(`<b>考生 #${m.from}</b> 密語：${esc(m.text)}<button type="button" class="reply" data-dm="${m.from}">回覆</button>`, 6000);
+      if (!(dm.open && dm.cur === m.from)) toast(`<b>${esc(who(m.from))}</b> 密語：${esc(m.text)}<button type="button" class="reply" data-dm="${m.from}">回覆</button>`, 6000);
     }
     else if (m.t === 'dm-ok') { dmLine(m.to, 'me', m.text); bubble(me, '💬', 'bubble', 1500); }
     else if (m.t === 'dm-reject') dmLine(m.to, 'sys', CHAT_WHY[m.why] || '這則密語沒有送出。');
@@ -712,7 +721,7 @@ function openCheer(av) {
 function openCheerFor(id, av = remotes.get(id)) {
   const menu = $('#cheer-menu'); hideSocial();
   menu.hidden = false; menu.dataset.id = id;
-  $('#cheer-name').textContent = `對考生 #${id} 說：`;
+  $('#cheer-name').textContent = `對 ${who(id)} 說：`;
   $('#cheer-list').innerHTML = CHEERS.map((c, i) => `<button type="button" data-i="${i}">${c}</button>`).join('');
   const w = Math.min(280, innerWidth - 24); menu.style.width = w + 'px';
   if (!av) { menu.style.left = (innerWidth - w) / 2 + 'px'; menu.style.top = Math.max(70, innerHeight / 2 - 160) + 'px'; return; }
@@ -751,9 +760,9 @@ function renderDm() {
   let dot = btn.querySelector('.dot'); if (unread) { if (!dot) { dot = document.createElement('b'); dot.className = 'dot'; btn.appendChild(dot); } dot.textContent = unread; } else dot?.remove();
   btn.hidden = !net.alive && !dm.convs.size;
   if (!dm.open) return;
-  $('#dm-tabs').innerHTML = [...dm.convs].map(([id, c]) => `<button type="button" role="tab" data-tab="${id}" aria-selected="${id === dm.cur}" class="${c.gone ? 'gone' : ''}">考生 #${id}${c.unread ? `<b>${c.unread}</b>` : ''}</button>`).join('');
+  $('#dm-tabs').innerHTML = [...dm.convs].map(([id, c]) => `<button type="button" role="tab" data-tab="${id}" aria-selected="${id === dm.cur}" class="${c.gone ? 'gone' : ''}">${esc(who(id))}${c.unread ? `<b>${c.unread}</b>` : ''}</button>`).join('');
   const c = dm.convs.get(dm.cur);
-  $('#chat-title').textContent = c ? `密語：考生 #${dm.cur}` : '密語';
+  $('#chat-title').textContent = c ? `密語：${who(dm.cur)}` : '密語';
   $('#dm-empty').hidden = !!c; $('#chat-log').hidden = !c; $('#chat-block').hidden = !c;
   $('#chat-form').hidden = !c; $('#chat-phrases').hidden = !c;
   $('#chat-input').disabled = !c || c.gone; $('#chat-form button').disabled = !c || c.gone;
@@ -779,7 +788,7 @@ if (window.visualViewport) {
   const fit = () => { const v = visualViewport; $('#chat').style.bottom = Math.max(0, innerHeight - v.height - v.offsetTop) + 'px'; };
   visualViewport.addEventListener('resize', fit); visualViewport.addEventListener('scroll', fit);
 }
-$('#chat-block').onclick = () => { const id = dm.cur; blockUser(id); dm.convs.delete(id); dm.cur = [...dm.convs.keys()].pop() || 0; renderDm(); toast(`已封鎖考生 #${id}，不會再收到他的密語。`); };
+$('#chat-block').onclick = () => { const id = dm.cur; blockUser(id); dm.convs.delete(id); dm.cur = [...dm.convs.keys()].pop() || 0; renderDm(); toast(`已封鎖 ${esc(who(id))}，不會再收到他的密語。`); };
 $('#presence').onclick = () => openSocial();
 $('#toast').addEventListener('click', e => {
   const b = e.target.closest('[data-reply]'); if (b) { $('#toast').classList.remove('show'); openCheerFor(+b.dataset.reply); }
@@ -802,11 +811,18 @@ function renderPeople() {
   const ids = [...peers.keys()].filter(id => id !== myId).sort((a, b) => a - b);
   $('#people-title').textContent = `在廟裡的考生（${ids.length + (online ? 1 : 0)} 人，含你）`;
   $('#people-empty').hidden = ids.length > 0;
-  const html = ids.map(id => { const s = peers.get(id).s; return `<li><span><b>考生 #${id}</b><small>${s >= 6 ? '已完成參拜 ✓' : s ? `參拜中・${s}/6` : '剛進廟'}</small></span><span class="acts"><button type="button" data-cheer="${id}">打氣</button><button type="button" class="alt" data-whisper="${id}">密語</button></span></li>`; }).join('');
+  const html = ids.map(id => { const s = peers.get(id).s; return `<li><span><b>${esc(who(id))}</b><small>${peers.get(id).n ? `#${id}・` : ''}${s >= STEPS.length ? '已完成參拜 ✓' : s ? `參拜中・${s}/${STEPS.length}` : '剛進廟'}</small></span><span class="acts"><button type="button" data-cheer="${id}">打氣</button><button type="button" class="alt" data-whisper="${id}">密語</button></span></li>`; }).join('');
   if ($('#people-list').innerHTML !== html) $('#people-list').innerHTML = html;
   const btn = $('#social-btn'); let dot = btn.querySelector('.dot');
   if (online && ids.length) { if (!dot) { dot = document.createElement('b'); dot.className = 'dot'; btn.appendChild(dot); } dot.textContent = ids.length; } else dot?.remove();
 }
+// 在廟裡改暱稱
+$('#my-nick').value = nick;
+$('#my-nick-save').onclick = () => {
+  const r = checkName($('#my-nick').value);
+  if (!r.ok) { toast(NAME_WHY[r.why] || '這個暱稱不能用。'); return; }
+  nick = r.text; store.set('nick', nick); $('#nick-input').value = nick; net.setName(nick); toast(nick ? `暱稱改成「${esc(nick)}」了。` : '已清除暱稱，會顯示考生編號。');
+};
 $('#people-list').onclick = e => {
   const b = e.target.closest('[data-cheer]'); if (b) openCheerFor(+b.dataset.cheer);
   const w = e.target.closest('[data-whisper]'); if (w) openDm(+w.dataset.whisper, true);
@@ -865,8 +881,8 @@ function loop() {
   temple.update();
   if (!$('#hud').hidden) {
     placeLabels();
-    if (!tags.has(me) && myId) tagFor(me, `你・考生 #${myId}`, true);
-    for (const [id, av] of remotes) tagFor(av, `考生 #${id}`).classList.toggle('done', (peers.get(id)?.s || 0) >= 6);
+    if (myId) tagFor(me, `你・${who(myId)}`, true);
+    for (const [id, av] of remotes) tagFor(av, who(id)).classList.toggle('done', (peers.get(id)?.s || 0) >= STEPS.length);
     const p = me.root.position; net.pos(p.x, p.z, me.root.rotation.y, me.holding, me.bowT >= 0, me.kneeling);
     $('#kneel-bar').hidden = !me.kneeling || state.busy;
     document.body.classList.toggle('kneeling', !!me.kneeling);

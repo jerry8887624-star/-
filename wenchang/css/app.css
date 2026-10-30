@@ -391,3 +391,15 @@ body.chatting #stick, body.chatting #kneel-bar { display: none; }
 .jinzhi-grid small { font-size: 12px; color: var(--muted); }
 .jinzhi-grid button.next { border-color: var(--gold); background: rgba(184, 50, 42, .4); animation: nudge 2s ease-in-out infinite; }
 .jinzhi-grid button.burnt { opacity: .4; }
+
+/* ---------- 暱稱 ---------- */
+.nick { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 320px; margin: 0; padding: 4px 6px 4px 16px; border-radius: 999px; background: var(--glass); border: 1px solid var(--line); }
+.nick span { flex: 0 0 auto; font-family: var(--serif); font-weight: 700; color: var(--gold-2); font-size: 15px; }
+.nick input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 8px 4px; font-size: 16px; }
+.nick input:focus { outline: none; }
+.nick:focus-within { border-color: var(--gold); }
+.nick-msg { margin: -6px 0 0; min-height: 0; font-size: 13px; color: #ffb4a0; }
+.nick-msg:empty { display: none; }
+.my-nick { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; color: var(--muted); }
+.my-nick input { padding: 7px 10px; border-radius: 10px; }
+.my-nick button { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--gold); background: var(--red); min-height: 36px; font-size: 13px; }

@@ -4,9 +4,10 @@
 // 以及「密語」（一對一，最多 40 字，過濾網址與聯絡方式，只轉給對方、不存檔；可封鎖、可關閉接收）。
 // 不收姓名、生日、住址、准考證。會存的只有「累計人次」與牆上的祈福卡（顏色＋考試類別）。
 
-import { checkChat } from '../js/chatfilter.js';
+import { checkChat, checkName } from '../js/chatfilter.js';
 
 const MAX_PLAYERS = 60;
+const STEP_COUNT = 7;        // 參拜步驟數，與前端 data.js 的 STEPS 一致
 const CHEER_COUNT = 8;      // 與前端 data.js 的 CHEERS 數量一致
 const EMOTE_COUNT = 4;      // 與前端 EMOTES 數量一致
 const EXAM_COUNT = 10;      // 與前端 EXAMS 數量一致
@@ -74,18 +75,21 @@ export class Temple {
     let m; try { m = JSON.parse(raw); } catch (_) { return; }
     if (m.t === 'hi' && !p.look) {
       p.look = cleanLook(m.look);
+      const n = checkName(m.name); p.name = n.ok ? n.text : '';
       this.total += 1; this.state.storage.put('total', this.total);
       p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.cards }));
-      this.broadcast({ t: 'feed', from: p.id, k: 'join' }, p.ws);
+      this.broadcast({ t: 'feed', from: p.id, k: 'join', n: p.name }, p.ws);
     } else if (!p.look) {
       return;
     } else if (m.t === 'look') {
       p.look = cleanLook(m.look);
+    } else if (m.t === 'name') {
+      const n = checkName(m.name); if (n.ok) p.name = n.text;
     } else if (m.t === 'pos') {
       p.x = num(m.x, -30, 40); p.z = num(m.z, -30, 40); p.f = num(m.f, -10, 10); p.h = m.h ? 1 : 0; p.b = m.b ? 1 : 0; p.k = m.k ? 1 : 0;
     } else if (m.t === 'step') {
-      const s = int(m.s, 0, 6);
-      if (s === 6 && p.s < 6) this.broadcast({ t: 'feed', from: p.id, k: 'done' });
+      const s = int(m.s, 0, STEP_COUNT);
+      if (s >= STEP_COUNT && p.s < STEP_COUNT) this.broadcast({ t: 'feed', from: p.id, k: 'done' });
       p.s = s;
     } else if (m.t === 'cheer') {
       if (!this.allow(p, 'cheer')) return;
@@ -125,7 +129,7 @@ export class Temple {
     if (this.timer) return;
     const loop = () => {
       if (!this.players.size) { this.timer = null; return; }
-      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, look: p.look }));
+      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, n: p.name || '', look: p.look }));
       this.broadcast({ t: 'state', players: list, online: list.length, total: this.total });
       this.timer = setTimeout(loop, 250);
     };

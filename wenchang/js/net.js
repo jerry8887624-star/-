@@ -3,13 +3,13 @@ export class Net {
   constructor(url, handlers) {
     this.url = url; this.h = handlers; this.ws = null; this.alive = false; this.retry = 1000; this.last = '';
   }
-  connect(look) {
-    this.look = look;
+  connect(look, name = '') {
+    this.look = look; this.name = name;
     if (!this.url) return;
     let ws;
     try { ws = new WebSocket(this.url); } catch (e) { return; }
     this.ws = ws;
-    ws.onopen = () => { this.alive = true; this.retry = 1000; this.send({ t: 'hi', look: this.look }); this.h.status?.(true); };
+    ws.onopen = () => { this.alive = true; this.retry = 1000; this.send({ t: 'hi', look: this.look, name: this.name }); this.h.status?.(true); };
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } this.h.message?.(m); };
     ws.onclose = () => {
       const was = this.alive; this.alive = false; this.h.status?.(false, was);
@@ -27,6 +27,7 @@ export class Net {
     this.send({ t: 'pos', x: +x.toFixed(2), z: +z.toFixed(2), f: +f.toFixed(2), h: h ? 1 : 0, b: b ? 1 : 0, k: k ? 1 : 0 });
   }
   setLook(look) { this.look = look; this.send({ t: 'look', look }); }
+  setName(name) { this.name = name; this.send({ t: 'name', name }); }
   cheer(to, i) { this.send({ t: 'cheer', to, i }); }
   emote(e) { this.send({ t: 'emote', e }); }
   step(s) { this.send({ t: 'step', s }); }
