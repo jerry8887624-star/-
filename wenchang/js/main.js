@@ -218,7 +218,8 @@ function refresh() {
   if (c.offerings.length && !state.done.has('wenchang')) items.push(OFFERINGS.filter(o => c.offerings.includes(o.id)).map(o => o.name).join('、'));
   if (c.ticket) items.push(state.done.has('pass') ? '過爐的准考證影本' : '准考證影本與文具');
   $('#guide-carry').textContent = items.length ? '隨身：' + items.join('・') : '';
-  $('#next').innerHTML = cur ? `下一步：<b>${cur.dock}</b>・${cur.label}` : '參拜完成！還可以<b>擲筊</b>、<b>求籤</b>，或點其他香客互相打氣。';
+  $('#next').innerHTML = cur ? `下一步：<b>${cur.dock}</b>・${cur.label}` : '參拜完成！可以<b>擲筊</b>、<b>求籤</b>、去祈福牆旁的<b>靈犀占卜</b>，或在參拜指引裡按「再參拜一次」。';
+  $('#again-guide').hidden = !!cur;
   document.body.classList.toggle('guide-open', $('#guide-toggle').getAttribute('aria-expanded') === 'true');
 }
 
@@ -233,10 +234,11 @@ const labelsEl = $('#labels');
 const markEls = MARKS.map(m => {
   const el = document.createElement('button'); el.type = 'button'; el.className = 'mark'; el.textContent = m.name; el.dataset.id = m.id; labelsEl.appendChild(el);
   el.onclick = () => {
-    const cur = current(), map = { counter: 'prepare', censer: 'heaven', cushion: ['wenchang', 'plant', 'pass', 'jiaobei'], wall: 'card', qianTube: 'qian', jinlu: 'jinzhi' };
+    const cur = current(), map = { counter: 'prepare', censer: 'heaven', cushion: ['wenchang', 'plant', 'pass', 'jiaobei'], wall: 'card', qianTube: 'qian', jinlu: 'jinzhi', lingxi: 'lingxi' };
     const ids = [].concat(map[m.id]);
     if (cur && ids.includes(cur.id)) act(cur.id);
     else if (m.id === 'qianTube') act('qian');
+    else if (m.id === 'lingxi') act('lingxi');
     else if (!state.busy) { const sp = m.id === 'censer' ? 'censerOut' : m.id; state.busy = true; arrive(sp).finally(() => { state.busy = false; }); }
   };
   return { m, el, v: new THREE.Vector3(...m.pos) };
@@ -318,7 +320,7 @@ async function walkTo(spot) { me.faceTo = null; const ok = await temple.goSpot(m
 async function act(id) {
   if (state.busy) return;
   hideCheer();
-  const fn = { prepare, heaven, wenchang, plant, pass, jinzhi, card, jiaobei, qian }[id];
+  const fn = { prepare, heaven, wenchang, plant, pass, jinzhi, card, jiaobei, qian, lingxi }[id];
   state.busy = true; $('#dock').setAttribute('aria-busy', 'true');
   try { await fn(); } finally { state.busy = false; $('#dock').removeAttribute('aria-busy'); refresh(); }
 }
@@ -657,9 +659,46 @@ $('#lot-save').onclick = async () => {
 };
 
 function showDone() {
-  $('#done-text').textContent = '六個步驟都完成了。祝你考試時頭腦清楚、下筆順利，金榜題名！';
+  const n = store.get('rounds', 0) + 1; store.set('rounds', n);
+  $('#done-text').textContent = `七個步驟都完成了${n > 1 ? `，這是你第 ${n} 次完整參拜` : ''}。祝你考試時頭腦清楚、下筆順利，金榜題名！`;
   sound.chime(); $('#done-dlg').showModal();
 }
+// 再參拜一次：從備供品重新走一遍完整流程（祈福卡保留在牆上，重寫會換新）
+function restartRitual() {
+  state.done.clear(); state.carry = { incense: false, offerings: [], ticket: false, jinzhi: false };
+  picked.clear(); document.querySelectorAll('#offer-grid button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  temple.setOfferings([]); me.hold(false); me.kneel(false); leaveSeat();
+  save(); net.step(0); refresh();
+  toast('重新開始參拜：先到<b>辦事處</b>備供品、領香和金紙。', 4000);
+}
+$('#again-btn').onclick = () => { $('#done-dlg').close(); restartRitual(); };
+$('#again-guide').onclick = () => { if (!state.busy) restartRitual(); };
+
+// 靈犀占卜：點電子牆在遊戲裡打開靈犀（同一位作者的命理 App）
+const LINGXI_URL = 'https://lingxi-397.pages.dev/';
+const LX = [['overview', '☀️', '今日運勢', '每天的運勢'], ['star', '⭐', '星座', '星座運勢'], ['dream', '🌙', '解夢', '夢到什麼'], ['qian', '🎋', '求籤', '多種籤詩'], ['tarot', '🃏', '塔羅', '抽牌占卜'], ['meihua', '☯️', '易卦', '梅花易數'],
+  ['ziwei', '🔯', '紫微', '命盤'], ['liunian', '📅', '流年', '今年運勢'], ['hehun', '💞', '合婚', '兩人合盤'], ['zeri', '🗓️', '擇日', '挑好日子'], ['festival', '🏮', '拜拜', '節日與拜拜'], ['name', '✍️', '改名', '姓名學']];
+$('#lx-grid').innerHTML = LX.map(([v, i, n, d]) => `<button type="button" data-v="${v}"><i aria-hidden="true">${i}</i><b>${n}</b><small>${d}</small></button>`).join('');
+let lxMusic = false;
+function openLingxi() {
+  $('#lingxi-ui').hidden = false; $('#lx-menu').hidden = false; $('#lx-frame').hidden = true; $('#lx-back').hidden = true;
+  document.body.classList.add('lx-open'); lxMusic = music.playing; music.pause();
+}
+function closeLingxi() {
+  $('#lingxi-ui').hidden = true; document.body.classList.remove('lx-open');
+  $('#lx-frame').src = 'about:blank'; if (lxMusic) music.play();
+}
+$('#lx-grid').onclick = e => {
+  const b = e.target.closest('[data-v]'); if (!b) return; const url = LINGXI_URL + '#' + b.dataset.v;
+  $('#lx-frame').src = url; $('#lx-out').href = url; $('#lx-frame').hidden = false; $('#lx-menu').hidden = true; $('#lx-back').hidden = false;
+};
+$('#lx-back').onclick = () => { $('#lx-frame').src = 'about:blank'; $('#lx-frame').hidden = true; $('#lx-menu').hidden = false; $('#lx-back').hidden = true; };
+$('#lx-close').onclick = closeLingxi;
+async function lingxi() {
+  if (Math.hypot(me.root.position.x - SPOTS.lingxi.x, me.root.position.z - SPOTS.lingxi.z) > 3) { if (!(await arrive('lingxi'))) return; }
+  openLingxi();
+}
+temple.on('tapLingxi', () => act('lingxi'));
 
 // ---------- 其他香客：多人連線或示意香客 ----------
 const remotes = new Map(); // id -> avatar
