@@ -1,7 +1,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS } from './scene.js';
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES } from './avatar.js';
-import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES } from './data.js';
+import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI } from './data.js';
 import { Net } from './net.js';
 import { checkChat, CHAT_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
@@ -42,7 +42,7 @@ const state = {
   busy: false,
 };
 const save = () => { sess.set('done', [...state.done]); sess.set('carry', state.carry); };
-if (state.carry.incense) me.hold(true);
+if (state.carry.incense) { me.hold(true); me.setSticks(state.carry.sticks ?? 3); }
 if (state.done.has('wenchang')) temple.setOfferings(OFFERINGS.filter(o => state.carry.offerings.includes(o.id)));
 const myCard = store.get('card', null);
 const cardLabel = c => (c.x >= 0 ? EXAMS[c.x] : '祈福').replace('期中期末考', '期中期末').replace('分科測驗', '分科');
@@ -81,6 +81,12 @@ const sound = {
       const s = c.createBufferSource(); s.buffer = b; const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900 + k * 300; bp.Q.value = 4;
       const g = c.createGain(); g.gain.value = 0.7; s.connect(bp).connect(g).connect(this.master); s.start(t);
     }
+  },
+  fire() { // 金紙入爐：一陣火焰呼呼聲
+    const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime, len = c.sampleRate * 1.2, b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(Math.sin(Math.PI * i / len), 1.5);
+    const s = c.createBufferSource(); s.buffer = b; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+    const g = c.createGain(); g.gain.value = 0.35; s.connect(lp).connect(g).connect(this.master); s.start(t);
   },
   chime() {
     const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime;
@@ -137,6 +143,7 @@ const ICONS = {
   plant: '<path d="M9 14V6M12 14V4M15 14V6"/><path d="M5 14h14l-2 6H7z"/>',
   pass: '<path d="M5 12a7 7 0 1 1 2 5"/><path d="M5 18v-4h4"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/>',
   card: '<path d="M7 5h10v13l-5 3-5-3z"/><path d="M12 2v3M9.5 10h5M9.5 13h5"/>',
+  jinzhi: '<path d="M6 21h12M8 21V11h8v10"/><path d="M12 11c-2-2-1-4 0-6 1 2 3 3 1 6"/><path d="M10 15h4"/>',
   jiaobei: '<path d="M3 14c2-6 7-6 8 0zM13 10c1 6 6 6 8 0z"/>',
   qian: '<path d="M7 11h10l-1.5 10h-7z"/><path d="M10 11V3M13 11V5M15.5 11l1-6"/>',
 };
@@ -202,7 +209,7 @@ const labelsEl = $('#labels');
 const markEls = MARKS.map(m => {
   const el = document.createElement('button'); el.type = 'button'; el.className = 'mark'; el.textContent = m.name; el.dataset.id = m.id; labelsEl.appendChild(el);
   el.onclick = () => {
-    const cur = current(), map = { counter: 'prepare', censer: ['heaven', 'plant', 'pass'], cushion: ['wenchang', 'jiaobei'], wall: 'card', qianTube: 'qian' };
+    const cur = current(), map = { counter: 'prepare', censer: 'heaven', cushion: ['wenchang', 'plant', 'pass', 'jiaobei'], wall: 'card', qianTube: 'qian', jinlu: 'jinzhi' };
     const ids = [].concat(map[m.id]);
     if (cur && ids.includes(cur.id)) act(cur.id);
     else if (m.id === 'qianTube') act('qian');
@@ -224,7 +231,7 @@ function tagFor(av, text, mine) {
 }
 const tmpV = new THREE.Vector3();
 function placeLabels() {
-  const cur = current(), whereMark = cur ? { counter: 'counter', censerOut: 'censer', censer: 'censer', cushion: 'cushion', wall: 'wall' }[cur.where] : null;
+  const cur = current(), whereMark = cur ? { counter: 'counter', censerOut: 'censer', censer: 'censer', cushion: 'cushion', wcCenser: 'cushion', wall: 'wall', jinlu: 'jinlu' }[cur.where] : null;
   const pp = me.root.position;
   markEls.forEach(({ m, el, v }) => {
     const p = temple.project(v), far = Math.hypot(v.x - pp.x, v.z - pp.z);
@@ -280,7 +287,7 @@ async function walkTo(spot) { me.faceTo = null; const ok = await temple.goSpot(m
 async function act(id) {
   if (state.busy) return;
   hideCheer();
-  const fn = { prepare, heaven, wenchang, plant, pass, card, jiaobei, qian }[id];
+  const fn = { prepare, heaven, wenchang, plant, pass, jinzhi, card, jiaobei, qian }[id];
   state.busy = true; $('#dock').setAttribute('aria-busy', 'true');
   try { await fn(); } finally { state.busy = false; $('#dock').removeAttribute('aria-busy'); refresh(); }
 }
@@ -292,9 +299,23 @@ function complete(id) {
 }
 function need(cond, msg) { if (!cond) { toast(msg, 3600); buzz([10, 60, 10]); } return cond; }
 async function arrive(spot) {
-  const ok = await walkTo(spot); if (!ok) return false;
-  temple.frame(SPOTS[spot].f, SPOTS[spot].cam ?? 0.22);
-  if (SPOTS[spot].kneel) me.kneel(true);
+  const S = SPOTS[spot]; me.faceTo = null;
+  let ok;
+  if (S.kneel) {
+    // 主拜墊有人就換旁邊的；三個都有人就找最近的空拜墊
+    const mine = CUSHIONS.findIndex(c => Math.hypot(c.x - me.root.position.x, c.z - me.root.position.z) < 0.3);
+    const order = [1, 0, 2].concat(CUSHIONS.map((c, i) => i).slice(3).sort((a, b) => Math.hypot(CUSHIONS[a].x, CUSHIONS[a].z - S.z) - Math.hypot(CUSHIONS[b].x, CUSHIONS[b].z - S.z)));
+    const i = order.find(k => k === mine || temple.freeCushion(CUSHIONS[k].x, CUSHIONS[k].z, 0.3) === k);
+    if (i == null) { toast('拜墊都有人在拜，稍等一下再來。'); return false; }
+    if (i > 2) toast('主拜墊有人在拜，先到旁邊的拜墊。', 2600);
+    ok = await temple.walk(me, CUSHIONS[i].x, CUSHIONS[i].z, S.f);
+  } else {
+    const p = temple.freeSpot(S.x, S.z, S.f);
+    ok = await temple.walk(me, p.x, p.z, S.f);
+  }
+  if (!ok) return false;
+  temple.frame(S.f, S.cam ?? 0.22);
+  if (S.kneel) me.kneel(true);
   await wait(350); return true;
 }
 
@@ -317,7 +338,7 @@ async function prepare() {
   if (state.done.has('prepare')) {
     if (state.carry.incense) { toast('你手上已經拿著香了。'); return; }
     if (!(await arrive('counter'))) return;
-    state.carry.incense = true; me.hold(true); save(); toast('再點了三炷香。（供品只在第一次參拜時準備）'); return;
+    state.carry.incense = true; state.carry.sticks = 3; me.hold(true); me.setSticks(3); save(); toast('再點了三炷香。（供品只在第一次參拜時準備）'); return;
   }
   if (!(await arrive('counter'))) return;
   offerMsg();
@@ -327,8 +348,8 @@ async function prepare() {
     dlg.onclose = () => res(dlg.returnValue === 'ok'); dlg.returnValue = ''; dlg.showModal();
   });
   if (!ok) return;
-  state.carry = { incense: true, offerings: [...picked], ticket: $('#offer-ticket').checked };
-  me.hold(true); sound.bell(0.08);
+  state.carry = { incense: true, sticks: 3, offerings: [...picked], ticket: $('#offer-ticket').checked, jinzhi: true };
+  me.hold(true); me.setSticks(3); sound.bell(0.08);
   complete('prepare');
 }
 
@@ -356,6 +377,8 @@ async function heaven() {
   const r = await introduce('heaven'); if (!r) return;
   if (r.name) bubble(me, `我是${r.name.slice(0, 8)}`, 'bubble', 2200);
   sound.bell(); await me.bow(3); clearForm();
+  // 第一炷香插在天公爐（站在爐前、面朝廟外）
+  temple.plantIncense('heaven', 1); state.carry.sticks = 2; me.setSticks(2); save();
   complete('heaven');
 }
 async function wenchang() {
@@ -374,10 +397,12 @@ async function wenchang() {
 }
 async function plant() {
   if (!need(state.carry.incense, '手上沒有香。請先到<b>辦事處</b>領香。')) return;
-  if (!need(state.done.has('wenchang'), '香要拜完天公和<b>文昌帝君</b>之後再插。')) return;
-  if (!(await arrive('censer'))) return;
+  if (!need(state.done.has('wenchang'), '先跪在拜墊上向<b>文昌帝君</b>稟告，再把香插進文昌爐。')) return;
+  if (!(await arrive('wcCenser'))) return;
+  temple.focus = new THREE.Vector3(...FOCUS.wcCenser);
   sound.bell(0.1); await me.bow(1);
-  temple.plantIncense(); me.hold(false); state.carry.incense = false; save();
+  temple.plantIncense('wenchang', Math.max(1, state.carry.sticks ?? 2)); me.hold(false); state.carry.incense = false; state.carry.sticks = 0; save();
+  await wait(700); temple.focus = null;
   complete('plant');
 }
 
@@ -386,8 +411,8 @@ async function pass() {
   if (!need(state.carry.ticket, '你沒有帶准考證影本。可以重新到<b>辦事處</b>備供品時勾選。')) return;
   if (state.done.has('pass')) { toast('准考證已經過爐了。'); return; }
   if (!need(state.done.has('plant') || state.done.has('wenchang'), '先拜完文昌帝君、<b>插香</b>，再來過爐。')) return;
-  if (!(await arrive('censer'))) return;
-  temple.focus = new THREE.Vector3(...FOCUS.censer);
+  if (!(await arrive('wcCenser'))) return;
+  temple.focus = new THREE.Vector3(...FOCUS.wcCenser);
   const ok = await circleGesture();
   temple.focus = null;
   if (ok) complete('pass');
@@ -422,6 +447,36 @@ function circleGesture() {
     ring.onpointerup = () => { lastA = null; };
     $('#pass-auto').onclick = () => { if (auto) return; auto = setInterval(() => { advance(0.12); draw(); }, reduceMotion() ? 5 : 16); };
     $('#pass-cancel').onclick = () => finish(false);
+  });
+}
+
+// 燒金紙：到金爐，依序丟入天金、壽金、刈金
+async function jinzhi() {
+  if (!need(state.carry.jinzhi, '身上沒有金紙。請先到<b>辦事處</b>備供品，會一起領金紙。')) return;
+  if (state.done.has('jinzhi')) { toast('金紙已經燒過了。'); return; }
+  if (!need(state.done.has('plant'), '拜完文昌帝君、<b>插香</b>之後，再來燒金紙。')) return;
+  if (!(await arrive('jinlu'))) return;
+  temple.focus = new THREE.Vector3(...FOCUS.jinlu);
+  const ok = await burnGesture();
+  temple.focus = null;
+  if (ok) { state.carry.jinzhi = false; save(); complete('jinzhi'); }
+}
+function burnGesture() {
+  const ui = $('#jinzhi-ui'), grid = $('#jinzhi-grid'); let next = 0, busy = false, done = false;
+  const render = () => {
+    grid.innerHTML = JINZHI.map((j, i) => `<button type="button" data-i="${i}" class="${i < next ? 'burnt' : i === next ? 'next' : ''}" ${i < next ? 'disabled' : ''}><i style="background:${j.color}"></i><b>${j.name}</b><small>${i < next ? '已燒' : j.for}</small></button>`).join('');
+    $('#jinzhi-hint').textContent = next < JINZHI.length ? `點「${JINZHI[next].name}」投進金爐（${JINZHI[next].for}）` : '都燒完了';
+  };
+  next = 0; render(); ui.hidden = false;
+  return new Promise(res => {
+    const finish = ok => { if (done) return; done = true; ui.hidden = true; res(ok); };
+    grid.onclick = async e => {
+      const b = e.target.closest('button'); if (!b || busy) return; const i = +b.dataset.i;
+      if (i !== next) { $('#jinzhi-hint').textContent = `順序是先天公、再神明：請先燒「${JINZHI[next].name}」。`; buzz([10, 60, 10]); return; }
+      busy = true; await temple.burnPaper(me.root.position, i); sound.fire(); buzz(15); next++; render(); busy = false;
+      if (next >= JINZHI.length) setTimeout(() => finish(true), 700);
+    };
+    $('#jinzhi-cancel').onclick = () => finish(false);
   });
 }
 
@@ -747,7 +802,7 @@ function stopNpcs() { npcGen++; npcs.splice(0).forEach(av => temple.removeAvatar
 function startNpcs() {
   if (npcs.length || net.alive) return;
   const gen = ++npcGen;
-  const route = ['censerOut', 'cushion', 'wall', 'counter', 'censer', 'qianTube'];
+  const route = ['censerOut', 'wall', 'counter', 'censer', 'qianTube', 'jinlu', 'wcCenser'];
   for (let i = 0; i < 6; i++) {
     const av = temple.addAvatar(new Avatar(randomLook())); av.npc = true; av.speed = 2.2 + Math.random() * 0.8;
     av.root.position.set(-4 + i * 2.6, 0, 7 - i * 2.2);

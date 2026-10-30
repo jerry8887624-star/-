@@ -139,7 +139,7 @@
 <dialog id="offer-dlg">
   <form method="dialog">
     <h2>挑選供品</h2>
-    <p class="say">供品多取諧音或寓意。挑你喜歡的，數量取單數（1、3、5、7 樣）。</p>
+    <p class="say">供品多取諧音或寓意。挑你喜歡的，數量取單數（1、3、5、7 樣）。辦事處也會一起給你三炷香和金紙。</p>
     <div id="offer-grid" class="offer-grid"></div>
     <p class="sub">這些民間多半不拿來拜：</p>
     <div id="taboo-grid" class="offer-grid taboo"></div>
@@ -147,7 +147,7 @@
     <label class="check"><input type="checkbox" id="offer-ticket" checked> 帶准考證影本與文具（等一下要過爐）</label>
     <div class="row">
       <button type="button" class="ghost" data-close>取消</button>
-      <button type="button" id="offer-ok">領香、帶供品</button>
+      <button type="button" id="offer-ok">領香、金紙，帶供品</button>
     </div>
   </form>
 </dialog>
@@ -196,6 +196,18 @@
       <button type="button" class="ghost" id="pass-cancel">先不要</button>
       <button type="button" class="ghost" id="pass-auto">幫我繞</button>
     </div>
+  </div>
+</section>
+
+<!-- 燒金紙 -->
+<section id="jinzhi-ui" hidden aria-label="燒金紙">
+  <div class="pass-card">
+    <h2>燒金紙</h2>
+    <p class="say">金紙是給神明的心意。依序投入金爐：先敬天公，再敬文昌帝君，最後答謝眾神。</p>
+    <div id="jinzhi-grid" class="jinzhi-grid"></div>
+    <p class="msg" id="jinzhi-hint" role="status"></p>
+    <p class="pending">各廟使用的金紙不同，有些廟為了環保已不收金紙，實際參拜請依廟方指示。</p>
+    <div class="row"><button type="button" class="ghost" id="jinzhi-cancel">先不要</button></div>
   </div>
 </section>
 

@@ -7,7 +7,8 @@ const basic = (c, extra = {}) => new THREE.MeshBasicMaterial({ color: c, ...extr
 
 // 廟的尺寸（公尺）：正殿寬 30、深 21、高 8，約是第一版的 5 倍面積
 export const L = { HW: 15, HF: -1, HB: -22, HH: 8, CW: 20, GZ: 20, CZ: 6 };
-const ALTAR_Z = -18.3, CUSHION_Z = -16.75;
+const ALTAR_Z = -18.3, CUSHION_Z = -15.3, WC_CENSER_Z = -16.85; // 供桌、主拜墊、文昌爐
+const JINLU = { x: 12, z: 13 }; // 金爐
 
 // 站位：x, z, 面向（弧度；0 = 朝 +z 也就是朝廟外）
 export const SPOTS = {
@@ -16,6 +17,8 @@ export const SPOTS = {
   censerOut: { x: 0, z: L.CZ - 1.6, f: 0 },
   censer: { x: 0, z: L.CZ + 1.6, f: Math.PI },
   cushion: { x: 0, z: CUSHION_Z, f: Math.PI, kneel: true },
+  wcCenser: { x: 0, z: WC_CENSER_Z + 1.05, f: Math.PI },
+  jinlu: { x: JINLU.x - 0.8, z: JINLU.z - 1.9, f: 0.35, cam: 0.6 }, // 站在爐口左前方，才不會擋住火光
   qianTube: { x: 5.5, z: -16.4, f: Math.PI, cam: -0.45 },
   wall: { x: 16.4, z: 8, f: Math.PI / 2 },
 };
@@ -26,9 +29,10 @@ export const MARKS = [
   { id: 'cushion', name: '文昌帝君', pos: [0, 6.4, -20.4] },
   { id: 'qianTube', name: '籤筒', pos: [5.5, 1.9, -17.6] },
   { id: 'wall', name: '祈福牆', pos: [18.2, 3.4, 8] },
+  { id: 'jinlu', name: '金爐', pos: [JINLU.x, 4.6, JINLU.z] },
 ];
 // 鏡頭特寫用的位置
-export const FOCUS = { altar: [0, 2.2, -19.5], censer: [0, 2.2, L.CZ], wall: [18.2, 2, 8] };
+export const FOCUS = { altar: [0, 2.2, -19.5], censer: [0, 2.2, L.CZ], wcCenser: [0, 1.6, WC_CENSER_Z], jinlu: [JINLU.x, 1.6, JINLU.z], wall: [18.2, 2, 8] };
 
 // 殿內的拜墊：誰都可以走上去跪拜（前排三個是正對神像的主拜墊）
 export const CUSHIONS = [];
@@ -47,7 +51,7 @@ const BOXES = [
 const FRONT_PILLARS = [-14.2, -8.5, -3.4, 3.4, 8.5, 14.2];
 const INNER_PILLARS = [];
 [-11.8, 11.8].forEach(x => [-6, -12, -18].forEach(z => INNER_PILLARS.push([x, z])));
-const CIRCLES = [[0, L.CZ, 1.25], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
+const CIRCLES = [[0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
 
 function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
@@ -67,7 +71,7 @@ export class Temple {
   constructor(canvas) {
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    this.renderer.setPixelRatio(Math.min(1.75, window.devicePixelRatio || 1)); // 大場景在手機上省一點效能
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 260);
@@ -124,7 +128,7 @@ export class Temple {
     const step = new THREE.Mesh(new THREE.BoxGeometry(L.HW * 2 + 0.4, 0.12, 0.5), lam('#a89580')); step.position.set(0, 0.06, L.HF + 0.45); S.add(step);
 
     this.buildHall(); this.buildGate(); this.buildCourt(); this.buildGod();
-    this.buildCenser(); this.buildCounter(); this.buildWall(); this.buildTrees();
+    this.buildCenser(); this.buildWenchangCenser(); this.buildJinlu(); this.buildCounter(); this.buildWall(); this.buildTrees();
 
     this.ground = [outer, court, hallFloor];
   }
@@ -392,18 +396,79 @@ export class Temple {
     // 已插的香
     this.sticks = new THREE.Group(); this.sticks.position.y = 1.95; g.add(this.sticks);
     for (let i = 0; i < 26; i++) this.addStick(Math.random() * 6.28, Math.random() * 0.55, 0.3 + Math.random() * 0.4);
-    // 香煙粒子
-    const N = 60, pos = new Float32Array(N * 3);
-    this.smoke = { N, life: new Float32Array(N).map(() => Math.random()), pos };
-    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const tex = canvasTex(64, 64, (c) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, 64, 64); });
-    this.smokePts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.6, map: tex, transparent: true, opacity: 0.22, depthWrite: false, color: 0xeeeeee }));
-    this.smokePts.position.copy(g.position); this.smokePts.position.y = 2.1; S.add(this.smokePts);
+    this.smokes = [];
+    this.addSmoke(new THREE.Vector3(0, 2.1, L.CZ), 60, 0.6, 3.2, 0.3);
   }
-  addStick(a, r, h) {
+  addStick(a, r, h, group = this.sticks) {
     const s = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, h), lam('#7a3a2a')); s.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
     const tip = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4), basic('#ff8a3a')); tip.position.y = h / 2; s.add(tip);
-    this.sticks.add(s); return s;
+    group.add(s); return s;
+  }
+  // 煙：香爐的香煙、金爐的煙
+  addSmoke(pos, N, size, rise, spread, color = 0xeeeeee, opacity = 0.22) {
+    const arr = new Float32Array(N * 3), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+    this.smokeTex ||= canvasTex(64, 64, (c) => { const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, 64, 64); });
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size, map: this.smokeTex, transparent: true, opacity, depthWrite: false, color }));
+    pts.position.copy(pos); this.scene.add(pts);
+    const sm = { N, arr, pts, rise, spread, life: new Float32Array(N).map(() => Math.random()) }; this.smokes.push(sm); return sm;
+  }
+
+  // 文昌帝君專屬香爐（文昌爐）：在主拜墊和供桌之間
+  buildWenchangCenser() {
+    const S = this.scene, bronze = lam('#7a6236'), gold = lam('#d8ab45');
+    const g = new THREE.Group(); g.position.set(0, 0, WC_CENSER_Z); S.add(g); this.wcCenser = g;
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.75, 8), lam('#5a1a14')); stand.position.y = 0.375; g.add(stand);
+    const standTop = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.06, 8), gold); standTop.position.y = 0.78; g.add(standTop);
+    [0, 2.1, 4.2].forEach(a => { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.25), bronze); l.position.set(Math.cos(a) * 0.28, 0.92, Math.sin(a) * 0.28); g.add(l); });
+    const pot = new THREE.Mesh(new THREE.SphereGeometry(0.42, 22, 12, 0, Math.PI * 2, Math.PI * 0.3, Math.PI * 0.7), bronze); pot.position.y = 1.3; pot.scale.y = 0.75; g.add(pot);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.045, 8, 22), gold); rim.rotation.x = Math.PI / 2; rim.position.y = 1.52; g.add(rim);
+    [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 6, 12), gold); e.position.set(0.43 * s, 1.55, 0); e.rotation.y = Math.PI / 2; g.add(e); });
+    const ash = new THREE.Mesh(new THREE.CircleGeometry(0.35, 22), lam('#9a8f80')); ash.rotation.x = -Math.PI / 2; ash.position.y = 1.5; g.add(ash);
+    const plq = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.17), basic('#fff', { map: plaqueTex('文昌爐', { w: 300, h: 100, font: 62, bg: '#5a4024', fg: '#f3d27a' }) }));
+    plq.position.set(0, 1.18, 0.33); g.add(plq);
+    this.wcSticks = new THREE.Group(); this.wcSticks.position.y = 1.5; g.add(this.wcSticks);
+    for (let i = 0; i < 14; i++) this.addStick(Math.random() * 6.28, Math.random() * 0.26, 0.22 + Math.random() * 0.3, this.wcSticks);
+    this.addSmoke(new THREE.Vector3(0, 1.6, WC_CENSER_Z), 36, 0.4, 2.4, 0.18);
+  }
+
+  // 金爐：燒金紙的地方（中庭右前方）
+  buildJinlu() {
+    const S = this.scene, brick = lam('#a8452f'), dark = lam('#2a140e'), gold = lam('#d8ab45'), roofM = lam('#2f6b5c');
+    const g = new THREE.Group(); g.position.set(JINLU.x, 0, JINLU.z); S.add(g); this.jinlu = g; // 爐口在 -z，朝向中庭的人
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.35, 0.4, 6), lam('#8f8476')); base.position.y = 0.2; g.add(base);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.1, 1.7, 6), brick); body.position.y = 1.25; g.add(body);
+    const mid = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.95, 0.9, 6), brick); mid.position.y = 2.55; g.add(mid);
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.65, 0.7, 6), brick); top.position.y = 3.35; g.add(top);
+    [[2.12, 1.25], [3.03, 0.95], [3.72, 0.7]].forEach(([y, r]) => { const eave = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.75, r + 0.18, 0.18, 6), roofM); eave.position.y = y; g.add(eave); });
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.6, 6), roofM); cap.position.y = 4.1; g.add(cap);
+    const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), gold); pearl.position.y = 4.48; g.add(pearl);
+    // 爐口與火光（朝玩家那一面）
+    const mouthFrame = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.75, 0.1), dark); mouthFrame.position.set(0, 1.3, -0.97); g.add(mouthFrame);
+    const flameTex = canvasTex(128, 104, (c, W, H) => {
+      c.fillStyle = '#1a0805'; c.fillRect(0, 0, W, H);
+      const gr = c.createRadialGradient(W / 2, H * 0.9, 4, W / 2, H * 0.75, H * 0.85);
+      gr.addColorStop(0, '#fff2b0'); gr.addColorStop(0.3, '#ffb23a'); gr.addColorStop(0.65, '#e8461c'); gr.addColorStop(1, 'rgba(60,10,4,0)');
+      c.fillStyle = gr; c.fillRect(0, 0, W, H);
+      c.fillStyle = 'rgba(255,220,120,.85)';
+      for (let i = 0; i < 6; i++) { const x = 14 + i * 20; c.beginPath(); c.moveTo(x - 9, H); c.quadraticCurveTo(x - 6, H * 0.45, x, H * (0.2 + (i % 3) * 0.12)); c.quadraticCurveTo(x + 6, H * 0.45, x + 9, H); c.fill(); }
+    });
+    this.fireMat = new THREE.MeshBasicMaterial({ map: flameTex, color: 0xffffff });
+    const fire = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.58), this.fireMat); fire.position.set(0, 1.3, -1.03); fire.rotation.y = Math.PI; g.add(fire); this.fire = fire;
+    const plq = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.3), basic('#fff', { map: plaqueTex('金爐', { w: 300, h: 110, font: 70, bg: '#5a4024', fg: '#f3d27a' }) }));
+    plq.position.set(0, 1.95, -0.98); plq.rotation.y = Math.PI; g.add(plq);
+    this.fireBoost = 0;
+    this.jinluSmoke = this.addSmoke(new THREE.Vector3(JINLU.x, 4.4, JINLU.z), 40, 0.9, 3.5, 0.35, 0xcfc6bb, 0.25);
+  }
+  // 丟一疊金紙進金爐：從玩家手上飛進爐口，火光變大
+  burnPaper(from, kind = 0) {
+    const cols = ['#e6c04a', '#d9a63a', '#c99a3a'];
+    const tex = canvasTex(64, 64, (c) => { c.fillStyle = cols[kind % 3]; c.fillRect(0, 0, 64, 64); c.fillStyle = '#c8352b'; c.fillRect(22, 22, 20, 20); c.strokeStyle = '#8a5a14'; c.strokeRect(2, 2, 60, 60); });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.06, 0.34), [lam(cols[kind % 3]), lam(cols[kind % 3]), lam('#fff', { map: tex }), lam(cols[kind % 3]), lam(cols[kind % 3]), lam(cols[kind % 3])]);
+    const sx = from.x, sz = from.z, ex = JINLU.x, ez = JINLU.z - 0.95;
+    m.position.set(sx, 1.1, sz); this.scene.add(m);
+    this.tween(700, k => { m.position.set(sx + (ex - sx) * k, 1.1 + Math.sin(k * Math.PI) * 0.7 + 0.2 * k, sz + (ez - sz) * k); m.rotation.set(k * 3, k * 2, 0); m.scale.setScalar(1 - 0.6 * k); }, 0, t => t * (2 - t));
+    setTimeout(() => { this.scene.remove(m); this.fireBoost = 1; }, 720);
+    return new Promise(r => setTimeout(r, 900));
   }
 
   buildCounter() {
@@ -514,9 +579,10 @@ export class Temple {
       m.position.x += x; this.offeringSlots.add(m);
     });
   }
-  plantIncense() {
-    const base = Math.random() * 6.28;
-    const added = [0, 1, 2].map(i => this.addStick(base + i * 0.2, 0.25 + Math.random() * 0.2, 0.55));
+  // 插香：where = 'heaven'（天公爐）或 'wenchang'（文昌爐）
+  plantIncense(where = 'heaven', n = 1) {
+    const base = Math.random() * 6.28, g = where === 'wenchang' ? this.wcSticks : this.sticks, r0 = where === 'wenchang' ? 0.1 : 0.25;
+    const added = Array.from({ length: n }, (_, i) => this.addStick(base + i * 0.25, r0 + Math.random() * 0.12, where === 'wenchang' ? 0.42 : 0.55, g));
     added.forEach((s, i) => { s.scale.y = 0.01; this.tween(500, k => { s.scale.y = Math.max(0.01, k); }, i * 120); });
   }
 
@@ -586,6 +652,17 @@ export class Temple {
     for (const [x, z, r] of CIRCLES) { const dx = p.x - x, dz = p.z - z, d = Math.hypot(dx, dz), R = r + 0.3; if (d < R && d > 0.001) { p.x = x + dx / d * R; p.z = z + dz / d * R; } }
   }
 
+  // 站位被別人佔了就往旁邊挪：依面向的左右兩側找一個空位
+  freeSpot(x, z, f, self = this.player) {
+    const px = Math.cos(f), pz = -Math.sin(f);
+    for (const o of [0, 0.85, -0.85, 1.7, -1.7, 2.55, -2.55]) {
+      const cx = x + px * o, cz = z + pz * o;
+      let ok = true;
+      for (const av of this.avatars) if (av !== self && Math.hypot(av.root.position.x - cx, av.root.position.z - cz) < 0.6) { ok = false; break; }
+      if (ok) return { x: cx, z: cz };
+    }
+    return { x, z };
+  }
   // 最近的空拜墊（others：其他人的位置，避免兩個人跪同一個）
   freeCushion(x, z, maxD = 0.9) {
     let best = -1, bd = maxD;
@@ -682,16 +759,36 @@ export class Temple {
       av.moving = moving;
       av.update(dt, moving);
     }
+    // 人不要疊在一起：自己和示意香客會被推開（真人玩家的位置以對方為準；跪著的人不動）
+    const list = [...this.avatars];
+    for (const a of list) {
+      if (a.netId || a.kneeling) continue;
+      const p = a.root.position;
+      for (const b of list) {
+        if (a === b) continue;
+        const q = b.root.position, dx = p.x - q.x, dz = p.z - q.z, d = Math.hypot(dx, dz), R = 0.62;
+        if (d < R) {
+          const push = (R - d) * (b.netId || b.kneeling ? 1 : 0.5) * Math.min(1, dt * 12);
+          const ux = d > 0.001 ? dx / d : Math.cos(a.t), uz = d > 0.001 ? dz / d : Math.sin(a.t);
+          p.x += ux * push; p.z += uz * push; this.collide(p);
+        }
+      }
+    }
     // 動畫
     this.anims = this.anims.filter(a => { a.t += dt * 1000; if (a.t < 0) return true; const k = Math.min(1, a.t / a.ms); a.fn(a.ease(k)); return k < 1; });
-    // 香煙
-    const sm = this.smoke, arr = sm.pos;
-    for (let i = 0; i < sm.N; i++) {
-      sm.life[i] += dt * 0.25; if (sm.life[i] > 1) sm.life[i] = 0;
-      const l = sm.life[i];
-      arr[i * 3] = Math.sin(i * 1.7 + l * 3) * 0.3 * (0.4 + l); arr[i * 3 + 1] = l * 3.2; arr[i * 3 + 2] = Math.cos(i * 2.3 + l * 2) * 0.3 * (0.4 + l);
+    // 香煙、金爐煙與火光
+    for (const sm of this.smokes) {
+      const a = sm.arr, boost = sm === this.jinluSmoke ? 1 + this.fireBoost * 1.5 : 1;
+      for (let i = 0; i < sm.N; i++) {
+        sm.life[i] += dt * 0.25 * boost; if (sm.life[i] > 1) sm.life[i] = 0;
+        const l = sm.life[i];
+        a[i * 3] = Math.sin(i * 1.7 + l * 3) * sm.spread * (0.4 + l); a[i * 3 + 1] = l * sm.rise; a[i * 3 + 2] = Math.cos(i * 2.3 + l * 2) * sm.spread * (0.4 + l);
+      }
+      sm.pts.geometry.attributes.position.needsUpdate = true;
     }
-    this.smokePts.geometry.attributes.position.needsUpdate = true;
+    this.fireBoost = Math.max(0, this.fireBoost - dt * 0.6);
+    const fl = 0.75 + Math.sin(this.clock.elapsedTime * 13) * 0.08 + Math.sin(this.clock.elapsedTime * 7.3) * 0.07;
+    this.fire.scale.set(1, Math.min(1.25, fl + this.fireBoost * 0.35), 1); this.fireMat.color.setScalar(0.85 + this.fireBoost * 0.15);
     // 祈福卡搖動
     const t = this.clock.elapsedTime;
     this.cards.forEach(c => { c.rotation.x = Math.sin(t * 1.4 + c.userData.ph) * 0.08; c.rotation.z = Math.sin(t * 1.1 + c.userData.ph) * 0.05; });
@@ -749,6 +846,8 @@ function camClear(v, player) {
     for (const [x, z] of INNER_PILLARS) if (Math.hypot(v.x - x, v.z - z) < 0.8) return false;
   } else if (v.z < HF + 0.6 && Math.abs(v.x) < HW + 1 && v.y < HH + 6) return false; // 在殿外時不要穿進正殿
   if (Math.hypot(v.x, v.z - L.CZ) < 1.9 && v.y < 3.6) return false;
+  if (Math.hypot(v.x - JINLU.x, v.z - JINLU.z) < 1.9 && v.y < 4.8) return false;
+  if (Math.hypot(v.x, v.z - WC_CENSER_Z) < 0.9 && v.y < 2) return false;
   for (const [x1, z1, x2, z2] of BOXES) if (v.x > x1 - 0.4 && v.x < x2 + 0.4 && v.z > z1 - 0.4 && v.z < z2 + 0.4 && v.y < 3.4) return false;
   for (const x of FRONT_PILLARS) if (Math.hypot(v.x - x, v.z - HF) < 0.9) return false;
   if (Math.abs(v.x) > L.CW + 6 || v.z > L.GZ + 10) return false;
