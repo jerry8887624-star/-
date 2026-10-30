@@ -121,6 +121,8 @@ export class Avatar {
     this.body = body; this.root.add(body);
   }
 
+  // 表情動作：wave 揮手、thumb 比讚、jump 開心跳（bow 用 bow()）
+  emote(kind) { if (kind === 'bow') { if (this.bowT < 0) this.bow(1); return; } this.emoteKind = kind; this.emoteT = 0; }
   hold(on) { this.holding = on; if (this.incense) this.incense.visible = on; }
   // 拜三拜：回傳 Promise
   bow(times = 3) {
@@ -142,6 +144,13 @@ export class Avatar {
       const per = 1.1, k = this.bowT / per;
       bowX = Math.sin(Math.min(1, k % 1) * Math.PI) * 0.55;
       if (k >= this.bowTimes) { this.bowT = -1; bowX = 0; this._bowDone?.(); }
+    }
+    if (this.emoteKind) {
+      this.emoteT += dt; const e = this.emoteT;
+      if (this.emoteKind === 'wave') { armX[1] = -0.3; armZ[1] = 2.5 + Math.sin(e * 14) * 0.35; }
+      if (this.emoteKind === 'thumb') { armX[1] = -1.5; armZ[1] = -0.1; }
+      if (this.emoteKind === 'jump') { this.body.position.y = Math.abs(Math.sin(e * 7)) * 0.35; armZ = [-0.9, 0.9]; }
+      if (e > 1.4) { this.emoteKind = null; this.body.position.y = 0; }
     }
     this.upper.rotation.x += (bowX - this.upper.rotation.x) * Math.min(1, dt * 14);
     this.arms.forEach((a, i) => { a.rotation.x += (armX[i] - a.rotation.x) * Math.min(1, dt * 12); a.rotation.z += (armZ[i] - a.rotation.z) * Math.min(1, dt * 12); });

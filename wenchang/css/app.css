@@ -250,3 +250,28 @@ dialog.lot .row { padding: 0 18px 16px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* ---------- 和其他考生互動 ---------- */
+#social-btn { position: absolute; right: 12px; bottom: calc(160px + var(--sab)); width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--gold);
+  background: linear-gradient(180deg, #3b7d6d, #23584c); color: #fff4d6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 11px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+#social-btn svg { width: 24px; height: 24px; fill: none; stroke: #fff4d6; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+#social-btn[aria-expanded="true"] { background: linear-gradient(180deg, var(--red-2), var(--red)); }
+#social-btn .dot { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--red-2); border: 1px solid var(--gold); font-size: 11px; line-height: 16px; }
+#social { right: 12px; bottom: calc(224px + var(--sab)); width: min(320px, calc(100% - 24px)); max-height: calc(100% - 300px - var(--sab)); overflow: auto; animation: dlg .22s var(--ease); }
+.pop-title { margin: 0 0 8px; font-family: var(--serif); font-weight: 700; color: var(--gold-2); font-size: 14.5px; }
+.emote-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+.emote-list button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 6px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); font-size: 12px; }
+.emote-list button i { font-style: normal; font-size: 22px; line-height: 1.1; }
+#people-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+#people-list li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; border-radius: 12px; background: rgba(255, 255, 255, .05); }
+#people-list b { font-weight: 600; font-size: 14px; }
+#people-list small { display: block; color: var(--muted); font-size: 12px; }
+#people-list button { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--gold); background: var(--red); font-size: 13px; min-height: 36px; }
+#feed { position: absolute; left: 12px; bottom: calc(156px + var(--sab)); margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column-reverse; gap: 4px; align-items: flex-start; pointer-events: none; max-width: calc(100% - 96px); }
+#feed li { padding: 5px 10px; border-radius: 10px; background: rgba(36, 20, 14, .8); border: 1px solid var(--line); font-size: 12.5px; line-height: 1.4; animation: feedIn .3s var(--ease); transition: opacity .5s; }
+#feed li.out { opacity: 0; }
+@keyframes feedIn { from { opacity: 0; transform: translateY(8px); } }
+#toast.show { pointer-events: auto; }
+#toast .reply { margin-left: 8px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--gold); background: var(--red); font-size: 13px; }
+.tag.done::after { content: " ✓"; color: #7fe0b8; }

@@ -71,6 +71,23 @@
   <p id="next"></p>
   <div id="toast" role="status" aria-live="polite"></div>
 
+  <ol id="feed" aria-live="polite"></ol>
+
+  <button type="button" id="social-btn" aria-expanded="false" aria-label="和其他考生互動">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 15c-2.5 0-4-1.6-4-3.8C3 8.6 5.2 7 7.6 7c1 0 1.9.3 2.6.8"/><path d="M21 11.5c0 2.6-2.4 4.5-5.4 4.5-.7 0-1.4-.1-2-.3L10 17.5l.8-2.6c-1.1-.9-1.8-2.1-1.8-3.4C9 8.9 11.4 7 14.4 7h1.2c3 0 5.4 2 5.4 4.5z"/></svg>
+    <span>互動</span>
+  </button>
+  <div id="social" class="card-pop" hidden>
+    <p class="pop-title">做個動作，大家都看得到</p>
+    <div id="emote-list" class="emote-list"></div>
+    <div id="people-wrap">
+      <p class="pop-title" id="people-title">在廟裡的考生</p>
+      <ul id="people-list"></ul>
+      <p class="pending" id="people-empty">目前只有你一個人。分享網址給同學，一起來拜拜、互相打氣吧！</p>
+    </div>
+    <p class="pending" id="social-offline" hidden>現在沒有連上多人伺服器，廟裡是示意香客；動作只有你自己看得到。</p>
+  </div>
+
   <div id="cheer-menu" class="card-pop" hidden>
     <p id="cheer-name"></p>
     <div id="cheer-list"></div>
