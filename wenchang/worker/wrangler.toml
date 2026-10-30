@@ -1,0 +1,11 @@
+name = "wenchang-temple"
+main = "temple.js"
+compatibility_date = "2026-10-01"
+
+[[durable_objects.bindings]]
+name = "TEMPLE"
+class_name = "Temple"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Temple"]

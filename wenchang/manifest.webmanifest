@@ -1,0 +1,3 @@
+{"name":"線上參拜文昌帝君","short_name":"線上文昌祠","lang":"zh-Hant","start_url":"./","scope":"./","display":"standalone","orientation":"any",
+ "background_color":"#24130e","theme_color":"#24130e",
+ "icons":[{"src":"icons/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icons/icon-512.png","sizes":"512x512","type":"image/png"},{"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}

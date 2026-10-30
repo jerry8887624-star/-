@@ -32,6 +32,8 @@ jobs:
         run: cp -r divination dist/divination
       - name: Add 先動五分鐘 app
         run: cp -r start5 dist/start5
+      - name: Add 線上參拜文昌帝君 app
+        run: cp -r wenchang dist/wenchang && rm -rf dist/wenchang/worker
       - name: Old URL shows a lightweight move page (app now lives on Cloudflare Pages)
         run: test -f divination/old-site.html && cp divination/old-site.html dist/divination/index.html || true
       - name: Setup Pages
