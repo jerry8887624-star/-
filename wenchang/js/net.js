@@ -19,12 +19,12 @@ export class Net {
   }
   send(o) { if (this.alive && this.ws?.readyState === 1) this.ws.send(JSON.stringify(o)); }
   // 位置只在有變化時送出，最多每 200ms 一次
-  pos(x, z, f, h, b) {
-    const s = [x.toFixed(2), z.toFixed(2), f.toFixed(2), h ? 1 : 0, b ? 1 : 0].join();
+  pos(x, z, f, h, b, k) {
+    const s = [x.toFixed(2), z.toFixed(2), f.toFixed(2), h ? 1 : 0, b ? 1 : 0, k ? 1 : 0].join();
     const now = performance.now();
     if (s === this.last || now - (this.lastT || 0) < 200) return;
     this.last = s; this.lastT = now;
-    this.send({ t: 'pos', x: +x.toFixed(2), z: +z.toFixed(2), f: +f.toFixed(2), h: h ? 1 : 0, b: b ? 1 : 0 });
+    this.send({ t: 'pos', x: +x.toFixed(2), z: +z.toFixed(2), f: +f.toFixed(2), h: h ? 1 : 0, b: b ? 1 : 0, k: k ? 1 : 0 });
   }
   setLook(look) { this.look = look; this.send({ t: 'look', look }); }
   cheer(to, i) { this.send({ t: 'cheer', to, i }); }

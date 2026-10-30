@@ -124,6 +124,7 @@ export class Avatar {
 
   // 表情動作：wave 揮手、thumb 比讚、jump 開心跳（bow 用 bow()）
   emote(kind) { if (kind === 'bow') { if (this.bowT < 0) this.bow(1); return; } this.emoteKind = kind; this.emoteT = 0; }
+  kneel(on) { this.kneeling = !!on; }
   hold(on) { this.holding = on; if (this.incense) this.incense.visible = on; }
   // 拜三拜：回傳 Promise
   bow(times = 3) {
@@ -135,8 +136,11 @@ export class Avatar {
     this.t += dt;
     this.walkAmt += ((moving ? 1 : 0) - this.walkAmt) * Math.min(1, dt * 10);
     const w = this.walkAmt, s = Math.sin(this.t * 10);
-    this.legs[0].rotation.x = s * 0.6 * w; this.legs[1].rotation.x = -s * 0.6 * w;
-    this.body.position.y = Math.abs(Math.cos(this.t * 10)) * 0.05 * w;
+    // 跪在拜墊上：腿往後折、身體放低
+    this.kneelAmt = (this.kneelAmt || 0) + ((this.kneeling ? 1 : 0) - (this.kneelAmt || 0)) * Math.min(1, dt * 8);
+    const kn = this.kneelAmt;
+    this.legs[0].rotation.x = s * 0.6 * w + 1.45 * kn; this.legs[1].rotation.x = -s * 0.6 * w + 1.45 * kn;
+    this.body.position.y = Math.abs(Math.cos(this.t * 10)) * 0.05 * w - 0.1 * kn;
     let armX = [s * -0.5 * w, s * 0.5 * w], armZ = [-0.12, 0.12], bowX = 0;
     const together = this.holding || this.bowT >= 0;
     if (together) { armX = [-1.15, -1.15]; armZ = [0.45, -0.45]; }

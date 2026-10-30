@@ -82,7 +82,7 @@ export class Temple {
     } else if (m.t === 'look') {
       p.look = cleanLook(m.look);
     } else if (m.t === 'pos') {
-      p.x = num(m.x, -12, 25); p.z = num(m.z, -12, 25); p.f = num(m.f, -10, 10); p.h = m.h ? 1 : 0; p.b = m.b ? 1 : 0;
+      p.x = num(m.x, -30, 40); p.z = num(m.z, -30, 40); p.f = num(m.f, -10, 10); p.h = m.h ? 1 : 0; p.b = m.b ? 1 : 0; p.k = m.k ? 1 : 0;
     } else if (m.t === 'step') {
       const s = int(m.s, 0, 6);
       if (s === 6 && p.s < 6) this.broadcast({ t: 'feed', from: p.id, k: 'done' });
@@ -125,7 +125,7 @@ export class Temple {
     if (this.timer) return;
     const loop = () => {
       if (!this.players.size) { this.timer = null; return; }
-      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, s: p.s, look: p.look }));
+      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, look: p.look }));
       this.broadcast({ t: 'state', players: list, online: list.length, total: this.total });
       this.timer = setTimeout(loop, 250);
     };

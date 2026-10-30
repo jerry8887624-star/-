@@ -5,35 +5,49 @@ import { Avatar } from './avatar.js';
 const lam = (c, extra = {}) => new THREE.MeshLambertMaterial({ color: c, ...extra });
 const basic = (c, extra = {}) => new THREE.MeshBasicMaterial({ color: c, ...extra });
 
+// 廟的尺寸（公尺）：正殿寬 30、深 21、高 8，約是第一版的 5 倍面積
+export const L = { HW: 15, HF: -1, HB: -22, HH: 8, CW: 20, GZ: 20, CZ: 6 };
+const ALTAR_Z = -18.3, CUSHION_Z = -16.75;
+
 // 站位：x, z, 面向（弧度；0 = 朝 +z 也就是朝廟外）
 export const SPOTS = {
-  start: { x: 0, z: 13, f: Math.PI },
-  counter: { x: -5.7, z: 7, f: -Math.PI / 2 },
-  censerOut: { x: 0, z: 2.5, f: 0 },
-  censer: { x: 0, z: 5.6, f: Math.PI },
-  cushion: { x: 0, z: -4.4, f: Math.PI },
-  qianTube: { x: 2.7, z: -4.3, f: Math.PI, cam: -0.45 },
-  wall: { x: 6.4, z: 4, f: Math.PI / 2 },
+  start: { x: -4, z: 3, f: Math.PI },
+  counter: { x: -15.7, z: 11, f: -Math.PI / 2 },
+  censerOut: { x: 0, z: L.CZ - 1.6, f: 0 },
+  censer: { x: 0, z: L.CZ + 1.6, f: Math.PI },
+  cushion: { x: 0, z: CUSHION_Z, f: Math.PI, kneel: true },
+  qianTube: { x: 5.5, z: -16.4, f: Math.PI, cam: -0.45 },
+  wall: { x: 16.4, z: 8, f: Math.PI / 2 },
 };
 // 名牌標示（可點擊走過去）
 export const MARKS = [
-  { id: 'counter', name: '辦事處', pos: [-7.6, 2.9, 7] },
-  { id: 'censer', name: '天公爐', pos: [0, 2.6, 4] },
-  { id: 'cushion', name: '文昌帝君', pos: [0, 5.2, -8.4] },
-  { id: 'qianTube', name: '籤筒', pos: [2.7, 1.9, -5.6] },
-  { id: 'wall', name: '祈福牆', pos: [8.2, 3.4, 4] },
+  { id: 'counter', name: '辦事處', pos: [-17.6, 2.9, 11] },
+  { id: 'censer', name: '天公爐', pos: [0, 2.6, L.CZ] },
+  { id: 'cushion', name: '文昌帝君', pos: [0, 6.4, -20.4] },
+  { id: 'qianTube', name: '籤筒', pos: [5.5, 1.9, -17.6] },
+  { id: 'wall', name: '祈福牆', pos: [18.2, 3.4, 8] },
 ];
+// 鏡頭特寫用的位置
+export const FOCUS = { altar: [0, 2.2, -19.5], censer: [0, 2.2, L.CZ], wall: [18.2, 2, 8] };
+
+// 殿內的拜墊：誰都可以走上去跪拜（前排三個是正對神像的主拜墊）
+export const CUSHIONS = [];
+[-1.4, 0, 1.4].forEach(x => CUSHIONS.push({ x, z: CUSHION_Z }));
+[-14.5, -12, -9.5, -7, -4.5].forEach(z => [-9, -6, -3, 3, 6, 9].forEach(x => CUSHIONS.push({ x, z })));
 
 // 不能走進去的區塊（矩形 x1,z1,x2,z2）與圓形（x,z,r）
 const BOXES = [
-  [-8.9, 5, -6.6, 9],              // 辦事處櫃台
-  [-2.6, -6.9, 2.6, -5.7],         // 供桌
-  [-2.4, -10, 2.4, -7.6],          // 神龕
-  [2.2, -6.2, 3.2, -5.1],          // 籤筒桌
-  [7.6, 1.2, 9.2, 6.8],            // 祈福牆
-  [-10.4, 9.8, -3.3, 10.4], [3.3, 9.8, 10.4, 10.4], // 前牆
+  [-18.8, 9, -16.6, 13],            // 辦事處櫃台
+  [-2.6, ALTAR_Z - 0.6, 2.6, ALTAR_Z + 0.6], // 供桌
+  [-2.4, L.HB, 2.4, -19.6],         // 神龕
+  [5, -18.1, 6, -17.1],             // 籤筒桌
+  [17.6, 5.2, 19.2, 10.8],          // 祈福牆
+  [-L.CW - 0.4, L.GZ - 0.2, -3.3, L.GZ + 0.4], [3.3, L.GZ - 0.2, L.CW + 0.4, L.GZ + 0.4], // 前牆
 ];
-const CIRCLES = [[0, 4, 1.25], [-6.4, -1, 0.35], [-2.8, -1, 0.35], [2.8, -1, 0.35], [6.4, -1, 0.35], [-2.9, 10, 0.45], [2.9, 10, 0.45]];
+const FRONT_PILLARS = [-14.2, -8.5, -3.4, 3.4, 8.5, 14.2];
+const INNER_PILLARS = [];
+[-11.8, 11.8].forEach(x => [-6, -12, -18].forEach(z => INNER_PILLARS.push([x, z])));
+const CIRCLES = [[0, L.CZ, 1.25], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
 
 function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
@@ -56,9 +70,10 @@ export class Temple {
     this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 120);
+    this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 260);
     this.clock = new THREE.Clock();
-    this.camYaw = 0; this.camYawTarget = 0; this.camDist = 7; this.camH = 3.6;
+    this.camYaw = 0; this.camYawTarget = 0; this.camDist = 8; this.camPitch = 0.32; // 仰角：0＝平視，1.45＝幾乎正上方往下看
+    this.stick = { x: 0, y: 0 }; // 方向搖桿
     this.focus = null; // 特寫目標
     this.avatars = new Set();
     this.anims = [];
@@ -77,8 +92,7 @@ export class Temple {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     // 直式手機視角放寬、鏡頭拉遠，才看得到整個場景
-    this.camera.fov = w < h ? 58 : 46;
-    this.camDist = w < h ? 8 : 7;
+    this.camera.fov = w < h ? 60 : 50;
     this.camera.updateProjectionMatrix();
   }
 
@@ -86,10 +100,10 @@ export class Temple {
     const S = this.scene;
     this.hemi = new THREE.HemisphereLight(0xfff1dc, 0x5a4636, 1.6); S.add(this.hemi);
     this.sun = new THREE.DirectionalLight(0xffe2b8, 1.6); this.sun.position.set(-8, 14, 10); S.add(this.sun);
-    S.fog = new THREE.Fog(0xe9c9a4, 26, 60);
+    S.fog = new THREE.Fog(0xe9c9a4, 45, 120);
 
     // 地面：外圍石地＋中庭石板＋殿內紅磚
-    const outer = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), lam('#7d6a58')); outer.rotation.x = -Math.PI / 2; outer.position.y = -0.02; S.add(outer);
+    const outer = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), lam('#7d6a58')); outer.rotation.x = -Math.PI / 2; outer.position.y = -0.02; S.add(outer);
     const slab = canvasTex(512, 512, (g, W, H) => {
       g.fillStyle = '#c9b49a'; g.fillRect(0, 0, W, H);
       for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
@@ -97,15 +111,17 @@ export class Temple {
         g.fillRect(x * 64 + 2 + (y % 2) * 32, y * 64 + 2, 60, 60);
       }
     });
-    slab.wrapS = slab.wrapT = THREE.RepeatWrapping; slab.repeat.set(5, 4);
-    const court = new THREE.Mesh(new THREE.PlaneGeometry(20.6, 16), lam('#fff', { map: slab })); court.rotation.x = -Math.PI / 2; court.position.set(0, 0, 4.6); S.add(court);
+    slab.wrapS = slab.wrapT = THREE.RepeatWrapping; slab.repeat.set(10, 5.3);
+    const cd = L.GZ - L.HF;
+    const court = new THREE.Mesh(new THREE.PlaneGeometry(L.CW * 2 + 0.6, cd + 0.4), lam('#fff', { map: slab })); court.rotation.x = -Math.PI / 2; court.position.set(0, 0, L.HF + cd / 2); S.add(court);
     const brick = canvasTex(256, 256, (g, W, H) => {
       g.fillStyle = '#8a3f2c'; g.fillRect(0, 0, W, H);
       for (let y = 0; y < 8; y++) for (let x = 0; x < 4; x++) { const v = 150 + Math.random() * 30; g.fillStyle = `rgb(${v},${v * 0.45},${v * 0.32})`; g.fillRect(x * 64 + 2, y * 32 + 2, 60, 28); }
     });
-    brick.wrapS = brick.wrapT = THREE.RepeatWrapping; brick.repeat.set(4, 3);
-    const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(14, 9.6), lam('#fff', { map: brick })); hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(0, 0.01, -5.4); S.add(hallFloor);
-    const step = new THREE.Mesh(new THREE.BoxGeometry(14.4, 0.12, 0.5), lam('#a89580')); step.position.set(0, 0.06, -0.55); S.add(step);
+    brick.wrapS = brick.wrapT = THREE.RepeatWrapping; brick.repeat.set(9, 6);
+    const hd = L.HF - L.HB;
+    const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(L.HW * 2, hd), lam('#fff', { map: brick })); hallFloor.rotation.x = -Math.PI / 2; hallFloor.position.set(0, 0.01, (L.HF + L.HB) / 2); S.add(hallFloor);
+    const step = new THREE.Mesh(new THREE.BoxGeometry(L.HW * 2 + 0.4, 0.12, 0.5), lam('#a89580')); step.position.set(0, 0.06, L.HF + 0.45); S.add(step);
 
     this.buildHall(); this.buildGate(); this.buildCourt(); this.buildGod();
     this.buildCenser(); this.buildCounter(); this.buildWall(); this.buildTrees();
@@ -114,76 +130,88 @@ export class Temple {
   }
 
   buildHall() {
-    const S = this.scene, red = lam('#9e2a22'), dark = lam('#3a1d16'), wood = lam('#6a2a1e'), gold = lam('#d8ab45');
+    const S = this.scene, red = lam('#9e2a22'), dark = lam('#3a1d16'), gold = lam('#d8ab45');
+    const { HW, HF, HB, HH } = L, hd = HF - HB, mid = (HF + HB) / 2;
     const wallM = lam('#b2483a');
-    const back = new THREE.Mesh(new THREE.BoxGeometry(14.4, 5.2, 0.4), wallM); back.position.set(0, 2.6, -10.2); S.add(back);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(HW * 2 + 0.4, HH, 0.4), wallM); back.position.set(0, HH / 2, HB - 0.2); S.add(back);
     [-1, 1].forEach(s => {
-      const side = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5.2, 9.4), wallM); side.position.set(7.0 * s, 2.6, -5.5); S.add(side);
+      const side = new THREE.Mesh(new THREE.BoxGeometry(0.4, HH, hd), wallM); side.position.set((HW + 0.2) * s, HH / 2, mid); S.add(side);
       // 圓窗
-      const win = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.12, 8, 24), gold); win.position.set(6.78 * s, 2.6, -5); win.rotation.y = Math.PI / 2; S.add(win);
-      const lat = new THREE.Mesh(new THREE.CircleGeometry(0.88, 24), lam('#3d2a1c')); lat.position.set(6.77 * s, 2.6, -5); lat.rotation.y = -Math.PI / 2 * s; S.add(lat);
+      [-5, -11.5, -18].forEach(z => {
+        const win = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.15, 8, 28), gold); win.position.set((HW - 0.02) * s, 3.6, z); win.rotation.y = Math.PI / 2; S.add(win);
+        const lat = new THREE.Mesh(new THREE.CircleGeometry(1.28, 28), lam('#3d2a1c')); lat.position.set((HW - 0.03) * s, 3.6, z); lat.rotation.y = -Math.PI / 2 * s; S.add(lat);
+      });
     });
-    // 前排柱子
-    [-6.4, -2.8, 2.8, 6.4].forEach(x => {
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.26, 4.4, 14), red); p.position.set(x, 2.2, -1); S.add(p);
-      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.4, 0.3, 8), lam('#9a8a78')); base.position.set(x, 0.15, -1); S.add(base);
-      // 對聯
-      if (Math.abs(x) < 3) {
+    // 前排柱子＋對聯
+    FRONT_PILLARS.forEach(x => {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, HH, 14), red); p.position.set(x, HH / 2, HF); S.add(p);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, 0.35, 8), lam('#9a8a78')); base.position.set(x, 0.17, HF); S.add(base);
+      if (Math.abs(x) < 4) {
         const t = plaqueTex(x < 0 ? '文章司命' : '桂籍名高', { bg: '#a62a20', fg: '#f3d27a', vertical: true, w: 120, h: 480, font: 92 });
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 1.7), basic('#fff', { map: t })); m.position.set(x, 2.5, -0.74); S.add(m);
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 2.3), basic('#fff', { map: t })); m.position.set(x, 3.2, HF + 0.34); S.add(m);
       }
+    });
+    // 殿內柱子
+    INNER_PILLARS.forEach(([x, z]) => {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.44, HH, 14), red); p.position.set(x, HH / 2, z); S.add(p);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.62, 0.4, 8), lam('#9a8a78')); base.position.set(x, 0.2, z); S.add(base);
     });
     // 彩繪橫樑
     const beamT = canvasTex(1024, 64, (g, W, H) => {
       const cols = ['#1f6b5c', '#2a4f8a', '#d8ab45', '#b8322a'];
       for (let i = 0; i < 16; i++) { g.fillStyle = cols[i % 4]; g.fillRect(i * 64, 0, 64, H); g.fillStyle = '#f2d98a'; g.beginPath(); g.arc(i * 64 + 32, 32, 14, 0, 7); g.fill(); }
     });
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(14.4, 0.6, 0.5), [lam('#2a4f8a'), lam('#2a4f8a'), dark, dark, lam('#fff', { map: beamT }), lam('#fff', { map: beamT })]);
-    beam.position.set(0, 4.55, -1); S.add(beam);
+    beamT.wrapS = THREE.RepeatWrapping; beamT.repeat.set(2, 1);
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(HW * 2 + 0.4, 0.8, 0.6), [lam('#2a4f8a'), lam('#2a4f8a'), dark, dark, lam('#fff', { map: beamT }), lam('#fff', { map: beamT })]);
+    beam.position.set(0, HH - 0.4, HF); S.add(beam);
     // 匾額
-    const pl = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.0, 0.12), [gold, gold, gold, gold, basic('#fff', { map: plaqueTex('文昌帝君', { w: 640, h: 190, font: 120 }) }), gold]);
-    pl.position.set(0, 5.35, -0.7); S.add(pl);
+    const pl = new THREE.Mesh(new THREE.BoxGeometry(5, 1.5, 0.15), [gold, gold, gold, gold, basic('#fff', { map: plaqueTex('文昌帝君', { w: 640, h: 190, font: 120 }) }), gold]);
+    pl.position.set(0, HH - 1.6, HF + 0.35); S.add(pl);
     // 屋頂：四面坡＋燕尾脊
     const tile = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#b5543a'; g.fillRect(0, 0, W, H); g.fillStyle = '#8f3c28'; for (let x = 0; x < W; x += 16) g.fillRect(x, 0, 6, H); });
-    tile.wrapS = tile.wrapT = THREE.RepeatWrapping; tile.repeat.set(10, 3);
-    const roof = new THREE.Mesh(new THREE.CylinderGeometry(1, 10.6, 2.6, 4, 1), lam('#fff', { map: tile }));
-    roof.rotation.y = Math.PI / 4; roof.scale.set(1, 1, 0.62); roof.position.set(0, 6.15, -5.5);
-    const roofG = new THREE.Group(); roofG.add(roof); S.add(roofG);
-    roof.scale.set(1.02, 1, 0.66);
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.4, 0.5), lam('#7a2a1c')); ridge.position.set(0, 7.5, -5.5); S.add(ridge);
+    tile.wrapS = tile.wrapT = THREE.RepeatWrapping; tile.repeat.set(20, 5);
+    const rb = (HW + 1.5) * Math.SQRT2;
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(2.6, rb, 5, 4, 1), lam('#fff', { map: tile }));
+    roof.rotation.y = Math.PI / 4; roof.scale.set(1, 1, (hd / 2 + 1.5) / (HW + 1.5)); roof.position.set(0, HH + 2.45, mid); S.add(roof);
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(HW * 1.35, 0.6, 0.8), lam('#7a2a1c')); ridge.position.set(0, HH + 5.1, mid); S.add(ridge);
     [-1, 1].forEach(s => {
-      const tail = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.14, 8, 16, Math.PI / 2), lam('#7a2a1c'));
-      tail.position.set(4.8 * s, 8.4, -5.5); tail.rotation.z = s > 0 ? -Math.PI / 2 : Math.PI; tail.scale.set(1, 1, 1); S.add(tail);
+      const tail = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.22, 8, 16, Math.PI / 2), lam('#7a2a1c'));
+      tail.position.set(HW * 0.675 * s, HH + 6.6, mid); tail.rotation.z = s > 0 ? -Math.PI / 2 : Math.PI; S.add(tail);
     });
-    const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 12), lam('#e8b84a', { emissive: '#5a3a00' })); pearl.position.set(0, 8.0, -5.5); S.add(pearl);
-    // 燈籠
+    const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 12), lam('#e8b84a', { emissive: '#5a3a00' })); pearl.position.set(0, HH + 5.9, mid); S.add(pearl);
+    // 燈籠：殿前一排、殿內兩排
     this.lanterns = [];
-    [-4.6, -1.4, 1.4, 4.6].forEach(x => this.addLantern(x, 3.7, -0.6));
-    // 殿內藻井色塊
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(14, 9.4), lam('#5a2a20', { side: THREE.DoubleSide })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, 5.1, -5.5); S.add(ceil);
+    [-11, -6, -1.8, 1.8, 6, 11].forEach(x => this.addLantern(x, HH - 1.6, HF + 0.4));
+    [-7.5, 7.5].forEach(x => [-5, -10, -15].forEach(z => this.addLantern(x, HH - 1.8, z)));
+    // 天花板
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2, hd), lam('#5a2a20', { side: THREE.DoubleSide })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, HH, mid); S.add(ceil);
     // 供桌
     const tableM = lam('#8a2a20');
-    const table = new THREE.Mesh(new THREE.BoxGeometry(5, 1.0, 1.1), tableM); table.position.set(0, 0.5, -6.3); S.add(table);
+    const table = new THREE.Mesh(new THREE.BoxGeometry(5, 1.0, 1.1), tableM); table.position.set(0, 0.5, ALTAR_Z); S.add(table);
     const cloth = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 0.8), basic('#fff', { map: canvasTex(512, 96, (g, W, H) => {
       g.fillStyle = '#c8352b'; g.fillRect(0, 0, W, H); g.fillStyle = '#f3d27a'; g.font = '900 58px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('文 星 高 照', W / 2, H / 2 + 3);
     }) }));
-    cloth.position.set(0, 0.55, -5.74); S.add(cloth);
-    const topBoard = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 1.2), lam('#5a1a14')); topBoard.position.set(0, 1.03, -6.3); S.add(topBoard);
+    cloth.position.set(0, 0.55, ALTAR_Z + 0.56); S.add(cloth);
+    const topBoard = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 1.2), lam('#5a1a14')); topBoard.position.set(0, 1.03, ALTAR_Z); S.add(topBoard);
     // 燭台
     [-2.1, 2.1].forEach(x => {
-      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.5), lam('#d23a2a')); c.position.set(x, 1.32, -6.5); S.add(c);
-      const f = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), basic('#ffcc66')); f.scale.y = 1.6; f.position.set(x, 1.65, -6.5); S.add(f);
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.5), lam('#d23a2a')); c.position.set(x, 1.32, ALTAR_Z - 0.2); S.add(c);
+      const f = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), basic('#ffcc66')); f.scale.y = 1.6; f.position.set(x, 1.65, ALTAR_Z - 0.2); S.add(f);
     });
     // 小香爐
-    const small = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.26, 0.3, 16), lam('#9a7a3a')); small.position.set(0, 1.22, -6.55); S.add(small);
-    this.offeringSlots = new THREE.Group(); this.offeringSlots.position.set(0, 1.07, -6.15); S.add(this.offeringSlots);
-    // 拜墊
-    [-1.4, 0, 1.4].forEach(x => {
-      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.16, 18), lam('#b8322a')); c.position.set(x, 0.08, -4.75); S.add(c);
+    const small = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.26, 0.3, 16), lam('#9a7a3a')); small.position.set(0, 1.22, ALTAR_Z - 0.25); S.add(small);
+    this.offeringSlots = new THREE.Group(); this.offeringSlots.position.set(0, 1.07, ALTAR_Z + 0.15); S.add(this.offeringSlots);
+    // 拜墊（可以跪的）
+    const cushionM = lam('#b8322a'), cushionTop = lam('#d8473a');
+    this.cushionMeshes = CUSHIONS.map((c, i) => {
+      const g = new THREE.Group(); g.position.set(c.x, 0, c.z);
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.16, 18), cushionM); m.position.y = 0.08; g.add(m);
+      const t = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.03, 6, 18), cushionTop); t.rotation.x = Math.PI / 2; t.position.y = 0.165; g.add(t);
+      m.userData.cushion = i; S.add(g); return m;
     });
     // 籤筒桌
-    const st = new THREE.Mesh(new THREE.BoxGeometry(1, 0.9, 1), lam('#6a2a1e')); st.position.set(2.7, 0.45, -5.65); S.add(st);
-    const tube = new THREE.Group(); tube.position.set(2.7, 0.9, -5.65); S.add(tube); this.qianTube = tube;
+    const st = new THREE.Mesh(new THREE.BoxGeometry(1, 0.9, 1), lam('#6a2a1e')); st.position.set(5.5, 0.45, -17.6); S.add(st);
+    const tube = new THREE.Group(); tube.position.set(5.5, 0.9, -17.6); S.add(tube); this.qianTube = tube;
     const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.55, 16, 1, true), lam('#8a5a2a', { side: THREE.DoubleSide })); tb.position.y = 0.28; tube.add(tb);
     for (let i = 0; i < 18; i++) {
       const a = i * 2.4, r = 0.05 + (i % 3) * 0.04;
@@ -201,25 +229,29 @@ export class Temple {
   }
 
   buildGate() {
-    const S = this.scene, red = lam('#a12c22');
-    [-2.9, 2.9].forEach(x => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 4, 12), red); p.position.set(x, 2, 10); S.add(p); });
-    const lintel = new THREE.Mesh(new THREE.BoxGeometry(7, 0.5, 0.6), lam('#2a4f8a')); lintel.position.set(0, 4.1, 10); S.add(lintel);
-    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 5.2, 1.3, 4, 1), lam('#b5543a')); roof.rotation.y = Math.PI / 4; roof.scale.set(1, 1, 0.3); roof.position.set(0, 4.95, 10); S.add(roof);
+    const S = this.scene, red = lam('#a12c22'), G = L.GZ, CW = L.CW;
+    [-2.9, 2.9].forEach(x => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 4, 12), red); p.position.set(x, 2, G); S.add(p); });
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(7, 0.5, 0.6), lam('#2a4f8a')); lintel.position.set(0, 4.1, G); S.add(lintel);
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 5.2, 1.3, 4, 1), lam('#b5543a')); roof.rotation.y = Math.PI / 4; roof.scale.set(1, 1, 0.3); roof.position.set(0, 4.95, G); S.add(roof);
     const pt = plaqueTex('文昌祠', { w: 512, h: 170, font: 110 });
     const pl = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.8, 0.1), [lam('#d8ab45'), lam('#d8ab45'), lam('#d8ab45'), lam('#d8ab45'), basic('#fff', { map: pt }), basic('#fff', { map: pt })]);
-    pl.position.set(0, 3.45, 10.3); S.add(pl);
-    [-1.6, 1.6].forEach(x => this.addLantern(x, 3.4, 10.4));
+    pl.position.set(0, 3.45, G + 0.3); S.add(pl);
+    [-1.6, 1.6].forEach(x => this.addLantern(x, 3.4, G + 0.4));
     // 圍牆
     const wallM = lam('#a5473a'), capM = lam('#2f6b5c');
     const seg = (x, z, w, d) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 2.2, d), wallM); m.position.set(x, 1.1, z); S.add(m); const c = new THREE.Mesh(new THREE.BoxGeometry(w + 0.2, 0.2, d + 0.2), capM); c.position.set(x, 2.3, z); S.add(c); };
-    seg(-6.85, 10.1, 7.1, 0.5); seg(6.85, 10.1, 7.1, 0.5);
-    seg(-10.25, 4.5, 0.5, 11.6); seg(10.25, 4.5, 0.5, 11.6);
+    const fw = CW + 0.5 - 3.3;
+    seg(-(3.3 + fw / 2), G + 0.1, fw, 0.5); seg(3.3 + fw / 2, G + 0.1, fw, 0.5);
+    const sd = G - L.HF + 0.4;
+    seg(-(CW + 0.25), L.HF + sd / 2 - 0.2, 0.5, sd); seg(CW + 0.25, L.HF + sd / 2 - 0.2, 0.5, sd);
+    // 圍牆接到正殿兩側
+    seg(-(L.HW + CW) / 2 - 0.2, L.HF, CW - L.HW + 0.5, 0.5); seg((L.HW + CW) / 2 + 0.2, L.HF, CW - L.HW + 0.5, 0.5);
   }
 
   buildCourt() {
     // 石獅（簡化）一對
     [-2.4, 2.4].forEach(x => {
-      const g = new THREE.Group(); g.position.set(x, 0, 8.6);
+      const g = new THREE.Group(); g.position.set(x, 0, L.GZ - 1.4);
       const ped = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.9), lam('#8f8476')); ped.position.y = 0.35; g.add(ped);
       const body = new THREE.Mesh(new THREE.SphereGeometry(0.4, 14, 10), lam('#a59a8a')); body.scale.set(0.9, 1.1, 1); body.position.y = 1.05; g.add(body);
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.33, 14, 10), lam('#a59a8a')); head.position.set(0, 1.55, 0.1); g.add(head);
@@ -231,7 +263,7 @@ export class Temple {
   buildGod() {
     // 神龕＋文昌帝君：藍底金紋官袍、紅白袖緣、展角官帽、長鬚，右手持笏、左手捧書，坐在金獅扶手的寶座上
     const S = this.scene, gold = lam('#d8ab45'), shrineM = lam('#4a1610'), wood = lam('#3a1a12');
-    const sh = new THREE.Group(); sh.position.set(0, 0, -8.9); S.add(sh);
+    const sh = new THREE.Group(); sh.position.set(0, 0, -20.7); S.add(sh);
     const base = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.6, 2), shrineM); base.position.y = 0.8; sh.add(base);
     const baseTrim = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.12, 2.05), gold); baseTrim.position.y = 1.56; sh.add(baseTrim);
     // 背後的藍底金雲龍壁
@@ -342,12 +374,12 @@ export class Temple {
       const tip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.06), gold); tip.position.set(1.02 * s, 0.12, -0.22); hatG.add(tip);
     });
     // 神前光
-    this.godLight = new THREE.PointLight(0xffc27a, 6, 9, 1.6); this.godLight.position.set(0, 3.2, -6.4); S.add(this.godLight);
+    this.godLight = new THREE.PointLight(0xffc27a, 7, 10, 1.6); this.godLight.position.set(0, 3.4, -17.6); S.add(this.godLight);
   }
 
   buildCenser() {
     const S = this.scene, bronze = lam('#6e5a3a');
-    const g = new THREE.Group(); g.position.set(0, 0, 4); S.add(g); this.censer = g;
+    const g = new THREE.Group(); g.position.set(0, 0, L.CZ); S.add(g); this.censer = g;
     const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.2, 0.5, 8), lam('#8f8476')); ped.position.y = 0.25; g.add(ped);
     [0, 2.1, 4.2].forEach(a => { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.6), bronze); l.position.set(Math.cos(a) * 0.55, 0.75, Math.sin(a) * 0.55); g.add(l); });
     const pot = new THREE.Mesh(new THREE.SphereGeometry(0.85, 24, 14, 0, Math.PI * 2, Math.PI * 0.3, Math.PI * 0.7), bronze); pot.position.y = 1.55; pot.scale.y = 0.75; g.add(pot);
@@ -375,7 +407,7 @@ export class Temple {
   }
 
   buildCounter() {
-    const S = this.scene;
+    const S = new THREE.Group(); S.position.set(-10, 0, 4); this.scene.add(S); // 以第一版座標畫，整組移到新位置
     const c = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 4), lam('#7a3a24')); c.position.set(-7.7, 0.55, 7); S.add(c);
     const top = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 4.2), lam('#4a1e12')); top.position.set(-7.7, 1.12, 7); S.add(top);
     const roof = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.15, 4.8), lam('#2f6b5c')); roof.position.set(-7.9, 2.6, 7); roof.rotation.z = -0.15; S.add(roof);
@@ -390,7 +422,7 @@ export class Temple {
 
   buildWall() {
     const S = this.scene, wood = lam('#6a3a22');
-    const g = new THREE.Group(); g.position.set(8.4, 0, 4); g.rotation.y = -Math.PI / 2; S.add(g); this.wall = g;
+    const g = new THREE.Group(); g.position.set(18.4, 0, 8); g.rotation.y = -Math.PI / 2; S.add(g); this.wall = g;
     [-2.6, 2.6].forEach(x => { const p = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3.2, 0.2), wood); p.position.set(x, 1.6, 0); g.add(p); });
     const roof = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.15, 0.9), lam('#2f6b5c')); roof.position.set(0, 3.3, 0); g.add(roof);
     [1.0, 1.75, 2.5].forEach(y => { const b = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.06, 0.06), wood); b.position.set(0, y, 0); g.add(b); });
@@ -456,7 +488,7 @@ export class Temple {
 
   buildTrees() {
     const S = this.scene;
-    [[-8, 13], [8, 13.5], [-12.5, 2], [12.5, 0], [-12, -8], [12, -7]].forEach(([x, z]) => {
+    [[-14, 24], [14, 24.5], [-24, 8], [24, 5], [-23, -12], [23, -15], [-8, 25], [9, 26]].forEach(([x, z]) => {
       const g = new THREE.Group(); g.position.set(x, 0, z);
       const t = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 2.2, 8), lam('#5a3a24')); t.position.y = 1.1; g.add(t);
       [[0, 2.8, 0, 1.4], [0.7, 2.4, 0.3, 1], [-0.6, 2.5, -0.2, 1.05], [0, 3.6, 0, 0.9]].forEach(([a, b, c, r]) => {
@@ -541,9 +573,10 @@ export class Temple {
   frame(face, offset = 0.22) { this.camYawTarget = face + Math.PI + offset; }
 
   collide(p) {
-    p.x = Math.max(-9.6, Math.min(9.6, p.x)); p.z = Math.max(-9.4, Math.min(16, p.z));
-    if (p.z < -0.8) p.x = Math.max(-6.4, Math.min(6.4, p.x));
-    if (p.z > 9.6 && p.z < 10.6 && Math.abs(p.x) > 2.4) p.z = p.z < 10.1 ? 9.6 : 10.6;
+    const { HW, HF, HB, CW, GZ } = L;
+    p.x = Math.max(-CW + 0.4, Math.min(CW - 0.4, p.x)); p.z = Math.max(HB + 0.6, Math.min(GZ + 8, p.z));
+    if (p.z < HF + 0.2) p.x = Math.max(-HW + 0.6, Math.min(HW - 0.6, p.x));
+    if (p.z > GZ - 0.4 && p.z < GZ + 0.6 && Math.abs(p.x) > 2.4) p.z = p.z < GZ + 0.1 ? GZ - 0.4 : GZ + 0.6;
     for (const [x1, z1, x2, z2] of BOXES) {
       if (p.x > x1 - 0.3 && p.x < x2 + 0.3 && p.z > z1 - 0.3 && p.z < z2 + 0.3) {
         const d = [p.x - (x1 - 0.3), (x2 + 0.3) - p.x, p.z - (z1 - 0.3), (z2 + 0.3) - p.z], m = Math.min(...d);
@@ -553,26 +586,49 @@ export class Temple {
     for (const [x, z, r] of CIRCLES) { const dx = p.x - x, dz = p.z - z, d = Math.hypot(dx, dz), R = r + 0.3; if (d < R && d > 0.001) { p.x = x + dx / d * R; p.z = z + dz / d * R; } }
   }
 
-  bindInput() {
-    const el = this.canvas; let down = null;
-    el.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now(), yaw: this.camYawTarget, moved: false }; el.setPointerCapture(e.pointerId); });
-    el.addEventListener('pointermove', e => {
-      if (!down) return; const dx = e.clientX - down.x;
-      if (Math.abs(dx) > 8 || Math.abs(e.clientY - down.y) > 8) down.moved = true;
-      if (down.moved) { this.camYawTarget = down.yaw - dx * 0.008; this.camYaw = this.camYawTarget; this.focus = null; }
+  // 最近的空拜墊（others：其他人的位置，避免兩個人跪同一個）
+  freeCushion(x, z, maxD = 0.9) {
+    let best = -1, bd = maxD;
+    CUSHIONS.forEach((c, i) => {
+      const d = Math.hypot(c.x - x, c.z - z); if (d >= bd) return;
+      for (const av of this.avatars) if (av !== this.player && Math.hypot(av.root.position.x - c.x, av.root.position.z - c.z) < 0.4) return;
+      best = i; bd = d;
     });
-    el.addEventListener('pointerup', e => {
-      if (!down) return; const d = down; down = null;
+    return best;
+  }
+
+  bindInput() {
+    // 單指拖曳：左右轉視角、上下調仰角（可以轉到頭頂往下看）；雙指捏合／滾輪：拉近拉遠；輕點：走過去
+    const el = this.canvas, pts = new Map(); let down = null, pinch = null;
+    const clampP = v => Math.max(0.04, Math.min(1.45, v)), clampD = v => Math.max(2.5, Math.min(24, v));
+    el.addEventListener('pointerdown', e => {
+      el.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: this.camDist }; down = null; return; }
+      down = { x: e.clientX, y: e.clientY, t: performance.now(), yaw: this.camYawTarget, pitch: this.camPitch, moved: false };
+    });
+    el.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch && pts.size >= 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); this.camDist = clampD(pinch.dist * pinch.d / Math.max(20, d)); return; }
+      if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y;
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) down.moved = true;
+      if (down.moved) { this.camYawTarget = this.camYaw = down.yaw - dx * 0.008; this.camPitch = clampP(down.pitch + dy * 0.006); this.focus = null; }
+    });
+    const up = e => {
+      pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+      if (!down || e.type === 'pointercancel') { down = null; return; } const d = down; down = null;
       if (d.moved || performance.now() - d.t > 600) return;
       const ndc = new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
       const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, this.camera);
       const avs = [...this.avatars].filter(a => a !== this.player).map(a => a.root);
       const hitA = ray.intersectObjects(avs, true)[0];
       if (hitA) { this.emit('tapAvatar', hitA.object.userData.avatar, e); return; }
+      const hitC = ray.intersectObjects(this.cushionMeshes, false)[0];
+      if (hitC) { this.emit('tapCushion', hitC.object.userData.cushion); return; }
       const hit = ray.intersectObjects(this.ground, false)[0];
       if (hit) this.emit('tapGround', hit.point);
-    });
-    el.addEventListener('pointercancel', () => { down = null; });
+    };
+    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+    el.addEventListener('wheel', e => { e.preventDefault(); this.camDist = clampD(this.camDist * (e.deltaY > 0 ? 1.1 : 0.9)); }, { passive: false });
     this.keys = {};
     addEventListener('keydown', e => { if (e.target.closest?.('input,textarea,dialog')) return; this.keys[e.key.toLowerCase()] = true; });
     addEventListener('keyup', e => { this.keys[e.key.toLowerCase()] = false; });
@@ -587,17 +643,24 @@ export class Temple {
     const dt = Math.min(0.05, this.clock.getDelta());
     // 鍵盤走動
     const k = this.keys, P = this.player;
-    if (P && (k.w || k.a || k.s || k.d || k.arrowup || k.arrowdown || k.arrowleft || k.arrowright)) {
-      const f = (k.w || k.arrowup ? 1 : 0) - (k.s || k.arrowdown ? 1 : 0), s = (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0);
-      const yaw = this.camYaw + Math.PI, fx = Math.sin(yaw), fz = Math.cos(yaw);
-      const dx = fx * f - fz * s, dz = fz * f + fx * s;
-      if (dx || dz) { P.path = null; P.target = { x: P.root.position.x + dx * 0.6, z: P.root.position.z + dz * 0.6 }; P._arrive = null; this.emit('manualMove'); }
+    // 鍵盤或方向搖桿：以鏡頭方向為「前」
+    let f = 0, sd = 0;
+    if (P) {
+      f = (k.w || k.arrowup ? 1 : 0) - (k.s || k.arrowdown ? 1 : 0); sd = (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0);
+      if (Math.hypot(this.stick.x, this.stick.y) > 0.12) { f = this.stick.y; sd = this.stick.x; }
     }
+    const mag = Math.min(1, Math.hypot(f, sd));
+    if (P && mag > 0) {
+      const yaw = this.camYaw + Math.PI, fx = Math.sin(yaw), fz = Math.cos(yaw);
+      const dx = (fx * f - fz * sd) / mag, dz = (fz * f + fx * sd) / mag;
+      P.path = null; P.target = { x: P.root.position.x + dx * 0.6, z: P.root.position.z + dz * 0.6 }; P._arrive?.(false); P._arrive = null;
+      P.moveMul = 0.35 + 0.65 * mag; this.emit('manualMove');
+    } else if (P) P.moveMul = 1;
     for (const av of this.avatars) {
       const p = av.root.position; let moving = false;
       if (av.target) {
         const dx = av.target.x - p.x, dz = av.target.z - p.z, d = Math.hypot(dx, dz);
-        const sp = (av.speed || 3.2) * dt;
+        const sp = (av.speed || 3.2) * (av.moveMul || 1) * dt;
         if (d > 0.05) {
           moving = true; const st = Math.min(sp, d);
           const before = { x: p.x, z: p.z };
@@ -615,6 +678,7 @@ export class Temple {
         }
       }
       if (!moving && av.faceTo != null) { av.root.rotation.y = lerpAngle(av.root.rotation.y, av.faceTo, Math.min(1, dt * 8)); if (Math.abs(angDiff(av.root.rotation.y, av.faceTo)) < 0.01) av.faceTo = null; }
+      if (moving && av.kneeling) av.kneel(false);
       av.moving = moving;
       av.update(dt, moving);
     }
@@ -632,20 +696,17 @@ export class Temple {
     const t = this.clock.elapsedTime;
     this.cards.forEach(c => { c.rotation.x = Math.sin(t * 1.4 + c.userData.ph) * 0.08; c.rotation.z = Math.sin(t * 1.1 + c.userData.ph) * 0.05; });
     this.god.position.y = 1.6 + Math.sin(t * 1.2) * 0.015;
-    // 鏡頭跟隨
+    // 鏡頭：繞著角色轉（左右＝方位、上下＝仰角、遠近＝距離），可以一路轉到頭頂往下看
     if (P) {
       this.camYaw = lerpAngle(this.camYaw, this.camYawTarget, Math.min(1, dt * 3));
-      const pp = P.root.position, d = pp.z < -0.5 ? Math.min(this.camDist, 6.2) : this.camDist;
-      const tgt = this.focus || new THREE.Vector3(pp.x, 1.3, pp.z);
-      const at = dd => new THREE.Vector3(pp.x + Math.sin(this.camYaw) * dd, this.camH * (0.6 + 0.4 * dd / d), pp.z + Math.cos(this.camYaw) * dd);
-      let want = at(d);
-      // 鏡頭不要穿進天公爐、櫃台、供桌等物件：擋到就拉近
-      for (let dd = d - 0.4; !camClear(want) && dd > 2.4; dd -= 0.4) want = at(dd);
-      // 殿內不要穿過屋頂與牆
-      if (want.z < -0.6) want.y = Math.min(want.y, 3.0); // 殿內壓低鏡頭，避開燈籠與橫樑
-      want.x = Math.max(-9.8, Math.min(9.8, want.x)); want.z = Math.max(-9.6, Math.min(22, want.z));
-      this.camera.position.lerp(want, Math.min(1, dt * 4));
-      this._look = this._look ? this._look.lerp(tgt, Math.min(1, dt * 4)) : tgt.clone();
+      const pp = P.root.position, tgt = this.focus || new THREE.Vector3(pp.x, 1.2, pp.z);
+      const piv = new THREE.Vector3(pp.x, 1.2, pp.z), cp = Math.cos(this.camPitch), sp = Math.sin(this.camPitch);
+      const at = d => new THREE.Vector3(piv.x + Math.sin(this.camYaw) * cp * d, Math.max(0.35, piv.y + sp * d), piv.z + Math.cos(this.camYaw) * cp * d);
+      let want = at(this.camDist);
+      // 擋到牆、天花板、天公爐等就拉近
+      for (let d = this.camDist - 0.4; !camClear(want, pp) && d > 1.6; d -= 0.4) want = at(d);
+      this.camera.position.lerp(want, Math.min(1, dt * 5));
+      this._look = this._look ? this._look.lerp(tgt, Math.min(1, dt * 5)) : tgt.clone();
       this.camera.lookAt(this._look);
     }
     this.renderer.render(this.scene, this.camera);
@@ -658,31 +719,38 @@ function lerpAngle(a, b, k) { return a + angDiff(a, b) * k; }
 
 // 簡單路徑：穿過山門、繞過天公爐
 function route(a, b) {
-  const pts = [];
+  const pts = [], G = L.GZ + 0.1, C = L.CZ;
   let cur = { x: a.x, z: a.z };
-  const crossGate = (cur.z > 10.1) !== (b.z > 10.1);
-  if (crossGate) {
-    const k = (10.1 - cur.z) / (b.z - cur.z), x = cur.x + (b.x - cur.x) * k;
-    if (Math.abs(x) > 1.8) { const gx = Math.max(-1.6, Math.min(1.6, x)), s = cur.z > 10.1 ? 1 : -1; pts.push({ x: gx, z: 10.1 + s * 1.1 }, { x: gx, z: 10.1 - s * 1.1 }); cur = pts[pts.length - 1]; }
+  if ((cur.z > G) !== (b.z > G)) {
+    const k = (G - cur.z) / (b.z - cur.z), x = cur.x + (b.x - cur.x) * k;
+    if (Math.abs(x) > 1.8) { const gx = Math.max(-1.6, Math.min(1.6, x)), s = cur.z > G ? 1 : -1; pts.push({ x: gx, z: G + s * 1.1 }, { x: gx, z: G - s * 1.1 }); cur = pts[pts.length - 1]; }
   }
-  // 與天公爐 (0,4) 的距離
-  const segDist = (p, q) => { const vx = q.x - p.x, vz = q.z - p.z, L = vx * vx + vz * vz || 1, t = Math.max(0, Math.min(1, ((0 - p.x) * vx + (4 - p.z) * vz) / L)); return Math.hypot(p.x + vx * t, p.z + vz * t - 4); };
+  // 進出正殿要從正面柱子之間走
+  if ((cur.z > L.HF) !== (b.z > L.HF)) {
+    const k = (L.HF - cur.z) / (b.z - cur.z), x = cur.x + (b.x - cur.x) * k;
+    if (Math.abs(x) > L.HW - 1) { const gx = Math.sign(x) * (L.HW - 3), s = cur.z > L.HF ? 1 : -1; pts.push({ x: gx, z: L.HF + s * 1.2 }, { x: gx, z: L.HF - s * 1.2 }); cur = pts[pts.length - 1]; }
+  }
+  const segDist = (p, q) => { const vx = q.x - p.x, vz = q.z - p.z, Ln = vx * vx + vz * vz || 1, t = Math.max(0, Math.min(1, ((0 - p.x) * vx + (C - p.z) * vz) / Ln)); return Math.hypot(p.x + vx * t, p.z + vz * t - C); };
   if (segDist(cur, b) < 1.65) {
     const side = (cur.x + b.x) / 2 >= 0 ? 1 : -1;
-    const near = { x: 2.2 * side, z: 4 };
-    if (Math.abs(cur.z - 4) > 1 && Math.abs(b.z - 4) > 1) pts.push(near);
-    else pts.push({ x: 2.2 * side, z: cur.z < 4 ? 2.6 : 5.4 }, { x: 2.2 * side, z: b.z < 4 ? 2.6 : 5.4 });
+    if (Math.abs(cur.z - C) > 1 && Math.abs(b.z - C) > 1) pts.push({ x: 2.2 * side, z: C });
+    else pts.push({ x: 2.2 * side, z: cur.z < C ? C - 1.4 : C + 1.4 }, { x: 2.2 * side, z: b.z < C ? C - 1.4 : C + 1.4 });
   }
   pts.push({ x: b.x, z: b.z });
   return pts;
 }
 
-function camClear(v) {
-  if (Math.hypot(v.x, v.z - 4) < 1.9 && v.y < 3.6) return false;
+// 鏡頭位置是否不會穿模
+function camClear(v, player) {
+  const { HW, HF, HB, HH } = L;
+  const inHall = player.z < HF + 0.3;
+  if (inHall) {
+    if (Math.abs(v.x) > HW - 0.4 || v.z < HB + 0.4 || v.y > HH - 0.4) return false;
+    for (const [x, z] of INNER_PILLARS) if (Math.hypot(v.x - x, v.z - z) < 0.8) return false;
+  } else if (v.z < HF + 0.6 && Math.abs(v.x) < HW + 1 && v.y < HH + 6) return false; // 在殿外時不要穿進正殿
+  if (Math.hypot(v.x, v.z - L.CZ) < 1.9 && v.y < 3.6) return false;
   for (const [x1, z1, x2, z2] of BOXES) if (v.x > x1 - 0.4 && v.x < x2 + 0.4 && v.z > z1 - 0.4 && v.z < z2 + 0.4 && v.y < 3.4) return false;
-  if (v.z < -0.8 && Math.abs(v.x) > 6.6) return false;
-  for (const x of [-6.4, -2.8, 2.8, 6.4]) if (Math.hypot(v.x - x, v.z + 1) < 0.9) return false;
-  for (const x of [-2.9, 2.9]) if (Math.hypot(v.x - x, v.z - 10) < 1.0) return false;
-  if (v.z > 9.2) return false; // 不要退到山門外
+  for (const x of FRONT_PILLARS) if (Math.hypot(v.x - x, v.z - HF) < 0.9) return false;
+  if (Math.abs(v.x) > L.CW + 6 || v.z > L.GZ + 10) return false;
   return true;
 }
