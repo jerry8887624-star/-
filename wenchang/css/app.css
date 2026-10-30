@@ -276,3 +276,32 @@ dialog.lot .row { padding: 0 18px 16px; }
 #toast.show { pointer-events: auto; }
 #toast .reply { margin-left: 8px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--gold); background: var(--red); font-size: 13px; }
 .tag.done::after { content: " ✓"; color: #7fe0b8; }
+
+/* ---------- 悄悄話 ---------- */
+.invite-btn { width: 100%; margin-bottom: 8px; padding: 10px; border-radius: 12px; border: 1px solid var(--gold); background: linear-gradient(180deg, #3b7d6d, #23584c); font-weight: 700; min-height: 44px; }
+#people-list .acts { display: flex; gap: 6px; }
+#people-list button.alt { background: #23584c; }
+#people-list button:disabled { opacity: .45; }
+#invite-card { left: 0; right: 0; margin: 0 auto; top: calc(118px + var(--sat)); width: min(340px, calc(100% - 24px)); animation: dlg .25s var(--ease); z-index: 7; }
+#invite-text { margin: 0; font-size: 15.5px; line-height: 1.5; }
+#invite-text b { color: var(--gold-2); }
+#invite-card .row { margin-top: 10px; }
+#chat { position: absolute; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; flex-direction: column; max-height: min(58%, 460px); margin: 0 auto; max-width: 560px;
+  padding: 12px 12px calc(10px + var(--sab)); border-radius: 20px 20px 0 0; background: var(--glass-2); border: 1px solid var(--gold); border-bottom: 0;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: sheet .3s var(--ease); }
+@keyframes sheet { from { transform: translateY(40px); opacity: 0; } }
+#chat header { display: flex; align-items: center; gap: 6px; }
+#chat h2 { margin: 0 auto 0 0; font-size: 17px; color: var(--gold-2); }
+.chat-safe { margin: 6px 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+#chat-log { flex: 1; min-height: 90px; overflow-y: auto; margin: 0; padding: 4px 2px; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+#chat-log li { max-width: 80%; padding: 7px 11px; border-radius: 14px; font-size: 15px; line-height: 1.45; word-break: break-word; }
+#chat-log li.them { align-self: flex-start; background: #fff7e6; color: #4a1a10; border-bottom-left-radius: 4px; }
+#chat-log li.me { align-self: flex-end; background: var(--red); color: #fff4d6; border-bottom-right-radius: 4px; }
+#chat-log li.sys { align-self: center; max-width: 100%; background: none; color: var(--muted); font-size: 12.5px; padding: 2px; }
+#chat-phrases { flex-wrap: nowrap; overflow-x: auto; padding: 6px 0; scrollbar-width: none; }
+#chat-phrases::-webkit-scrollbar { display: none; }
+#chat-phrases button { flex: 0 0 auto; font-size: 13px; min-height: 34px; }
+#chat-form { display: flex; gap: 8px; }
+#chat-form input { flex: 1; min-width: 0; }
+#chat-form button { padding: 0 18px; border-radius: 12px; border: 1px solid var(--gold); background: linear-gradient(180deg, var(--red-2), var(--red)); color: #fff6e0; font-weight: 700; min-height: 44px; }
+body.chatting #dock, body.chatting #next, body.chatting #social-btn, body.chatting #feed { display: none; }

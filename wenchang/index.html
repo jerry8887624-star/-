@@ -91,8 +91,33 @@
   <div id="cheer-menu" class="card-pop" hidden>
     <p id="cheer-name"></p>
     <div id="cheer-list"></div>
-    <button type="button" id="cheer-block" class="ghost small">不再顯示他的打氣</button>
+    <button type="button" id="cheer-invite" class="invite-btn">💬 邀請說悄悄話</button>
+    <button type="button" id="cheer-block" class="ghost small">封鎖這位考生</button>
   </div>
+
+  <div id="invite-card" class="card-pop" role="alertdialog" aria-live="assertive" hidden>
+    <p id="invite-text"></p>
+    <div class="row">
+      <button type="button" id="invite-block" class="ghost small">封鎖</button>
+      <button type="button" id="invite-decline" class="ghost">婉拒</button>
+      <button type="button" id="invite-accept">接受</button>
+    </div>
+  </div>
+
+  <section id="chat" aria-labelledby="chat-title" hidden>
+    <header>
+      <h2 id="chat-title"></h2>
+      <button type="button" id="chat-block" class="ghost small">封鎖</button>
+      <button type="button" id="chat-end" class="ghost small">結束</button>
+    </header>
+    <p class="chat-safe">🔒 只有對方看得到、不會儲存。不要給電話、LINE、IG、學校或住址；覺得不舒服就按「封鎖」。</p>
+    <ol id="chat-log" aria-live="polite"></ol>
+    <div id="chat-phrases" class="chips"></div>
+    <form id="chat-form" autocomplete="off">
+      <input id="chat-input" maxlength="40" placeholder="最多 40 字" enterkeyhint="send">
+      <button type="submit">送出</button>
+    </form>
+  </section>
 
   <nav id="dock" aria-label="參拜動作"></nav>
 </div>
