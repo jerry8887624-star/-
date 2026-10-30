@@ -49,6 +49,7 @@
     <button type="button" id="info-btn" class="icon" aria-label="說明">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.5" /></svg>
     </button>
+    <button type="button" id="update-chip" hidden>有新版本</button>
     <div class="tools">
       <button type="button" id="presence" hidden aria-label="在廟裡的香客"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><circle cx="17" cy="9" r="2.4" /><path d="M16 13.6c2.9.1 5 2 5 4.9" /></svg><b class="online"></b></button>
       <button type="button" id="time-btn" class="icon" aria-label="切換白天／夜晚" aria-pressed="false">
@@ -261,6 +262,17 @@
   <div class="row"><button type="button" data-close>好</button></div>
 </dialog>
 
+<!-- 版本更新 -->
+<dialog id="update-dlg">
+  <h2 id="update-title"></h2>
+  <ol id="update-list" class="update-list"></ol>
+  <div class="row">
+    <button type="button" class="ghost" id="update-later">稍後更新</button>
+    <button type="button" id="update-go">立即更新</button>
+    <button type="button" id="update-ok" hidden>開始使用</button>
+  </div>
+</dialog>
+
 <!-- 說明 -->
 <dialog id="info-dlg">
   <h2>關於這座線上文昌祠</h2>
@@ -273,7 +285,7 @@
   <p class="pending" id="info-sources"></p>
   <h3>操作方式</h3>
   <p>點地板走過去、拖曳轉動視角；電腦可用 WASD／方向鍵。下方按鈕會帶你走到對的位置並完成動作。點其他香客可以送打氣語。</p>
-  <p class="disclaimer">非官方個人教育作品，不代表任何廟宇。</p>
+  <p class="disclaimer">非官方個人教育作品，不代表任何廟宇。<span id="app-ver"></span></p>
   <div class="row"><button type="button" data-close>關閉</button></div>
 </dialog>
 

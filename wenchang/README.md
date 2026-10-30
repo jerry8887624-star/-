@@ -22,4 +22,4 @@
 ## 開發
 - 3D 用 three.js（`vendor/`，MIT 授權），場景與人物全部用程式產生，沒有外部模型檔。
 - 籤詩資料沿用 `divination/data/qian.js`。
-- 改完任何檔案後執行 `python3 build.py`（更新 service worker 版本）。
+- 改完任何檔案後：在 `data/changes.json` 最前面加一筆更新紀錄（版本號要變大），再執行 `python3 build.py`。玩家的遊戲會自動跳出「有新版本」提示（立即更新／稍後更新），更新後介紹一次。
