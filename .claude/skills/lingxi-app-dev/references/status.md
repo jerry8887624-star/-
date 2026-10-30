@@ -39,7 +39,7 @@
 - 檢查方式：多組命主（長輩、孩子、時辰不確定、複姓、單名）產生命書，掃描 undefined／NaN／重複標點／空格，並看手機截圖與列印 PDF。
 
 ## 拜訪人次（1.25）
-- `functions/api/visit.js`（repo 根目錄，Cloudflare Pages Function）＋ D1，綁定名稱 `DB`；表 `hits(day, n)` 會自動建立。GET 讀、POST 今天加一；以台灣時間換日。
+- `functions/api/visit.js`（repo 根目錄，Cloudflare Pages Function）＋ D1，綁定名稱 `DB`；表 `hits(day, n)` 會自動建立。累計人次 = 1800（`BASE`，使用者指定）＋資料庫合計。GET 讀、POST 今天加一；以台灣時間換日。
 - App：`visitPing()` 在 boot 呼叫，`gx_vday` 記錄今天是否已計；結果存 `gx_visits`；顯示在歡迎畫面 `#welVisits`。API 不通時隱藏。SW 不快取 `/api/`。
 - 本機測試：scratchpad 安裝 wrangler，在含 functions/ 的暫存資料夾執行 `wrangler pages dev divination --d1 DB=xxx --persist-to <scratch>`，避免 .wrangler 寫進 repo。不要用 pkill -f 比對含相同字串的指令（會把自己的 shell 一起砍掉）。
 - 使用者需在 Cloudflare 後台建立 D1 並綁定到 Pages 專案（變數名 DB），之後重新部署一次才生效。
