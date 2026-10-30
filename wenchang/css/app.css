@@ -365,3 +365,19 @@ body.chatting #stick, body.chatting #kneel-bar { display: none; }
   .splash-bottom { max-width: 360px; }
   dialog { max-height: calc(100% - 16px); }
 }
+
+/* ---------- 背景音樂 ---------- */
+#music-btn[aria-expanded="true"] { background: rgba(232, 193, 90, .18); }
+#music-btn.playing svg { animation: musicPulse 2.4s ease-in-out infinite; }
+@keyframes musicPulse { 50% { transform: scale(1.12); } }
+#music-pop { right: 12px; top: calc(64px + var(--sat)); width: min(320px, calc(100% - 24px)); animation: dlg .22s var(--ease); z-index: 7; }
+.music-on { margin: 0 0 10px; font-size: 14.5px; }
+.music-list { display: grid; gap: 6px; }
+.music-list button { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; text-align: left; padding: 9px 10px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .04); }
+.music-list button::before { content: ""; width: 16px; height: 16px; margin-top: 2px; border-radius: 50%; border: 2px solid var(--line); }
+.music-list button[aria-checked="true"] { border-color: var(--gold); background: rgba(184, 50, 42, .35); }
+.music-list button[aria-checked="true"]::before { border-color: var(--gold); background: radial-gradient(circle, var(--gold-2) 45%, transparent 50%); }
+.music-list b { display: block; font-size: 14.5px; }
+.music-list small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.5; margin-top: 1px; }
+.music-list .now { color: var(--gold-2); font-size: 12px; margin-left: 6px; font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { #music-btn.playing svg { animation: none; } }
