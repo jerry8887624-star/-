@@ -1,18 +1,26 @@
 // 參拜流程、供品、打氣語、文昌文化等文字內容（集中在這裡，方便日後修改）
 
 export const STEPS = [
-  { id: 'prepare', dock: '備供品', label: '到辦事處挑供品、領三炷香', where: 'counter',
-    done: '供品備好了，三炷香也點上了。准考證影本和文具先帶在身上。' },
-  { id: 'heaven', dock: '拜天公', label: '在天公爐前面朝廟外拜天公，自我介紹（先不插香）', where: 'censerOut',
-    done: '已面朝廟外向天公報上姓名、生日、住址。香先拿著，等一下再插。' },
-  { id: 'wenchang', dock: '拜文昌', label: '入殿把供品擺上供桌，向文昌帝君稟告考試與心願', where: 'cushion',
+  { id: 'prepare', dock: '備供品', label: '到辦事處挑供品，領三炷香和金紙', where: 'counter',
+    done: '供品、金紙都備好了，三炷香也點上了。准考證影本和文具先帶在身上。' },
+  { id: 'heaven', dock: '拜天公', label: '在天公爐前面朝廟外拜天公、自我介紹，插上一炷香', where: 'censerOut',
+    done: '已向天公報上姓名、生日、住址，第一炷香插進天公爐了。' },
+  { id: 'wenchang', dock: '拜文昌', label: '入殿把供品擺上供桌，跪在拜墊上向文昌帝君稟告考試與心願', where: 'cushion',
     done: '已向文昌帝君稟告考試與心願，也許下金榜題名後回來還願。' },
-  { id: 'plant', dock: '插香', label: '回天公爐插上三炷香', where: 'censer',
-    done: '三炷香插進天公爐了。' },
-  { id: 'pass', dock: '過爐', label: '准考證影本與文具在爐上順時針繞三圈', where: 'censer',
+  { id: 'plant', dock: '插香', label: '在文昌帝君專屬的文昌爐插上另外兩炷香', where: 'wcCenser',
+    done: '兩炷香插進文昌爐了。' },
+  { id: 'pass', dock: '過爐', label: '准考證影本與文具在文昌爐上順時針繞三圈', where: 'wcCenser',
     done: '准考證影本與文具過爐完成，收進書包，考試那天帶著。' },
+  { id: 'jinzhi', dock: '燒金紙', label: '到金爐依序燒金紙：天金、壽金、刈金', where: 'jinlu',
+    done: '金紙燒完了，參拜的心意送到了。' },
   { id: 'card', dock: '祈福卡', label: '寫一張祈福卡，掛上祈福牆', where: 'wall',
     done: '祈福卡掛上牆了。' },
+];
+// 金紙：常見用法（各廟與各地習慣不同，以廟方指示為準）
+export const JINZHI = [
+  { id: 'tian', name: '天金', for: '敬天公', color: '#e6c04a' },
+  { id: 'shou', name: '壽金', for: '敬文昌帝君', color: '#d9a63a' },
+  { id: 'ge', name: '刈金', for: '答謝眾神', color: '#c99a3a' },
 ];
 export const EXTRAS = [
   { id: 'jiaobei', dock: '擲筊', where: 'cushion' },
@@ -76,6 +84,7 @@ export const FACTS = [
   '聖誕在農曆二月初三。考季前後與聖誕當天，文昌廟常常擠滿考生與家長。',
   '「五文昌」常見說法是文昌帝君、關聖帝君、孚佑帝君（呂洞賓）、魁斗星君、朱衣星君，各地配祀略有不同。',
   '供品多取諧音：蔥＝聰明、芹菜＝勤學、菜頭＝好彩頭、包子粽子＝包中。准考證影本常一起放上供桌，拜完過爐。',
+  '燒金紙是把心意「送」給神明：一般拜天公用天金、拜神明用壽金，刈金多用於答謝眾神。各廟用的金紙不同，有些廟為了環保已不收金紙，請依廟方指示。',
 ];
 export const SOURCES = [
   ['NOWnews：拜文昌帝君流程與供品', 'https://www.nownews.com/news/6774035'],

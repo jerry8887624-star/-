@@ -105,7 +105,7 @@ body.guide-open #toast { top: auto; bottom: calc(150px + var(--sab)); }
   background: var(--glass); border: 1px solid var(--line); max-width: calc(100% - 16px); overflow-x: auto; scrollbar-width: none; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 #dock::-webkit-scrollbar { display: none; }
 #dock span { white-space: nowrap; font-size: 11.5px; letter-spacing: -.02em; }
-#dock button { flex: 0 0 auto; width: clamp(40px, calc((100vw - 44px) / 8), 62px); min-height: 66px; padding: 6px 0 4px; border: 0; border-radius: 14px; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; color: var(--muted); position: relative; }
+#dock button { flex: 0 0 auto; width: clamp(38px, calc((100vw - 40px) / 9.3), 62px); min-height: 66px; padding: 6px 0 4px; border: 0; border-radius: 14px; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; color: var(--muted); position: relative; }
 #dock svg { width: 26px; height: 26px; fill: none; stroke: var(--gold-2); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 #dock button.done { opacity: .55; }
 #dock button.done::after { content: ""; position: absolute; top: 6px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: #5fd0a8; }
@@ -178,7 +178,7 @@ label.check input { width: 20px; height: 20px; accent-color: var(--red); }
 .msg.warn { color: #ffb4a0; }
 
 /* 過爐、求籤 全螢幕卡 */
-#pass-ui, #qian-ui { user-select: none; -webkit-user-select: none; position: fixed; inset: 0; z-index: 8; display: grid; place-items: end center; padding: 16px 16px calc(16px + var(--sab)); background: linear-gradient(transparent 30%, rgba(10, 5, 3, .55)); }
+#pass-ui, #qian-ui, #jinzhi-ui { user-select: none; -webkit-user-select: none; position: fixed; inset: 0; z-index: 8; display: grid; place-items: end center; padding: 16px 16px calc(16px + var(--sab)); background: linear-gradient(transparent 30%, rgba(10, 5, 3, .55)); }
 .pass-card, .qian-card { width: 100%; max-width: 420px; padding: 16px; border-radius: 22px; background: var(--glass-2); border: 1px solid var(--gold); text-align: center; animation: dlg .3s var(--ease); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .pass-card h2, .qian-card h2 { margin: 0 0 6px; color: var(--gold-2); }
 .pass-ring { width: min(210px, 56vw); user-select: none; -webkit-user-select: none; aspect-ratio: 1; margin: 0 auto; touch-action: none; }
@@ -381,3 +381,13 @@ body.chatting #stick, body.chatting #kneel-bar { display: none; }
 .music-list small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.5; margin-top: 1px; }
 .music-list .now { color: var(--gold-2); font-size: 12px; margin-left: 6px; font-weight: 500; }
 @media (prefers-reduced-motion: reduce) { #music-btn.playing svg { animation: none; } }
+
+/* ---------- 燒金紙 ---------- */
+.jinzhi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 6px 0 4px; }
+.jinzhi-grid button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px 10px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); }
+.jinzhi-grid button i { width: 46px; height: 34px; border-radius: 4px; box-shadow: inset 0 0 0 2px rgba(138, 90, 20, .6), 3px 3px 0 rgba(0, 0, 0, .25); position: relative; }
+.jinzhi-grid button i::after { content: ""; position: absolute; inset: 9px 15px; background: #c8352b; }
+.jinzhi-grid b { font-family: var(--serif); font-size: 17px; }
+.jinzhi-grid small { font-size: 12px; color: var(--muted); }
+.jinzhi-grid button.next { border-color: var(--gold); background: rgba(184, 50, 42, .4); animation: nudge 2s ease-in-out infinite; }
+.jinzhi-grid button.burnt { opacity: .4; }

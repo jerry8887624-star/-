@@ -1,5 +1,5 @@
 /* 離線快取：網頁先試網路（不讀 HTTP 快取，4 秒逾時才用手機裡的版本），其他資源先用快取並在背景更新 */
-const V='wc-71253a0aad';
+const V='wc-ecb7689834';
 const CORE=['./','index.html','manifest.webmanifest','css/app.css','js/main.js','js/scene.js','js/avatar.js','js/data.js','js/net.js','js/config.js','js/chatfilter.js','js/changes.js','js/update.js','data/qian.js','vendor/three.module.min.js','icons/icon.svg','icons/icon-192.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CORE.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('wc-')&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

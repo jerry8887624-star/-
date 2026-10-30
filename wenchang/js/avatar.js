@@ -108,11 +108,13 @@ export class Avatar {
 
     // 手上的三炷香
     const inc = new THREE.Group(); inc.position.set(0, -0.36, 0.06); inc.visible = this.holding;
+    this.stickParts = [];
     for (let i = -1; i <= 1; i++) {
       const s = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5), lam('#8a3a2a')); s.position.set(i * 0.035, 0.22, 0); s.rotation.z = i * 0.06; inc.add(s);
       const tip = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), new THREE.MeshBasicMaterial({ color: '#ff8a3a' })); tip.position.set(i * 0.05, 0.47, 0); inc.add(tip);
+      this.stickParts.push([s, tip]);
     }
-    this.arms[1].add(inc); this.incense = inc;
+    this.arms[1].add(inc); this.incense = inc; this.setSticks(this.sticks ?? 3);
 
     // 影子
     const sh = new THREE.Mesh(new THREE.CircleGeometry(0.42, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22, depthWrite: false }));
@@ -126,6 +128,8 @@ export class Avatar {
   emote(kind) { if (kind === 'bow') { if (this.bowT < 0) this.bow(1); return; } this.emoteKind = kind; this.emoteT = 0; }
   kneel(on) { this.kneeling = !!on; }
   hold(on) { this.holding = on; if (this.incense) this.incense.visible = on; }
+  // 手上還剩幾炷香（插了一炷就少一炷）
+  setSticks(n) { this.sticks = n; this.stickParts?.forEach(([s, t], i) => { const v = n === 3 || (n === 2 ? i !== 1 : i === 1); s.visible = t.visible = v; }); }
   // 拜三拜：回傳 Promise
   bow(times = 3) {
     this.bowT = 0; this.bowTimes = times;
