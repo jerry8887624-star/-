@@ -229,42 +229,118 @@ export class Temple {
   }
 
   buildGod() {
-    // 神龕＋文昌帝君（Q 版、坐姿、手持如意）
-    const S = this.scene, gold = lam('#d8ab45'), shrineM = lam('#5a1a14');
+    // 神龕＋文昌帝君：藍底金紋官袍、紅白袖緣、展角官帽、長鬚，右手持笏、左手捧書，坐在金獅扶手的寶座上
+    const S = this.scene, gold = lam('#d8ab45'), shrineM = lam('#4a1610'), wood = lam('#3a1a12');
     const sh = new THREE.Group(); sh.position.set(0, 0, -8.9); S.add(sh);
     const base = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.6, 2), shrineM); base.position.y = 0.8; sh.add(base);
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(4.4, 3.4, 0.3), shrineM); frame.position.set(0, 3.3, -0.85); sh.add(frame);
-    const halo = new THREE.Mesh(new THREE.CircleGeometry(1.25, 40), basic('#fff', { map: canvasTex(256, 256, (g, W) => {
-      const gr = g.createRadialGradient(128, 128, 10, 128, 128, 128); gr.addColorStop(0, '#fff2c0'); gr.addColorStop(0.6, '#e8b84a'); gr.addColorStop(1, '#b8322a');
-      g.fillStyle = gr; g.fillRect(0, 0, W, W); g.strokeStyle = 'rgba(255,240,200,.7)'; g.lineWidth = 4; for (let r = 40; r < 128; r += 22) { g.beginPath(); g.arc(128, 128, r, 0, 7); g.stroke(); }
-    }) })); halo.position.set(0, 3.35, -0.68); sh.add(halo);
+    const baseTrim = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.12, 2.05), gold); baseTrim.position.y = 1.56; sh.add(baseTrim);
+    // 背後的藍底金雲龍壁
+    const mural = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 3.8), lam('#fff', { map: canvasTex(512, 440, (g, W, H) => {
+      const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#2c3f63'); bg.addColorStop(1, '#1d2b48'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+      g.lineCap = 'round';
+      for (let i = 0; i < 46; i++) { // 祥雲
+        const x = Math.random() * W, y = Math.random() * H, r = 10 + Math.random() * 22;
+        g.strokeStyle = `rgba(214,176,92,${0.35 + Math.random() * 0.35})`; g.lineWidth = 2 + Math.random() * 2;
+        g.beginPath(); for (let a = 0; a < 9; a += 0.2) { const rr = r * (1 - a / 11); g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.7); } g.stroke();
+      }
+      g.strokeStyle = 'rgba(226,190,110,.55)'; g.lineWidth = 9; // 龍身
+      [[60, 120], [380, 300]].forEach(([x0, y0]) => { g.beginPath(); for (let t = 0; t < 1; t += 0.02) g.lineTo(x0 + t * 160, y0 + Math.sin(t * 9) * 34 - t * 50); g.stroke(); });
+    }) }));
+    mural.position.set(0, 3.45, -0.8); sh.add(mural);
+    const muralFrame = new THREE.Mesh(new THREE.BoxGeometry(4.6, 4.0, 0.12), wood); muralFrame.position.set(0, 3.45, -0.88); sh.add(muralFrame);
     const pt = plaqueTex('文昌帝君', { vertical: false, w: 512, h: 120, font: 80, bg: '#2a1410' });
-    const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.52), basic('#fff', { map: pt })); pl.position.set(0, 5.1, -0.68); sh.add(pl);
-    [-1.9, 1.9].forEach(x => { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.4, 10), gold); c.position.set(x, 3.3, -0.6); sh.add(c); });
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.52), basic('#fff', { map: pt })); pl.position.set(0, 5.62, -0.7); sh.add(pl);
+    // 側邊直式牌位
+    const vt = plaqueTex('文昌帝君', { vertical: true, w: 150, h: 520, font: 100, bg: '#4a1a14', fg: '#e8c15a' });
+    [-1.82, 1.82].forEach(x => { const v = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 1.75), basic('#fff', { map: vt })); v.position.set(x, 3.7, -0.72); sh.add(v); });
+    [-2.15, 2.15].forEach(x => { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 4, 10), gold); c.position.set(x, 3.5, -0.6); sh.add(c); });
+
+    // 寶座：椅背＋金獅扶手
+    const throne = new THREE.Group(); throne.position.set(0, 1.6, -0.25); sh.add(throne);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.3, 0.18), wood); back.position.set(0, 1.15, -0.5); throne.add(back);
+    const backTrim = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.12, 0.22), gold); backTrim.position.set(0, 2.32, -0.5); throne.add(backTrim);
+    [-1, 1].forEach(s => {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.55, 1.1), wood); arm.position.set(1.0 * s, 0.4, 0.05); throne.add(arm);
+      const lion = new THREE.Group(); lion.position.set(1.0 * s, 0.8, 0.55); throne.add(lion);
+      const lh = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), gold); lion.add(lh);
+      const mane = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.06, 6, 14), lam('#b8892e')); mane.position.z = -0.03; lion.add(mane);
+      const snout = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), gold); snout.position.set(0, -0.04, 0.14); lion.add(snout);
+      [-1, 1].forEach(e => { const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 4), lam('#3a1a10')); eye.position.set(0.06 * e, 0.05, 0.14); lion.add(eye); });
+    });
+
+    // 官袍布料：藍底金色雲紋與團花
+    const robeTex = canvasTex(256, 256, (g, W, H) => {
+      g.fillStyle = '#2d4f8e'; g.fillRect(0, 0, W, H);
+      for (let i = 0; i < 26; i++) {
+        const x = Math.random() * W, y = Math.random() * H;
+        g.strokeStyle = 'rgba(232,193,90,.85)'; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, 9 + Math.random() * 8, 0, Math.PI * 1.6); g.stroke();
+        g.beginPath(); g.arc(x + 10, y + 4, 6, Math.PI, Math.PI * 2.4); g.stroke();
+      }
+      for (let i = 0; i < 9; i++) { const x = Math.random() * W, y = Math.random() * H; g.fillStyle = ['#c8352b', '#f3efe2', '#e2b13c'][i % 3]; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }
+    });
+    robeTex.wrapS = robeTex.wrapT = THREE.RepeatWrapping; robeTex.repeat.set(2, 2);
+    const robe = lam('#fff', { map: robeTex }), red = lam('#b8322a'), white = lam('#f4efe2'), skin = lam('#efc9a3'), black = lam('#161414');
 
     const god = new THREE.Group(); god.position.set(0, 1.6, -0.2); sh.add(god); this.god = god;
-    const robe = lam('#2f6e5c'), trim = gold, skin = lam('#f3d6b6');
-    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.85, 0.7, 20), robe); lower.position.y = 0.35; god.add(lower);
-    const knees = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.35, 0.7), robe); knees.position.set(0, 0.3, 0.35); god.add(knees);
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.6, 0.8, 20), robe); torso.position.y = 1.05; god.add(torso);
-    const belt = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 8, 20), trim); belt.rotation.x = Math.PI / 2; belt.position.y = 0.72; god.add(belt);
-    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.07, 8, 20), lam('#b8322a')); collar.rotation.x = Math.PI / 2; collar.position.y = 1.45; god.add(collar);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 18), skin); head.position.y = 1.9; god.add(head);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.92, 0.75, 24), robe); lower.position.y = 0.37; god.add(lower);
+    const knees = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.38, 0.8), robe); knees.position.set(0, 0.32, 0.38); god.add(knees);
+    const drape = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.08), robe); drape.position.set(0, 0.14, 0.8); god.add(drape);
+    [-1, 1].forEach(s => { const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.3), white); shoe.position.set(0.32 * s, 0.07, 0.86); god.add(shoe); });
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.64, 0.9, 24), robe); torso.position.y = 1.15; god.add(torso);
+    // 交領：紅底白邊
     [-1, 1].forEach(s => {
-      const eye = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.015, 4, 10, Math.PI), lam('#2a1a10')); eye.position.set(0.17 * s, 1.95, 0.47); god.add(eye);
-      const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.4, 4, 10), robe); arm.position.set(0.5 * s, 1.0, 0.25); arm.rotation.x = -1.1; god.add(arm);
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), skin); hand.position.set(0.32 * s, 0.85, 0.6); god.add(hand);
+      const lap = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.62, 0.04), red); lap.position.set(0.1 * s, 1.36, 0.47); lap.rotation.z = 0.5 * s; god.add(lap);
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.62, 0.045), white); edge.position.set(0.15 * s, 1.36, 0.48); edge.rotation.z = 0.5 * s; god.add(edge);
     });
-    // 長鬍子
-    const beard = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.6, 12), lam('#1f1a18')); beard.rotation.x = Math.PI; beard.position.set(0, 1.5, 0.42); god.add(beard);
-    // 官帽
-    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 0.42, 20), lam('#1f2430')); hat.position.y = 2.38; god.add(hat);
-    const hatTop = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.5), lam('#1f2430')); hatTop.position.y = 2.62; god.add(hatTop);
-    const jewel = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), gold); jewel.position.set(0, 2.42, 0.46); god.add(jewel);
-    // 如意
-    const ruyi = new THREE.Group(); ruyi.position.set(0, 0.95, 0.66); ruyi.rotation.z = 0.9; god.add(ruyi);
-    const rs = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.8), gold); ruyi.add(rs);
-    const rh = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), lam('#e8d27a')); rh.scale.set(1.3, 0.8, 0.6); rh.position.y = 0.42; ruyi.add(rh);
+    const belt = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.06, 8, 24), gold); belt.rotation.x = Math.PI / 2; belt.position.y = 0.78; god.add(belt);
+    const jade = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.05), lam('#2f8a6e')); jade.position.set(0, 0.78, 0.62); god.add(jade);
+    // 寬袖子（袖口紅白滾邊）＋手
+    // 袖子往前內收，手在胸前握著笏和書
+    [-1, 1].forEach(s => {
+      const sl = new THREE.Group(); sl.position.set(0.55 * s, 1.32, 0.18); sl.rotation.set(-0.72, 0, -0.18 * s); god.add(sl);
+      const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.27, 0.7, 16), robe); sleeve.position.y = -0.33; sl.add(sleeve);
+      const cuffR = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.045, 6, 18), red); cuffR.rotation.x = Math.PI / 2; cuffR.position.y = -0.66; sl.add(cuffR);
+      const cuffW = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.03, 6, 18), white); cuffW.rotation.x = Math.PI / 2; cuffW.position.y = -0.69; sl.add(cuffW);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), skin); hand.scale.set(1, 1.15, 0.9); hand.position.y = -0.78; sl.add(hand);
+    });
+    // 右手（神像的右邊＝畫面左邊）持笏
+    const hu = new THREE.Group(); hu.position.set(-0.4, 1.18, 0.86); hu.rotation.set(-0.15, 0, 0.18); god.add(hu);
+    const huBody = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.95, 0.04), gold); hu.add(huBody);
+    const huInlay = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.82, 0.045), lam('#7a5a24')); hu.add(huInlay);
+    // 左手捧書（書背寫「文昌帝君」）
+    const books = new THREE.Group(); books.position.set(0.38, 0.98, 0.84); books.rotation.set(-0.2, -0.25, -0.05); god.add(books);
+    const cover = canvasTex(96, 128, (g, W, H) => { g.fillStyle = '#23305a'; g.fillRect(0, 0, W, H); g.fillStyle = '#f4ecd6'; g.fillRect(30, 12, 36, 104); g.fillStyle = '#2a1a10'; g.font = '700 22px serif'; g.textAlign = 'center'; [...'文昌帝君'].forEach((c, i) => g.fillText(c, 48, 36 + i * 24)); });
+    for (let i = 0; i < 4; i++) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.055), [lam('#f4ecd6'), lam('#f4ecd6'), lam('#f4ecd6'), lam('#f4ecd6'), i === 3 ? lam('#fff', { map: cover }) : lam('#23305a'), lam('#23305a')]);
+      b.position.set(i * 0.012, 0, i * 0.058); books.add(b);
+    }
+    // 頭、臉
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.46, 24, 18), skin); head.scale.set(0.95, 1.05, 0.95); head.position.y = 2.02; god.add(head);
+    [-1, 1].forEach(s => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), black); eye.scale.set(1.3, 0.6, 0.5); eye.position.set(0.15 * s, 2.08, 0.42); god.add(eye);
+      const brow = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.035, 0.03), black); brow.position.set(0.15 * s, 2.17, 0.42); brow.rotation.z = -0.25 * s; god.add(brow);
+      const mus = new THREE.Mesh(new THREE.CapsuleGeometry(0.025, 0.14, 4, 6), black); mus.position.set(0.08 * s, 1.88, 0.44); mus.rotation.z = (Math.PI / 2 - 0.45) * s; god.add(mus);
+      const whisk = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.42, 4, 6), black); whisk.position.set(0.24 * s, 1.68, 0.3); whisk.rotation.z = 0.12 * s; god.add(whisk);
+    });
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), skin); nose.position.set(0, 1.99, 0.46); god.add(nose);
+    const lips = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.025, 0.02), lam('#a2402e')); lips.position.set(0, 1.85, 0.45); god.add(lips);
+    // 長鬚：從下巴一路垂到胸前
+    const beard = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.05, 14), lam('#1e1a18')); beard.rotation.x = Math.PI; beard.scale.z = 0.45; beard.position.set(0, 1.33, 0.48); god.add(beard);
+    // 官帽：黑底金飾、前方綠寶石、頂上藍珠、兩側展角
+    const hatG = new THREE.Group(); hatG.position.y = 2.42; god.add(hatG);
+    const hatBase = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.47, 0.32, 24), black); hatG.add(hatBase);
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.035, 6, 24), gold); band.rotation.x = Math.PI / 2; band.position.y = -0.13; hatG.add(band);
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.34, 0.5), black); crown.position.set(0, 0.3, -0.05); hatG.add(crown);
+    const crownTrim = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.05, 0.54), gold); crownTrim.position.set(0, 0.48, -0.05); hatG.add(crownTrim);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.22, 0.04), gold); plate.position.set(0, 0.02, 0.45); hatG.add(plate);
+    const gem = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), lam('#1f8a6a')); gem.position.set(0, 0.02, 0.48); hatG.add(gem);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), lam('#2a2f6a')); knob.position.set(0, 0.6, 0.05); hatG.add(knob);
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.14, 8), gold); spike.position.set(0, 0.36, 0.22); hatG.add(spike);
+    [-1, 1].forEach(s => {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.07, 0.05), black); wing.position.set(0.72 * s, 0.12, -0.22); hatG.add(wing);
+      const wt = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.025, 0.06), gold); wt.position.set(0.72 * s, 0.12, -0.21); hatG.add(wt);
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.06), gold); tip.position.set(1.02 * s, 0.12, -0.22); hatG.add(tip);
+    });
     // 神前光
     this.godLight = new THREE.PointLight(0xffc27a, 6, 9, 1.6); this.godLight.position.set(0, 3.2, -6.4); S.add(this.godLight);
   }
@@ -561,12 +637,10 @@ export class Temple {
       this.camYaw = lerpAngle(this.camYaw, this.camYawTarget, Math.min(1, dt * 3));
       const pp = P.root.position, d = pp.z < -0.5 ? Math.min(this.camDist, 6.2) : this.camDist;
       const tgt = this.focus || new THREE.Vector3(pp.x, 1.3, pp.z);
-      let want, dd = d;
+      const at = dd => new THREE.Vector3(pp.x + Math.sin(this.camYaw) * dd, this.camH * (0.6 + 0.4 * dd / d), pp.z + Math.cos(this.camYaw) * dd);
+      let want = at(d);
       // 鏡頭不要穿進天公爐、櫃台、供桌等物件：擋到就拉近
-      for (; dd > 2.4; dd -= 0.4) {
-        want = new THREE.Vector3(pp.x + Math.sin(this.camYaw) * dd, this.camH * (0.6 + 0.4 * dd / d), pp.z + Math.cos(this.camYaw) * dd);
-        if (camClear(want)) break;
-      }
+      for (let dd = d - 0.4; !camClear(want) && dd > 2.4; dd -= 0.4) want = at(dd);
       // 殿內不要穿過屋頂與牆
       if (want.z < -0.6) want.y = Math.min(want.y, 3.0); // 殿內壓低鏡頭，避開燈籠與橫樑
       want.x = Math.max(-9.8, Math.min(9.8, want.x)); want.z = Math.max(-9.6, Math.min(22, want.z));
