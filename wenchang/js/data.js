@@ -92,3 +92,21 @@ export const SOURCES = [
   ['今周刊：文昌帝君怎麼拜、說詞、供品', 'https://www.businesstoday.com.tw/article/category/183035/post/202605040028/'],
   ['東海大學圖書館館刊第19期（五文昌）', 'https://dcollection.lib.thu.edu.tw/wp-content/uploads/2024/12/第19期館刊32-37.pdf'],
 ];
+
+// 每日小任務：每天換新，全部完成算「一天」，累積天數解鎖配件
+export const DAILY = [
+  { id: 'bow', name: '在拜墊上叩拜一次', go: 'cushion' },
+  { id: 'lot', name: '抽今日一籤', go: 'lot' },
+  { id: 'bless', name: '幫 3 張祈福卡加持', need: 3, go: 'wall' },
+  { id: 'cheer', name: '跟其他考生打氣或做個動作', go: 'social' },
+];
+// 配件解鎖條件（累積完成每日任務的天數）；聖誕限定的在聖誕期間完成每日任務才拿得到
+export const ACC_UNLOCK = [
+  { acc: 1, days: 1, how: '完成 1 天每日任務' },
+  { acc: 2, days: 3, how: '累積完成 3 天每日任務' },
+  { acc: 3, fest: true, how: '文昌帝君聖誕期間完成每日任務（限定）' },
+];
+// 文昌帝君聖誕：農曆二月初三換算成國曆（用 lunar-javascript 預先算好，免得遊戲多載一個大檔案）
+export const FEAST_DATES = ['2026-03-21', '2027-03-10', '2028-02-27', '2029-03-17', '2030-03-06', '2031-02-23', '2032-03-14', '2033-03-03', '2034-03-22', '2035-03-12',
+  '2036-02-29', '2037-03-19', '2038-03-08', '2039-02-25', '2040-03-15', '2041-03-04', '2042-02-22', '2043-03-13', '2044-03-02', '2045-03-21'];
+export const FEAST_DAYS_BEFORE = 2; // 聖誕前兩天到當天算活動期間

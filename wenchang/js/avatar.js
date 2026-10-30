@@ -15,6 +15,8 @@ export const OUTFITS = [
   { name: '毛衣', top: '#d98c5f', trim: '#f2e1c9', bottom: '#5b4636' },
 ];
 export const GLASSES = ['無', '圓框', '方框'];
+// 配件：完成每日小任務解鎖（0 = 不戴）；3 是文昌帝君聖誕限定
+export const ACCS = ['不戴', '金色光環', '狀元紅花', '魁星金冠'];
 
 export function randomLook(gender) {
   const g = gender || (Math.random() < 0.5 ? 'f' : 'm');
@@ -106,6 +108,21 @@ export class Avatar {
       const br = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.1), gm); br.rotation.z = Math.PI / 2; br.position.set(0, 0.02, 0.42); head.add(br);
     }
 
+    // 配件
+    const acc = L.acc | 0, goldM = lam('#e8c15a', { emissive: '#7a5410' });
+    if (acc === 1) { const halo = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.03, 8, 28), goldM); halo.rotation.x = Math.PI / 2; halo.position.y = 0.62; head.add(halo); this.halo = halo; } else this.halo = null;
+    if (acc === 2) {
+      const red = lam('#d23a2c');
+      const sash = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.04, 6, 24), red); sash.position.set(0, 0.27, 0); sash.rotation.set(Math.PI / 2, 0.75, 0); upper.add(sash);
+      const flower = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), red); flower.scale.set(1, 1, 0.5); flower.position.set(0, 0.36, 0.3); upper.add(flower);
+      [-1, 1].forEach(s => { const r = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.02), red); r.position.set(0.05 * s, 0.24, 0.31); r.rotation.z = 0.3 * s; upper.add(r); });
+    }
+    if (acc === 3) {
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.14, 12, 1, true), goldM); crown.position.y = 0.42; head.add(crown);
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; const sp = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.14, 5), goldM); sp.position.set(Math.sin(a) * 0.21, 0.55, Math.cos(a) * 0.21); head.add(sp); }
+      const gem = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), lam('#c8352b')); gem.position.set(0, 0.43, 0.23); head.add(gem);
+    }
+
     // 手上的三炷香
     const inc = new THREE.Group(); inc.position.set(0, -0.36, 0.06); inc.visible = this.holding;
     this.stickParts = [];
@@ -140,6 +157,7 @@ export class Avatar {
     this.t += dt;
     this.walkAmt += ((moving ? 1 : 0) - this.walkAmt) * Math.min(1, dt * 10);
     const w = this.walkAmt, s = Math.sin(this.t * 10);
+    if (this.halo) this.halo.position.y = 0.62 + Math.sin(this.t * 2) * 0.03;
     // 跪在拜墊上：腿往後折、身體放低
     this.kneelAmt = (this.kneelAmt || 0) + ((this.kneeling ? 1 : 0) - (this.kneelAmt || 0)) * Math.min(1, dt * 8);
     const kn = this.kneelAmt;

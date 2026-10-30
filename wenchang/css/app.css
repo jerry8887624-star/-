@@ -429,3 +429,37 @@ body.lx-open #hud, body.lx-open #labels { visibility: hidden; }
 .blocked-list b { font-weight: 600; font-size: 14px; }
 .blocked-list small { display: block; color: var(--muted); font-size: 12px; }
 .blocked-list button { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; font-size: 13px; min-height: 36px; }
+
+/* 今日：考試倒數、每日一籤、每日任務、還願 */
+#today-btn { position: relative; margin-left: 8px; margin-right: auto; display: flex; align-items: center; gap: 4px; max-width: 150px; height: 42px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-size: 13.5px; color: var(--gold-2); font-weight: 700; }
+#today-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#today-btn .dot { position: absolute; top: 2px; right: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--red-2); border: 1px solid var(--gold); }
+#today-btn.fest { border-color: var(--gold); background: linear-gradient(180deg, rgba(200, 36, 28, .85), rgba(140, 24, 18, .85)); }
+dialog.today h2 small { font-size: 13px; color: var(--gold-2); font-weight: 400; margin-left: 6px; }
+.tbox { margin: 12px 0 0; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); }
+.tbox h3 { margin: 0 0 8px; font-family: var(--serif); font-size: 16px; color: var(--gold-2); }
+.tbox h3 small { font-weight: 400; font-size: 12.5px; margin-left: 4px; }
+.tbox.fest { border-color: var(--gold); background: linear-gradient(180deg, rgba(200, 36, 28, .35), rgba(120, 20, 14, .2)); }
+.tbox .row.tight { margin-top: 8px; }
+.big-count { margin: 0 0 8px; font-family: var(--serif); font-size: 20px; font-weight: 700; }
+.big-count b { color: var(--gold-2); font-size: 30px; margin: 0 4px; }
+.exam-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.exam-row select, .exam-row input { flex: 1 1 130px; min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0, 0, 0, .25); color: var(--ink); font: inherit; }
+.exam-row > button { flex: 1 1 100%; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--gold); background: linear-gradient(180deg, var(--red-2), var(--red)); color: #fff6e0; font-weight: 700; min-height: 44px; }
+.task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.task-list li { display: flex; align-items: center; gap: 8px; padding: 6px 4px; }
+.task-list li i { flex: 0 0 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--gold); display: grid; place-items: center; font-style: normal; font-size: 13px; }
+.task-list li.ok i { background: var(--gold); color: #3a2408; }
+.task-list li.ok span { opacity: .65; text-decoration: line-through; }
+.task-list li span { flex: 1; font-size: 14.5px; }
+.task-list li button { padding: 4px 12px; min-height: 32px; border-radius: 999px; border: 1px solid var(--line); background: var(--glass); font-size: 13px; }
+#acc-list button[disabled] { opacity: .5; }
+#acc-list button small { display: block; font-size: 11px; opacity: .8; }
+.bang-list { margin: 0 0 8px; padding: 0 0 0 4px; list-style: none; max-height: 132px; overflow: auto; font-size: 14px; }
+.bang-list li { padding: 3px 0; }
+.bang-list li::before { content: "✦ "; color: var(--gold-2); }
+.bang-list li small { opacity: .7; margin-left: 6px; }
+@media (orientation: landscape) and (max-height: 520px) { #today-btn { max-width: 120px; } }
+#presence .online { white-space: nowrap; }
+@media (max-width: 400px) { #today-btn { max-width: 124px; padding: 0 10px; font-size: 13px; } }

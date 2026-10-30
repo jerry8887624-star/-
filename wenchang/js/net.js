@@ -3,17 +3,17 @@ export class Net {
   constructor(url, handlers) {
     this.url = url; this.h = handlers; this.ws = null; this.alive = false; this.retry = 1000; this.last = '';
   }
-  connect(look, name = '') {
+  connect(look = this.look, name = this.name || '') {
     this.look = look; this.name = name;
     if (!this.url) return;
     let ws;
     try { ws = new WebSocket(this.url); } catch (e) { return; }
     this.ws = ws;
-    ws.onopen = () => { this.alive = true; this.retry = 1000; this.send({ t: 'hi', look: this.look, name: this.name }); this.h.status?.(true); };
+    ws.onopen = () => { this.alive = true; this.retry = 1000; this.send({ t: 'hi', look: this.look, name: this.name, uid: this.uid || '' }); this.h.status?.(true); };
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } if (m.t === 'seat' && this.seatWait?.(m)) return; this.h.message?.(m); };
     ws.onclose = () => {
       const was = this.alive; this.alive = false; this.h.status?.(false, was);
-      setTimeout(() => this.connect(this.look), this.retry); this.retry = Math.min(30000, this.retry * 2);
+      setTimeout(() => this.connect(), this.retry); this.retry = Math.min(30000, this.retry * 2);
     };
     ws.onerror = () => ws.close();
   }
@@ -36,6 +36,8 @@ export class Net {
   dmOff(off) { this.send({ t: 'dmoff', off: off ? 1 : 0 }); }
   block(id) { this.send({ t: 'block', id }); }
   unblock(id) { this.send({ t: 'unblock', id }); }
+  bless(id) { this.send({ t: 'bless', id }); }
+  bang(x) { this.send({ t: 'bang', x }); }
   // 向伺服器要一個座位（拜墊／拜位）；離線時直接當作成功
   seat(i) {
     if (!this.alive) return Promise.resolve(true);
