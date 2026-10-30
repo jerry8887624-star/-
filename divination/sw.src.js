@@ -18,6 +18,7 @@ self.addEventListener('fetch',e=>{
         .catch(()=>{clearTimeout(t);caches.match('index.html').then(m=>{if(!done){done=true;res(m||Response.error())}})});
     }));return}
   if(u.pathname.endsWith('/changes.json'))return; // 更新紀錄一律走網路
+  if(u.pathname.startsWith('/api/'))return; // 拜訪人次等即時資料一律走網路，不快取
   if(u.pathname.includes('/audio/'))return; // 音樂檔較大且以分段請求串流，交給瀏覽器自己的快取
   const same=u.origin===location.origin, font=/fonts\.(googleapis|gstatic)\.com$/.test(u.hostname), cdn=u.hostname==='cdn.jsdelivr.net';
   if(!same&&!font&&!cdn)return;

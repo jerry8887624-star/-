@@ -1858,6 +1858,14 @@ body.tabhide .tcap{bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
 .rp-zw .nw{white-space:nowrap}
 .rp-zw,.rp-mon{break-inside:avoid}
 .rp-term{color:#6B6150}.rp-cn{color:#7E5B18}.rp-scroll:focus{outline:none}.rp-scroll:focus-visible{outline:2px solid #7E5B18;outline-offset:-2px}
+/* 歡迎畫面：拜訪人次 */
+.wel-visits{margin-top:4px;padding:4px 12px;border-radius:99px;background:var(--tint-soft);color:var(--ink);font-size:13.5px;font-variant-numeric:tabular-nums}
+.wel-visits b{color:var(--tint);font-weight:700}
+.wel-visits[hidden]{display:none}
+.wel-in:focus{outline:none}.wel-in:focus-visible{outline:2px solid var(--tint);outline-offset:-4px}
+.wel-mv{opacity:1}
+:root:not([data-theme="dark"]) .wel-list .wi{color:#734E12}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .wel-list .wi{color:var(--tint)}}
 </style>
 </head>
 <body>
@@ -6779,11 +6787,26 @@ function hideSplash(force){
 document.addEventListener('pointerdown',e=>{if(e.target.closest('#splash')&&spReady)hideSplash(true)},true);
 
 /* ---------- 初次使用引導 ---------- */
+/* ---------- 拜訪人次：每台手機每天記一次（Cloudflare Pages Function＋D1，只存日期與次數） ---------- */
+let VISITS=store.get('gx_visits',null);
+const twDay=()=>new Date(Date.now()+8*36e5).toISOString().slice(0,10);
+function visitPing(){
+  if(location.protocol==='file:'||onOldSite())return;
+  const d=twDay(), counted=store.get('gx_vday','')===d;
+  fetch('/api/visit',{method:counted?'GET':'POST',cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+    if(!j||typeof j.total!=='number')return;
+    if(!counted)store.set('gx_vday',d);
+    VISITS={total:j.total,today:j.today,day:d};store.set('gx_visits',VISITS);visitShow();
+  }).catch(()=>{});
+}
+function visitHtml(){if(!VISITS)return '';const n=x=>Number(x).toLocaleString('zh-TW');return `已有 <b>${n(VISITS.total)}</b> 人次造訪・今天 <b>${n(VISITS.day===twDay()?VISITS.today:0)}</b> 人次`}
+function visitShow(){const e=$('#welVisits');if(e&&VISITS){e.innerHTML=visitHtml();e.hidden=false}}
 function welcomeHtml(){return `<div class="wel" role="dialog" aria-modal="true" aria-labelledby="welT">
-  <div class="wel-in">
+  <div class="wel-in" tabindex="0">
     <img class="wel-logo" src="icons/icon-192.png" alt="" onerror="this.remove()">
     <h1 id="welT">歡迎來到靈犀</h1>
     <p class="wel-sub">你的口袋命理師</p>
+    <p class="wel-visits" id="welVisits" aria-live="polite"${VISITS?'':' hidden'}>${visitHtml()}</p>
     <ul class="wel-list">
       <li><i class="wi">☀︎</i><div><b>每日運勢與行動指南</b><span>今天適合做什麼、避開什麼，一看就懂</span></div></li>
       <li><i class="wi">✦</i><div><b>塔羅占卜・求籤擲筊</b><span>心裡有事時，問一問</span></div></li>
@@ -6903,6 +6926,18 @@ function setTheme(v,re=true){const r=document.documentElement;if(re){r.classList
 /* ---------- 版本更新：提醒更新、更新後介紹新內容 ---------- */
 // 每次發布把新的一筆加在最前面；v 不同就會在使用者更新後跳出介紹
 const CHANGES=[
+ {
+  "v": "2026.11.11",
+  "n": "1.25",
+  "d": "11 月 11 日",
+  "items": [
+   [
+    "顯示拜訪人次",
+    "歡迎畫面會顯示「已有多少人次造訪・今天多少人次」。每支手機每天只算一次，只記次數，不記錄任何個人資料。",
+    null
+   ]
+  ]
+ },
  {
   "v": "2026.11.10",
   "n": "1.24",
@@ -7589,6 +7624,7 @@ function boot(){
   {const th=store.get('gx_theme','auto');if(th!=='auto')setTheme(th,false)}
   document.documentElement.classList.toggle('simple',simple);document.documentElement.classList.toggle('lowmo',store.get('gx_motion','full')==='low');
   spReady=true;
+  visitPing();
   if(!window.Solar){hideSplash(true);$('#boot').innerHTML='<b>命理曆法元件載入失敗</b><br><span style="font-size:13px">'+(window.__gxErr.join('；')||'程式庫未載入')+'<br>請確認網路後重新整理，或改用 Safari／Chrome 開啟。</span>';return}
   try{
   try{derive()}catch(err){console.error(err);P=SAMPLE;derive()}
