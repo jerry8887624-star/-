@@ -1,5 +1,5 @@
 import * as THREE from '../vendor/three.module.min.js';
-import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS } from './scene.js';
+import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS } from './scene.js';
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES } from './avatar.js';
 import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI } from './data.js';
 import { Net } from './net.js';
@@ -63,9 +63,23 @@ const sound = {
     src.connect(lp).connect(this.amb).connect(c.destination); src.start();
     this.master = c.createGain(); this.master.gain.value = this.on ? 1 : 0; this.master.connect(c.destination);
     setInterval(() => { if (this.on && Math.random() < 0.35) this.bell(0.05); }, 14000);
+    this.loadSamples();
+  },
+  // 真實錄音音效（取自「靈犀」audio/sfx，Freesound CC0 錄音剪輯，來源見 audio/sfx/make_sfx.py）；載入前或失敗時用合成音
+  samples: {},
+  loadSamples() {
+    const files = { bell: ['bell'], clack: ['clack0', 'clack1'], shake: ['shake'], stick: ['stick'], ting: ['ting'], unroll: ['unroll'], moku: ['moku'] };
+    Object.entries(files).forEach(([k, list]) => { this.samples[k] = []; list.forEach(n => fetch(`audio/sfx/${n}.mp3`).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+      .then(b => new Promise((ok, no) => this.ctx.decodeAudioData(b, ok, no))).then(ab => this.samples[k].push(ab)).catch(() => {})); });
+  },
+  sample(k, gain = 1, delay = 0) {
+    const c = this.ctx, L = this.samples[k]; if (!c || !this.on || !L || !L.length) return false;
+    const s = c.createBufferSource(); s.buffer = L[Math.floor(Math.random() * L.length)]; s.playbackRate.value = 1 + (Math.random() - 0.5) * 0.06;
+    const g = c.createGain(); g.gain.value = gain; s.connect(g).connect(this.master); s.start(c.currentTime + delay); return true;
   },
   toggle() { this.on = !this.on; store.set('sound', this.on); if (this.ctx) { this.amb.gain.value = this.on ? 0.05 : 0; this.master.gain.value = this.on ? 1 : 0; } music.setMuted(!this.on); },
   bell(vol = 0.18) { // 磬
+    if (this.sample('bell', Math.min(1, vol * 4.5))) return;
     const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime;
     [[620, 1], [1240, 0.5], [1860, 0.25], [2790, 0.12]].forEach(([f, a]) => {
       const o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; o.type = 'sine';
@@ -74,6 +88,7 @@ const sound = {
     });
   },
   clack(n = 2) {
+    if (this.samples.clack?.length) { for (let k = 0; k < n; k++) this.sample('clack', 0.9, k * 0.09); return; }
     const c = this.ctx; if (!c || !this.on) return;
     for (let k = 0; k < n; k++) {
       const t = c.currentTime + k * 0.09, len = 0.06 * c.sampleRate, b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
@@ -89,6 +104,7 @@ const sound = {
     const g = c.createGain(); g.gain.value = 0.35; s.connect(lp).connect(g).connect(this.master); s.start(t);
   },
   chime() {
+    if (this.sample('ting', 0.7)) return;
     const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime;
     [784, 988, 1175, 1568].forEach((f, i) => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0, t + i * 0.09); g.gain.linearRampToValueAtTime(0.08, t + i * 0.09 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.09 + 1.2); o.connect(g).connect(this.master); o.start(t + i * 0.09); o.stop(t + i * 0.09 + 1.3); });
   },
@@ -213,7 +229,7 @@ const markEls = MARKS.map(m => {
     const ids = [].concat(map[m.id]);
     if (cur && ids.includes(cur.id)) act(cur.id);
     else if (m.id === 'qianTube') act('qian');
-    else walkTo(m.id === 'censer' ? 'censer' : m.id);
+    else if (!state.busy) { const sp = m.id === 'censer' ? 'censerOut' : m.id; state.busy = true; arrive(sp).finally(() => { state.busy = false; }); }
   };
   return { m, el, v: new THREE.Vector3(...m.pos) };
 });
@@ -279,6 +295,8 @@ function kneelIfOnCushion(tapped) {
   el.addEventListener('pointercancel', end);
 })();
 $('#kneel-bow').onclick = async () => { if (me.bowT >= 0) return; sound.bell(0.1); await me.bow(3); };
+// 叩拜時配木魚聲（每拜一下敲一聲）
+const _bow = me.bow.bind(me); me.bow = n => { for (let k = 0; k < (n || 3); k++) sound.sample('moku', 0.5, 0.45 + k * 1.1); return _bow(n); };
 $('#kneel-up').onclick = () => { me.kneel(false); };
 temple.on('tapAvatar', av => openCheer(av));
 async function walkTo(spot) { me.faceTo = null; const ok = await temple.goSpot(me, spot); return ok; }
@@ -309,6 +327,12 @@ async function arrive(spot) {
     if (i == null) { toast('拜墊都有人在拜，稍等一下再來。'); return false; }
     if (i > 2) toast('主拜墊有人在拜，先到旁邊的拜墊。', 2600);
     ok = await temple.walk(me, CUSHIONS[i].x, CUSHIONS[i].z, S.f);
+  } else if (spot === 'censerOut') {
+    // 天公爐前一人一個拜位，滿了就請使用者稍等
+    const mine = TIANGONG_SLOTS.findIndex(sl => Math.hypot(sl.x - me.root.position.x, sl.z - me.root.position.z) < 0.3);
+    const i = mine >= 0 ? mine : temple.freeSlot(TIANGONG_SLOTS);
+    if (i < 0) { toast('天公爐前的拜位都有人，稍等一下再拜。'); return false; }
+    ok = await temple.walk(me, TIANGONG_SLOTS[i].x, TIANGONG_SLOTS[i].z, 0);
   } else {
     const p = temple.freeSpot(S.x, S.z, S.f);
     ok = await temple.walk(me, p.x, p.z, S.f);
@@ -383,7 +407,7 @@ async function heaven() {
 }
 async function wenchang() {
   if (!need(state.done.has('heaven'), '先到天公爐前<b>拜天公</b>，再入殿拜文昌帝君。')) return;
-  if (state.done.has('wenchang')) { toast('已經向文昌帝君稟告過了。想再請示可以<b>擲筊</b>。'); return; }
+  if (state.done.has('wenchang')) { if (!(await arrive('cushion'))) return; toast('再向文昌帝君拜一拜。想請示可以<b>擲筊</b>。'); sound.bell(); await me.bow(3); return; }
   if (!(await arrive('cushion'))) return;
   temple.setOfferings(OFFERINGS.filter(o => state.carry.offerings.includes(o.id)));
   toast('供品擺上供桌了。', 1800);
@@ -553,12 +577,12 @@ function shakeTube() {
   function bump(v) {
     if (done) return; power = Math.min(1, power + v); fill.style.width = power * 100 + '%';
     tube.classList.add('shaking'); clearTimeout(bump.t); bump.t = setTimeout(() => { if (!holding) tube.classList.remove('shaking'); }, 250);
-    const now = performance.now(); if (now - lastRattle > 90) { sound.clack(1); lastRattle = now; }
+    const now = performance.now(); if (now - lastRattle > (sound.samples.shake?.length ? 420 : 90)) { if (!sound.sample('shake', 0.8)) sound.clack(1); lastRattle = now; }
   }
   return new Promise(res => {
     const finish = n => { done = true; cancelAnimationFrame(raf); removeEventListener('devicemotion', motion); tube.onpointerdown = tube.onpointerup = tube.onpointerleave = null; setTimeout(() => { ui.hidden = true; res(n); }, n ? 1100 : 0); };
     let lastT = performance.now();
-    const loop = () => { const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now; if (holding) bump(dt * 0.6); if (power >= 1 && !done) { const n = 1 + Math.floor(Math.random() * 60); tube.classList.remove('shaking'); out.textContent = ''; out.classList.add('fall'); sound.clack(1); buzz(30); finish(n); return; } raf = requestAnimationFrame(loop); };
+    const loop = () => { const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now; if (holding) bump(dt * 0.6); if (power >= 1 && !done) { const n = 1 + Math.floor(Math.random() * 60); tube.classList.remove('shaking'); out.textContent = ''; out.classList.add('fall'); if (!sound.sample('stick', 0.9)) sound.clack(1); buzz(30); finish(n); return; } raf = requestAnimationFrame(loop); };
     tube.onpointerdown = e => { e.preventDefault(); holding = true; bump(0.08); };
     tube.onpointerup = tube.onpointerleave = () => { holding = false; };
     $('#qian-cancel').onclick = () => finish(0);
@@ -579,7 +603,7 @@ function showLot(n) {
   $('#lot-lines').innerHTML = lines.map(l => `<li>${esc(l)}</li>`).join('');
   $('#lot-story-wrap').hidden = !story; if (story) $('#lot-story').textContent = `${story[0]}：${story[1]}`;
   $('#lot-saved').textContent = '';
-  sound.bell(0.1); $('#lot-dlg').showModal();
+  if (!sound.sample('unroll', 0.8)) sound.bell(0.1); $('#lot-dlg').showModal();
 }
 $('#lot-save').onclick = async () => {
   const n = shownLot, q = window.QIAN_DATA[n - 1];
@@ -802,7 +826,8 @@ function stopNpcs() { npcGen++; npcs.splice(0).forEach(av => temple.removeAvatar
 function startNpcs() {
   if (npcs.length || net.alive) return;
   const gen = ++npcGen;
-  const route = ['censerOut', 'wall', 'counter', 'censer', 'qianTube', 'jinlu', 'wcCenser'];
+  // 示意香客：拜天公要排到空拜位、拜完就離開；不站在文昌爐前、不佔主拜墊
+  const route = ['tiangong', 'tiangong', 'wall', 'counter', 'qianTube', 'jinlu', 'stroll'];
   for (let i = 0; i < 6; i++) {
     const av = temple.addAvatar(new Avatar(randomLook())); av.npc = true; av.speed = 2.2 + Math.random() * 0.8;
     av.root.position.set(-4 + i * 2.6, 0, 7 - i * 2.2);
@@ -810,17 +835,26 @@ function startNpcs() {
     (async function life() {
       await wait(800 + i * 1500);
       while (gen === npcGen) {
-        if (Math.random() < 0.4) { // 找個空拜墊跪拜
+        if (Math.random() < 0.4) { // 找個空拜墊跪拜（主拜墊留給玩家）
           const free = CUSHIONS.map((c, k) => k).filter(k => k > 2 && temple.freeCushion(CUSHIONS[k].x, CUSHIONS[k].z, 0.3) === k && Math.hypot(me.root.position.x - CUSHIONS[k].x, me.root.position.z - CUSHIONS[k].z) > 1);
           const c = CUSHIONS[free[Math.floor(Math.random() * free.length)]];
           if (c && await temple.walk(av, c.x, c.z, Math.PI)) { av.kneel(true); await wait(600); await av.bow(3); await wait(3000 + Math.random() * 4000); av.kneel(false); continue; }
         }
-        const s = SPOTS[route[Math.floor(Math.random() * route.length)]];
-        const ox = (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random()), oz = (Math.random() - 0.5) * 1.2; // 站兩側，不擋住玩家的位置
-        await temple.walk(av, s.x + ox, s.z + oz, s.f);
-        av.hold(Math.random() < 0.5);
-        if (Math.random() < 0.7) await av.bow(1 + Math.floor(Math.random() * 3));
-        await wait(2000 + Math.random() * 5000);
+        const go = route[Math.floor(Math.random() * route.length)];
+        if (go === 'tiangong') {
+          const k = temple.freeSlot(TIANGONG_SLOTS.slice(1), av); // 正中間的拜位留給玩家
+          if (k < 0) { await wait(3000); continue; }
+          const sl = TIANGONG_SLOTS[k + 1];
+          if (await temple.walk(av, sl.x, sl.z, 0)) { av.hold(true); await av.bow(3); av.hold(false); }
+          // 拜完就離開，往中庭兩側散開
+          await temple.walk(av, (Math.random() < 0.5 ? -1 : 1) * (5 + Math.random() * 8), 3 + Math.random() * 12);
+          continue;
+        }
+        if (go === 'stroll') { await temple.walk(av, (Math.random() - 0.5) * 30, 2 + Math.random() * 14); await wait(2000 + Math.random() * 3000); continue; }
+        const s = SPOTS[go], p = temple.freeSpot(s.x + (Math.random() - 0.5) * 2, s.z + (Math.random() - 0.5) * 1.2, s.f, av);
+        await temple.walk(av, p.x, p.z, s.f);
+        if (Math.random() < 0.6) await av.bow(1 + Math.floor(Math.random() * 2));
+        await wait(1500 + Math.random() * 3500);
       }
     })();
   }

@@ -34,6 +34,9 @@ export const MARKS = [
 // 鏡頭特寫用的位置
 export const FOCUS = { altar: [0, 2.2, -19.5], censer: [0, 2.2, L.CZ], wcCenser: [0, 1.6, WC_CENSER_Z], jinlu: [JINLU.x, 1.6, JINLU.z], wall: [18.2, 2, 8] };
 
+// 天公爐前的拜位：面朝廟外一排五個，一人一位，滿了就要等
+export const TIANGONG_SLOTS = [0, -1.2, 1.2, -2.4, 2.4].map(x => ({ x, z: L.CZ - 1.75, f: 0 }));
+
 // 殿內的拜墊：誰都可以走上去跪拜（前排三個是正對神像的主拜墊）
 export const CUSHIONS = [];
 [-1.4, 0, 1.4].forEach(x => CUSHIONS.push({ x, z: CUSHION_Z }));
@@ -652,6 +655,10 @@ export class Temple {
     for (const [x, z, r] of CIRCLES) { const dx = p.x - x, dz = p.z - z, d = Math.hypot(dx, dz), R = r + 0.3; if (d < R && d > 0.001) { p.x = x + dx / d * R; p.z = z + dz / d * R; } }
   }
 
+  // 一排拜位裡第一個空的（跟其他人至少隔 0.55 公尺）
+  freeSlot(slots, self = this.player) {
+    return slots.findIndex(sl => { for (const av of this.avatars) if (av !== self && Math.hypot(av.root.position.x - sl.x, av.root.position.z - sl.z) < 0.55) return false; return true; });
+  }
   // 站位被別人佔了就往旁邊挪：依面向的左右兩側找一個空位
   freeSpot(x, z, f, self = this.player) {
     const px = Math.cos(f), pz = -Math.sin(f);
