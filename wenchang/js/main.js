@@ -1,7 +1,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Temple, SPOTS, MARKS } from './scene.js';
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES } from './avatar.js';
-import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES } from './data.js';
+import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES } from './data.js';
 import { Net } from './net.js';
 import { WS_URL } from './config.js';
 
@@ -25,7 +25,7 @@ const me = temple.addAvatar(new Avatar(look));
 temple.setPlayer(me);
 me.speed = 3.6;
 // 開場：角色站在中庭，鏡頭在前方，背後是正殿
-const SPLASH = { x: -3.2, z: 1.2, f: 0.3 };
+const SPLASH = { x: -3.6 + Math.random() * 1.2, z: 0.6 + Math.random() * 1.4, f: 0.3 }; // 每個人出生點略有不同，才不會疊在一起
 me.root.position.set(SPLASH.x, 0, SPLASH.z); me.root.rotation.y = SPLASH.f;
 temple.camYaw = temple.camYawTarget = SPLASH.f; temple.camDist = 5.6; temple.camH = 1.9;
 temple.focus = new THREE.Vector3(SPLASH.x, 0.75, SPLASH.z);
@@ -42,6 +42,8 @@ const save = () => { sess.set('done', [...state.done]); sess.set('carry', state.
 if (state.carry.incense) me.hold(true);
 if (state.done.has('wenchang')) temple.setOfferings(OFFERINGS.filter(o => state.carry.offerings.includes(o.id)));
 const myCard = store.get('card', null);
+const cardLabel = c => (c.x >= 0 ? EXAMS[c.x] : '祈福').replace('期中期末考', '期中期末').replace('分科測驗', '分科');
+temple.setSharedCards([], CARD_COLORS.map(c => c.hex), cardLabel);
 if (myCard) temple.hangMyCard(myCard);
 const current = () => STEPS.find(s => !state.done.has(s.id));
 
@@ -117,6 +119,7 @@ $('#enter-btn').onclick = async () => {
   me.faceTo = Math.PI;
   net.connect(look);
   if (!wsUrl) startNpcs();
+  else setTimeout(() => { if (!net.alive) startNpcs(); }, 5000); // 連不上伺服器就先放示意香客
   refresh();
   setTimeout(() => toast(innerWidth < 720 ? '點地板走動、拖曳轉動視角。下方按鈕會帶你一步步參拜。' : '點地板或用 WASD／方向鍵走動，拖曳轉動視角。下方按鈕會帶你一步步參拜。', 4200), 700);
 };
@@ -222,7 +225,7 @@ function placeLabels() {
 }
 
 // ---------- 走動 ----------
-temple.on('tapGround', p => { if (state.busy) return; hideCheer(); me.faceTo = null; temple.walk(me, p.x, p.z); });
+temple.on('tapGround', p => { if (state.busy) return; hideCheer(); hideSocial(); me.faceTo = null; temple.walk(me, p.x, p.z); });
 temple.on('tapAvatar', av => openCheer(av));
 async function walkTo(spot) { me.faceTo = null; const ok = await temple.goSpot(me, spot); return ok; }
 
@@ -236,7 +239,7 @@ async function act(id) {
 }
 function complete(id) {
   if (state.done.has(id)) return;
-  state.done.add(id); save(); refresh();
+  state.done.add(id); save(); refresh(); net.step(state.done.size);
   const s = STEPS.find(x => x.id === id); toast(s.done); sound.chime(); buzz(20);
   if (state.done.size === STEPS.length) setTimeout(showDone, 1600);
 }
@@ -396,6 +399,7 @@ async function card() {
   const c = CARD_COLORS.find(x => x.id === cardColor);
   const data = { color: c.id, hex: c.hex, ink: c.ink, exam: lastExam, text: $('#card-text').value.trim().slice(0, 24) };
   store.set('card', data);
+  net.card(CARD_COLORS.indexOf(c), EXAMS.indexOf(lastExam)); // 只分享顏色和考試類別，寫的字只在自己手機
   const p = temple.hangMyCard(data); p.scale.setScalar(0.01); temple.tween(600, k => p.scale.setScalar(0.01 + 1.69 * k), 0, t => 1 - Math.pow(1 - t, 3));
   temple.focus = new THREE.Vector3(8.2, 2, 4); await wait(1400); temple.focus = null;
   if (state.done.has('card')) { toast('祈福卡換新了。'); return; }
@@ -505,11 +509,18 @@ function showDone() {
 const remotes = new Map(); // id -> avatar
 let myId = 0, blocked = new Set(sess.get('blocked', []));
 // 本機測試可用 ?ws=ws://127.0.0.1:8787/ws
-const wsUrl = WS_URL || (location.hostname === 'localhost' && new URLSearchParams(location.search).get('ws')) || '';
+const wsUrl = (location.hostname === 'localhost' && new URLSearchParams(location.search).get('ws'))
+  || (WS_URL === 'auto' ? (/github\.io$/.test(location.hostname) || !/^https?:$/.test(location.protocol) ? '' : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`) : WS_URL);
+const peers = new Map(); // id -> { s: 參拜進度 }
 const net = new Net(wsUrl, {
-  status(on) { $('#presence').hidden = !on; if (!on) { for (const av of remotes.values()) temple.removeAvatar(av); remotes.clear(); } },
+  status(on, was) {
+    $('#presence').hidden = !on;
+    if (on) { stopNpcs(); net.step(state.done.size); }
+    else { for (const av of remotes.values()) temple.removeAvatar(av); remotes.clear(); peers.clear(); if (was) feed('連線中斷，正在重新連線…'); }
+    renderPeople();
+  },
   message(m) {
-    if (m.t === 'welcome') { myId = m.you; }
+    if (m.t === 'welcome') { myId = m.you; temple.setSharedCards(m.cards || [], CARD_COLORS.map(c => c.hex), cardLabel); if (m.cards?.length) feed(`祈福牆上已經有 ${m.cards.length} 張大家的卡`); }
     else if (m.t === 'state') {
       $('#presence .online').textContent = `${m.online} 人在廟裡`;
       const seen = new Set();
@@ -520,39 +531,98 @@ const net = new Net(wsUrl, {
         else if (JSON.stringify(av.look) !== JSON.stringify(p.look)) av.setLook(p.look);
         if (Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z) > 0.1) { av.path = null; av.target = { x: p.x, z: p.z, face: p.f }; } else av.faceTo = p.f;
         av.hold(!!p.h); if (p.b && av.bowT < 0) av.bow(1);
+        peers.set(p.id, { s: p.s || 0 });
       }
+      for (const id of [...peers.keys()]) if (!seen.has(id)) peers.delete(id);
+      renderPeople();
       for (const [id, av] of remotes) if (!seen.has(id)) { temple.removeAvatar(av); remotes.delete(id); }
     }
-    else if (m.t === 'leave') { const av = remotes.get(m.id); if (av) { temple.removeAvatar(av); remotes.delete(m.id); } }
+    else if (m.t === 'leave') { const av = remotes.get(m.id); if (av) { temple.removeAvatar(av); remotes.delete(m.id); } peers.delete(m.id); renderPeople(); }
+    else if (m.t === 'emote') {
+      if (blocked.has(m.from)) return;
+      const e = EMOTES[m.e]; const av = m.from === myId ? null : remotes.get(m.from);
+      if (e && av) { av.emote(e.id); bubble(av, e.icon, 'bubble', 1800); }
+    }
+    else if (m.t === 'card') {
+      temple.addSharedCard(m.card);
+      if (m.card.by !== myId) feed(`考生 #${m.card.by} 掛上一張「${cardLabel(m.card)}」祈福卡`);
+    }
+    else if (m.t === 'feed') {
+      if (m.from === myId) return;
+      if (m.k === 'join') feed(`考生 #${m.from} 走進了文昌祠`);
+      if (m.k === 'done') feed(`考生 #${m.from} 完成參拜了！點「互動」幫他加油`);
+    }
     else if (m.t === 'cheer') {
       if (blocked.has(m.from)) return;
       const text = CHEERS[m.i] || CHEERS[0];
       const from = m.from === myId ? me : remotes.get(m.from);
       if (from) bubble(from, text);
-      if (m.to === myId && m.from !== myId) { toast(`考生 #${m.from} 對你說：<b>${esc(text)}</b>`, 3800); sound.chime(); buzz(20); }
+      if (m.to === myId && m.from !== myId) {
+        toast(`考生 #${m.from} 對你說：<b>${esc(text)}</b><button type="button" class="reply" data-reply="${m.from}">回覆</button>`, 5000); sound.chime(); buzz(20);
+      }
     }
-    else if (m.t === 'slow') toast('慢一點喔，兩秒後再送。');
+    else if (m.t === 'slow') toast(m.kind === 'card' ? '祈福卡剛掛過，等一下再換。' : '慢一點喔，稍等一下再送。');
   },
 });
 function openCheer(av) {
   if (av === me) return;
   const menu = $('#cheer-menu');
   if (av.npc) { toast('這位是示意香客，不是真人。連上多人伺服器後，就能和真的考生互相打氣。', 4200); return; }
-  menu.hidden = false; menu.dataset.id = av.netId;
-  $('#cheer-name').textContent = `對考生 #${av.netId} 說：`;
+  openCheerFor(av.netId, av);
+}
+function openCheerFor(id, av = remotes.get(id)) {
+  const menu = $('#cheer-menu'); hideSocial();
+  menu.hidden = false; menu.dataset.id = id;
+  $('#cheer-name').textContent = `對考生 #${id} 說：`;
   $('#cheer-list').innerHTML = CHEERS.map((c, i) => `<button type="button" data-i="${i}">${c}</button>`).join('');
-  tmpV.set(av.root.position.x, 2.4, av.root.position.z); const p = temple.project(tmpV);
   const w = Math.min(280, innerWidth - 24); menu.style.width = w + 'px';
+  if (!av) { menu.style.left = (innerWidth - w) / 2 + 'px'; menu.style.top = Math.max(70, innerHeight / 2 - 160) + 'px'; return; }
+  tmpV.set(av.root.position.x, 2.4, av.root.position.z); const p = temple.project(tmpV);
   menu.style.left = Math.max(12, Math.min(innerWidth - w - 12, p.x - w / 2)) + 'px'; menu.style.top = Math.max(70, Math.min(innerHeight - 320, p.y - 230)) + 'px';
 }
 function hideCheer() { $('#cheer-menu').hidden = true; }
 $('#cheer-list').onclick = e => { const b = e.target.closest('button'); if (!b) return; net.cheer(+$('#cheer-menu').dataset.id, +b.dataset.i); hideCheer(); buzz(10); };
 $('#cheer-block').onclick = () => { blocked.add(+$('#cheer-menu').dataset.id); sess.set('blocked', [...blocked]); hideCheer(); toast('之後不會再顯示他的打氣。'); };
-$('#presence').onclick = () => toast(`現在有 ${$('#presence .online').textContent}。點其他考生的人物或名牌，就能送打氣語。`, 3600);
+$('#presence').onclick = () => openSocial();
+$('#toast').addEventListener('click', e => { const b = e.target.closest('[data-reply]'); if (b) { $('#toast').classList.remove('show'); openCheerFor(+b.dataset.reply); } });
+
+// 互動面板：表情動作＋在廟裡的考生
+$('#emote-list').innerHTML = EMOTES.map((e, i) => `<button type="button" data-e="${i}"><i aria-hidden="true">${e.icon}</i>${e.name}</button>`).join('');
+let lastEmote = 0;
+$('#emote-list').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return; const now = performance.now(); if (now - lastEmote < 1000) return; lastEmote = now;
+  const em = EMOTES[+b.dataset.e]; me.emote(em.id); bubble(me, em.icon, 'bubble', 1800); net.emote(+b.dataset.e); buzz(10); hideSocial();
+};
+function openSocial() { hideCheer(); renderPeople(); $('#social').hidden = false; $('#social-btn').setAttribute('aria-expanded', 'true'); }
+function hideSocial() { $('#social').hidden = true; $('#social-btn').setAttribute('aria-expanded', 'false'); }
+$('#social-btn').onclick = () => $('#social').hidden ? openSocial() : hideSocial();
+function renderPeople() {
+  const online = net.alive;
+  $('#social-offline').hidden = online; $('#people-wrap').hidden = !online;
+  const ids = [...peers.keys()].filter(id => id !== myId).sort((a, b) => a - b);
+  $('#people-title').textContent = `在廟裡的考生（${ids.length + (online ? 1 : 0)} 人，含你）`;
+  $('#people-empty').hidden = ids.length > 0;
+  const html = ids.map(id => { const s = peers.get(id).s; return `<li><span><b>考生 #${id}</b><small>${s >= 6 ? '已完成參拜 ✓' : s ? `參拜中・${s}/6` : '剛進廟'}</small></span><button type="button" data-cheer="${id}">打氣</button></li>`; }).join('');
+  if ($('#people-list').innerHTML !== html) $('#people-list').innerHTML = html;
+  const btn = $('#social-btn'); let dot = btn.querySelector('.dot');
+  if (online && ids.length) { if (!dot) { dot = document.createElement('b'); dot.className = 'dot'; btn.appendChild(dot); } dot.textContent = ids.length; } else dot?.remove();
+}
+$('#people-list').onclick = e => { const b = e.target.closest('[data-cheer]'); if (b) openCheerFor(+b.dataset.cheer); };
+
+// 動態：誰進來、誰掛卡、誰完成參拜
+function feed(text) {
+  const ol = $('#feed'), li = document.createElement('li'); li.textContent = text; ol.prepend(li);
+  while (ol.children.length > 3) ol.lastChild.remove(); // 最新的在最下面
+  setTimeout(() => li.classList.add('out'), 5500); setTimeout(() => li.remove(), 6100);
+}
 
 // 沒有連線時：幾位示意香客在廟裡走動、拜拜
 const npcs = [];
+let npcGen = 0;
+function stopNpcs() { npcGen++; npcs.splice(0).forEach(av => temple.removeAvatar(av)); }
 function startNpcs() {
+  if (npcs.length || net.alive) return;
+  const gen = ++npcGen;
   const route = ['censerOut', 'cushion', 'wall', 'counter', 'censer', 'qianTube'];
   for (let i = 0; i < 4; i++) {
     const av = temple.addAvatar(new Avatar(randomLook())); av.npc = true; av.speed = 1.8 + Math.random() * 0.6;
@@ -560,7 +630,7 @@ function startNpcs() {
     npcs.push(av);
     (async function life() {
       await wait(800 + i * 1500);
-      for (;;) {
+      while (gen === npcGen) {
         const s = SPOTS[route[Math.floor(Math.random() * route.length)]];
         const ox = (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random()), oz = (Math.random() - 0.5) * 1.2; // 站兩側，不擋住玩家的位置
         await temple.walk(av, s.x + ox, s.z + oz, s.f);
@@ -578,12 +648,12 @@ function loop() {
   if (!$('#hud').hidden) {
     placeLabels();
     if (!tags.has(me) && myId) tagFor(me, `你・考生 #${myId}`, true);
-    for (const [id, av] of remotes) tagFor(av, `考生 #${id}`);
+    for (const [id, av] of remotes) tagFor(av, `考生 #${id}`).classList.toggle('done', (peers.get(id)?.s || 0) >= 6);
     const p = me.root.position; net.pos(p.x, p.z, me.root.rotation.y, me.holding, me.bowT >= 0);
   }
   requestAnimationFrame(loop);
 }
-temple.on('manualMove', () => hideCheer());
+temple.on('manualMove', () => { hideCheer(); hideSocial(); });
 refresh();
 requestAnimationFrame(loop);
-window.__wc = { temple, me, state, act };
+window.__wc = { temple, me, state, act, net };

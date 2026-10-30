@@ -1,6 +1,10 @@
+# 網站（wenchang/ 資料夾）＋多人連線伺服器，一起部署成一個 Cloudflare Worker
 name = "wenchang-temple"
 main = "temple.js"
 compatibility_date = "2026-10-01"
+
+[assets]
+directory = ".."
 
 [[durable_objects.bindings]]
 name = "TEMPLE"

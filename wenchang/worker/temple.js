@@ -1,10 +1,15 @@
-// 「線上參拜文昌帝君」多人連線伺服器（Cloudflare Worker + Durable Object）
-// 只轉送：位置、外觀、預設打氣語的編號。不收姓名、生日、住址、准考證或任何自由輸入文字，也不存檔。
-// 唯一會存的是「累計人次」一個數字。部署步驟見 README.md。
+// 「線上參拜文昌帝君」網站＋多人連線伺服器（Cloudflare Worker + Durable Object）
+// 網站檔案由 Workers 靜態資源提供（wrangler.toml 的 [assets]），只有 /ws 會進到這裡。
+// 只轉送：位置、外觀、參拜進度、表情與打氣語的「編號」、祈福卡的顏色與考試類別編號。
+// 不收姓名、生日、住址、准考證或任何自由輸入文字。會存的只有「累計人次」與牆上的祈福卡（顏色＋考試類別）。
 
 const MAX_PLAYERS = 60;
-const CHEER_COUNT = 8;           // 與前端 data.js 的 CHEERS 數量一致
-const CHEER_GAP_MS = 2000;       // 每人兩次打氣至少間隔 2 秒
+const CHEER_COUNT = 8;      // 與前端 data.js 的 CHEERS 數量一致
+const EMOTE_COUNT = 4;      // 與前端 EMOTES 數量一致
+const EXAM_COUNT = 10;      // 與前端 EXAMS 數量一致
+const COLOR_COUNT = 4;      // 與前端 CARD_COLORS 數量一致
+const MAX_CARDS = 60;
+const GAP = { cheer: 2000, emote: 1000, card: 30000 };
 
 export default {
   async fetch(req, env) {
@@ -14,61 +19,87 @@ export default {
       const id = env.TEMPLE.idFromName('wenchang');
       return env.TEMPLE.get(id).fetch(req);
     }
-    return new Response('ok');
+    return new Response('Not found', { status: 404 });
   }
 };
 
 const num = (v, lo, hi) => { v = Number(v); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : 0; };
+const int = (v, lo, hi) => Math.round(num(v, lo, hi));
 function cleanLook(l) {
   l = l || {};
-  return { gender: l.gender === 'm' ? 'm' : 'f', hair: num(l.hair, 0, 20) | 0, hairColor: num(l.hairColor, 0, 20) | 0,
-    skin: num(l.skin, 0, 20) | 0, outfit: num(l.outfit, 0, 20) | 0, glasses: num(l.glasses, 0, 2) | 0 };
+  return { gender: l.gender === 'm' ? 'm' : 'f', hair: int(l.hair, 0, 20), hairColor: int(l.hairColor, 0, 20),
+    skin: int(l.skin, 0, 20), outfit: int(l.outfit, 0, 20), glasses: int(l.glasses, 0, 2) };
 }
 
 export class Temple {
   constructor(state) {
     this.state = state;
     this.players = new Map(); // ws -> player
-    this.seq = 0;
     this.timer = null;
-    state.blockConcurrencyWhile(async () => { this.total = (await state.storage.get('total')) || 0; this.seq = this.total; });
+    state.blockConcurrencyWhile(async () => {
+      this.total = (await state.storage.get('total')) || 0;
+      this.seq = (await state.storage.get('seq')) || 0;
+      this.cards = (await state.storage.get('cards')) || [];
+    });
   }
 
   async fetch(req) {
     if (this.players.size >= MAX_PLAYERS) return new Response('full', { status: 503 });
     const [client, server] = Object.values(new WebSocketPair());
     server.accept();
-    const p = { id: ++this.seq, x: 0, z: 13, f: Math.PI, h: 0, b: 0, look: null, lastCheer: 0, ws: server };
+    this.seq += 1; this.state.storage.put('seq', this.seq);
+    const p = { id: this.seq, x: 0, z: 13, f: Math.PI, h: 0, b: 0, s: 0, look: null, last: {}, ws: server };
     this.players.set(server, p);
     server.addEventListener('message', e => this.onMessage(p, e.data));
-    const bye = () => { this.players.delete(server); this.broadcast({ t: 'leave', id: p.id }); };
+    const bye = () => { if (this.players.delete(server)) this.broadcast({ t: 'leave', id: p.id }); };
     server.addEventListener('close', bye); server.addEventListener('error', bye);
     this.tick();
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  async onMessage(p, raw) {
+  // 同一種動作的最短間隔
+  allow(p, kind) {
+    const now = Date.now();
+    if (now - (p.last[kind] || 0) < GAP[kind]) { p.ws.send(JSON.stringify({ t: 'slow', kind })); return false; }
+    p.last[kind] = now; return true;
+  }
+
+  onMessage(p, raw) {
     if (typeof raw !== 'string' || raw.length > 600) return;
     let m; try { m = JSON.parse(raw); } catch (_) { return; }
     if (m.t === 'hi' && !p.look) {
       p.look = cleanLook(m.look);
       this.total += 1; this.state.storage.put('total', this.total);
-      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total }));
+      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.cards }));
+      this.broadcast({ t: 'feed', from: p.id, k: 'join' }, p.ws);
+    } else if (!p.look) {
+      return;
     } else if (m.t === 'look') {
       p.look = cleanLook(m.look);
     } else if (m.t === 'pos') {
       p.x = num(m.x, -12, 25); p.z = num(m.z, -12, 25); p.f = num(m.f, -10, 10); p.h = m.h ? 1 : 0; p.b = m.b ? 1 : 0;
+    } else if (m.t === 'step') {
+      const s = int(m.s, 0, 6);
+      if (s === 6 && p.s < 6) this.broadcast({ t: 'feed', from: p.id, k: 'done' });
+      p.s = s;
     } else if (m.t === 'cheer') {
-      const now = Date.now(), i = num(m.i, 0, CHEER_COUNT - 1) | 0, to = num(m.to, 0, 1e9) | 0;
-      if (now - p.lastCheer < CHEER_GAP_MS) { p.ws.send(JSON.stringify({ t: 'slow' })); return; }
-      p.lastCheer = now;
-      this.broadcast({ t: 'cheer', from: p.id, to, i });
+      if (!this.allow(p, 'cheer')) return;
+      this.broadcast({ t: 'cheer', from: p.id, to: int(m.to, 0, 1e9), i: int(m.i, 0, CHEER_COUNT - 1) });
+    } else if (m.t === 'emote') {
+      if (!this.allow(p, 'emote')) return;
+      this.broadcast({ t: 'emote', from: p.id, e: int(m.e, 0, EMOTE_COUNT - 1) });
+    } else if (m.t === 'card') {
+      if (!this.allow(p, 'card')) return;
+      const card = { c: int(m.c, 0, COLOR_COUNT - 1), x: int(m.x, -1, EXAM_COUNT - 1), by: p.id };
+      this.cards.push(card); if (this.cards.length > MAX_CARDS) this.cards.splice(0, this.cards.length - MAX_CARDS);
+      this.state.storage.put('cards', this.cards);
+      this.broadcast({ t: 'card', card });
     }
   }
 
-  broadcast(o) {
+  broadcast(o, except) {
     const s = JSON.stringify(o);
-    for (const ws of this.players.keys()) { try { ws.send(s); } catch (_) {} }
+    for (const ws of this.players.keys()) { if (ws === except) continue; try { ws.send(s); } catch (_) {} }
   }
 
   // 每 250ms 廣播一次所有人的位置
@@ -76,7 +107,7 @@ export class Temple {
     if (this.timer) return;
     const loop = () => {
       if (!this.players.size) { this.timer = null; return; }
-      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, look: p.look }));
+      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, s: p.s, look: p.look }));
       this.broadcast({ t: 'state', players: list, online: list.length, total: this.total });
       this.timer = setTimeout(loop, 250);
     };

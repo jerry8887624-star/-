@@ -1,23 +1,36 @@
-# 多人連線伺服器（選用）
+# 讓大家能互相互動（部署到 Cloudflare）
 
-沒有部署這個伺服器時，App 照常能參拜，只是看不到其他真人香客，廟裡會有幾位「示意香客」走動。
+部署後，這個 Worker 會同時提供**網站**和**多人連線**，網址像 `https://wenchang-temple.<你的帳號>.workers.dev`。
+在這個網址參拜的人會在同一座廟裡看到彼此，可以：
 
-部署後，大家會在同一座廟裡看到彼此（人物、位置、拜拜動作），可以點別人送出預設的打氣語（例如「金榜題名！」）。
-伺服器**只轉送位置、外觀與打氣語編號**，不收也不存任何姓名、生日、住址、准考證或自由輸入的文字；只存一個「累計人次」數字。
+- 看到其他考生走動、拜拜、拿香（名牌顯示「考生 #編號」，完成參拜的人有 ✓）
+- 點對方或從「互動 → 在廟裡的考生」送打氣語，收到的人可以按「回覆」
+- 做動作讓大家看到：揮手、拜一拜、比讚、開心跳
+- 祈福牆上看到大家掛的卡（只顯示顏色和考試類別，寫的字只留在自己手機）
+- 左下角動態：誰走進文昌祠、誰完成參拜、誰掛了祈福卡
 
-## 部署（Cloudflare，免費方案即可）
+為了安全，**不開放自由打字**；伺服器只轉送位置、外觀、進度與動作編號，不收姓名、生日、住址、准考證。
+同一種動作有間隔限制（打氣 2 秒、動作 1 秒、祈福卡 30 秒），最多 60 人同時在廟裡。
+
+## 一次設定（只要點按，不用打指令）
+
+1. 登入 Cloudflare（和「靈犀」同一個帳號）→ 左側 **Workers & Pages** → **Create**。
+2. 選 **Workers** 分頁 → **Import a repository**（匯入存放庫）→ 選這個 GitHub 存放庫。
+3. 設定：
+   - Project name：`wenchang-temple`
+   - Build command：留空
+   - Deploy command：`npx wrangler deploy`
+   - 展開 Advanced settings → **Root directory**：`wenchang/worker`
+4. 按 **Deploy**。完成後畫面上會出現 `https://wenchang-temple.….workers.dev` 網址，就是要分享的網址。
+
+之後每次合併到 `main`，Cloudflare 會自動重新部署。
+
+GitHub Pages 上的舊網址仍可單人參拜（廟裡是示意香客，沒有真人互動）。
+
+## 用指令部署（替代做法）
 
 ```bash
 cd wenchang/worker
 npx wrangler login
 npx wrangler deploy
 ```
-
-部署完成會得到網址，例如 `https://wenchang-temple.<你的帳號>.workers.dev`。
-把它改成 `wss://` 開頭、加上 `/ws`，填進 `wenchang/js/config.js`：
-
-```js
-export const WS_URL = 'wss://wenchang-temple.<你的帳號>.workers.dev/ws';
-```
-
-再執行 `python3 build.py` 並發布即可。

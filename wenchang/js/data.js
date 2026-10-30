@@ -49,6 +49,14 @@ export const CARD_COLORS = [
 // 香客之間只能傳這些打氣語（不開放自由輸入，避免騷擾與個資外流）
 export const CHEERS = ['加油！', '金榜題名！', '一定考上！', '穩穩的', '別緊張', '一起努力', '謝謝你', '你也加油'];
 
+// 表情動作：大家都看得到（順序與伺服器的編號一致）
+export const EMOTES = [
+  { id: 'wave', name: '揮手', icon: '👋' },
+  { id: 'bow', name: '拜一拜', icon: '🙏' },
+  { id: 'thumb', name: '比讚', icon: '👍' },
+  { id: 'jump', name: '開心跳', icon: '🎉' },
+];
+
 // 籤等 → 給考生的一句提醒（只依籤等，不是解籤）
 export const RANK_TIP = {
   '上上': '籤等很好。照著讀書計畫穩穩走，把會的寫對就好。',

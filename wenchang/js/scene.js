@@ -319,9 +319,40 @@ export class Temple {
     const roof = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.15, 0.9), lam('#2f6b5c')); roof.position.set(0, 3.3, 0); g.add(roof);
     [1.0, 1.75, 2.5].forEach(y => { const b = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.06, 0.06), wood); b.position.set(0, y, 0); g.add(b); });
     this.cards = [];
-    const cols = ['#c8352b', '#e2b13c', '#2f7d6d', '#2a2f4a', '#c8352b', '#e2b13c'];
-    let k = 0;
-    [1.0, 1.75, 2.5].forEach(y => { for (let x = -2.3; x <= 2.3; x += 0.42) { if (Math.random() < 0.18) continue; this.addCard(x + (Math.random() - 0.5) * 0.08, y, cols[k++ % cols.length]); } });
+    // 牆上的位置：先放裝飾用的空白卡，連線後換成大家掛的卡
+    this.slots = [];
+    [1.75, 2.5, 1.0].forEach(y => { for (let x = -2.3; x <= 2.3; x += 0.42) this.slots.push({ x: x + (Math.random() - 0.5) * 0.08, y, deco: Math.random() > 0.2 }); });
+    // 中間那排正中央留給自己的卡
+    this.slots = this.slots.filter(sl => !(Math.abs(sl.x) < 0.4 && sl.y > 1.5));
+    this.setSharedCards([]);
+  }
+  setSharedCards(list, colors = ['#c8352b', '#e2b13c', '#2f7d6d', '#2a2f4a'], label = () => '') {
+    this.cardColors = colors; this.cardLabel = label;
+    this.slots.forEach(sl => { if (sl.pivot) { this.wall.remove(sl.pivot); this.cards.splice(this.cards.indexOf(sl.pivot), 1); sl.pivot = null; } });
+    const shared = list.slice(-this.slots.length);
+    this.slots.forEach((sl, i) => {
+      const c = shared[i];
+      if (c) sl.pivot = this.addCard(sl.x, sl.y, colors[c.c] || colors[0], this.smallCardTex(colors[c.c] || colors[0], label(c)));
+      else if (sl.deco) sl.pivot = this.addCard(sl.x, sl.y, colors[i % colors.length]);
+    });
+    this.sharedCount = shared.length;
+  }
+  // 有人新掛一張卡：放進下一個位置，彈出來
+  addSharedCard(c) {
+    const i = (this.sharedCount || 0) % this.slots.length, sl = this.slots[i];
+    if (sl.pivot) { this.wall.remove(sl.pivot); this.cards.splice(this.cards.indexOf(sl.pivot), 1); }
+    const col = this.cardColors[c.c] || this.cardColors[0];
+    sl.pivot = this.addCard(sl.x, sl.y, col, this.smallCardTex(col, this.cardLabel(c)));
+    sl.pivot.scale.setScalar(0.01); this.tween(500, k => sl.pivot.scale.setScalar(0.01 + 0.99 * k), 0, t => 1 - Math.pow(1 - t, 3));
+    this.sharedCount = (this.sharedCount || 0) + 1;
+  }
+  smallCardTex(hex, text) {
+    return canvasTex(96, 160, (g, W, H) => {
+      g.fillStyle = hex; g.fillRect(0, 0, W, H);
+      g.strokeStyle = 'rgba(255,240,200,.7)'; g.lineWidth = 3; g.strokeRect(6, 6, W - 12, H - 12);
+      g.fillStyle = hex.toLowerCase() === '#e2b13c' ? '#3a2408' : '#fff4d6'; g.textAlign = 'center'; g.font = '900 22px "Noto Serif TC",serif';
+      [...(text || '祈福')].slice(0, 5).forEach((ch, i, a) => g.fillText(ch, W / 2, H / 2 + (i - (a.length - 1) / 2) * 25 + 8));
+    });
   }
   addCard(x, y, color, tex) {
     const pivot = new THREE.Group(); pivot.position.set(x, y, 0.05);

@@ -12,7 +12,7 @@ export class Net {
     ws.onopen = () => { this.alive = true; this.retry = 1000; this.send({ t: 'hi', look: this.look }); this.h.status?.(true); };
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } this.h.message?.(m); };
     ws.onclose = () => {
-      this.alive = false; this.h.status?.(false);
+      const was = this.alive; this.alive = false; this.h.status?.(false, was);
       setTimeout(() => this.connect(this.look), this.retry); this.retry = Math.min(30000, this.retry * 2);
     };
     ws.onerror = () => ws.close();
@@ -28,4 +28,7 @@ export class Net {
   }
   setLook(look) { this.look = look; this.send({ t: 'look', look }); }
   cheer(to, i) { this.send({ t: 'cheer', to, i }); }
+  emote(e) { this.send({ t: 'emote', e }); }
+  step(s) { this.send({ t: 'step', s }); }
+  card(c, x) { this.send({ t: 'card', c, x }); }
 }
