@@ -29,6 +29,8 @@
     <p class="subtitle">備供品、稟告考試、准考證過爐，祝你金榜題名</p>
   </div>
   <div class="splash-bottom">
+    <label class="nick" for="nick-input"><span>暱稱</span><input id="nick-input" maxlength="8" autocomplete="off" enterkeyhint="go" placeholder="例如：小明（可不填）"></label>
+    <p id="nick-msg" class="nick-msg" role="status"></p>
     <button type="button" id="enter-btn" class="enter">
       <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 38 34 10" /><path d="M34 10l4-2-1 4" /><path d="M12 40c2-1 3-2 4-4" /></svg>
       <span>進入廟宇</span>
@@ -89,6 +91,7 @@
       <ul id="people-list"></ul>
       <p class="pending" id="people-empty">目前只有你一個人。分享網址給同學，一起來拜拜、互相打氣吧！</p>
     </div>
+    <div class="my-nick"><label for="my-nick">我的暱稱</label><input id="my-nick" maxlength="8" autocomplete="off" placeholder="可不填"><button type="button" id="my-nick-save">儲存</button></div>
     <label class="check dm-toggle"><input type="checkbox" id="dm-allow" checked> 接收別人的密語</label>
     <p class="pending" id="social-offline" hidden>現在沒有連上多人伺服器，廟裡是示意香客；動作只有你自己看得到。</p>
   </div>

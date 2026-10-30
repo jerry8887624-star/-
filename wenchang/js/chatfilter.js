@@ -26,3 +26,14 @@ export const CHAT_WHY = {
   contact: '為了安全，不能傳送電話、帳號、住址或約見面。',
   rude: '請保持友善。',
 };
+
+// 暱稱：最多 8 個字，規則同密語（擋聯絡方式、網址、不雅字詞）；空白＝用「考生 #編號」
+export const NAME_MAX = 8;
+export function checkName(raw) {
+  const text = String(raw ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim();
+  if (!text) return { ok: true, text: '' };
+  if ([...text].length > NAME_MAX) return { ok: false, why: 'long' };
+  const r = checkChat(text);
+  return r.ok ? { ok: true, text } : r;
+}
+export const NAME_WHY = { long: `暱稱最多 ${NAME_MAX} 個字。`, link: '暱稱不能放網址。', contact: '為了安全，暱稱不能放電話、帳號或學校。', rude: '請換一個友善的暱稱。' };
