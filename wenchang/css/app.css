@@ -304,7 +304,22 @@ dialog.lot .row { padding: 0 18px 16px; }
 #chat-form { display: flex; gap: 8px; }
 #chat-form input { flex: 1; min-width: 0; }
 #chat-form button { padding: 0 18px; border-radius: 12px; border: 1px solid var(--gold); background: linear-gradient(180deg, var(--red-2), var(--red)); color: #fff6e0; font-weight: 700; min-height: 44px; }
-body.chatting #dock, body.chatting #next, body.chatting #social-btn, body.chatting #feed { display: none; }
+body.chatting #dock, body.chatting #next, body.chatting #social-btn, body.chatting #feed, body.chatting #dm-btn { display: none; }
+#dm-btn { position: absolute; right: 12px; bottom: calc(224px + var(--sab)); width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--gold);
+  background: linear-gradient(180deg, #4a5aa0, #2c3770); color: #fff4d6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 11px; box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+#dm-btn svg { width: 24px; height: 24px; fill: none; stroke: #fff4d6; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+#dm-btn .dot { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--red-2); border: 1px solid var(--gold); font-size: 11px; line-height: 16px; }
+#social { bottom: calc(288px + var(--sab)); }
+.dm-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+.dm-tabs:empty { display: none; }
+.dm-tabs::-webkit-scrollbar { display: none; }
+.dm-tabs button { flex: 0 0 auto; position: relative; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); font-size: 13.5px; min-height: 34px; }
+.dm-tabs button[aria-selected="true"] { background: #2c3770; border-color: var(--gold); }
+.dm-tabs button.gone { opacity: .5; }
+.dm-tabs b { margin-left: 6px; padding: 0 6px; border-radius: 9px; background: var(--red-2); font-size: 11px; }
+.dm-empty { margin: 8px 0; font-size: 14px; line-height: 1.6; color: var(--muted); }
+.dm-toggle { margin-top: 12px; font-size: 14px; }
+#chat-form input:disabled { opacity: .5; }
 
 /* ---------- 版本更新 ---------- */
 #update-chip { margin-right: auto; margin-left: 8px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--gold); background: linear-gradient(180deg, var(--red-2), var(--red)); color: #fff4d6; font-size: 13.5px; font-weight: 700; animation: breathe 2.6s ease-in-out infinite; }

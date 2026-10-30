@@ -1,7 +1,7 @@
 // 「線上參拜文昌帝君」網站＋多人連線伺服器（Cloudflare Worker + Durable Object）
 // 網站檔案由 Workers 靜態資源提供（wrangler.toml 的 [assets]），只有 /ws 會進到這裡。
 // 轉送：位置、外觀、參拜進度、表情與打氣語的「編號」、祈福卡的顏色與考試類別編號，
-// 以及雙方同意後的「悄悄話」（最多 40 字，過濾網址與聯絡方式，只轉給對方、不存檔）。
+// 以及「密語」（一對一，最多 40 字，過濾網址與聯絡方式，只轉給對方、不存檔；可封鎖、可關閉接收）。
 // 不收姓名、生日、住址、准考證。會存的只有「累計人次」與牆上的祈福卡（顏色＋考試類別）。
 
 import { checkChat } from '../js/chatfilter.js';
@@ -12,8 +12,7 @@ const EMOTE_COUNT = 4;      // 與前端 EMOTES 數量一致
 const EXAM_COUNT = 10;      // 與前端 EXAMS 數量一致
 const COLOR_COUNT = 4;      // 與前端 CARD_COLORS 數量一致
 const MAX_CARDS = 60;
-const GAP = { cheer: 2000, emote: 1000, card: 30000, invite: 5000, msg: 1000 };
-const INVITE_TTL = 30000;
+const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000 };
 
 export default {
   async fetch(req, env) {
@@ -54,10 +53,10 @@ export class Temple {
     const [client, server] = Object.values(new WebSocketPair());
     server.accept();
     this.seq += 1; this.state.storage.put('seq', this.seq);
-    const p = { id: this.seq, x: 0, z: 13, f: Math.PI, h: 0, b: 0, s: 0, look: null, last: {}, ws: server, chat: 0, invites: new Map(), blocked: new Set() };
+    const p = { id: this.seq, x: 0, z: 13, f: Math.PI, h: 0, b: 0, s: 0, look: null, last: {}, ws: server, dmOff: false, blocked: new Set() };
     this.players.set(server, p); this.byId.set(p.id, p);
     server.addEventListener('message', e => this.onMessage(p, e.data));
-    const bye = () => { if (this.players.delete(server)) { this.byId.delete(p.id); if (p.chat) this.closeChat(p, 'left'); this.broadcast({ t: 'leave', id: p.id }); } };
+    const bye = () => { if (this.players.delete(server)) { this.byId.delete(p.id); this.broadcast({ t: 'leave', id: p.id }); } };
     server.addEventListener('close', bye); server.addEventListener('error', bye);
     this.tick();
     return new Response(null, { status: 101, webSocket: client });
@@ -100,44 +99,20 @@ export class Temple {
       this.cards.push(card); if (this.cards.length > MAX_CARDS) this.cards.splice(0, this.cards.length - MAX_CARDS);
       this.state.storage.put('cards', this.cards);
       this.broadcast({ t: 'card', card });
-    } else if (m.t === 'invite') {
+    } else if (m.t === 'dm') {
+      // 密語：直接傳給對方（過濾聯絡方式；對方封鎖你或關閉密語時傳不過去）
       const q = this.byId.get(int(m.to, 0, 1e9));
-      if (!q || q === p || !q.look) return;
-      if (p.chat) return send(p, { t: 'chat-err', why: 'inChat' });
-      if (!this.allow(p, 'invite')) return;
-      if (q.blocked.has(p.id)) return send(p, { t: 'declined', by: q.id }); // 被封鎖：看起來像婉拒
-      if (q.chat) return send(p, { t: 'busy', id: q.id });
-      q.invites.set(p.id, Date.now());
-      send(q, { t: 'invite', from: p.id }); send(p, { t: 'invited', to: q.id });
-    } else if (m.t === 'accept') {
-      const q = this.byId.get(int(m.from, 0, 1e9)), at = q && p.invites.get(q.id);
-      if (q) p.invites.delete(q.id);
-      if (!q || !at || Date.now() - at > INVITE_TTL) return send(p, { t: 'chat-err', why: 'expired' });
-      if (q.chat || p.chat) return send(p, { t: 'busy', id: q.id });
-      p.chat = q.id; q.chat = p.id;
-      send(p, { t: 'chat-open', with: q.id }); send(q, { t: 'chat-open', with: p.id });
-    } else if (m.t === 'decline') {
-      const q = this.byId.get(int(m.from, 0, 1e9));
-      if (q && p.invites.delete(q.id)) send(q, { t: 'declined', by: p.id });
-    } else if (m.t === 'msg') {
-      const q = this.byId.get(p.chat); if (!q) return;
+      if (!q || q === p || !q.look) return send(p, { t: 'dm-fail', to: int(m.to, 0, 1e9), why: 'gone' });
       if (!this.allow(p, 'msg')) return;
       const r = checkChat(m.text);
-      if (!r.ok) return send(p, { t: 'msg-reject', why: r.why });
-      send(q, { t: 'msg', from: p.id, text: r.text }); send(p, { t: 'msg-ok', text: r.text });
-    } else if (m.t === 'end') {
-      if (p.chat) this.closeChat(p, 'ended');
+      if (!r.ok) return send(p, { t: 'dm-reject', to: q.id, why: r.why });
+      if (q.blocked.has(p.id) || q.dmOff) return send(p, { t: 'dm-fail', to: q.id, why: 'closed' });
+      send(q, { t: 'dm', from: p.id, text: r.text }); send(p, { t: 'dm-ok', to: q.id, text: r.text });
+    } else if (m.t === 'dmoff') {
+      p.dmOff = !!m.off;
     } else if (m.t === 'block') {
-      const id = int(m.id, 0, 1e9); p.blocked.add(id); p.invites.delete(id);
-      if (p.chat === id) this.closeChat(p, 'ended');
+      p.blocked.add(int(m.id, 0, 1e9));
     }
-  }
-
-  // 結束悄悄話：對方只會知道「結束了」或「離開了」，不會知道被封鎖
-  closeChat(p, why) {
-    const q = this.byId.get(p.chat); p.chat = 0;
-    if (why !== 'left') send(p, { t: 'chat-close', why: 'self' });
-    if (q && q.chat === p.id) { q.chat = 0; send(q, { t: 'chat-close', why }); }
   }
 
   broadcast(o, except) {
@@ -150,7 +125,7 @@ export class Temple {
     if (this.timer) return;
     const loop = () => {
       if (!this.players.size) { this.timer = null; return; }
-      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, s: p.s, c: p.chat ? 1 : 0, look: p.look }));
+      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, s: p.s, look: p.look }));
       this.broadcast({ t: 'state', players: list, online: list.length, total: this.total });
       this.timer = setTimeout(loop, 250);
     };

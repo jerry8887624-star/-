@@ -31,10 +31,7 @@ export class Net {
   emote(e) { this.send({ t: 'emote', e }); }
   step(s) { this.send({ t: 'step', s }); }
   card(c, x) { this.send({ t: 'card', c, x }); }
-  invite(to) { this.send({ t: 'invite', to }); }
-  accept(from) { this.send({ t: 'accept', from }); }
-  decline(from) { this.send({ t: 'decline', from }); }
-  say(text) { this.send({ t: 'msg', text }); }
-  endChat() { this.send({ t: 'end' }); }
+  dm(to, text) { this.send({ t: 'dm', to, text }); }
+  dmOff(off) { this.send({ t: 'dmoff', off: off ? 1 : 0 }); }
   block(id) { this.send({ t: 'block', id }); }
 }

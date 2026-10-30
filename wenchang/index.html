@@ -86,36 +86,35 @@
       <ul id="people-list"></ul>
       <p class="pending" id="people-empty">目前只有你一個人。分享網址給同學，一起來拜拜、互相打氣吧！</p>
     </div>
+    <label class="check dm-toggle"><input type="checkbox" id="dm-allow" checked> 接收別人的密語</label>
     <p class="pending" id="social-offline" hidden>現在沒有連上多人伺服器，廟裡是示意香客；動作只有你自己看得到。</p>
   </div>
 
   <div id="cheer-menu" class="card-pop" hidden>
     <p id="cheer-name"></p>
     <div id="cheer-list"></div>
-    <button type="button" id="cheer-invite" class="invite-btn">💬 邀請說悄悄話</button>
+    <button type="button" id="cheer-invite" class="invite-btn">💬 密語</button>
     <button type="button" id="cheer-block" class="ghost small">封鎖這位考生</button>
   </div>
 
-  <div id="invite-card" class="card-pop" role="alertdialog" aria-live="assertive" hidden>
-    <p id="invite-text"></p>
-    <div class="row">
-      <button type="button" id="invite-block" class="ghost small">封鎖</button>
-      <button type="button" id="invite-decline" class="ghost">婉拒</button>
-      <button type="button" id="invite-accept">接受</button>
-    </div>
-  </div>
+  <button type="button" id="dm-btn" aria-label="密語">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>
+    <span>密語</span>
+  </button>
 
   <section id="chat" aria-labelledby="chat-title" hidden>
+    <div id="dm-tabs" class="dm-tabs" role="tablist" aria-label="密語對象"></div>
     <header>
-      <h2 id="chat-title"></h2>
+      <h2 id="chat-title">密語</h2>
       <button type="button" id="chat-block" class="ghost small">封鎖</button>
-      <button type="button" id="chat-end" class="ghost small">結束</button>
+      <button type="button" id="chat-min" class="ghost small">收起</button>
     </header>
     <p class="chat-safe">🔒 只有對方看得到、不會儲存。不要給電話、LINE、IG、學校或住址；覺得不舒服就按「封鎖」。</p>
     <ol id="chat-log" aria-live="polite"></ol>
+    <p id="dm-empty" class="dm-empty" hidden>還沒有密語。點其他考生的人物或名牌 →「密語」，或從「互動」的名單選人，就能開始聊天。</p>
     <div id="chat-phrases" class="chips"></div>
     <form id="chat-form" autocomplete="off">
-      <input id="chat-input" maxlength="40" placeholder="最多 40 字" enterkeyhint="send">
+      <input id="chat-input" maxlength="40" placeholder="密語內容，最多 40 字" enterkeyhint="send">
       <button type="submit">送出</button>
     </form>
   </section>
