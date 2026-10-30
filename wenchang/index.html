@@ -71,6 +71,7 @@
     <div id="guide-body">
       <ol id="guide-steps"></ol>
       <p id="guide-carry"></p>
+      <button type="button" id="again-guide" class="again-guide" hidden>🔄 再參拜一次（從頭開始）</button>
     </div>
   </aside>
 
@@ -286,7 +287,7 @@
     <li>考上了，記得回來還願（帶供品答謝，或捐些文具給需要的人）。</li>
     <li>還想問問題？可以「擲筊」請示，或「求籤」抽一支籤。</li>
   </ul>
-  <div class="row"><button type="button" data-close>好</button></div>
+  <div class="row"><button type="button" class="ghost" id="again-btn">再參拜一次（從頭開始）</button><button type="button" data-close>好</button></div>
 </dialog>
 
 <!-- 版本更新 -->
@@ -299,6 +300,22 @@
     <button type="button" id="update-ok" hidden>開始使用</button>
   </div>
 </dialog>
+
+<!-- 靈犀占卜（在遊戲裡打開） -->
+<section id="lingxi-ui" hidden aria-label="靈犀占卜">
+  <header class="lx-bar">
+    <button type="button" id="lx-back" class="ghost small" hidden>‹ 選單</button>
+    <h2>靈犀 LINGXI</h2>
+    <a id="lx-out" class="ghost small" href="https://lingxi-397.pages.dev/" target="_blank" rel="noopener">另開</a>
+    <button type="button" id="lx-close" class="ghost small" aria-label="回到文昌祠">回廟裡 ✕</button>
+  </header>
+  <div id="lx-menu" class="lx-menu">
+    <p class="say">想算什麼？點一下就在這裡打開「靈犀」。看完按右上角「回廟裡」。</p>
+    <div id="lx-grid" class="lx-grid"></div>
+    <p class="pending">靈犀是同一位作者的命理占卜 App，內容僅供參考與娛樂。</p>
+  </div>
+  <iframe id="lx-frame" title="靈犀占卜" hidden allow="autoplay; clipboard-write"></iframe>
+</section>
 
 <!-- 說明 -->
 <dialog id="info-dlg">

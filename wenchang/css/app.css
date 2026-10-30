@@ -405,3 +405,19 @@ body.chatting #stick, body.chatting #kneel-bar { display: none; }
 .my-nick button { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--gold); background: var(--red); min-height: 36px; font-size: 13px; }
 
 .tag.far { display: none !important; }
+
+/* ---------- 靈犀占卜（遊戲內） ---------- */
+#lingxi-ui { position: fixed; inset: 0; z-index: 9; display: flex; flex-direction: column; background: #15112e; animation: dlg .25s var(--ease); }
+.lx-bar { display: flex; align-items: center; gap: 8px; padding: calc(8px + var(--sat)) 12px 8px; background: linear-gradient(180deg, #2a1f4e, #1a1538); border-bottom: 1px solid var(--line); }
+.lx-bar h2 { margin: 0 auto 0 0; font-size: 18px; color: var(--gold-2); letter-spacing: .06em; }
+.lx-bar a { text-decoration: none; display: inline-flex; align-items: center; }
+#lx-close { border-color: var(--gold); background: var(--red); }
+.lx-menu { flex: 1; overflow: auto; padding: 16px; max-width: 560px; width: 100%; margin: 0 auto; }
+.lx-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.lx-grid button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 4px 12px; border-radius: 16px; border: 1px solid rgba(232, 193, 90, .4); background: rgba(255, 255, 255, .06); }
+.lx-grid button i { font-style: normal; font-size: 26px; line-height: 1.1; }
+.lx-grid b { font-size: 15px; }
+.lx-grid small { font-size: 11.5px; color: var(--muted); }
+#lx-frame { flex: 1; width: 100%; border: 0; background: #fff; }
+body.lx-open #hud, body.lx-open #labels { visibility: hidden; }
+.again-guide { margin-top: 10px; width: 100%; padding: 9px; border-radius: 12px; border: 1px solid var(--gold); background: rgba(184, 50, 42, .45); font-weight: 700; min-height: 40px; }

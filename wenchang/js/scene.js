@@ -21,6 +21,7 @@ export const SPOTS = {
   jinlu: { x: JINLU.x - 0.8, z: JINLU.z - 1.9, f: 0.35, cam: 0.6 }, // 站在爐口左前方，才不會擋住火光
   qianTube: { x: 5.5, z: -16.4, f: Math.PI, cam: -0.45 },
   wall: { x: 16.4, z: 8, f: Math.PI / 2 },
+  lingxi: { x: 16.3, z: 14.6, f: Math.PI / 2, cam: 0.35 },
 };
 // 名牌標示（可點擊走過去）
 export const MARKS = [
@@ -30,6 +31,7 @@ export const MARKS = [
   { id: 'qianTube', name: '籤筒', pos: [5.5, 1.9, -17.6] },
   { id: 'wall', name: '祈福牆', pos: [18.2, 3.4, 8] },
   { id: 'jinlu', name: '金爐', pos: [JINLU.x, 4.6, JINLU.z] },
+  { id: 'lingxi', name: '靈犀占卜', pos: [18.6, 4.3, 14.6] },
 ];
 // 鏡頭特寫用的位置
 export const FOCUS = { altar: [0, 2.2, -19.5], censer: [0, 2.2, L.CZ], wcCenser: [0, 1.6, WC_CENSER_Z], jinlu: [JINLU.x, 1.6, JINLU.z], wall: [18.2, 2, 8] };
@@ -57,6 +59,7 @@ const BOXES = [
   [-2.4, L.HB, 2.4, -19.6],         // 神龕
   [5, -18.1, 6, -17.1],             // 籤筒桌
   [17.6, 5.2, 19.2, 10.8],          // 祈福牆
+  [18.1, 12.8, 19.4, 16.4],         // 靈犀占卜電子牆
   [-L.CW - 0.4, L.GZ - 0.2, -3.3, L.GZ + 0.4], [3.3, L.GZ - 0.2, L.CW + 0.4, L.GZ + 0.4], // 前牆
 ];
 const FRONT_PILLARS = [-14.2, -8.5, -3.4, 3.4, 8.5, 14.2];
@@ -140,7 +143,7 @@ export class Temple {
     const step = new THREE.Mesh(new THREE.BoxGeometry(L.HW * 2 + 0.4, 0.12, 0.5), lam('#a89580')); step.position.set(0, 0.06, L.HF + 0.45); S.add(step);
 
     this.buildHall(); this.buildGate(); this.buildCourt(); this.buildGod();
-    this.buildCenser(); this.buildWenchangCenser(); this.buildJinlu(); this.buildCounter(); this.buildWall(); this.buildTrees();
+    this.buildCenser(); this.buildWenchangCenser(); this.buildJinlu(); this.buildLingxiScreen(); this.buildCounter(); this.buildWall(); this.buildTrees();
 
     this.ground = [outer, court, hallFloor];
   }
@@ -498,6 +501,38 @@ export class Temple {
     [[0x4f9a3a, 0], [0xf3efe2, 1], [0xf6ead2, 2]].forEach(([c, i]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), lam(c)); b.position.set(-7.7 + i * 0.12, 1.45, 7.55 + (i % 2) * 0.1); S.add(b); });
   }
 
+  // 靈犀占卜電子牆：祈福牆旁邊一面會發光的螢幕，點了在遊戲裡打開「靈犀」
+  buildLingxiScreen() {
+    const S = this.scene, g = new THREE.Group(); g.position.set(18.7, 0, 14.6); g.rotation.y = -Math.PI / 2; S.add(g);
+    const frameM = lam('#2a1a14'), gold = lam('#d8ab45');
+    [-1.75, 1.75].forEach(x => { const p = new THREE.Mesh(new THREE.BoxGeometry(0.18, 3.6, 0.18), frameM); p.position.set(x, 1.8, 0); g.add(p); });
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.4, 0.16), frameM); frame.position.set(0, 2.25, -0.04); g.add(frame);
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(3.7, 0.08, 0.2), gold); trim.position.set(0, 3.49, 0); g.add(trim);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.14, 0.7), lam('#2f6b5c')); roof.position.set(0, 3.62, 0); g.add(roof);
+    // 螢幕畫面：一張 canvas，持續換頁顯示各種占卜
+    const c = document.createElement('canvas'); c.width = 640; c.height = 400; this.lxCanvas = c;
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; this.lxTex = tex;
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(3.36, 2.1), new THREE.MeshBasicMaterial({ map: tex }));
+    screen.position.set(0, 2.25, 0.045); g.add(screen); this.lxScreen = screen;
+    this.lxFrame = 0; this.drawLingxi(0);
+  }
+  drawLingxi(t) {
+    const c = this.lxCanvas, g = c.getContext('2d'), W = c.width, H = c.height;
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#16123a'); bg.addColorStop(1, '#3a1636'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 40; i++) { const x = (i * 97 + t * 8) % W, y = (i * 53) % H; g.fillStyle = `rgba(255,236,190,${0.25 + 0.25 * Math.sin(t * 2 + i)})`; g.fillRect(x, y, 2, 2); }
+    g.textAlign = 'center'; g.fillStyle = '#f6dc94'; g.font = '900 54px "Noto Serif TC",serif'; g.fillText('靈犀 LINGXI', W / 2, 70);
+    g.fillStyle = '#e8d9f2'; g.font = '700 26px "Noto Serif TC",serif'; g.fillText('線上算命占卜・點我打開', W / 2, 110);
+    const items = ['今日運勢', '星座', '解夢', '塔羅', '易卦', '紫微', '流年', '合婚', '擇日', '拜拜', '風水', '改名'];
+    const hi = Math.floor(t * 1.2) % items.length;
+    items.forEach((n, i) => {
+      const col = i % 4, row = Math.floor(i / 4), x = 90 + col * 153, y = 165 + row * 72;
+      g.fillStyle = i === hi ? 'rgba(232,193,90,.9)' : 'rgba(255,255,255,.08)'; g.strokeStyle = 'rgba(232,193,90,.7)'; g.lineWidth = 2;
+      g.beginPath(); g.roundRect(x - 66, y - 30, 132, 52, 14); g.fill(); g.stroke();
+      g.fillStyle = i === hi ? '#2a1410' : '#fff4d6'; g.font = '700 26px "Noto Serif TC",serif'; g.fillText(n, x, y + 6);
+    });
+    this.lxTex.needsUpdate = true;
+  }
+
   buildWall() {
     const S = this.scene, wood = lam('#6a3a22');
     const g = new THREE.Group(); g.position.set(18.4, 0, 8); g.rotation.y = -Math.PI / 2; S.add(g); this.wall = g;
@@ -734,6 +769,7 @@ export class Temple {
       const avs = [...this.avatars].filter(a => a !== this.player).map(a => a.root);
       const hitA = ray.intersectObjects(avs, true)[0];
       if (hitA) { this.emit('tapAvatar', hitA.object.userData.avatar, e); return; }
+      if (ray.intersectObject(this.lxScreen, false)[0]) { this.emit('tapLingxi'); return; }
       const hitC = ray.intersectObjects(this.cushionMeshes, false)[0];
       if (hitC && hitC.instanceId != null) { this.emit('tapCushion', hitC.instanceId); return; }
       const hit = ray.intersectObjects(this.ground, false)[0];
@@ -829,6 +865,7 @@ export class Temple {
     const t = this.clock.elapsedTime;
     this.cards.forEach(c => { c.rotation.x = Math.sin(t * 1.4 + c.userData.ph) * 0.08; c.rotation.z = Math.sin(t * 1.1 + c.userData.ph) * 0.05; });
     this.god.position.y = 1.6 + Math.sin(t * 1.2) * 0.015;
+    if (t - (this.lxLast || 0) > 0.25) { this.lxLast = t; this.drawLingxi(t); }
     // 鏡頭：繞著角色轉（左右＝方位、上下＝仰角、遠近＝距離），可以一路轉到頭頂往下看
     if (P) {
       this.camYaw = lerpAngle(this.camYaw, this.camYawTarget, Math.min(1, dt * 3));
