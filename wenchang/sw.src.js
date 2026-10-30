@@ -6,7 +6,8 @@ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.
 const put=(req,res)=>{if(res&&(res.ok||res.type==='opaque')){const c=res.clone();caches.open(V).then(x=>x.put(req,c))}return res};
 self.addEventListener('fetch',e=>{
   const r=e.request;if(r.method!=='GET')return;const u=new URL(r.url);
-  if(u.pathname.endsWith('/changes.json'))return; // 更新紀錄一律走網路，才能偵測新版
+  if(u.pathname.endsWith('/changes.json'))return;
+  if(u.pathname.includes('/audio/'))return; // 音樂直接走網路（iOS 播放需要分段下載，不經離線快取） // 更新紀錄一律走網路，才能偵測新版
   if(r.mode==='navigate'){e.respondWith(new Promise(res=>{let done=false;
     const t=setTimeout(()=>caches.match('index.html').then(m=>{if(!done&&m){done=true;res(m)}}),4000);
     fetch(r.url,{cache:'no-store',credentials:'same-origin'}).then(n=>{clearTimeout(t);put('index.html',n.clone());if(!done){done=true;res(n)}})

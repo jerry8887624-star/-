@@ -55,6 +55,9 @@
       <button type="button" id="time-btn" class="icon" aria-label="切換白天／夜晚" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></svg>
       </button>
+      <button type="button" id="music-btn" class="icon" aria-label="背景音樂" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>
+      </button>
       <button type="button" id="sound-btn" class="icon" aria-label="聲音" aria-pressed="true">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z" /><path class="wave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" /></svg>
       </button>
@@ -88,6 +91,13 @@
     </div>
     <label class="check dm-toggle"><input type="checkbox" id="dm-allow" checked> 接收別人的密語</label>
     <p class="pending" id="social-offline" hidden>現在沒有連上多人伺服器，廟裡是示意香客；動作只有你自己看得到。</p>
+  </div>
+
+  <div id="music-pop" class="card-pop" hidden>
+    <p class="pop-title">背景音樂</p>
+    <label class="check music-on"><input type="checkbox" id="music-on"> 播放背景音樂</label>
+    <div id="music-list" class="music-list" role="radiogroup" aria-label="選擇曲目"></div>
+    <p class="pending">配樂取自「靈犀」App。右上角喇叭關掉時，音樂也會一起靜音。</p>
   </div>
 
   <div id="cheer-menu" class="card-pop" hidden>

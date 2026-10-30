@@ -6,6 +6,7 @@ import { Net } from './net.js';
 import { checkChat, CHAT_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
 import { initUpdates, showNewsOnce } from './update.js';
+import { music, MUSIC_TRACKS } from './music.js';
 
 const $ = s => document.querySelector(s);
 const store = {
@@ -63,7 +64,7 @@ const sound = {
     this.master = c.createGain(); this.master.gain.value = this.on ? 1 : 0; this.master.connect(c.destination);
     setInterval(() => { if (this.on && Math.random() < 0.35) this.bell(0.05); }, 14000);
   },
-  toggle() { this.on = !this.on; store.set('sound', this.on); if (this.ctx) { this.amb.gain.value = this.on ? 0.05 : 0; this.master.gain.value = this.on ? 1 : 0; } },
+  toggle() { this.on = !this.on; store.set('sound', this.on); if (this.ctx) { this.amb.gain.value = this.on ? 0.05 : 0; this.master.gain.value = this.on ? 1 : 0; } music.setMuted(!this.on); },
   bell(vol = 0.18) { // 磬
     const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime;
     [[620, 1], [1240, 0.5], [1860, 0.25], [2790, 0.12]].forEach(([f, a]) => {
@@ -113,6 +114,7 @@ renderPicker();
 
 $('#enter-btn').onclick = async () => {
   sound.init(); sound.bell(0.12);
+  music.night = night; music.muted = !sound.on; music.start();
   $('#splash').classList.add('leaving');
   setTimeout(() => { $('#splash').hidden = true; }, 500);
   $('#hud').hidden = false;
@@ -147,7 +149,24 @@ $('#guide-toggle').onclick = e => { const b = e.currentTarget, open = b.getAttri
 if (!store.get('guideOpen', innerWidth >= 720)) $('#guide-toggle').setAttribute('aria-expanded', 'false');
 $('#info-btn').onclick = () => { const d = $('#info-dlg'); d.showModal(); d.scrollTop = 0; };
 $('#time-btn').setAttribute('aria-pressed', night);
-$('#time-btn').onclick = e => { night = !night; store.set('night', night); document.body.classList.toggle('night', night); temple.setNight(night); e.currentTarget.setAttribute('aria-pressed', night); };
+$('#time-btn').onclick = e => { night = !night; store.set('night', night); document.body.classList.toggle('night', night); temple.setNight(night); music.setNight(night); e.currentTarget.setAttribute('aria-pressed', night); };
+
+// 背景音樂面板
+function renderMusic() {
+  $('#music-on').checked = music.on;
+  const cur = music.cur?.k;
+  $('#music-list').innerHTML = [{ k: 'auto', zh: '自動輪播', d: '白天輪播寺院配樂，夜晚播〈靜夜安神〉' }, ...MUSIC_TRACKS].map(t =>
+    `<button type="button" role="radio" data-k="${t.k}" aria-checked="${music.pick === t.k}"><span><b>${t.zh}${music.on && music.playing && t.k === music.pick ? `<span class="now">♪ ${t.k === 'auto' ? (music.cur?.zh || '') : '播放中'}</span>` : ''}</b><small>${t.d}</small></span></button>`).join('');
+  $('#music-btn').classList.toggle('playing', music.playing);
+}
+music.onChange(renderMusic);
+$('#music-btn').onclick = () => {
+  const pop = $('#music-pop'), open = pop.hidden; hideCheer(); hideSocial();
+  pop.hidden = !open; $('#music-btn').setAttribute('aria-expanded', open); if (open) renderMusic();
+};
+$('#music-on').onchange = e => { sound.init(); music.setOn(e.target.checked); if (e.target.checked && !sound.on) toast('右上角喇叭目前是關的，打開後才聽得到。'); renderMusic(); };
+$('#music-list').onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; sound.init(); music.setPick(b.dataset.k); if (!sound.on) toast('右上角喇叭目前是關的，打開後才聽得到。'); renderMusic(); };
+const hideMusic = () => { $('#music-pop').hidden = true; $('#music-btn').setAttribute('aria-expanded', 'false'); };
 $('#sound-btn').setAttribute('aria-pressed', sound.on);
 $('#sound-btn').onclick = e => { sound.init(); sound.toggle(); e.currentTarget.setAttribute('aria-pressed', sound.on); };
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close('cancel')));
@@ -228,7 +247,7 @@ function placeLabels() {
 }
 
 // ---------- 走動 ----------
-temple.on('tapGround', p => { if (state.busy) return; hideCheer(); hideSocial(); me.faceTo = null; temple.walk(me, p.x, p.z).then(ok => { if (ok) kneelIfOnCushion(); }); });
+temple.on('tapGround', p => { if (state.busy) return; hideCheer(); hideSocial(); hideMusic(); me.faceTo = null; temple.walk(me, p.x, p.z).then(ok => { if (ok) kneelIfOnCushion(); }); });
 // 拜墊：點拜墊或走到拜墊上就會跪下（面向文昌帝君），可以叩拜；一走動就起身
 temple.on('tapCushion', i => { if (state.busy) return; hideCheer(); hideSocial(); const c = CUSHIONS[i]; temple.walk(me, c.x, c.z, Math.PI).then(ok => { if (ok) kneelIfOnCushion(true); }); });
 function kneelIfOnCushion(tapped) {
@@ -765,7 +784,7 @@ function loop() {
   }
   requestAnimationFrame(loop);
 }
-temple.on('manualMove', () => { hideCheer(); hideSocial(); });
+temple.on('manualMove', () => { hideCheer(); hideSocial(); hideMusic(); });
 refresh();
 renderDm();
 initUpdates();
