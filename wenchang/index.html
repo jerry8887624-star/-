@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#24130e">
+<meta name="description" content="走進一座線上文昌祠：備供品、拜天公、向文昌帝君稟告考試、插香、准考證過爐、掛祈福卡，還能擲筊、求籤，和其他考生互相打氣。非官方個人教育作品。">
+<meta property="og:title" content="線上參拜文昌帝君">
+<meta property="og:description" content="備供品、拜天公、稟告文昌帝君、准考證過爐、掛祈福卡、擲筊求籤。非官方個人教育作品。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<title>線上參拜文昌帝君</title>
+</head>
+<body>
+<canvas id="stage" aria-hidden="true"></canvas>
+<div id="labels" aria-hidden="true"></div>
+
+<section id="splash">
+  <div class="splash-top">
+    <p class="eyebrow">考前拜拜・線上文昌祠</p>
+    <h1>線上參拜<br>文昌帝君</h1>
+    <p class="subtitle">備供品、稟告考試、准考證過爐，祝你金榜題名</p>
+  </div>
+  <div class="splash-bottom">
+    <button type="button" id="enter-btn" class="enter">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 38 34 10" /><path d="M34 10l4-2-1 4" /><path d="M12 40c2-1 3-2 4-4" /></svg>
+      <span>進入廟宇</span>
+    </button>
+    <div class="picker" role="group" aria-label="選擇你的樣子">
+      <button type="button" class="ghost" data-gender="f" aria-pressed="false">女生</button>
+      <button type="button" class="ghost" data-gender="m" aria-pressed="false">男生</button>
+      <button type="button" class="ghost" id="pick-shuffle">換個造型</button>
+      <button type="button" class="ghost" id="pick-custom" aria-expanded="false">自訂外觀</button>
+    </div>
+    <div id="customize" hidden></div>
+    <p class="disclaimer">非官方個人教育作品，不代表任何廟宇。場景為示意，實際參拜請依廟方指示。</p>
+  </div>
+</section>
+
+<div id="hud" hidden>
+  <header class="topbar">
+    <button type="button" id="info-btn" class="icon" aria-label="說明">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.5" /></svg>
+    </button>
+    <div class="tools">
+      <button type="button" id="presence" hidden aria-label="在廟裡的香客"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><circle cx="17" cy="9" r="2.4" /><path d="M16 13.6c2.9.1 5 2 5 4.9" /></svg><b class="online"></b></button>
+      <button type="button" id="time-btn" class="icon" aria-label="切換白天／夜晚" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></svg>
+      </button>
+      <button type="button" id="sound-btn" class="icon" aria-label="聲音" aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10z" /><path class="wave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" /></svg>
+      </button>
+    </div>
+  </header>
+
+  <aside id="guide">
+    <button type="button" id="guide-toggle" aria-expanded="true"><span>參拜指引</span><b id="guide-count"></b><i aria-hidden="true"></i></button>
+    <div id="guide-body">
+      <ol id="guide-steps"></ol>
+      <p id="guide-carry"></p>
+    </div>
+  </aside>
+
+  <p id="next"></p>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <div id="cheer-menu" class="card-pop" hidden>
+    <p id="cheer-name"></p>
+    <div id="cheer-list"></div>
+    <button type="button" id="cheer-block" class="ghost small">不再顯示他的打氣</button>
+  </div>
+
+  <nav id="dock" aria-label="參拜動作"></nav>
+</div>
+
+<!-- 備供品 -->
+<dialog id="offer-dlg">
+  <form method="dialog">
+    <h2>挑選供品</h2>
+    <p class="say">供品多取諧音或寓意。挑你喜歡的，數量取單數（1、3、5、7 樣）。</p>
+    <div id="offer-grid" class="offer-grid"></div>
+    <p class="sub">這些民間多半不拿來拜：</p>
+    <div id="taboo-grid" class="offer-grid taboo"></div>
+    <p id="offer-msg" class="msg" role="status"></p>
+    <label class="check"><input type="checkbox" id="offer-ticket" checked> 帶准考證影本與文具（等一下要過爐）</label>
+    <div class="row">
+      <button type="button" class="ghost" data-close>取消</button>
+      <button type="button" id="offer-ok">領香、帶供品</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 向天公／文昌帝君稟告 -->
+<dialog id="intro-dlg">
+  <form method="dialog" id="intro-form">
+    <h2 id="intro-title"></h2>
+    <p class="say" id="intro-hint"></p>
+    <div class="for-heaven">
+      <label><span>姓名</span><input name="name" autocomplete="off" maxlength="20"></label>
+      <label><span>生日</span><input name="birthday" type="date"></label>
+      <label><span>住址</span><input name="address" autocomplete="off" maxlength="60"></label>
+    </div>
+    <div class="for-wenchang">
+      <p class="lbl">要考的試</p>
+      <div id="exam-chips" class="chips" role="group" aria-label="要考的試"></div>
+      <label><span>考試日期</span><input name="examDate" type="date"></label>
+      <label><span>准考證號碼／考場（可不填）</span><input name="ticket" autocomplete="off" maxlength="30"></label>
+      <label><span>想對文昌帝君說的話</span><textarea name="wish" rows="3" maxlength="120" placeholder="例如：希望考試時頭腦清楚，把會的都寫對"></textarea></label>
+      <p class="say promise">許願：若金榜題名，會回來還願答謝。</p>
+    </div>
+    <p class="pending">填的內容只留在這一頁，不會儲存，也不會傳送到任何地方。</p>
+    <div class="row">
+      <button type="button" class="ghost" data-close>取消</button>
+      <button type="submit" id="intro-ok">說完了，拜三拜</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 過爐手勢 -->
+<section id="pass-ui" hidden aria-label="過爐">
+  <div class="pass-card">
+    <h2>過爐</h2>
+    <p class="say">手指在圓圈上<b>順時針</b>繞三圈，讓准考證影本和文具沾沾香火。</p>
+    <div class="pass-ring" id="pass-ring">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="78" class="track" />
+        <circle cx="100" cy="100" r="78" class="prog" id="pass-prog" />
+        <g id="pass-item"><rect x="-17" y="-12" width="34" height="24" rx="3" /><path d="M-10-4h20M-10 2h14" /></g>
+        <text x="100" y="96" id="pass-num">0 / 3</text>
+        <text x="100" y="120" class="small" id="pass-hint">從上面開始往右繞</text>
+      </svg>
+    </div>
+    <div class="row">
+      <button type="button" class="ghost" id="pass-cancel">先不要</button>
+      <button type="button" class="ghost" id="pass-auto">幫我繞</button>
+    </div>
+  </div>
+</section>
+
+<!-- 祈福卡 -->
+<dialog id="card-dlg">
+  <form method="dialog">
+    <h2>寫祈福卡</h2>
+    <div class="card-edit">
+      <div id="card-preview" class="card-preview"><b id="cp-exam"></b><p id="cp-text"></p><small>金榜題名</small></div>
+      <div class="card-fields">
+        <p class="lbl">卡片顏色</p>
+        <div id="card-colors" class="chips"></div>
+        <label><span>寫一句話（最多 24 字）</span><textarea id="card-text" rows="3" maxlength="24" placeholder="一次就考上理想的學校"></textarea></label>
+      </div>
+    </div>
+    <p class="pending">卡片內容只存在這支手機，別人只會看到牆上多了一張卡。</p>
+    <div class="row">
+      <button type="button" class="ghost" data-close>取消</button>
+      <button type="button" id="card-ok">掛上祈福牆</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 求籤：搖籤筒 -->
+<section id="qian-ui" hidden aria-label="求籤">
+  <div class="qian-card">
+    <h2>求籤</h2>
+    <p class="say" id="qian-say">心裡默念想問的事，按住籤筒搖一搖（也可以搖手機），直到一支籤掉出來。</p>
+    <button type="button" id="qian-tube" class="qian-tube" aria-label="按住搖籤筒">
+      <svg viewBox="0 0 120 200" aria-hidden="true">
+        <g class="sticks"><rect x="38" y="18" width="7" height="90" rx="2"/><rect x="50" y="8" width="7" height="100" rx="2"/><rect x="62" y="14" width="7" height="94" rx="2"/><rect x="74" y="22" width="7" height="86" rx="2"/></g>
+        <rect x="30" y="70" width="60" height="118" rx="10" class="tube"/>
+        <rect x="30" y="92" width="60" height="10" class="band"/><rect x="30" y="160" width="60" height="10" class="band"/>
+        <text x="60" y="140" class="tube-word">籤</text>
+      </svg>
+      <span class="stick-out" id="stick-out"></span>
+    </button>
+    <div class="shake-bar"><i id="shake-fill"></i></div>
+    <div class="row"><button type="button" class="ghost" id="qian-cancel">先不要</button></div>
+  </div>
+</section>
+
+<!-- 籤詩 -->
+<dialog id="lot-dlg" class="lot">
+  <div class="slip" id="slip">
+    <p class="slip-title">文昌祠・六十甲子籤</p>
+    <div class="slip-head"><p id="lot-number"></p><span id="lot-rank"></span></div>
+    <div id="lot-poem" class="lot-poem"></div>
+  </div>
+  <section class="lot-body">
+    <h3>白話</h3>
+    <p id="lot-plain"></p>
+    <h3>給考生的提醒</h3>
+    <p id="lot-tip"></p>
+    <details><summary>逐句白話</summary><ol id="lot-lines"></ol></details>
+    <details id="lot-story-wrap"><summary>典故</summary><p id="lot-story"></p></details>
+    <p class="pending">籤詩依民間流傳的六十甲子籤，各廟用字或有出入；「給考生的提醒」只依籤等寫成，不是解籤，籤意請向廟方或解籤人請教。</p>
+  </section>
+  <p id="lot-saved" class="pending" role="status"></p>
+  <div class="row">
+    <button type="button" class="ghost" id="lot-save">存成圖片</button>
+    <button type="button" data-close autofocus>收下這支籤</button>
+  </div>
+</dialog>
+
+<!-- 完成 -->
+<dialog id="done-dlg">
+  <div class="done-badge" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28"/><path d="M20 33l8 8 16-18"/></svg></div>
+  <h2>參拜完成</h2>
+  <p id="done-text"></p>
+  <ul class="facts small-list">
+    <li>准考證正本考試當天記得帶，影本可以夾在書裡當護身。</li>
+    <li>考上了，記得回來還願（帶供品答謝，或捐些文具給需要的人）。</li>
+    <li>還想問問題？可以「擲筊」請示，或「求籤」抽一支籤。</li>
+  </ul>
+  <div class="row"><button type="button" data-close>好</button></div>
+</dialog>
+
+<!-- 說明 -->
+<dialog id="info-dlg">
+  <h2>關於這座線上文昌祠</h2>
+  <p>一座可以自由走動的線上文昌祠，帶你走一遍考前拜文昌帝君的流程。建築、人物與擺設都是示意設計，不是任何真實廟宇的複製。</p>
+  <h3>參拜流程</h3>
+  <ol id="info-steps"></ol>
+  <p class="pending" id="info-note"></p>
+  <h3>文昌帝君小知識</h3>
+  <ul class="facts" id="info-facts"></ul>
+  <p class="pending" id="info-sources"></p>
+  <h3>操作方式</h3>
+  <p>點地板走過去、拖曳轉動視角；電腦可用 WASD／方向鍵。下方按鈕會帶你走到對的位置並完成動作。點其他香客可以送打氣語。</p>
+  <p class="disclaimer">非官方個人教育作品，不代表任何廟宇。</p>
+  <div class="row"><button type="button" data-close>關閉</button></div>
+</dialog>
+
+<script src="data/qian.js"></script>
+<script type="module" src="js/main.js"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+</script>
+</body>
+</html>
