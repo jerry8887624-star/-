@@ -35,12 +35,20 @@ export const MARKS = [
 export const FOCUS = { altar: [0, 2.2, -19.5], censer: [0, 2.2, L.CZ], wcCenser: [0, 1.6, WC_CENSER_Z], jinlu: [JINLU.x, 1.6, JINLU.z], wall: [18.2, 2, 8] };
 
 // 天公爐前的拜位：面朝廟外一排五個，一人一位，滿了就要等
-export const TIANGONG_SLOTS = [0, -1.2, 1.2, -2.4, 2.4].map(x => ({ x, z: L.CZ - 1.75, f: 0 }));
+export const TIANGONG_SLOTS = [];
+[0, -1.2, 1.2, -2.4, 2.4, -3.6, 3.6].forEach(x => TIANGONG_SLOTS.push({ x, z: L.CZ - 1.75, f: 0 }));
+[-0.6, 0.6, -1.8, 1.8, -3.0, 3.0].forEach(x => TIANGONG_SLOTS.push({ x, z: L.CZ - 3.0, f: 0 }));   // 第二排
+export const TIANGONG_SEAT0 = 500; // 伺服器座位編號：天公爐拜位從 500 開始
 
 // 殿內的拜墊：誰都可以走上去跪拜（前排三個是正對神像的主拜墊）
+// 前排五個主拜墊（正對文昌爐），後面一排排拜墊；中間留走道
 export const CUSHIONS = [];
-[-1.4, 0, 1.4].forEach(x => CUSHIONS.push({ x, z: CUSHION_Z }));
-[-14.5, -12, -9.5, -7, -4.5].forEach(z => [-9, -6, -3, 3, 6, 9].forEach(x => CUSHIONS.push({ x, z })));
+[0, -1.4, 1.4, -2.8, 2.8].forEach(x => CUSHIONS.push({ x, z: CUSHION_Z }));
+export const MAIN_CUSHIONS = 5;
+[-13.6, -12.0, -10.4, -8.8, -7.2, -5.6, -4.0].forEach(z => [-1.6, 1.6, -3.1, 3.1, -4.6, 4.6, -6.1, 6.1, -7.6, 7.6, -9.1, 9.1, -10.6, 10.6].forEach(x => {
+  if (Math.abs(x) > 10 && [-6, -12].some(pz => Math.abs(z - pz) < 0.9)) return; // 避開殿內柱子
+  CUSHIONS.push({ x, z });
+}));
 
 // 不能走進去的區塊（矩形 x1,z1,x2,z2）與圓形（x,z,r）
 const BOXES = [
@@ -81,6 +89,7 @@ export class Temple {
     this.clock = new THREE.Clock();
     this.camYaw = 0; this.camYawTarget = 0; this.camDist = 8; this.camPitch = 0.32; // 仰角：0＝平視，1.45＝幾乎正上方往下看
     this.stick = { x: 0, y: 0 }; // 方向搖桿
+    this.takenSeats = new Set(); // 其他真人玩家佔用的座位（伺服器同步）
     this.focus = null; // 特寫目標
     this.avatars = new Set();
     this.anims = [];
@@ -210,12 +219,13 @@ export class Temple {
     this.offeringSlots = new THREE.Group(); this.offeringSlots.position.set(0, 1.07, ALTAR_Z + 0.15); S.add(this.offeringSlots);
     // 拜墊（可以跪的）
     const cushionM = lam('#b8322a'), cushionTop = lam('#d8473a');
-    this.cushionMeshes = CUSHIONS.map((c, i) => {
-      const g = new THREE.Group(); g.position.set(c.x, 0, c.z);
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.45, 0.16, 18), cushionM); m.position.y = 0.08; g.add(m);
-      const t = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.03, 6, 18), cushionTop); t.rotation.x = Math.PI / 2; t.position.y = 0.165; g.add(t);
-      m.userData.cushion = i; S.add(g); return m;
-    });
+    // 用 InstancedMesh 一次畫完所有拜墊，人多拜墊多時手機也不會卡
+    const cBody = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.42, 0.45, 0.16, 18), cushionM, CUSHIONS.length);
+    const ringG = new THREE.TorusGeometry(0.3, 0.03, 6, 18); ringG.rotateX(Math.PI / 2);
+    const cRing = new THREE.InstancedMesh(ringG, cushionTop, CUSHIONS.length);
+    const mtx = new THREE.Matrix4();
+    CUSHIONS.forEach((c, i) => { mtx.makeTranslation(c.x, 0.08, c.z); cBody.setMatrixAt(i, mtx); mtx.makeTranslation(c.x, 0.165, c.z); cRing.setMatrixAt(i, mtx); });
+    S.add(cBody, cRing); this.cushionMeshes = [cBody];
     // 籤筒桌
     const st = new THREE.Mesh(new THREE.BoxGeometry(1, 0.9, 1), lam('#6a2a1e')); st.position.set(5.5, 0.45, -17.6); S.add(st);
     const tube = new THREE.Group(); tube.position.set(5.5, 0.9, -17.6); S.add(tube); this.qianTube = tube;
@@ -582,6 +592,17 @@ export class Temple {
       m.position.x += x; this.offeringSlots.add(m);
     });
   }
+  // 從拜墊把香「送」進文昌爐（不用擠到爐前）
+  flyIncense(from, n = 2) {
+    const sticks = Array.from({ length: n }, (_, i) => {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.45), lam('#8a3a2a'));
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 4), basic('#ff8a3a')); tip.position.y = 0.23; m.add(tip);
+      m.position.set(from.x + (i - (n - 1) / 2) * 0.1, 1.2, from.z); this.scene.add(m); return m;
+    });
+    const ex = 0, ez = WC_CENSER_Z;
+    sticks.forEach((m, i) => { const sx = m.position.x, sz = m.position.z; this.tween(800, k => { m.position.set(sx + (ex - sx) * k, 1.2 + Math.sin(k * Math.PI) * 0.8 + 0.4 * k, sz + (ez - sz) * k); }, i * 120, t => t * (2 - t)); });
+    return new Promise(r => setTimeout(() => { sticks.forEach(m => this.scene.remove(m)); r(); }, 800 + n * 120));
+  }
   // 插香：where = 'heaven'（天公爐）或 'wenchang'（文昌爐）
   plantIncense(where = 'heaven', n = 1) {
     const base = Math.random() * 6.28, g = where === 'wenchang' ? this.wcSticks : this.sticks, r0 = where === 'wenchang' ? 0.1 : 0.25;
@@ -656,8 +677,15 @@ export class Temple {
   }
 
   // 一排拜位裡第一個空的（跟其他人至少隔 0.55 公尺）
-  freeSlot(slots, self = this.player) {
-    return slots.findIndex(sl => { for (const av of this.avatars) if (av !== self && Math.hypot(av.root.position.x - sl.x, av.root.position.z - sl.z) < 0.55) return false; return true; });
+  freeSlot(slots, self = this.player, seat0 = TIANGONG_SEAT0, skip = 0) {
+    return slots.findIndex((sl, k) => { if (k < skip || this.takenSeats.has(seat0 + k)) return false; for (const av of this.avatars) if (av !== self && !av.netId && Math.hypot(av.root.position.x - sl.x, av.root.position.z - sl.z) < 0.55) return false; return true; });
+  }
+  // 拜墊是否空著：伺服器說沒人坐，示意香客也不在上面
+  cushionFree(i, self = this.player) {
+    if (this.takenSeats.has(i)) return false;
+    const c = CUSHIONS[i];
+    for (const av of this.avatars) if (av !== self && !av.netId && Math.hypot(av.root.position.x - c.x, av.root.position.z - c.z) < 0.45) return false;
+    return true;
   }
   // 站位被別人佔了就往旁邊挪：依面向的左右兩側找一個空位
   freeSpot(x, z, f, self = this.player) {
@@ -675,7 +703,7 @@ export class Temple {
     let best = -1, bd = maxD;
     CUSHIONS.forEach((c, i) => {
       const d = Math.hypot(c.x - x, c.z - z); if (d >= bd) return;
-      for (const av of this.avatars) if (av !== this.player && Math.hypot(av.root.position.x - c.x, av.root.position.z - c.z) < 0.4) return;
+      if (!this.cushionFree(i)) return;
       best = i; bd = d;
     });
     return best;
@@ -707,7 +735,7 @@ export class Temple {
       const hitA = ray.intersectObjects(avs, true)[0];
       if (hitA) { this.emit('tapAvatar', hitA.object.userData.avatar, e); return; }
       const hitC = ray.intersectObjects(this.cushionMeshes, false)[0];
-      if (hitC) { this.emit('tapCushion', hitC.object.userData.cushion); return; }
+      if (hitC && hitC.instanceId != null) { this.emit('tapCushion', hitC.instanceId); return; }
       const hit = ray.intersectObjects(this.ground, false)[0];
       if (hit) this.emit('tapGround', hit.point);
     };
@@ -766,15 +794,16 @@ export class Temple {
       av.moving = moving;
       av.update(dt, moving);
     }
-    // 人不要疊在一起：自己和示意香客會被推開（真人玩家的位置以對方為準；跪著的人不動）
+    // 人不要疊在一起：站著不動的自己和示意香客會被推開；走路中的人可以穿過去（人多時才不會卡住）
     const list = [...this.avatars];
     for (const a of list) {
-      if (a.netId || a.kneeling) continue;
+      if (a.netId || a.kneeling || a.moving) continue;
       const p = a.root.position;
       for (const b of list) {
         if (a === b) continue;
         const q = b.root.position, dx = p.x - q.x, dz = p.z - q.z, d = Math.hypot(dx, dz), R = 0.62;
         if (d < R) {
+          if (b.moving) continue;
           const push = (R - d) * (b.netId || b.kneeling ? 1 : 0.5) * Math.min(1, dt * 12);
           const ux = d > 0.001 ? dx / d : Math.cos(a.t), uz = d > 0.001 ? dz / d : Math.sin(a.t);
           p.x += ux * push; p.z += uz * push; this.collide(p);

@@ -10,7 +10,7 @@ export class Net {
     try { ws = new WebSocket(this.url); } catch (e) { return; }
     this.ws = ws;
     ws.onopen = () => { this.alive = true; this.retry = 1000; this.send({ t: 'hi', look: this.look, name: this.name }); this.h.status?.(true); };
-    ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } this.h.message?.(m); };
+    ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } if (m.t === 'seat' && this.seatWait?.(m)) return; this.h.message?.(m); };
     ws.onclose = () => {
       const was = this.alive; this.alive = false; this.h.status?.(false, was);
       setTimeout(() => this.connect(this.look), this.retry); this.retry = Math.min(30000, this.retry * 2);
@@ -35,4 +35,14 @@ export class Net {
   dm(to, text) { this.send({ t: 'dm', to, text }); }
   dmOff(off) { this.send({ t: 'dmoff', off: off ? 1 : 0 }); }
   block(id) { this.send({ t: 'block', id }); }
+  // 向伺服器要一個座位（拜墊／拜位）；離線時直接當作成功
+  seat(i) {
+    if (!this.alive) return Promise.resolve(true);
+    return new Promise(res => {
+      const t = setTimeout(() => { this.seatWait = null; res(true); }, 1500);
+      this.seatWait = m => { if (m.i !== i) return false; clearTimeout(t); this.seatWait = null; res(!!m.ok); return true; };
+      this.send({ t: 'seat', i });
+    });
+  }
+  leaveSeat() { this.send({ t: 'seat', i: -1 }); }
 }
