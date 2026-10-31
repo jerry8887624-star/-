@@ -104,6 +104,11 @@ export const TASK_POOL = [
   { id: 'wish', name: '在許願池投一枚許願幣', go: 'pool' },
   { id: 'photo', name: '拍一張合照打卡', go: 'photo' },
   { id: 'jiaobei', name: '擲筊請示一次', go: 'jiaobei' },
+  { id: 'water', name: '幫金榜樹澆水', go: 'grove' },
+  { id: 'monster', name: '打倒 3 隻拖延怪', need: 3, go: 'forest' },
+  { id: 'sky', name: '放一盞天燈', go: 'sky' },
+  { id: 'koi', name: '餵錦鯉', go: 'koi' },
+  { id: 'treasure', name: '找到 3 樣文房寶物', need: 3, go: 'hunt' },
 ];
 export const DAILY_COUNT = 4;
 export const WEEK_GOAL = 5; // 一週完成幾天算「本週全勤」
@@ -113,9 +118,10 @@ export const TITLES = [
   { name: '不顯示', tier: 0 }, { name: '初入文昌', tier: 1 }, { name: '勤學生', tier: 1 }, { name: '七日精進', tier: 2 }, { name: '文曲星', tier: 3 },
   { name: '狀元', tier: 3 }, { name: '熱心加持', tier: 1 }, { name: '金榜題名', tier: 3 }, { name: '聖誕祈福', tier: 2 }, { name: '讀書郎', tier: 1 },
   { name: '本週全勤', tier: 2 }, { name: '點燈人', tier: 1 },
+  { name: '種樹人', tier: 2 }, { name: '除怪小勇士', tier: 1 }, { name: '魔王剋星', tier: 3 }, { name: '鯉躍龍門', tier: 3 }, { name: '尋寶達人', tier: 2 }, { name: '天燈祈福', tier: 1 },
 ];
 // 特效
-export const FXS = ['不使用', '金色光暈', '金色腳印', '文昌星'];
+export const FXS = ['不使用', '金色光暈', '金色腳印', '文昌星', '小天燈', '綠葉環繞'];
 
 // 獎勵與解鎖條件：days 累積天數、streak 最長連續天數、bless 送出加持、bang 還願、fest 聖誕期間完成、study 專注輪數、week 全勤週數、lamp 點燈次數
 export const REWARDS = [
@@ -136,6 +142,14 @@ export const REWARDS = [
   { kind: 'title', v: 9, need: { study: 10 }, how: '在讀書角專注 10 輪' },
   { kind: 'title', v: 11, need: { lamp: 3 }, how: '點 3 次光明燈' },
   { kind: 'title', v: 7, need: { bang: 1 }, how: '考上後回來還願' },
+  { kind: 'title', v: 12, need: { tree: 7 }, how: '金榜樹長到開花（7 天）' },
+  { kind: 'fx', v: 5, need: { tree: 10 }, how: '金榜樹結出狀元果（10 天）' },
+  { kind: 'title', v: 13, need: { monster: 50 }, how: '打倒 50 隻拖延怪' },
+  { kind: 'title', v: 14, need: { boss: 3 }, how: '一起打倒考試魔王 3 次' },
+  { kind: 'title', v: 15, need: { goldkoi: 1 }, how: '餵錦鯉時遇到金色錦鯉躍龍門' },
+  { kind: 'title', v: 16, need: { treasure: 3 }, how: '有 3 天找齊文房五寶' },
+  { kind: 'title', v: 17, need: { sky: 10 }, how: '放 10 盞天燈' },
+  { kind: 'fx', v: 4, need: { sky: 5 }, how: '放 5 盞天燈' },
   { kind: 'acc', v: 3, need: { fest: 1 }, how: '文昌帝君聖誕期間完成每日任務（限定）', fest: true },
   { kind: 'title', v: 8, need: { fest: 1 }, how: '文昌帝君聖誕期間完成每日任務（限定）', fest: true },
 ];

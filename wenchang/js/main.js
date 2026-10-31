@@ -1,8 +1,9 @@
 import * as THREE from '../vendor/three.module.min.js';
-import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS, TIANGONG_SEAT0, MAIN_CUSHIONS, DESKS, DESK_SEAT0 } from './scene.js';
+import { L, Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS, TIANGONG_SEAT0, MAIN_CUSHIONS, DESKS, DESK_SEAT0 } from './scene.js';
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES, ACCS, HEADS, EYES, MOUTHS, CHEEKS } from './avatar.js';
 import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI, TASK_POOL, DAILY_COUNT, WEEK_GOAL, TITLES, FXS, REWARDS, FOCUS_MIN, FOCUS_SOUNDS, FOCUS_CHEERS, FEAST_DATES, FEAST_DAYS_BEFORE } from './data.js';
 import { Net } from './net.js';
+import { Outside, PLOTS, OUT_SPOTS, OUT_MARKS, TREASURE_KINDS, TREASURE_SPOTS, BOSS_AT, KOI } from './outside.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
 import { initUpdates, showNewsOnce } from './update.js';
@@ -23,6 +24,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 
 // ---------- 場景 ----------
 const temple = new Temple($('#stage'));
+Object.assign(SPOTS, OUT_SPOTS); MARKS.push(...OUT_MARKS); // 廟門外樹林的站位與名牌
 let look = store.get('look', null) || randomLook();
 const me = temple.addAvatar(new Avatar(look));
 temple.setPlayer(me);
@@ -251,7 +253,7 @@ const markEls = MARKS.map(m => {
     if (cur && ids.includes(cur.id)) act(cur.id);
     else if (m.id === 'qianTube') act('qian');
     else if (m.id === 'lingxi') act('lingxi');
-    else if (['study', 'pool', 'lamp', 'photo'].includes(m.id)) act(m.id);
+    else if (['study', 'pool', 'lamp', 'photo', 'grove', 'sky', 'koi', 'boss'].includes(m.id)) act(m.id);
     else if (m.id === 'bang') { if (!state.busy) { state.busy = true; arrive('bang').then(ok => { if (ok) openToday('bang'); }).finally(() => { state.busy = false; }); } }
     else if (!state.busy) { const sp = m.id === 'censer' ? 'censerOut' : m.id; state.busy = true; arrive(sp).finally(() => { state.busy = false; }); }
   };
@@ -339,7 +341,7 @@ async function walkTo(spot) { me.faceTo = null; const ok = await temple.goSpot(m
 async function act(id) {
   if (state.busy) return;
   hideCheer();
-  const fn = { prepare, heaven, wenchang, plant, pass, jinzhi, card, jiaobei, qian, lingxi, study, lamp: lampAct, pool: wishAct, photo: photoAct }[id];
+  const fn = id.startsWith('water') ? () => water(+id.slice(5)) : { prepare, heaven, wenchang, plant, pass, jinzhi, card, jiaobei, qian, lingxi, study, lamp: lampAct, pool: wishAct, photo: photoAct, grove: sow, sky: skyAct, koi: koiAct, boss: bossAct, hunt, forest }[id];
   state.busy = true; $('#dock').setAttribute('aria-busy', 'true');
   try { await fn(); } finally { state.busy = false; $('#dock').removeAttribute('aria-busy'); refresh(); }
 }
@@ -742,7 +744,7 @@ const net = new Net(wsUrl, {
   message(m) {
     if (m.t === 'welcome') {
       myId = m.you; temple.setSharedCards(m.cards || [], CARD_COLORS.map(c => c.hex), cardLabel); if (m.cards?.length) feed(`祈福牆上已經有 ${m.cards.length} 張大家的卡`);
-      blessing.clear(); blessOk.clear(); if (m.bang) setBang(m.bang); if (m.lamps) setLamps(m.lamps); setOthersOffers(m.offers || []); wishes = m.wishes || 0; focusAll = m.focus || 0; drawStudyBoard();
+      blessing.clear(); blessOk.clear(); if (m.bang) setBang(m.bang); if (m.lamps) setLamps(m.lamps); setOthersOffers(m.offers || []); if (m.trees) setTrees(m.trees); if (m.boss) out.setBoss(m.boss.hp, m.boss.max); wishes = m.wishes || 0; focusAll = m.focus || 0; drawStudyBoard();
       if (typeof m.myBless === 'number' && m.myBless > myBless) { myBless = m.myBless; store.set('myBless', myBless); }
       renderToday();
     }
@@ -768,6 +770,17 @@ const net = new Net(wsUrl, {
       if (performance.now() - lastWishFeed > 6000) { lastWishFeed = performance.now(); feed(`🪙 ${who(m.from)} 在許願池許了願`); }
     }
     else if (m.t === 'offer') setOthersOffers(m.offers || []);
+    else if (m.t === 'trees') setTrees(m.trees || []);
+    else if (m.t === 'sowed') sowed(m.i);
+    else if (m.t === 'watered') watered(m);
+    else if (m.t === 'tree-help') { sound.chime(); toast(`🌳 ${m.from ? esc(m.from) : '有人'}幫你的金榜樹澆水了${m.grew ? `，長到 ${m.s} 天` : ''}！`, 4000); }
+    else if (m.t === 'tree-have') toast('你已經有一棵金榜樹了。');
+    else if (m.t === 'tree-full') toast('金榜樹林的位置都滿了，過幾天再來看看。');
+    else if (m.t === 'sky') { if (m.from !== myId) { out.releaseLantern(m.x, m.z); if (performance.now() - lastWishFeed > 6000) { lastWishFeed = performance.now(); feed(`🏮 ${who(m.from)} 放了一盞天燈`); } } }
+    else if (m.t === 'boss') {
+      out.setBoss(m.hp, m.max);
+      if (m.beat) { if (m.hitters?.includes(myId)) bossBeat(); else feed('⚔️ 大家一起打倒了考試魔王！明天牠還會再來'); }
+    }
     else if (m.t === 'board') { board = m; if ($('#rank-dlg').open) renderRank(); }
     else if (m.t === 'focus') { focusAll = m.m || 0; drawStudyBoard(); renderFocusScreen(); }
     else if (m.t === 'bang-dup') toast('這項考試你已經還願過了，紅榜上有你的名字。');
@@ -823,6 +836,7 @@ const net = new Net(wsUrl, {
     else if (m.t === 'dm-reject') dmLine(m.to, 'sys', CHAT_WHY[m.why] || '這則密語沒有送出。');
     else if (m.t === 'dm-fail') dmLine(m.to, 'sys', m.why === 'gone' ? '對方已經離開廟裡了。' : '對方目前不接收密語。');
     else if (m.t === 'slow' && m.kind === 'msg') { if (dm.cur) dmLine(dm.cur, 'sys', '說慢一點喔。'); }
+    else if (m.t === 'slow' && m.kind === 'hit') {}
     else if (m.t === 'slow') { if (m.kind === 'bless') { blessing.clear(); } toast(m.kind === 'card' ? '祈福卡剛掛過，等一下再換。' : m.kind === 'bang' ? '剛剛才還願過，等一分鐘再試。' : m.kind === 'lamp' ? '光明燈剛點過，等一下再點。' : m.kind === 'wish' ? '許願幣一枚一枚投，慢一點。' : m.kind === 'bless' ? '加持慢一點，一張一張來。' : '慢一點喔，稍等一下再送。'); }
   },
 });
@@ -996,7 +1010,7 @@ const tasksLeft = () => tasksOf().filter(t => !daily.t[t.id]).length;
 function task(id, n = 1) {
   freshDaily(); const list = tasksOf(), def = list.find(x => x.id === id);
   if (!def || daily.t[id]) return;
-  if (def.need) { daily.bless = (daily.bless || 0) + n; if (daily.bless < def.need) { saveDaily(); renderToday(); return; } }
+  if (def.need) { daily.c ||= {}; const v = daily.c[id] = (daily.c[id] ?? (id === 'bless' ? daily.bless || 0 : 0)) + n; if (v < def.need) { saveDaily(); renderToday(); return; } }
   daily.t[id] = 1; saveDaily();
   const left = tasksLeft(); sound.chime(); buzz(20);
   celebrate({ title: `任務完成：${def.name}`, sub: left ? `今日任務 ${list.length - left} / ${list.length}，還有 ${left} 項` : '今天的任務全部完成！', done: list.length - left, total: list.length });
@@ -1007,7 +1021,8 @@ function task(id, n = 1) {
 const stats = store.get('stats', {});
 const weekKey = () => { const d = new Date(); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return ymd(d); };
 const stat = () => ({ days: store.get('days', 0), streak: Math.max(store.get('streakMax', 0), store.get('streak', 0)), bless: stats.bless || 0, bang: stats.bang || 0,
-  fest: store.get('accFest', false) ? 1 : 0, study: stats.study || 0, week: stats.weeks || 0, lamp: stats.lamp || 0 });
+  fest: store.get('accFest', false) ? 1 : 0, study: stats.study || 0, week: stats.weeks || 0, lamp: stats.lamp || 0,
+  tree: stats.tree || 0, monster: stats.monster || 0, boss: stats.boss || 0, goldkoi: stats.goldkoi || 0, treasure: stats.treasure || 0, sky: stats.sky || 0 });
 const unlocked = (r, s = stat()) => Object.entries(r.need).every(([k, v]) => s[k] >= v);
 const rkey = r => r.kind + r.v;
 const rewardName = r => r.kind === 'title' ? `稱號「${TITLES[r.v].name}」` : r.kind === 'acc' ? `配件「${ACCS[r.v]}」` : r.kind === 'fx' ? `特效「${FXS[r.v]}」` : `服裝「${OUTFITS[r.v].name}」`;
@@ -1125,14 +1140,14 @@ function openToday(part) {
 $('#today-btn').onclick = () => openToday();
 // 任務清單（今日面板、左上小卡、每日第一次的清單共用）
 function taskItems(withGo = true) {
-  return tasksOf().map(t => { const ok = !!daily.t[t.id], p = t.need && !ok ? `（${daily.bless || 0}/${t.need}）` : '';
+  return tasksOf().map(t => { const ok = !!daily.t[t.id], p = t.need && !ok ? `（${daily.c?.[t.id] ?? (t.id === 'bless' ? daily.bless || 0 : 0)}/${t.need}）` : '';
     return `<li class="${ok ? 'ok' : ''}"><i>${ok ? '✓' : ''}</i><span>${t.name}${p}</span>${ok || !withGo ? '' : `<button type="button" data-go="${t.go}">前往</button>`}</li>`; }).join('');
 }
 function goTask(go) {
   $('#today-dlg').open && $('#today-dlg').close(); $('#tasks-dlg').open && $('#tasks-dlg').close();
   if (go === 'lot') { showLot(dailyLotNo(), true); task('lot'); }
   else if (go === 'social') openSocial();
-  else if (['study', 'lamp', 'pool', 'photo', 'jiaobei'].includes(go)) act(go);
+  else if (['study', 'lamp', 'pool', 'photo', 'jiaobei', 'grove', 'forest', 'sky', 'koi', 'hunt'].includes(go)) { if (go === 'grove' && myTree()) act('water' + myTree().i); else act(go); }
   else if (go === 'cushion' || go === 'wall') {
     if (state.busy) return; state.busy = true;
     arrive(go).then(ok => { if (ok) toast(go === 'cushion' ? '按「叩拜」拜三拜。' : '點牆上別人掛的小卡幫他加持 🙏'); }).finally(() => { state.busy = false; refresh(); });
@@ -1239,6 +1254,7 @@ $('#toast').addEventListener('click', e => { const b = e.target.closest('[data-s
 function startToday() {
   const f = feast(); temple.setFestival(f.on);
   renderToday(); setTimeout(showTasksIntro, 2600);
+  resetTreasures(); // 每天換藏寶的地方
   if (f.on) setTimeout(() => { feed('🎊 文昌帝君聖誕活動中！完成每日任務可得限定配件'); }, 2500);
   else if (exam && daysTo(exam.d) >= 0 && daysTo(exam.d) <= 7) setTimeout(() => feed(`⏳ 距離${exam.x}只剩 ${daysTo(exam.d)} 天，加油！`), 2500);
 }
@@ -1392,12 +1408,15 @@ let nearId = '';
 function nearCheck() {
   const p = me.root.position;
   const blocked = state.busy || studyAt != null || document.body.classList.contains('photo-mode') || document.body.classList.contains('chatting') || !!document.querySelector('dialog[open]') || !$('#lingxi-ui').hidden;
-  const pl = blocked ? null : PLACES.find(q => Math.hypot(p.x - q.x, p.z - q.z) < q.r), id = pl?.id || '';
+  const dyn = blocked ? null : nearOutside(p);
+  const pl = dyn || (blocked ? null : PLACES.find(q => Math.hypot(p.x - q.x, p.z - q.z) < q.r)), id = pl?.id || '';
+  nearFn = pl?.fn || null;
   if (id === nearId) return;
   nearId = id; const b = $('#near-btn'); b.hidden = !pl;
   if (pl) { b.textContent = pl.label; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
 }
-$('#near-btn').onclick = () => { const id = nearId; if (!id) return; if (id === 'bang') openToday('bang'); else act(id); };
+let nearFn = null;
+$('#near-btn').onclick = () => { const id = nearId; if (!id) return; if (nearFn) nearFn(); else if (id === 'bang') openToday('bang'); else act(id); };
 
 // 許願池：願望只留在這一頁，只告訴大家「有人投了許願幣」
 let wishes = 0, lastWishFeed = 0;
@@ -1531,6 +1550,150 @@ function setOthersOffers(list) {
   temple.setOtherOffers([...decoOffers.slice(0, Math.max(0, 4 - real.length)), ...real]);
 }
 setOthersOffers([]);
+
+// ---------- 廟門外的樹林：金榜樹、天燈、錦鯉、尋寶、拖延怪、考試魔王 ----------
+const out = new Outside(temple);
+const myTree = () => outTrees.find(t => t.mine);
+let outTrees = [];
+// 沒連線時：只有自己的樹，存在這支手機
+function localTrees() { const t = store.get('treeLocal', null); return t ? [{ i: 0, n: nick, s: t.s, wt: t.d === today() ? 1 : 0, mine: 1 }] : []; }
+function setTrees(list) { outTrees = list; out.setTrees(list); const t = myTree(); if (t && t.s > (stats.tree || 0)) { stats.tree = t.s; store.set('stats', stats); checkUnlocks(); } }
+setTrees(localTrees());
+async function sow() {
+  if (myTree()) { const t = myTree(); toast(`你已經有一棵金榜樹了（${t.s} 天），記得每天來澆水。`); await walkToTree(t.i); return; }
+  if (!(await arrive('grove'))) return;
+  if (!net.alive) { store.set('treeLocal', { s: 0, d: '' }); setTrees(localTrees()); sowed(0); return; }
+  net.sow();
+}
+function sowed(i) {
+  sound.chime(); me.emote('bow'); bubble(me, '🌱', 'bubble', 2000);
+  celebrate({ big: true, title: '🌱 種下金榜樹了！', sub: '每天來澆一次水，它會長大、開花（第 7 天），第 10 天結出金色的狀元果。也可以幫別人的樹澆水。' });
+  const p = PLOTS[i]; temple.focus = new THREE.Vector3(p.x, 1, p.z); setTimeout(() => { temple.focus = null; }, 2500);
+}
+async function walkToTree(i) { const p = PLOTS[i]; me.faceTo = null; return temple.walk(me, p.x, p.z + 1.1, Math.PI); }
+async function water(i) {
+  const tr = outTrees.find(t => t.i === i); if (!tr) return;
+  if (Math.hypot(me.root.position.x - PLOTS[i].x, me.root.position.z - PLOTS[i].z) > 2 && !(await walkToTree(i))) return;
+  me.faceTo = Math.PI; bubble(me, '💧', 'bubble', 1500); out.splash(i); sound.sample('ting', 0.4);
+  if (!net.alive) { const t = store.get('treeLocal', { s: 0, d: '' }), grew = t.d !== today(); if (grew) { t.s++; t.d = today(); } store.set('treeLocal', t); setTrees(localTrees()); watered({ i, grew, s: t.s, mine: 1 }); return; }
+  net.water(i);
+}
+function watered(m) {
+  task('water');
+  if (m.mine) toast(m.grew ? `金榜樹長大了！已經 ${m.s} 天${m.s === 7 ? '，開花了 🌸' : m.s === 10 ? '，結出狀元果了 🍊' : ''}` : '今天已經澆過了，明天再來看它長大。', 3200);
+  else toast(m.grew ? '幫別人的金榜樹澆水，它長大了！' : '這棵樹今天已經有人澆過了，謝謝你的好意。', 3000);
+}
+const nearTree = (p, max = 1.9) => { let best = null, bd = max; for (const t of outTrees) { const q = PLOTS[t.i], d = Math.hypot(p.x - q.x, p.z - q.z); if (d < bd) { bd = d; best = t; } } return best; };
+temple.on('tapTree', i => { if (state.busy) return; const t = outTrees.find(x => x.i === i); if (t) act('water' + i); else if (!myTree()) act('grove'); else toast('這裡還沒有人種樹。'); });
+temple.on('tapNursery', () => act('grove'));
+
+// 天燈：心願只留在自己手機，大家看到一盞燈飛上天
+async function skyAct() {
+  if (!(await arrive('sky'))) return;
+  $('#sky-text').value = ''; const dlg = $('#sky-dlg');
+  const ok = await new Promise(res => { $('#sky-ok').onclick = () => dlg.close('ok'); dlg.onclose = () => res(dlg.returnValue === 'ok'); dlg.returnValue = ''; dlg.showModal(); });
+  if (!ok) return;
+  const w = $('#sky-text').value.trim().slice(0, 30); $('#sky-text').value = '';
+  me.emote('jump'); out.releaseLantern(me.root.position.x, me.root.position.z); net.sky(); sound.chime();
+  temple.camPitch = 0.55; addStat('sky'); task('sky');
+  toast(w ? `天燈帶著「${esc(w)}」飛上天了。` : '天燈飛上天了，願望會被聽見。', 3200);
+}
+
+// 錦鯉池：撒飼料；有機會遇到金色錦鯉躍龍門
+async function koiAct() {
+  if (!(await arrive('koi'))) return;
+  const p = me.root.position, fx = p.x + (KOI.x - p.x) * 0.45, fz = p.z + (KOI.z - p.z) * 0.45;
+  const golden = Math.random() < 0.12;
+  me.emote('wave'); out.feed(fx, fz, golden); sound.sample('ting', 0.3); task('koi');
+  if (golden) setTimeout(() => { sound.bell(); addStat('goldkoi'); celebrate({ big: true, confetti: true, title: '🐟 鯉躍龍門！', sub: '金色錦鯉跳出水面了！好兆頭，考運旺旺。' }); }, 1500);
+  else toast('撒了一把飼料，錦鯉都游過來了。', 2400);
+}
+
+// 每日尋寶：每天依日期挑 5 個地方藏文房五寶（大家一樣），自己撿到的就不見
+function todayTreasures() {
+  const r = seeded(dayNum(today()) * 31 + 7), spots = TREASURE_SPOTS.map(s => [r(), s]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  const got = store.get('treasure', { d: '', got: [] }); const mine = got.d === today() ? got.got : [];
+  return TREASURE_KINDS.map((k, i) => ({ ...k, x: spots[i][0], z: spots[i][1], got: mine.includes(k.k) }));
+}
+// 用場景裡的寶物物件（有 3D 模型），按鈕和點擊才會是同一個
+let treasures = [];
+function resetTreasures() { out.setTreasures(todayTreasures()); treasures = out.treasures; }
+resetTreasures();
+function pickTreasure(o) {
+  if (o.got) return;
+  const p = me.root.position; if (Math.hypot(p.x - o.x, p.z - o.z) > 2.2) { toast(`走近一點才撿得到${o.name}。`); return; }
+  out.pickTreasure(o); sound.sample('ting', 0.6); buzz(15); bubble(me, `✨ ${o.name}`, 'bubble', 1800);
+  const g = store.get('treasure', { d: '', got: [] }); if (g.d !== today()) { g.d = today(); g.got = []; }
+  g.got.push(o.k); store.set('treasure', g); task('treasure');
+  if (g.got.length === TREASURE_KINDS.length) { addStat('treasure'); celebrate({ big: true, confetti: true, title: '✨ 文房五寶找齊了！', sub: '筆、墨、紙、硯、書卷都到手，明天寶物會藏到新的地方。' }); }
+  else toast(`撿到${o.name}！今天還有 ${TREASURE_KINDS.length - g.got.length} 樣寶物藏在附近。`, 2600);
+}
+temple.on('tapTreasure', o => { if (!state.busy) pickTreasure(o); });
+async function hunt() {
+  const left = treasures.filter(o => !o.got); if (!left.length) { toast('今天的寶物都找到了，明天再來！'); return; }
+  const p = me.root.position, o = left.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+  toast(`往發光的地方走：附近有一個${o.name}。`, 2400); me.faceTo = null; await temple.walk(me, o.x, o.z + 0.8);
+}
+
+// 拖延怪：點牠或靠近按按鈕，丟毛筆把牠打跑
+let throwing = false;
+async function hitMonster(m) {
+  if (!m?.alive || throwing) return;
+  const p = me.root.position, gp = m.g.position, d = Math.hypot(gp.x - p.x, gp.z - p.z);
+  if (d > 7) { me.faceTo = null; const k = (d - 5) / d; await temple.walk(me, p.x + (gp.x - p.x) * k, p.z + (gp.z - p.z) * k); if (!m.alive) return; }
+  throwing = true; me.faceTo = Math.atan2(gp.x - p.x, gp.z - p.z); me.emote('wave'); bubble(me, '✏️', 'bubble', 900);
+  out.throwBrush(p, { x: gp.x, y: 0.5, z: gp.z }, () => {
+    throwing = false; if (!m.alive) return;
+    out.defeatMonster(m); sound.clack(1); buzz(15); addStat('monster'); task('monster');
+    toast(`打跑了${m.name}！「${m.say}」不要來吵我讀書。`, 2400);
+  });
+}
+temple.on('tapMonster', m => { if (!state.busy) hitMonster(m); });
+// 前往打怪：走到離你最近的拖延怪旁邊
+async function forest() {
+  const p = me.root.position, m = out.nearestMonster(p.x, p.z) ;
+  toast('拖延怪在廟外的樹林裡晃來晃去，點牠或按下方按鈕丟毛筆！', 3000); me.faceTo = null;
+  if (!m) { await temple.walk(me, OUT_SPOTS.forest.x, OUT_SPOTS.forest.z); return; }
+  const gp = m.g.position, d = Math.hypot(gp.x - p.x, gp.z - p.z), k = Math.max(0, (d - 4) / d);
+  await temple.walk(me, p.x + (gp.x - p.x) * k, p.z + (gp.z - p.z) * k);
+}
+
+// 考試魔王：大家共用一條血，一起打；每天復活
+let bossHp = 200, bossMax = 200, bossHitToday = store.get('bossHit', '') === today();
+function localBoss() { const b = store.get('bossLocal', { d: '', hp: 30 }); if (b.d !== today()) { b.d = today(); b.hp = 30; } return b; }
+if (!net.alive) { const b = localBoss(); out.setBoss(b.hp, 30); }
+async function bossAct() {
+  const p = me.root.position, d = Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z);
+  if (out.bossHp <= 0) { toast('考試魔王今天已經被大家打倒了，明天牠還會再來！'); return; }
+  if (d > 8 && !(await arrive('boss'))) return;
+  if (throwing) return; throwing = true;
+  me.faceTo = Math.atan2(BOSS_AT.x - p.x, BOSS_AT.z - p.z); me.emote('wave');
+  out.throwBrush(p, { x: BOSS_AT.x, y: 1.4, z: BOSS_AT.z }, () => {
+    throwing = false; out.hitBoss(); sound.clack(1); buzz(10);
+    store.set('bossHit', today()); bossHitToday = true;
+    if (!net.alive) { const b = localBoss(); b.hp = Math.max(0, b.hp - 1); store.set('bossLocal', b); out.setBoss(b.hp, 30); if (!b.hp) bossBeat(); return; }
+    net.hit();
+  });
+}
+function bossBeat() {
+  addStat('boss'); sound.bell(); me.emote('jump');
+  celebrate({ big: true, confetti: true, title: '⚔️ 打倒考試魔王了！', sub: '大家一起把考試魔王打跑了！考試那天也會這麼順利。明天牠還會再來。' });
+}
+temple.on('tapBoss', () => { if (!state.busy) act('boss'); });
+
+// 廟外的「走近就出現按鈕」：寶物 > 種樹 > 澆水 > 魔王 > 拖延怪（拖延怪會亂跑，放最後才不會擋住其他按鈕）
+function nearOutside(p) {
+  if (p.z < L.GZ - 4) return null;
+  const tr = treasures.find(o => !o.got && Math.hypot(p.x - o.x, p.z - o.z) < 1.8);
+  if (tr) return { id: 'tr' + tr.k, label: `✨ 撿起${tr.name}`, fn: () => pickTreasure(tr) };
+  if (!myTree() && Math.hypot(p.x + 9.5, p.z - 22.4) < 3) return { id: 'sow', label: '🌱 種一棵金榜樹', fn: () => act('grove') };
+  const t = nearTree(p);
+  if (t) return { id: 'tree' + t.i, label: t.mine ? '💧 幫我的金榜樹澆水' : `💧 幫${t.n || '考生'}的樹澆水`, fn: () => act('water' + t.i) };
+  if (Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z) < 7 && out.bossHp > 0) return { id: 'boss', label: '⚔️ 一起打考試魔王', fn: () => act('boss') };
+  const m = out.nearestMonster(p.x, p.z, 7);
+  if (m) return { id: 'mo' + m.g.id, label: `✏️ 丟毛筆打${m.name}`, fn: () => hitMonster(m) };
+  return null;
+}
 
 // 沒有連線時：幾位示意香客在廟裡走動、拜拜
 const npcs = [];

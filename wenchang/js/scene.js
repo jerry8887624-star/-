@@ -6,7 +6,7 @@ const lam = (c, extra = {}) => new THREE.MeshLambertMaterial({ color: c, ...extr
 const basic = (c, extra = {}) => new THREE.MeshBasicMaterial({ color: c, ...extra });
 
 // 廟的尺寸（公尺）：正殿寬 30、深 21、高 8，約是第一版的 5 倍面積
-export const L = { HW: 15, HF: -1, HB: -22, HH: 8, CW: 20, GZ: 20, CZ: 6 };
+export const L = { HW: 15, HF: -1, HB: -22, HH: 8, CW: 20, GZ: 20, CZ: 6, FW: 30, FZ: 54 }; // FW、FZ：廟門外樹林的寬度與最遠處
 const ALTAR_Z = -18.3, CUSHION_Z = -15.3, WC_CENSER_Z = -16.85; // 供桌、主拜墊、文昌爐
 const JINLU = { x: 12, z: 13 }; // 金爐
 
@@ -78,12 +78,13 @@ const BOXES = [
   [18.1, 0.1, 19.3, 3.5],           // 還願紅榜
   ...[-14, -11, -8].flatMap(x => [3.4, 6.6].map(z => [x - 0.65, z - 0.95, x + 0.65, z - 0.45])), // 讀書角書桌
   [-15, -10.1, -14.3, -6.4],        // 光明燈牆
+  [-10.3, 21.15, -8.7, 22.05],      // 廟外苗圃
   [-L.CW - 0.4, L.GZ - 0.2, -3.3, L.GZ + 0.4], [3.3, L.GZ - 0.2, L.CW + 0.4, L.GZ + 0.4], // 前牆
 ];
 const FRONT_PILLARS = [-14.2, -8.5, -3.4, 3.4, 8.5, 14.2];
 const INNER_PILLARS = [];
 [-11.8, 11.8].forEach(x => [-6, -12, -18].forEach(z => INNER_PILLARS.push([x, z])));
-const CIRCLES = [[-10, 14.4, 1.9], [-2.95, -20.2, 0.3], [2.95, -20.2, 0.3], [0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
+const CIRCLES = [[-10, 14.4, 1.9], [16, 45, 4.3], [0, 47.5, 1.6], [22, 24.5, 0.35], [27, 31, 0.35], [23, 51.5, 0.35], [-2.95, -20.2, 0.3], [2.95, -20.2, 0.3], [0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
 
 function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
@@ -113,6 +114,8 @@ export class Temple {
     this.takenSeats = new Set(); // 其他真人玩家佔用的座位（伺服器同步）
     this.focus = null; // 特寫目標
     this.avatars = new Set();
+    this.tapTargets = []; // 其他模組（例如廟外樹林）可以登記可點的物件：[物件, 點到時呼叫的函式]
+    this.updaters = [];   // 每一格畫面都要更新的東西（傳入 dt）
     this.anims = [];
     this.night = false;
     this.listeners = {};
@@ -959,7 +962,9 @@ export class Temple {
 
   collide(p) {
     const { HW, HF, HB, CW, GZ } = L;
-    p.x = Math.max(-CW + 0.4, Math.min(CW - 0.4, p.x)); p.z = Math.max(HB + 0.6, Math.min(GZ + 8, p.z));
+    // 廟門外是比較寬的樹林；圍牆內維持原本的範圍
+    const outside = p.z > GZ, W = outside ? L.FW : CW;
+    p.x = Math.max(-W + 0.4, Math.min(W - 0.4, p.x)); p.z = Math.max(HB + 0.6, Math.min(L.FZ, p.z));
     if (p.z < HF + 0.2) p.x = Math.max(-HW + 0.6, Math.min(HW - 0.6, p.x));
     if (p.z > GZ - 0.4 && p.z < GZ + 0.6 && Math.abs(p.x) > 2.4) p.z = p.z < GZ + 0.1 ? GZ - 0.4 : GZ + 0.6;
     for (const [x1, z1, x2, z2] of BOXES) {
@@ -1033,6 +1038,7 @@ export class Temple {
       if (ray.intersectObject(this.bangBoard, true)[0]) { this.emit('tapBang'); return; }
       if (ray.intersectObject(this.lampBoard, false)[0]) { this.emit('tapLamp'); return; }
       for (const [id, obj] of this.places) if (ray.intersectObject(obj, true)[0]) { this.emit('tapPlace', id); return; }
+      for (const [obj, fn] of this.tapTargets) { const h = obj.visible !== false && ray.intersectObject(obj, true)[0]; if (h) { fn(h); return; } }
       const hitK = ray.intersectObject(this.wall, true)[0];
       if (hitK) { let o = hitK.object; while (o && !o.userData.card && o !== this.wall) o = o.parent; this.emit('tapWall', o?.userData.card || null); return; }
       const hitC = ray.intersectObjects(this.cushionMeshes, false)[0];
@@ -1136,6 +1142,7 @@ export class Temple {
     // 腳印淡出
     for (let i = this.feet.length - 1; i >= 0; i--) { const f = this.feet[i]; f.life -= dt; f.m.material.opacity = Math.max(0, f.life / 2) * 0.8; if (f.life <= 0) { this.scene.remove(f.m); f.m.material.dispose(); this.feet.splice(i, 1); } }
     this.perfTick(dt);
+    for (const fn of this.updaters) fn(dt);
     // 動畫
     this.anims = this.anims.filter(a => { a.t += dt * 1000; if (a.t < 0) return true; const k = Math.min(1, a.t / a.ms); a.fn(a.ease(k)); if (k >= 1) a.done?.(); return k < 1; });
     // 香煙、金爐煙與火光
@@ -1164,7 +1171,7 @@ export class Temple {
       const at = d => new THREE.Vector3(piv.x + Math.sin(this.camYaw) * cp * d, Math.max(0.35, piv.y + sp * d), piv.z + Math.cos(this.camYaw) * cp * d);
       let want = at(this.camDist);
       // 擋到牆、天花板、天公爐等就拉近
-      for (let d = this.camDist - 0.4; !camClear(want, pp) && d > 1.6; d -= 0.4) want = at(d);
+      for (let d = this.camDist - 0.4; (!camClear(want, pp) || this.camHit?.(want)) && d > 1.6; d -= 0.4) want = at(d);
       this.camera.position.lerp(want, Math.min(1, dt * 5));
       this._look = this._look ? this._look.lerp(tgt, Math.min(1, dt * 5)) : tgt.clone();
       this.camera.lookAt(this._look);
@@ -1201,6 +1208,13 @@ function route(a, b) {
   if (poolDist(cur, b) < POOL.r + 0.5 && Math.hypot(b.x - POOL.x, b.z - POOL.z) > POOL.r) {
     const side = (cur.x + b.x) / 2 >= POOL.x ? 1 : -1; pts.push({ x: POOL.x + side * (POOL.r + 1.2), z: POOL.z }); cur = pts[pts.length - 1];
   }
+  // 廟外的錦鯉池、考試魔王：一樣從旁邊繞
+  for (const [ox, oz, orr] of [[16, 45, 4.3], [0, 47.5, 1.6]]) {
+    const vx = b.x - cur.x, vz = b.z - cur.z, Ln = vx * vx + vz * vz || 1, t = Math.max(0, Math.min(1, ((ox - cur.x) * vx + (oz - cur.z) * vz) / Ln));
+    if (Math.hypot(cur.x + vx * t - ox, cur.z + vz * t - oz) < orr + 0.5 && Math.hypot(b.x - ox, b.z - oz) > orr) {
+      const side = (cur.z + b.z) / 2 >= oz ? 1 : -1; pts.push({ x: ox + (b.x >= ox ? 1 : -1) * (orr + 1.2), z: oz + side * (orr + 1.2) }); cur = pts[pts.length - 1];
+    }
+  }
   // 讀書角：書桌一排一排的，從東西兩側沿著凳子那一排走進去／走出來
   const inDesk = p => p.x > -15.2 && p.x < -6.8 && p.z > 2.2 && p.z < 7.4;
   if (inDesk(cur) && !inDesk(b)) { const ex = b.x > -11 ? -6.3 : -15.7; pts.push({ x: ex, z: cur.z }); cur = pts[pts.length - 1]; }
@@ -1226,6 +1240,6 @@ function camClear(v, player) {
   if (Math.hypot(v.x, v.z - WC_CENSER_Z) < 0.9 && v.y < 2) return false;
   for (const [x1, z1, x2, z2] of BOXES) if (v.x > x1 - 0.4 && v.x < x2 + 0.4 && v.z > z1 - 0.4 && v.z < z2 + 0.4 && v.y < 3.4) return false;
   for (const x of FRONT_PILLARS) if (Math.hypot(v.x - x, v.z - HF) < 0.9) return false;
-  if (Math.abs(v.x) > L.CW + 6 || v.z > L.GZ + 10) return false;
+  if (Math.abs(v.x) > (player.z > L.GZ + 0.6 ? L.FW : L.CW) + 6 || v.z > L.FZ + 8) return false;
   return true;
 }

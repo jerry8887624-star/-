@@ -227,6 +227,15 @@ export class Avatar {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: '#ffd76a', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.85 }));
       sp.scale.set(2.2, 2.6, 1); sp.position.y = 0.95; body.add(sp); this.fxGlow = sp;
     }
+    if (fx === 4) { // 小天燈：飄在肩膀旁邊
+      const lg = new THREE.Group(); lg.position.set(0.55, 1.75, 0); body.add(lg); this.fxLamp = lg;
+      const lb = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.08, 0.2, 8), new THREE.MeshBasicMaterial({ color: '#ffb04a' })); lg.add(lb);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: '#ffb050', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); sp.scale.set(0.7, 0.7, 1); lg.add(sp);
+    } else this.fxLamp = null;
+    if (fx === 5) { // 綠葉環繞
+      const lg = new THREE.Group(); lg.position.y = 1.0; body.add(lg); this.fxLeaves = lg;
+      for (let i = 0; i < 4; i++) { const a = i / 4 * Math.PI * 2, l = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 4), lam('#6fbf4a')); l.scale.set(1.6, 0.35, 0.9); l.position.set(Math.cos(a) * 0.62, Math.sin(a * 2) * 0.15, Math.sin(a) * 0.62); lg.add(l); }
+    } else this.fxLeaves = null;
     if (fx === 3) {
       const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.14), lam('#ffe08a', { emissive: '#c08a10' })); star.position.y = 2.25; body.add(star); this.fxStar = star;
     }
@@ -270,6 +279,8 @@ export class Avatar {
     if (this.halo) this.halo.position.y = 0.62 + Math.sin(this.t * 2) * 0.03;
     if (this.fxGlow) this.fxGlow.material.opacity = 0.65 + Math.sin(this.t * 2.4) * 0.2;
     if (this.fxStar) { this.fxStar.rotation.y += dt * 2; this.fxStar.position.y = 2.25 + Math.sin(this.t * 2) * 0.06; }
+    if (this.fxLamp) { this.fxLamp.position.y = 1.75 + Math.sin(this.t * 1.6) * 0.08; this.fxLamp.position.x = 0.55 + Math.sin(this.t * 0.9) * 0.05; }
+    if (this.fxLeaves) this.fxLeaves.rotation.y += dt * 1.2;
     // 跪在拜墊上：腿往後折、身體放低
     this.kneelAmt = (this.kneelAmt || 0) + ((this.kneeling ? 1 : 0) - (this.kneelAmt || 0)) * Math.min(1, dt * 8);
     const kn = this.kneelAmt;

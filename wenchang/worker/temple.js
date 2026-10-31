@@ -17,11 +17,14 @@ const MAX_CARDS = 60;
 const MAX_BANG = 60;        // 還願紅榜最多保留幾筆
 const MAX_LAMPS = 200;      // 光明燈最多幾盞
 const LAMP_DAYS = 7;        // 光明燈亮幾天
-const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500, offer: 10000 };
+const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500, offer: 10000, sow: 5000, water: 2500, sky: 8000, hit: 450 };
+const PLOT_COUNT = 48;   // 金榜樹林的樹位
+const BOSS_HP = 200;     // 考試魔王每天的血量
 // 台灣時間的日期與週（週一開始），排行榜用
 const twNow = () => new Date(Date.now() + 8 * 3600e3);
 const dayKey = () => twNow().toISOString().slice(0, 10);
 const weekKey = () => { const d = twNow(); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); return d.toISOString().slice(0, 10); };
+const dayKeyAgo = n => new Date(Date.now() + 8 * 3600e3 - n * 864e5).toISOString().slice(0, 10);
 const IDLE_MS = 3 * 60000; // 超過 3 分鐘沒動作就不算「在廟裡的時間」
 
 export default {
@@ -64,6 +67,9 @@ export class Temple {
       this.wishes = (await state.storage.get('wishes')) || 0;
       this.focus = (await state.storage.get('focus')) || { d: '', m: 0 };
       this.offers = (await state.storage.get('offers')) || [];
+      // 金榜樹：樹位編號 -> { u 匿名代碼, n 暱稱, s 長了幾天, d 最後長大的日期, at 主人最後來照顧的日期 }
+      this.trees = (await state.storage.get('trees')) || [];
+      this.boss = (await state.storage.get('boss')) || { d: '', hp: BOSS_HP, hit: [] };
       // 排行榜：每支手機（匿名代碼）一筆，記暱稱、專注分鐘、在廟裡的分鐘（今日／本週／累積）
       this.recs = new Map();
       for (const [k, v] of await state.storage.list({ prefix: 'u:' })) this.recs.set(k.slice(2), v);
@@ -102,7 +108,7 @@ export class Temple {
       p.rank = m.rank !== 0; this.syncRec(p);
       this.total += 1; this.state.storage.put('total', this.total);
       const mine = this.cards.filter(c => p.uid && c.u === p.uid);
-      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.publicCards(p), bang: this.bang.map(e => ({ x: e.x, n: e.n, d: e.d })), lamps: this.publicLamps(), wishes: this.wishes, focus: this.focusToday(), offers: this.publicOffers(p), myBless: mine.reduce((n, c) => n + (c.b || 0), 0) }));
+      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.publicCards(p), bang: this.bang.map(e => ({ x: e.x, n: e.n, d: e.d })), lamps: this.publicLamps(), wishes: this.wishes, focus: this.focusToday(), offers: this.publicOffers(p), trees: this.publicTrees(p), boss: this.bossState(), myBless: mine.reduce((n, c) => n + (c.b || 0), 0) }));
       this.broadcast({ t: 'feed', from: p.id, k: 'join', n: p.name }, p.ws);
     } else if (!p.look) {
       return;
@@ -168,6 +174,39 @@ export class Temple {
       if (this.offers.length > 8) this.offers.splice(0, this.offers.length - 8);
       this.state.storage.put('offers', this.offers);
       for (const q of this.players.values()) if (q.look) send(q, { t: 'offer', offers: this.publicOffers(q) });
+    } else if (m.t === 'sow') {
+      // 種金榜樹：一支手機一棵；樹位滿了就收回最久沒人照顧（14 天以上）的那一棵
+      if (!p.uid || !this.allow(p, 'sow')) return;
+      if (this.trees.some(t => t && t.u === p.uid)) return send(p, { t: 'tree-have' });
+      let i = this.trees.findIndex((t, k) => k < PLOT_COUNT && !t);
+      if (i < 0 && this.trees.length < PLOT_COUNT) i = this.trees.length;
+      if (i < 0) { const old = this.trees.map((t, k) => [k, t]).filter(([, t]) => t && t.at < dayKeyAgo(14)).sort((a, b) => (a[1].at < b[1].at ? -1 : 1))[0]; i = old ? old[0] : -1; }
+      if (i < 0) return send(p, { t: 'tree-full' });
+      this.trees[i] = { u: p.uid, n: p.name || '', s: 0, d: '', at: dayKey() };
+      this.saveTrees(); send(p, { t: 'sowed', i });
+    } else if (m.t === 'water') {
+      // 澆水：一棵樹一天只會長大一次（誰澆都算）；主人在線上會收到通知
+      if (!this.allow(p, 'water')) return;
+      const i = int(m.i, 0, PLOT_COUNT - 1), tr = this.trees[i]; if (!tr) return;
+      const today = dayKey(), grew = tr.d !== today;
+      if (grew) { tr.s += 1; tr.d = today; }
+      if (tr.u === p.uid) { tr.at = today; tr.n = p.name || tr.n; }
+      this.saveTrees(); send(p, { t: 'watered', i, grew, s: tr.s, mine: tr.u === p.uid ? 1 : 0 });
+      if (tr.u !== p.uid) for (const q of this.players.values()) if (q.uid === tr.u) send(q, { t: 'tree-help', from: p.name || '', grew, s: tr.s });
+    } else if (m.t === 'sky') {
+      // 放天燈：大家都看得到一盞燈從他身邊飛上天（心願不傳）
+      if (!this.allow(p, 'sky')) return;
+      this.broadcast({ t: 'sky', from: p.id, x: p.x, z: p.z });
+    } else if (m.t === 'hit') {
+      // 打考試魔王：大家共用一條血，台灣時間每天復活
+      if (!this.allow(p, 'hit')) return;
+      const b = this.bossToday(); if (b.hp <= 0) return send(p, { t: 'boss', ...this.bossState() });
+      b.hp -= 1; if (p.uid && !b.hit.includes(p.uid)) b.hit.push(p.uid);
+      if (b.hp <= 0) {
+        const ids = [...this.players.values()].filter(q => q.uid && b.hit.includes(q.uid)).map(q => q.id);
+        this.broadcast({ t: 'boss', ...this.bossState(), beat: 1, hitters: ids, by: p.id });
+      } else this.bossDirty = true;
+      this.state.storage.put('boss', b);
     } else if (m.t === 'rank') {
       // 要不要顯示在排行榜
       p.rank = !!m.on; this.syncRec(p);
@@ -242,6 +281,11 @@ export class Temple {
   // 台灣日期換日就歸零
   focusToday() { const d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); if (this.focus.d !== d) this.focus = { d, m: 0 }; return this.focus.m; }
 
+  saveTrees() { this.state.storage.put('trees', this.trees); for (const q of this.players.values()) if (q.look) send(q, { t: 'trees', trees: this.publicTrees(q) }); }
+  publicTrees(p) { const d = dayKey(); return this.trees.map((t, i) => t && { i, n: t.n, s: t.s, wt: t.d === d ? 1 : 0, mine: p.uid && t.u === p.uid ? 1 : 0 }).filter(Boolean); }
+  bossToday() { const d = dayKey(); if (this.boss.d !== d) this.boss = { d, hp: BOSS_HP, hit: [] }; return this.boss; }
+  bossState() { const b = this.bossToday(); return { hp: Math.max(0, b.hp), max: BOSS_HP }; }
+
   publicOffers(p) { return this.offers.map(e => ({ o: e.o, tk: e.tk, mine: p.uid && e.u === p.uid ? 1 : 0 })); }
 
   publicLamps() { const now = Date.now(); return this.lamps.filter(e => now - e.d < LAMP_DAYS * 864e5).map(e => ({ x: e.x, n: e.n, d: e.d })); }
@@ -263,6 +307,7 @@ export class Temple {
       if (!this.players.size) { this.timer = null; this.lastMin = 0; return; }
       const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, n: p.name || '', st: p.seat ?? -1, su: p.su || 0, look: p.look }));
       this.broadcast({ t: 'state', players: list, online: list.length, total: this.total });
+      if (this.bossDirty) { this.bossDirty = false; this.broadcast({ t: 'boss', ...this.bossState() }); }
       if (Date.now() - (this.lastMin || 0) >= 60000) { if (this.lastMin) this.creditActive(); this.lastMin = Date.now(); }
       this.timer = setTimeout(loop, list.length > 40 ? 400 : 250); // 人多時降低更新頻率，伺服器才撐得住
     };
