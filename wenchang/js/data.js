@@ -93,19 +93,54 @@ export const SOURCES = [
   ['東海大學圖書館館刊第19期（五文昌）', 'https://dcollection.lib.thu.edu.tw/wp-content/uploads/2024/12/第19期館刊32-37.pdf'],
 ];
 
-// 每日小任務：每天換新，全部完成算「一天」，累積天數解鎖配件
-export const DAILY = [
+// 每日小任務：「抽今日一籤」每天都有，其他從任務池依日期輪替抽 3 項（同一天大家的任務一樣）
+export const TASK_POOL = [
+  { id: 'lot', name: '抽今日一籤', go: 'lot', fixed: true },
   { id: 'bow', name: '在拜墊上叩拜一次', go: 'cushion' },
-  { id: 'lot', name: '抽今日一籤', go: 'lot' },
   { id: 'bless', name: '幫 3 張祈福卡加持', need: 3, go: 'wall' },
   { id: 'cheer', name: '跟其他考生打氣或做個動作', go: 'social' },
+  { id: 'study', name: '在讀書角專注一輪', go: 'study' },
+  { id: 'lamp', name: '點一盞光明燈', go: 'lamp' },
+  { id: 'wish', name: '在許願池投一枚許願幣', go: 'pool' },
+  { id: 'photo', name: '拍一張合照打卡', go: 'photo' },
+  { id: 'jiaobei', name: '擲筊請示一次', go: 'jiaobei' },
 ];
-// 配件解鎖條件（累積完成每日任務的天數）；聖誕限定的在聖誕期間完成每日任務才拿得到
-export const ACC_UNLOCK = [
-  { acc: 1, days: 1, how: '完成 1 天每日任務' },
-  { acc: 2, days: 3, how: '累積完成 3 天每日任務' },
-  { acc: 3, fest: true, how: '文昌帝君聖誕期間完成每日任務（限定）' },
+export const DAILY_COUNT = 4;
+export const WEEK_GOAL = 5; // 一週完成幾天算「本週全勤」
+
+// 稱號（顯示在名牌前面，大家都看得到）；tier 決定名牌外框：1 銀、2 紅金、3 金
+export const TITLES = [
+  { name: '不顯示', tier: 0 }, { name: '初入文昌', tier: 1 }, { name: '勤學生', tier: 1 }, { name: '七日精進', tier: 2 }, { name: '文曲星', tier: 3 },
+  { name: '狀元', tier: 3 }, { name: '熱心加持', tier: 1 }, { name: '金榜題名', tier: 3 }, { name: '聖誕祈福', tier: 2 }, { name: '讀書郎', tier: 1 },
+  { name: '本週全勤', tier: 2 }, { name: '點燈人', tier: 1 },
 ];
+// 特效
+export const FXS = ['不使用', '金色光暈', '金色腳印', '文昌星'];
+
+// 獎勵與解鎖條件：days 累積天數、streak 最長連續天數、bless 送出加持、bang 還願、fest 聖誕期間完成、study 專注輪數、week 全勤週數、lamp 點燈次數
+export const REWARDS = [
+  { kind: 'title', v: 1, need: { days: 1 }, how: '完成 1 天每日任務' },
+  { kind: 'acc', v: 1, need: { days: 1 }, how: '完成 1 天每日任務' },
+  { kind: 'title', v: 2, need: { days: 3 }, how: '累積 3 天' },
+  { kind: 'acc', v: 2, need: { days: 3 }, how: '累積 3 天' },
+  { kind: 'outfit', v: 8, need: { days: 3 }, how: '累積 3 天' },
+  { kind: 'fx', v: 2, need: { days: 5 }, how: '累積 5 天' },
+  { kind: 'title', v: 3, need: { streak: 7 }, how: '連續 7 天' },
+  { kind: 'fx', v: 1, need: { streak: 7 }, how: '連續 7 天' },
+  { kind: 'title', v: 4, need: { days: 14 }, how: '累積 14 天（名牌金框）' },
+  { kind: 'fx', v: 3, need: { days: 14 }, how: '累積 14 天' },
+  { kind: 'title', v: 5, need: { days: 30 }, how: '累積 30 天' },
+  { kind: 'outfit', v: 9, need: { days: 30 }, how: '累積 30 天' },
+  { kind: 'title', v: 10, need: { week: 1 }, how: `一週內完成 ${5} 天` },
+  { kind: 'title', v: 6, need: { bless: 50 }, how: '幫別人加持 50 次' },
+  { kind: 'title', v: 9, need: { study: 10 }, how: '在讀書角專注 10 輪' },
+  { kind: 'title', v: 11, need: { lamp: 3 }, how: '點 3 次光明燈' },
+  { kind: 'title', v: 7, need: { bang: 1 }, how: '考上後回來還願' },
+  { kind: 'acc', v: 3, need: { fest: 1 }, how: '文昌帝君聖誕期間完成每日任務（限定）', fest: true },
+  { kind: 'title', v: 8, need: { fest: 1 }, how: '文昌帝君聖誕期間完成每日任務（限定）', fest: true },
+];
+export const FOCUS_MIN = [15, 25, 50]; // 讀書角專注時間（分鐘）
+
 // 文昌帝君聖誕：農曆二月初三換算成國曆（用 lunar-javascript 預先算好，免得遊戲多載一個大檔案）
 export const FEAST_DATES = ['2026-03-21', '2027-03-10', '2028-02-27', '2029-03-17', '2030-03-06', '2031-02-23', '2032-03-14', '2033-03-03', '2034-03-22', '2035-03-12',
   '2036-02-29', '2037-03-19', '2038-03-08', '2039-02-25', '2040-03-15', '2041-03-04', '2042-02-22', '2043-03-13', '2044-03-02', '2045-03-21'];
