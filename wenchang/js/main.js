@@ -1294,6 +1294,28 @@ function lampDone() {
   task('lamp');
 }
 temple.on('tapLamp', () => act('lamp'));
+temple.on('tapPlace', id => act(id));
+
+// 走到這些地方附近，畫面下方會出現大按鈕，按了就開始（不用知道要點名牌）
+const PLACES = [
+  { id: 'study', x: -11, z: 5, r: 5.6, label: '📖 坐下來讀書' },
+  { id: 'pool', x: -10, z: 14.4, r: 3.8, label: '🪙 投許願幣許願' },
+  { id: 'photo', x: 4, z: 11, r: 2.6, label: '📸 合照打卡' },
+  { id: 'lamp', x: -13.4, z: -8.25, r: 2.4, label: '🏮 點光明燈' },
+  { id: 'lingxi', x: 16.3, z: 14.6, r: 3, label: '🔮 打開靈犀占卜' },
+  { id: 'bang', x: 16.4, z: 1.8, r: 3, label: '🏮 看還願紅榜' },
+  { id: 'qian', x: 5.5, z: -16.4, r: 1.8, label: '🎋 求籤' },
+];
+let nearId = '';
+function nearCheck() {
+  const p = me.root.position;
+  const blocked = state.busy || studyAt != null || document.body.classList.contains('photo-mode') || document.body.classList.contains('chatting') || !!document.querySelector('dialog[open]') || !$('#lingxi-ui').hidden;
+  const pl = blocked ? null : PLACES.find(q => Math.hypot(p.x - q.x, p.z - q.z) < q.r), id = pl?.id || '';
+  if (id === nearId) return;
+  nearId = id; const b = $('#near-btn'); b.hidden = !pl;
+  if (pl) { b.textContent = pl.label; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+}
+$('#near-btn').onclick = () => { const id = nearId; if (!id) return; if (id === 'bang') openToday('bang'); else act(id); };
 
 // 許願池：願望只留在這一頁，只告訴大家「有人投了許願幣」
 let wishes = 0, lastWishFeed = 0;
@@ -1413,6 +1435,7 @@ function loop() {
     if (mySeat) { const d = Math.hypot(p.x - mySeat.x, p.z - mySeat.z); if (d < 0.35) mySeat.near = true; else if (mySeat.near && d > 0.7) leaveSeat(); else if (!mySeat.near && !me.target && !me.path?.length && !state.busy) leaveSeat(); }
     $('#kneel-bar').hidden = !me.kneeling || state.busy || studyAt != null;
     document.body.classList.toggle('kneeling', !!me.kneeling);
+    nearCheck();
   }
   requestAnimationFrame(loop);
 }
