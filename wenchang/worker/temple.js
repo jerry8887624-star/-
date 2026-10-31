@@ -15,7 +15,9 @@ const EXAM_COUNT = 10;      // 與前端 EXAMS 數量一致
 const COLOR_COUNT = 4;      // 與前端 CARD_COLORS 數量一致
 const MAX_CARDS = 60;
 const MAX_BANG = 60;        // 還願紅榜最多保留幾筆
-const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000 };
+const MAX_LAMPS = 200;      // 光明燈最多幾盞
+const LAMP_DAYS = 7;        // 光明燈亮幾天
+const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000 };
 
 export default {
   async fetch(req, env) {
@@ -35,7 +37,7 @@ const int = (v, lo, hi) => Math.round(num(v, lo, hi));
 function cleanLook(l) {
   l = l || {};
   return { gender: l.gender === 'm' ? 'm' : 'f', hair: int(l.hair, 0, 20), hairColor: int(l.hairColor, 0, 20),
-    skin: int(l.skin, 0, 20), outfit: int(l.outfit, 0, 20), glasses: int(l.glasses, 0, 2), acc: int(l.acc, 0, 3) };
+    skin: int(l.skin, 0, 20), outfit: int(l.outfit, 0, 20), glasses: int(l.glasses, 0, 2), acc: int(l.acc, 0, 3), ttl: int(l.ttl, 0, 30), fx: int(l.fx, 0, 5) };
 }
 
 export class Temple {
@@ -52,6 +54,8 @@ export class Temple {
       this.cardSeq = (await state.storage.get('cardSeq')) || 0;
       this.cards.forEach(c => { if (!c.id) c.id = ++this.cardSeq; c.b ||= 0; });
       this.bang = (await state.storage.get('bang')) || [];
+      this.lamps = (await state.storage.get('lamps')) || [];
+      this.wishes = (await state.storage.get('wishes')) || 0;
     });
   }
 
@@ -85,7 +89,7 @@ export class Temple {
       p.uid = String(m.uid || '').replace(/[^a-z0-9]/gi, '').slice(0, 24);
       this.total += 1; this.state.storage.put('total', this.total);
       const mine = this.cards.filter(c => p.uid && c.u === p.uid);
-      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.publicCards(p), bang: this.bang.map(e => ({ x: e.x, n: e.n, d: e.d })), myBless: mine.reduce((n, c) => n + (c.b || 0), 0) }));
+      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.publicCards(p), bang: this.bang.map(e => ({ x: e.x, n: e.n, d: e.d })), lamps: this.publicLamps(), wishes: this.wishes, myBless: mine.reduce((n, c) => n + (c.b || 0), 0) }));
       this.broadcast({ t: 'feed', from: p.id, k: 'join', n: p.name }, p.ws);
     } else if (!p.look) {
       return;
@@ -121,6 +125,24 @@ export class Temple {
       if (p.uid) { card.bu ||= []; if (card.bu.length < 50) card.bu.push(p.uid); } // 記下誰加持過（最多 50 個匿名代碼），重新整理也不能重複加持 this.state.storage.put('cards', this.cards);
       this.broadcast({ t: 'bless', id: card.id, b: card.b });
       for (const q of this.players.values()) if (q.uid && q.uid === card.u) send(q, { t: 'blessed', id: card.id, b: card.b, from: p.name || '' });
+    } else if (m.t === 'study') {
+      // 讀書角：頭上顯示「專注中」
+      if (!this.allow(p, 'study') && m.on) return;
+      p.su = m.on ? 1 : 0;
+    } else if (m.t === 'lamp') {
+      // 光明燈：一支手機同時只亮一盞，再點就換新、重新亮七天
+      if (!this.allow(p, 'lamp')) return;
+      const now = Date.now();
+      this.lamps = this.lamps.filter(e => now - e.d < LAMP_DAYS * 864e5 && !(p.uid && e.u === p.uid));
+      const e = { x: int(m.x, -1, EXAM_COUNT - 1), n: p.name || '', d: now, u: p.uid };
+      this.lamps.push(e); if (this.lamps.length > MAX_LAMPS) this.lamps.splice(0, this.lamps.length - MAX_LAMPS);
+      this.state.storage.put('lamps', this.lamps);
+      this.broadcast({ t: 'lamp', lamps: this.publicLamps(), from: p.id, e: { x: e.x, n: e.n } });
+    } else if (m.t === 'wish') {
+      // 許願池：只廣播「有人投了許願幣」，許的願不傳
+      if (!this.allow(p, 'wish')) return;
+      this.wishes += 1; this.state.storage.put('wishes', this.wishes);
+      this.broadcast({ t: 'wish', from: p.id, n: this.wishes });
     } else if (m.t === 'bang') {
       // 還願紅榜：考上了回來答謝（暱稱＋考試類別），同一支手機同一種考試只登一次
       const x = int(m.x, 0, EXAM_COUNT - 1);
@@ -154,6 +176,8 @@ export class Temple {
     }
   }
 
+  publicLamps() { const now = Date.now(); return this.lamps.filter(e => now - e.d < LAMP_DAYS * 864e5).map(e => ({ x: e.x, n: e.n, d: e.d })); }
+
   // 給玩家的卡片清單：不帶匿名代碼，只標出哪幾張是他自己的
   publicCards(p) { return this.cards.map(c => ({ id: c.id, c: c.c, x: c.x, by: c.by, b: c.b || 0, mine: p.uid && c.u === p.uid ? 1 : 0 })); }
 
@@ -169,7 +193,7 @@ export class Temple {
     if (this.timer) return;
     const loop = () => {
       if (!this.players.size) { this.timer = null; return; }
-      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, n: p.name || '', st: p.seat ?? -1, look: p.look }));
+      const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, n: p.name || '', st: p.seat ?? -1, su: p.su || 0, look: p.look }));
       this.broadcast({ t: 'state', players: list, online: list.length, total: this.total });
       this.timer = setTimeout(loop, list.length > 40 ? 400 : 250); // 人多時降低更新頻率，伺服器才撐得住
     };

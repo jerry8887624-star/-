@@ -51,7 +51,7 @@
     <button type="button" id="info-btn" class="icon" aria-label="說明">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.5" /></svg>
     </button>
-    <button type="button" id="today-btn" aria-label="今日：考試倒數、每日一籤、每日任務"><span aria-hidden="true">📅</span><span id="today-label">今日</span><b class="dot" id="today-dot" hidden></b></button>
+    <button type="button" id="today-btn" aria-label="今日：考試倒數、每日一籤、每日任務"><span aria-hidden="true">📅</span><span id="today-label">今日</span><span id="today-short">今日</span><b class="dot" id="today-dot" hidden></b></button>
     <button type="button" id="update-chip" hidden>有新版本</button>
     <div class="tools">
       <button type="button" id="presence" hidden aria-label="在廟裡的香客"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><circle cx="17" cy="9" r="2.4" /><path d="M16 13.6c2.9.1 5 2 5 4.9" /></svg><b class="online"></b></button>
@@ -74,6 +74,8 @@
       <p id="guide-carry"></p>
       <button type="button" id="again-guide" class="again-guide" hidden>🔄 再參拜一次（從頭開始）</button>
     </div>
+    <button type="button" id="task-chip" aria-expanded="false"><span>✅ 今日任務</span><b id="task-chip-n"></b><i aria-hidden="true"></i></button>
+    <ul id="task-mini" class="task-list task-mini" hidden></ul>
   </aside>
 
   <p id="next"></p>
@@ -321,8 +323,20 @@
     <h3>✅ 每日小任務 <small id="task-count"></small></h3>
     <ul id="task-list" class="task-list"></ul>
     <p class="say" id="task-days"></p>
-    <p class="lbl">配件（完成每日任務解鎖，大家都看得到）</p>
-    <div id="acc-list" class="chips"></div>
+    <p class="say" id="week-line"></p>
+  </section>
+  <section class="tbox" id="reward-box">
+    <h3>🏅 獎勵 <small id="reward-count"></small></h3>
+    <p class="say" id="next-reward"></p>
+    <p class="lbl">稱號（顯示在名牌前面）</p>
+    <div id="ttl-list" class="chips rw"></div>
+    <p class="lbl">特效</p>
+    <div id="fx-list" class="chips rw"></div>
+    <p class="lbl">配件</p>
+    <div id="acc-list" class="chips rw"></div>
+    <p class="lbl">限定服裝</p>
+    <div id="outfit-list" class="chips rw"></div>
+    <p class="pending">稱號、特效、配件和服裝大家都看得到。</p>
   </section>
   <section class="tbox">
     <h3>🙏 祈福牆加持</h3>
@@ -337,6 +351,71 @@
   </section>
   <div class="row"><button type="button" data-close>關閉</button></div>
 </dialog>
+
+<!-- 每天第一次進廟：今天的任務 -->
+<dialog id="tasks-dlg">
+  <h2>今天的任務</h2>
+  <p class="say" id="tasks-sub"></p>
+  <ul id="tasks-intro" class="task-list"></ul>
+  <p class="say" id="tasks-reward"></p>
+  <div class="row"><button type="button" class="ghost" id="tasks-more">看獎勵</button><button type="button" data-close>開始</button></div>
+</dialog>
+
+<!-- 光明燈 -->
+<dialog id="lamp-dlg">
+  <h2>點一盞光明燈</h2>
+  <p class="say">光明燈會在殿內亮七天，燈下顯示你的暱稱。祈求考試頭腦清楚、前途光明。</p>
+  <div class="exam-row"><select id="lamp-exam" aria-label="為哪一個考試點燈"></select></div>
+  <p class="pending" id="lamp-note"></p>
+  <div class="row"><button type="button" class="ghost" data-close>取消</button><button type="button" id="lamp-ok">點燈</button></div>
+</dialog>
+
+<!-- 許願池 -->
+<dialog id="wish-dlg">
+  <h2>許願池</h2>
+  <p class="say">在心裡默念願望，投下一枚許願幣。也可以寫下來，<b>只存在這一頁</b>，不會傳給任何人。</p>
+  <label><span>我的願望（可不填）</span><input id="wish-text" maxlength="40" autocomplete="off" placeholder="例如：數學考 A"></label>
+  <p class="pending" id="wish-count"></p>
+  <div class="row"><button type="button" class="ghost" data-close>取消</button><button type="button" id="wish-ok">投下許願幣</button></div>
+</dialog>
+
+<!-- 合照打卡 -->
+<dialog id="photo-dlg">
+  <h2>合照打卡</h2>
+  <img id="photo-img" alt="合照" class="photo-img">
+  <div class="row"><button type="button" class="ghost" data-close>關閉</button><button type="button" id="photo-share">存圖／分享</button></div>
+</dialog>
+<div id="photo-count" hidden aria-live="assertive"></div>
+<div id="flash" hidden></div>
+
+<!-- 讀書角專注計時 -->
+<section id="study-ui" class="card-pop" hidden aria-label="專注計時">
+  <div id="study-pick">
+    <p class="pop-title">坐下來一起讀書：專注幾分鐘？</p>
+    <div class="chips" id="study-mins"></div>
+    <p class="pending">專注中頭上會顯示 📖，大家都看得到誰在讀書。離開座位就會結束。</p>
+    <div class="row tight"><button type="button" class="ghost small" id="study-leave">起身</button></div>
+  </div>
+  <div id="study-run" hidden>
+    <p class="pop-title">📖 專注中</p>
+    <p id="study-time" class="study-time">25:00</p>
+    <p class="pending">手機可以先放下，時間到會叫你。</p>
+    <div class="row tight"><button type="button" class="ghost small" id="study-stop">結束</button></div>
+  </div>
+</section>
+
+<!-- 任務完成慶祝 -->
+<div id="celebrate" hidden>
+  <div class="confetti" aria-hidden="true"></div>
+  <div class="cel-card" role="status" aria-live="polite">
+    <div class="cel-ic" aria-hidden="true">✓</div>
+    <p class="cel-t" id="cel-t"></p>
+    <p class="cel-s" id="cel-s"></p>
+    <div class="cel-bar" aria-hidden="true"><i id="cel-bar"></i></div>
+    <ul class="cel-rw" id="cel-rw"></ul>
+    <div class="row" id="cel-btns" hidden><button type="button" class="ghost" id="cel-wear">去換上</button><button type="button" id="cel-ok">太好了</button></div>
+  </div>
+</div>
 
 <!-- 版本更新 -->
 <dialog id="update-dlg">

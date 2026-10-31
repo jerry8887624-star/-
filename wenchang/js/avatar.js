@@ -13,7 +13,11 @@ export const OUTFITS = [
   { name: '西裝', top: '#26304a', trim: '#e9e4d8', bottom: '#26304a' },
   { name: '學士服', top: '#1f1f26', trim: '#d6b04c', bottom: '#1f1f26', skirt: true, cap: true },
   { name: '毛衣', top: '#d98c5f', trim: '#f2e1c9', bottom: '#5b4636' },
+  // 以下是獎勵解鎖的限定服裝
+  { name: '書生服', top: '#dbe8f2', trim: '#3a5a8a', bottom: '#dbe8f2', skirt: true, locked: true },
+  { name: '狀元袍', top: '#b8241c', trim: '#e8c15a', bottom: '#b8241c', skirt: true, hat: true, locked: true },
 ];
+export const FREE_OUTFITS = OUTFITS.filter(o => !o.locked).length;
 export const GLASSES = ['無', '圓框', '方框'];
 // 配件：完成每日小任務解鎖（0 = 不戴）；3 是文昌帝君聖誕限定
 export const ACCS = ['不戴', '金色光環', '狀元紅花', '魁星金冠'];
@@ -23,10 +27,18 @@ export function randomLook(gender) {
   const r = n => Math.floor(Math.random() * n);
   const fh = [1, 2, 3, 4, 6], mh = [0, 5, 0, 1];
   return { gender: g, hair: g === 'f' ? fh[r(fh.length)] : mh[r(mh.length)], hairColor: r(4), skin: r(SKINS.length),
-    outfit: r(OUTFITS.length), glasses: Math.random() < 0.3 ? 1 + r(2) : 0 };
+    outfit: r(FREE_OUTFITS), glasses: Math.random() < 0.3 ? 1 + r(2) : 0 };
 }
 
 const lam = (c, extra = {}) => new THREE.MeshLambertMaterial({ color: c, ...extra });
+// 光暈貼圖：大家共用一張
+let _glow;
+function glowTex() {
+  if (_glow) return _glow;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,240,180,1)'); gr.addColorStop(0.4, 'rgba(255,210,90,.5)'); gr.addColorStop(1, 'rgba(255,200,60,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); _glow = new THREE.CanvasTexture(c); return _glow;
+}
 
 export class Avatar {
   constructor(look) {
@@ -95,6 +107,12 @@ export class Avatar {
     if (h === 4) { add(new THREE.SphereGeometry(0.17, 12, 10), 0, 0.46, -0.08); }
     if (h === 5) { for (let i = 0; i < 7; i++) { const a = (i / 6 - 0.5) * 2.2; const m = add(new THREE.ConeGeometry(0.09, 0.22, 6), Math.sin(a) * 0.32, 0.36 + Math.cos(a) * 0.05, -0.02 + Math.cos(a) * 0.05); m.rotation.z = -a * 0.7; } }
     if (h === 6) { add(new THREE.BoxGeometry(0.78, 0.7, 0.18), 0, -0.3, -0.33); }
+    if (out.hat) { // 狀元帽：黑色官帽＋兩邊帽翅＋紅花
+      const hatM = lam('#1f1a18');
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.36, 0.26, 16), hatM); crown.position.y = 0.42; head.add(crown);
+      [-1, 1].forEach(s => { const w = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.05, 0.08), hatM); w.position.set(0.48 * s, 0.42, -0.08); head.add(w); });
+      const fl = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), lam('#d23a2c')); fl.position.set(0.18, 0.52, 0.22); head.add(fl);
+    }
     if (out.cap) {
       const board = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.04, 0.72), dark); board.position.y = 0.43; board.rotation.y = Math.PI / 4; head.add(board);
       const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.25), lam('#e2b13c')); tassel.position.set(0.3, 0.3, 0.1); head.add(tassel);
@@ -123,6 +141,16 @@ export class Avatar {
       const gem = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), lam('#c8352b')); gem.position.set(0, 0.43, 0.23); head.add(gem);
     }
 
+    // 特效：1 金色光暈、2 金色腳印（由場景畫在地上）、3 頭頂文昌星
+    const fx = L.fx | 0; this.fxGlow = this.fxStar = null;
+    if (fx === 1) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: '#ffd76a', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.85 }));
+      sp.scale.set(2.2, 2.6, 1); sp.position.y = 0.95; body.add(sp); this.fxGlow = sp;
+    }
+    if (fx === 3) {
+      const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.14), lam('#ffe08a', { emissive: '#c08a10' })); star.position.y = 2.25; body.add(star); this.fxStar = star;
+    }
+
     // 手上的三炷香
     const inc = new THREE.Group(); inc.position.set(0, -0.36, 0.06); inc.visible = this.holding;
     this.stickParts = [];
@@ -144,6 +172,8 @@ export class Avatar {
   // 表情動作：wave 揮手、thumb 比讚、jump 開心跳（bow 用 bow()）
   emote(kind) { if (kind === 'bow') { if (this.bowT < 0) this.bow(1); return; } this.emoteKind = kind; this.emoteT = 0; }
   kneel(on) { this.kneeling = !!on; }
+  // 坐在讀書角的凳子上：腿往前伸、手放到桌上
+  sit(on) { this.sitting = !!on; }
   hold(on) { this.holding = on; if (this.incense) this.incense.visible = on; }
   // 手上還剩幾炷香（插了一炷就少一炷）
   setSticks(n) { this.sticks = n; this.stickParts?.forEach(([s, t], i) => { const v = n === 3 || (n === 2 ? i !== 1 : i === 1); s.visible = t.visible = v; }); }
@@ -158,14 +188,19 @@ export class Avatar {
     this.walkAmt += ((moving ? 1 : 0) - this.walkAmt) * Math.min(1, dt * 10);
     const w = this.walkAmt, s = Math.sin(this.t * 10);
     if (this.halo) this.halo.position.y = 0.62 + Math.sin(this.t * 2) * 0.03;
+    if (this.fxGlow) this.fxGlow.material.opacity = 0.65 + Math.sin(this.t * 2.4) * 0.2;
+    if (this.fxStar) { this.fxStar.rotation.y += dt * 2; this.fxStar.position.y = 2.25 + Math.sin(this.t * 2) * 0.06; }
     // 跪在拜墊上：腿往後折、身體放低
     this.kneelAmt = (this.kneelAmt || 0) + ((this.kneeling ? 1 : 0) - (this.kneelAmt || 0)) * Math.min(1, dt * 8);
     const kn = this.kneelAmt;
-    this.legs[0].rotation.x = s * 0.6 * w + 1.45 * kn; this.legs[1].rotation.x = -s * 0.6 * w + 1.45 * kn;
+    this.sitAmt = (this.sitAmt || 0) + ((this.sitting ? 1 : 0) - (this.sitAmt || 0)) * Math.min(1, dt * 8);
+    const si = this.sitAmt;
+    this.legs[0].rotation.x = s * 0.6 * w + 1.45 * kn - 1.45 * si; this.legs[1].rotation.x = -s * 0.6 * w + 1.45 * kn - 1.45 * si;
     this.body.position.y = Math.abs(Math.cos(this.t * 10)) * 0.05 * w - 0.1 * kn;
     let armX = [s * -0.5 * w, s * 0.5 * w], armZ = [-0.12, 0.12], bowX = 0;
     const together = this.holding || this.bowT >= 0;
     if (together) { armX = [-1.15, -1.15]; armZ = [0.45, -0.45]; }
+    else if (si > 0.5) { armX = [-1.0, -1.0]; armZ = [0.2, -0.2]; }
     if (this.bowT >= 0) {
       this.bowT += dt;
       const per = 1.1, k = this.bowT / per;

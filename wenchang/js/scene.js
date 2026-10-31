@@ -23,7 +23,16 @@ export const SPOTS = {
   wall: { x: 16.4, z: 8, f: Math.PI / 2 },
   lingxi: { x: 16.3, z: 14.6, f: Math.PI / 2, cam: 0.35 },
   bang: { x: 16.4, z: 1.8, f: Math.PI / 2, cam: 0.3 },
+  study: { x: -11, z: 8.6, f: Math.PI },
+  pool: { x: -10, z: 17.2, f: Math.PI, cam: 0.2 },
+  lamp: { x: -12.9, z: -8.25, f: -Math.PI / 2, cam: 0.5 },
+  photo: { x: 4, z: 11, f: 0 },
 };
+// 讀書角書桌（坐在凳子上、面向書桌）：座位編號 700 起
+export const DESKS = [];
+[-14, -11, -8].forEach(x => [3.4, 6.6].forEach(z => DESKS.push({ x, z })));
+export const DESK_SEAT0 = 700;
+export const POOL = { x: -10, z: 14.4, r: 1.7 };
 // 名牌標示（可點擊走過去）
 export const MARKS = [
   { id: 'counter', name: '辦事處', pos: [-17.6, 2.9, 11] },
@@ -34,6 +43,10 @@ export const MARKS = [
   { id: 'jinlu', name: '金爐', pos: [JINLU.x, 4.6, JINLU.z] },
   { id: 'lingxi', name: '靈犀占卜', pos: [18.6, 4.3, 14.6] },
   { id: 'bang', name: '還願紅榜', pos: [18.6, 3.9, 1.8] },
+  { id: 'study', name: '讀書角', pos: [-11, 2.4, 5] },
+  { id: 'pool', name: '許願池', pos: [-10, 2.0, 14.4] },
+  { id: 'lamp', name: '光明燈', pos: [-14.6, 4.6, -8.25] },
+  { id: 'photo', name: '合照打卡', pos: [4, 2.6, 11] },
 ];
 // 鏡頭特寫用的位置
 export const FOCUS = { altar: [0, 2.2, -19.5], censer: [0, 2.2, L.CZ], wcCenser: [0, 1.6, WC_CENSER_Z], jinlu: [JINLU.x, 1.6, JINLU.z], wall: [18.2, 2, 8] };
@@ -63,12 +76,14 @@ const BOXES = [
   [17.6, 5.2, 19.2, 10.8],          // 祈福牆
   [18.1, 12.8, 19.4, 16.4],         // 靈犀占卜電子牆
   [18.1, 0.1, 19.3, 3.5],           // 還願紅榜
+  ...[-14, -11, -8].flatMap(x => [3.4, 6.6].map(z => [x - 0.65, z - 0.95, x + 0.65, z - 0.45])), // 讀書角書桌
+  [-15, -10.1, -14.3, -6.4],        // 光明燈牆
   [-L.CW - 0.4, L.GZ - 0.2, -3.3, L.GZ + 0.4], [3.3, L.GZ - 0.2, L.CW + 0.4, L.GZ + 0.4], // 前牆
 ];
 const FRONT_PILLARS = [-14.2, -8.5, -3.4, 3.4, 8.5, 14.2];
 const INNER_PILLARS = [];
 [-11.8, 11.8].forEach(x => [-6, -12, -18].forEach(z => INNER_PILLARS.push([x, z])));
-const CIRCLES = [[0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
+const CIRCLES = [[-10, 14.4, 1.9], [0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
 
 function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
@@ -146,7 +161,7 @@ export class Temple {
     const step = new THREE.Mesh(new THREE.BoxGeometry(L.HW * 2 + 0.4, 0.12, 0.5), lam('#a89580')); step.position.set(0, 0.06, L.HF + 0.45); S.add(step);
 
     this.buildHall(); this.buildGate(); this.buildCourt(); this.buildGod();
-    this.buildCenser(); this.buildWenchangCenser(); this.buildJinlu(); this.buildLingxiScreen(); this.buildBang(); this.buildCounter(); this.buildWall(); this.buildTrees();
+    this.buildCenser(); this.buildWenchangCenser(); this.buildJinlu(); this.buildLingxiScreen(); this.buildBang(); this.buildPlaza(); this.buildCounter(); this.buildWall(); this.buildTrees();
 
     this.ground = [outer, court, hallFloor];
   }
@@ -536,6 +551,72 @@ export class Temple {
     this.lxTex.needsUpdate = true;
   }
 
+  // 廣場：讀書角、許願池、光明燈牆
+  buildPlaza() {
+    const S = this.scene, wood = lam('#7a4a2a'), dark = lam('#4a2a1a');
+    DESKS.forEach(d => {
+      const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.5), wood); top.position.set(d.x, 0.78, d.z - 0.7); S.add(top);
+      [-0.52, 0.52].forEach(dx => { const l = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.74, 0.44), dark); l.position.set(d.x + dx, 0.37, d.z - 0.7); S.add(l); });
+      const book = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.05, 0.26), lam('#e8e0c8')); book.position.set(d.x, 0.84, d.z - 0.66); S.add(book);
+      const cover = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.28), lam('#2a4f8a')); cover.position.set(d.x + 0.4, 0.86, d.z - 0.72); S.add(cover);
+      const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.3, 12), dark); stool.position.set(d.x, 0.15, d.z); S.add(stool);
+    });
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.6), basic('#fff', { map: plaqueTex('一起讀書角', { w: 512, h: 128, font: 80, bg: '#2a4f8a', fg: '#f6dc94' }), side: THREE.DoubleSide }));
+    sign.position.set(-11, 1.9, 1.6); S.add(sign);
+    [-12.3, -9.7].forEach(x => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.9), dark); p.position.set(x, 0.95, 1.6); S.add(p); });
+    // 許願池
+    const P = POOL;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(P.r, 0.22, 10, 36), lam('#9a8a78')); rim.rotation.x = Math.PI / 2; rim.position.set(P.x, 0.3, P.z); S.add(rim);
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(P.r, P.r, 0.3, 36, 1, true), lam('#8a7a68', { side: THREE.DoubleSide })); wall.position.set(P.x, 0.15, P.z); S.add(wall);
+    const water = new THREE.Mesh(new THREE.CircleGeometry(P.r - 0.05, 36), lam('#3f8fa8', { emissive: '#0a2a3a' })); water.rotation.x = -Math.PI / 2; water.position.set(P.x, 0.24, P.z); S.add(water);
+    this.coins = new THREE.Group(); S.add(this.coins);
+    for (let i = 0; i < 26; i++) { const a = i * 2.4, r = 0.2 + (i % 5) * 0.28; this.dropCoin(P.x + Math.cos(a) * r, P.z + Math.sin(a) * r); }
+    const lotus = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), lam('#f2a0b8')); lotus.scale.y = 0.6; lotus.position.set(P.x + 0.5, 0.3, P.z - 0.4); S.add(lotus);
+    const pad = new THREE.Mesh(new THREE.CircleGeometry(0.35, 14), lam('#4f8a3a')); pad.rotation.x = -Math.PI / 2; pad.position.set(P.x + 0.5, 0.25, P.z - 0.4); S.add(pad);
+    this.ripples = [];
+    // 光明燈牆（殿內左側牆，兩扇圓窗中間）
+    const g = new THREE.Group(); g.position.set(-14.8, 0, -8.25); g.rotation.y = Math.PI / 2; S.add(g);
+    const c = document.createElement('canvas'); c.width = 512; c.height = 448; this.lampCanvas = c;
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; this.lampTex = tex;
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.98), basic('#fff', { map: tex })); board.position.set(0, 2.45, 0.06); g.add(board); this.lampBoard = board;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(3.6, 3.18, 0.08), lam('#d8ab45')); frame.position.set(0, 2.45, 0); g.add(frame);
+    this.drawLamps([]);
+    this.feet = [];
+  }
+  dropCoin(x, z) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.012, 10), lam('#e8c15a', { emissive: '#3a2600' })); m.position.set(x, 0.245, z); this.coins.add(m);
+    if (this.coins.children.length > 80) this.coins.remove(this.coins.children[0]);
+  }
+  // 丟一枚許願幣：從人手上飛進池子，水面起漣漪
+  tossCoin(from) {
+    const P = POOL, a = Math.random() * 6.28, r = Math.random() * (P.r - 0.4), ex = P.x + Math.cos(a) * r, ez = P.z + Math.sin(a) * r;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.015, 10), lam('#ffd76a', { emissive: '#7a5410' })); this.scene.add(m);
+    return new Promise(res => this.tween(800, k => { m.position.set(from.x + (ex - from.x) * k, 1.2 + Math.sin(k * Math.PI) * 1.2 - k * 0.95, from.z + (ez - from.z) * k); m.rotation.x = k * 12; }, 0, t => t, () => {
+      this.scene.remove(m); this.dropCoin(ex, ez); this.ripple(ex, ez); res();
+    }));
+  }
+  ripple(x = POOL.x, z = POOL.z) {
+    const m = new THREE.Mesh(new THREE.RingGeometry(0.1, 0.16, 24), new THREE.MeshBasicMaterial({ color: '#e8f6ff', transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, 0.26, z); this.scene.add(m);
+    this.tween(1400, k => { m.scale.setScalar(1 + k * 6); m.material.opacity = 0.8 * (1 - k); }, 0, t => t, () => this.scene.remove(m));
+  }
+  // 光明燈：最多畫 40 盞，點亮的顯示暱稱與考試
+  drawLamps(list, label = () => '') {
+    const c = this.lampCanvas, g = c.getContext('2d'), W = c.width, H = c.height;
+    g.fillStyle = '#3a1410'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#f6dc94'; g.textAlign = 'center'; g.font = '900 34px "Noto Serif TC",serif'; g.fillText('光 明 燈', W / 2, 40);
+    g.font = '500 15px "Noto Serif TC",serif'; g.fillStyle = '#e8c9a0'; g.fillText(`考生祈福・點亮七天・目前 ${list.length} 盞`, W / 2, 62);
+    const show = list.slice(-40).reverse();
+    for (let i = 0; i < 40; i++) {
+      const col = i % 8, row = Math.floor(i / 8), x = 34 + col * 63, y = 104 + row * 70, e = show[i];
+      if (e) { const gr = g.createRadialGradient(x, y, 2, x, y, 30); gr.addColorStop(0, 'rgba(255,220,120,.9)'); gr.addColorStop(1, 'rgba(255,160,40,0)'); g.fillStyle = gr; g.fillRect(x - 30, y - 30, 60, 60); }
+      g.fillStyle = e ? '#ffcf5a' : '#5a2a20'; g.beginPath(); g.ellipse(x, y, 13, 17, 0, 0, 7); g.fill();
+      g.fillStyle = e ? '#b8241c' : '#3a1a14'; g.fillRect(x - 9, y - 21, 18, 5); g.fillRect(x - 9, y + 16, 18, 5);
+      if (e) { g.fillStyle = '#fff4d6'; g.font = '700 12px sans-serif'; g.fillText(label(e).slice(0, 5), x, y + 36); }
+    }
+    this.lampTex.needsUpdate = true;
+  }
+
   // 還願紅榜：考上的人回來答謝，名字掛上紅榜
   buildBang() {
     const S = this.scene, g = new THREE.Group(); g.position.set(18.7, 0, 1.8); g.rotation.y = -Math.PI / 2; S.add(g);
@@ -721,7 +802,7 @@ export class Temple {
   }
   clearBlocks() { if (this.blocks) { this.blocks.forEach(b => this.scene.remove(b)); this.blocks = null; } }
 
-  tween(ms, fn, delay = 0, ease = t => t) { this.anims.push({ t: -delay, ms, fn, ease }); }
+  tween(ms, fn, delay = 0, ease = t => t, done) { this.anims.push({ t: -delay, ms, fn, ease, done }); }
 
   setNight(on) {
     this.night = on;
@@ -821,6 +902,7 @@ export class Temple {
       if (hitA) { this.emit('tapAvatar', hitA.object.userData.avatar, e); return; }
       if (ray.intersectObject(this.lxScreen, false)[0]) { this.emit('tapLingxi'); return; }
       if (ray.intersectObject(this.bangBoard, true)[0]) { this.emit('tapBang'); return; }
+      if (ray.intersectObject(this.lampBoard, false)[0]) { this.emit('tapLamp'); return; }
       const hitK = ray.intersectObject(this.wall, true)[0];
       if (hitK) { let o = hitK.object; while (o && !o.userData.card && o !== this.wall) o = o.parent; this.emit('tapWall', o?.userData.card || null); return; }
       const hitC = ray.intersectObjects(this.cushionMeshes, false)[0];
@@ -838,6 +920,25 @@ export class Temple {
   project(v) {
     const p = v.clone().project(this.camera);
     return { x: (p.x + 1) / 2 * innerWidth, y: (1 - p.y) / 2 * innerHeight, vis: p.z < 1 && p.z > -1 };
+  }
+
+  footprint(p, f, side) {
+    if (this.feet.length > 80) return;
+    if (!this._footG) this._footG = new THREE.CircleGeometry(0.09, 10);
+    const m = new THREE.Mesh(this._footG, new THREE.MeshBasicMaterial({ color: '#ffd76a', transparent: true, opacity: 0.8, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.scale.set(1, 1.6, 1); m.position.set(p.x + Math.cos(f) * 0.12 * side, 0.02, p.z - Math.sin(f) * 0.12 * side); this.scene.add(m);
+    this.feet.push({ m, life: 2 });
+  }
+  // 手機變卡時自動降低解析度，順了再慢慢調回來
+  perfTick(dt) {
+    const P = this.perf ||= { t: 0, n: 0, ratio: this.renderer.getPixelRatio(), max: this.renderer.getPixelRatio(), good: 0 };
+    P.t += dt; P.n++;
+    if (P.t < 2) return;
+    const fps = P.n / P.t; P.t = 0; P.n = 0; this.fps = fps;
+    if (document.hidden) return;
+    if (fps < 38 && P.ratio > 0.8) { P.ratio = Math.max(0.8, P.ratio - 0.25); P.good = 0; this.renderer.setPixelRatio(P.ratio); this.resize(); }
+    else if (fps > 57 && P.ratio < P.max) { if (++P.good >= 3) { P.good = 0; P.ratio = Math.min(P.max, P.ratio + 0.25); this.renderer.setPixelRatio(P.ratio); this.resize(); } }
+    else P.good = 0;
   }
 
   update() {
@@ -880,8 +981,11 @@ export class Temple {
       }
       if (!moving && av.faceTo != null) { av.root.rotation.y = lerpAngle(av.root.rotation.y, av.faceTo, Math.min(1, dt * 8)); if (Math.abs(angDiff(av.root.rotation.y, av.faceTo)) < 0.01) av.faceTo = null; }
       if (moving && av.kneeling) av.kneel(false);
+      if (moving && av.sitting && !av.netId) av.sit(false);
       av.moving = moving;
-      av.update(dt, moving);
+      if (av.root.visible) av.update(dt, moving); // 人多時遠處的人藏起來，也不用算動作
+      // 金色腳印特效
+      if (moving && av.root.visible && (av.look.fx | 0) === 2 && (av.footT = (av.footT || 0) + dt) > 0.28) { av.footT = 0; this.footprint(p, av.root.rotation.y, av.footSide = -(av.footSide || 1)); }
     }
     // 人不要疊在一起：站著不動的自己和示意香客會被推開；走路中的人可以穿過去（人多時才不會卡住）
     const list = [...this.avatars];
@@ -899,8 +1003,11 @@ export class Temple {
         }
       }
     }
+    // 腳印淡出
+    for (let i = this.feet.length - 1; i >= 0; i--) { const f = this.feet[i]; f.life -= dt; f.m.material.opacity = Math.max(0, f.life / 2) * 0.8; if (f.life <= 0) { this.scene.remove(f.m); f.m.material.dispose(); this.feet.splice(i, 1); } }
+    this.perfTick(dt);
     // 動畫
-    this.anims = this.anims.filter(a => { a.t += dt * 1000; if (a.t < 0) return true; const k = Math.min(1, a.t / a.ms); a.fn(a.ease(k)); return k < 1; });
+    this.anims = this.anims.filter(a => { a.t += dt * 1000; if (a.t < 0) return true; const k = Math.min(1, a.t / a.ms); a.fn(a.ease(k)); if (k >= 1) a.done?.(); return k < 1; });
     // 香煙、金爐煙與火光
     for (const sm of this.smokes) {
       const a = sm.arr, boost = sm === this.jinluSmoke ? 1 + this.fireBoost * 1.5 : 1;
@@ -958,6 +1065,19 @@ function route(a, b) {
     const side = (cur.x + b.x) / 2 >= 0 ? 1 : -1;
     if (Math.abs(cur.z - C) > 1 && Math.abs(b.z - C) > 1) pts.push({ x: 2.2 * side, z: C });
     else pts.push({ x: 2.2 * side, z: cur.z < C ? C - 1.4 : C + 1.4 }, { x: 2.2 * side, z: b.z < C ? C - 1.4 : C + 1.4 });
+  }
+  // 許願池：路線穿過池子就從旁邊繞
+  const poolDist = (p, q) => { const vx = q.x - p.x, vz = q.z - p.z, Ln = vx * vx + vz * vz || 1, t = Math.max(0, Math.min(1, ((POOL.x - p.x) * vx + (POOL.z - p.z) * vz) / Ln)); return Math.hypot(p.x + vx * t - POOL.x, p.z + vz * t - POOL.z); };
+  if (poolDist(cur, b) < POOL.r + 0.5 && Math.hypot(b.x - POOL.x, b.z - POOL.z) > POOL.r) {
+    const side = (cur.x + b.x) / 2 >= POOL.x ? 1 : -1; pts.push({ x: POOL.x + side * (POOL.r + 1.2), z: POOL.z }); cur = pts[pts.length - 1];
+  }
+  // 讀書角：書桌一排一排的，從東西兩側沿著凳子那一排走進去／走出來
+  const inDesk = p => p.x > -15.2 && p.x < -6.8 && p.z > 2.2 && p.z < 7.4;
+  if (inDesk(cur) && !inDesk(b)) { const ex = b.x > -11 ? -6.3 : -15.7; pts.push({ x: ex, z: cur.z }); cur = pts[pts.length - 1]; }
+  if (inDesk(b) && !inDesk(cur)) {
+    const ex = cur.x > -11 ? -6.3 : -15.7;
+    if (cur.z < 2.2 || cur.z > 7.4) pts.push({ x: ex, z: cur.z < 2.2 ? 1.8 : 7.8 });
+    pts.push({ x: ex, z: b.z }); cur = pts[pts.length - 1];
   }
   pts.push({ x: b.x, z: b.z });
   return pts;
