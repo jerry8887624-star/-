@@ -9,7 +9,7 @@ export class Net {
     let ws;
     try { ws = new WebSocket(this.url); } catch (e) { return; }
     this.ws = ws;
-    ws.onopen = () => { this.alive = true; this.retry = 1000; this.send({ t: 'hi', look: this.look, name: this.name, uid: this.uid || '' }); this.h.status?.(true); };
+    ws.onopen = () => { this.alive = true; this.retry = 1000; this.send({ t: 'hi', look: this.look, name: this.name, uid: this.uid || '', rank: this.rankOn === false ? 0 : 1 }); this.h.status?.(true); };
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } if (m.t === 'seat' && this.seatWait?.(m)) return; this.h.message?.(m); };
     ws.onclose = () => {
       const was = this.alive; this.alive = false; this.h.status?.(false, was);
@@ -41,6 +41,8 @@ export class Net {
   study(on, m = 0) { this.send({ t: 'study', on: on ? 1 : 0, m }); }
   lamp(x) { this.send({ t: 'lamp', x }); }
   wish() { this.send({ t: 'wish' }); }
+  rank(on) { this.rankOn = on; this.send({ t: 'rank', on: on ? 1 : 0 }); }
+  board() { this.send({ t: 'board' }); }
   // 向伺服器要一個座位（拜墊／拜位）；離線時直接當作成功
   seat(i) {
     if (!this.alive) return Promise.resolve(true);
