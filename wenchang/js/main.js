@@ -1642,10 +1642,17 @@ async function hitMonster(m) {
   const p = me.root.position, gp = m.g.position, d = Math.hypot(gp.x - p.x, gp.z - p.z);
   if (d > 7) { me.faceTo = null; const k = (d - 5) / d; await temple.walk(me, p.x + (gp.x - p.x) * k, p.z + (gp.z - p.z) * k); if (!m.alive) return; }
   throwing = true; me.faceTo = Math.atan2(gp.x - p.x, gp.z - p.z); me.emote('wave'); bubble(me, '✏️', 'bubble', 900);
+  // 鏡頭轉到斜後方，角色才不會擋住怪物和爆炸
+  temple.frame(me.faceTo, 0.42); if (temple.camDist < 6) temple.camDist = 7; temple.camPitch = Math.max(temple.camPitch, 0.3);
   out.throwBrush(p, { x: gp.x, y: 0.5, z: gp.z }, () => {
     throwing = false; if (!m.alive) return;
-    out.defeatMonster(m); sound.clack(1); buzz(15); addStat('monster'); task('monster');
-    toast(`打跑了${m.name}！「${m.say}」不要來吵我讀書。`, 2400);
+    const down = out.damage(m); sound.clack(1);
+    if (!down) { temple.shake(0.08, 0.18); hitFlash(true); buzz(12); return; }
+    // 打倒：鼓起來 → 「啵！」 → 金光飛進身體
+    out.defeatMonster(m, () => me.root.position); buzz([20, 40, 30]);
+    setTimeout(() => { temple.shake(0.22, 0.35); hitFlash(); sound.sample('ting', 0.7); }, 380);
+    out.onAbsorb = () => { sound.chime(); bubble(me, '✨', 'bubble', 1000); };
+    addStat('monster'); task('monster');
   });
 }
 temple.on('tapMonster', m => { if (!state.busy) hitMonster(m); });
@@ -1667,9 +1674,10 @@ async function bossAct() {
   if (out.bossHp <= 0) { toast('考試魔王今天已經被大家打倒了，明天牠還會再來！'); return; }
   if (d > 8 && !(await arrive('boss'))) return;
   if (throwing) return; throwing = true;
-  me.faceTo = Math.atan2(BOSS_AT.x - p.x, BOSS_AT.z - p.z); me.emote('wave');
+  me.faceTo = Math.atan2(BOSS_AT.x - p.x, BOSS_AT.z - p.z); me.emote('wave'); temple.frame(me.faceTo, 0.6); if (temple.camDist < 7) temple.camDist = 8;
   out.throwBrush(p, { x: BOSS_AT.x, y: 1.4, z: BOSS_AT.z }, () => {
-    throwing = false; out.hitBoss(); sound.clack(1); buzz(10);
+    throwing = false; out.hitBoss(); sound.clack(1); buzz(10); temple.shake(0.1, 0.2); hitFlash(true);
+    const bb = $('#boss-bar'); bb.classList.remove('hit'); void bb.offsetWidth; bb.classList.add('hit');
     store.set('bossHit', today()); bossHitToday = true;
     if (!net.alive) { const b = localBoss(); b.hp = Math.max(0, b.hp - 1); store.set('bossLocal', b); out.setBoss(b.hp, 30); if (!b.hp) bossBeat(); return; }
     net.hit();
@@ -1677,9 +1685,21 @@ async function bossAct() {
 }
 function bossBeat() {
   addStat('boss'); sound.bell(); me.emote('jump');
+  out.bossPoof(); temple.shake(0.35, 0.6); hitFlash(); buzz([40, 60, 40, 60, 80]);
   celebrate({ big: true, confetti: true, title: '⚔️ 打倒考試魔王了！', sub: '大家一起把考試魔王打跑了！考試那天也會這麼順利。明天牠還會再來。' });
 }
 temple.on('tapBoss', () => { if (!state.busy) act('boss'); });
+// 畫面邊緣閃一下金光（small：打中但還沒倒）
+function hitFlash(small) { const f = $('#hit-flash'); f.classList.toggle('small', !!small); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); }
+// 靠近考試魔王時，畫面上方出現大血條
+function bossBarTick() {
+  const p = me.root.position, near = Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z) < 10 && !document.body.classList.contains('photo-mode'), bar = $('#boss-bar');
+  if (bar.hidden !== !near) bar.hidden = !near;
+  if (!near) return;
+  const max = net.alive ? out.bossMax || 200 : 30, hp = Math.max(0, out.bossHp);
+  $('#bb-fill').style.width = `${hp / max * 100}%`; $('#bb-num').textContent = hp > 0 ? `${hp} / ${max}` : '被打倒了';
+  $('#bb-note').textContent = hp > 0 ? (net.alive ? '廟裡的人一起打，每天復活' : '每天復活') : '明天牠還會再來';
+}
 
 // 廟外的「走近就出現按鈕」：寶物 > 種樹 > 澆水 > 魔王 > 拖延怪（拖延怪會亂跑，放最後才不會擋住其他按鈕）
 function nearOutside(p) {
@@ -1757,7 +1777,7 @@ function loop() {
     if (mySeat) { const d = Math.hypot(p.x - mySeat.x, p.z - mySeat.z); if (d < 0.35) mySeat.near = true; else if (mySeat.near && d > 0.7) leaveSeat(); else if (!mySeat.near && !me.target && !me.path?.length && !state.busy) leaveSeat(); }
     $('#kneel-bar').hidden = !me.kneeling || state.busy || studyAt != null;
     document.body.classList.toggle('kneeling', !!me.kneeling);
-    nearCheck();
+    nearCheck(); bossBarTick();
   }
   requestAnimationFrame(loop);
 }
@@ -1766,4 +1786,4 @@ refresh();
 renderDm();
 initUpdates();
 requestAnimationFrame(loop);
-window.__wc = { temple, me, state, act, net };
+window.__wc = { temple, me, state, act, net, out };
