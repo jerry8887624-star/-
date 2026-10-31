@@ -2,7 +2,14 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { L } from './scene.js';
 
-const lam = (c, extra = {}) => new THREE.MeshLambertMaterial({ color: c, ...extra });
+// 卡通（賽璐璐）明暗：三段色階，整個場景跟人物同一種畫風
+let _grad;
+function toonGrad() {
+  if (_grad) return _grad;
+  _grad = new THREE.DataTexture(new Uint8Array([120, 195, 255]), 3, 1, THREE.RedFormat);
+  _grad.minFilter = _grad.magFilter = THREE.NearestFilter; _grad.needsUpdate = true; return _grad;
+}
+const lam = (c, extra = {}) => new THREE.MeshToonMaterial({ color: c, gradientMap: toonGrad(), ...extra });
 const basic = (c, extra = {}) => new THREE.MeshBasicMaterial({ color: c, ...extra });
 function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
 // 永遠面向鏡頭的文字牌（名字、怪物名稱）
@@ -63,12 +70,12 @@ export class Outside {
   // ---------- 地面、步道、四周的樹 ----------
   buildLand() {
     const S = this.S, z0 = L.GZ + 0.5, depth = L.FZ - z0 + 2;
-    const grass = new THREE.Mesh(new THREE.PlaneGeometry(L.FW * 2 + 4, depth), lam('#6f9a4a')); grass.rotation.x = -Math.PI / 2; grass.position.set(0, 0.004, z0 + depth / 2); S.add(grass);
+    const grass = new THREE.Mesh(new THREE.PlaneGeometry(L.FW * 2 + 4, depth), lam('#7cc456')); grass.rotation.x = -Math.PI / 2; grass.position.set(0, 0.004, z0 + depth / 2); S.add(grass);
     this.t.ground.push(grass);
-    const path = new THREE.Mesh(new THREE.PlaneGeometry(3, depth), lam('#c9b48a')); path.rotation.x = -Math.PI / 2; path.position.set(0, 0.008, z0 + depth / 2); S.add(path);
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(3, depth), lam('#e6d2a0')); path.rotation.x = -Math.PI / 2; path.position.set(0, 0.008, z0 + depth / 2); S.add(path);
     const cross = new THREE.Mesh(new THREE.PlaneGeometry(L.FW * 2 - 6, 2.4), lam('#c9b48a')); cross.rotation.x = -Math.PI / 2; cross.position.set(0, 0.008, 36.5); S.add(cross);
     // 四周的樹（樹林邊界）
-    const trunkM = lam('#5a3a24'), leafM = [lam('#4f7a3a', { flatShading: true }), lam('#5f8a3a', { flatShading: true }), lam('#3f6a35', { flatShading: true })];
+    const trunkM = lam('#7a5232'), leafM = [lam('#5cb04a'), lam('#6cc456'), lam('#4a9a42')];
     this.treeSpots = [];
     const tree = (x, z, s = 1) => {
       this.treeSpots.push([x, z, 1.7 * s]);

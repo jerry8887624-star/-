@@ -2,7 +2,14 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar } from './avatar.js';
 
-const lam = (c, extra = {}) => new THREE.MeshLambertMaterial({ color: c, ...extra });
+// 卡通（賽璐璐）明暗：三段色階，整個場景跟人物同一種畫風
+let _grad;
+function toonGrad() {
+  if (_grad) return _grad;
+  _grad = new THREE.DataTexture(new Uint8Array([120, 195, 255]), 3, 1, THREE.RedFormat);
+  _grad.minFilter = _grad.magFilter = THREE.NearestFilter; _grad.needsUpdate = true; return _grad;
+}
+const lam = (c, extra = {}) => new THREE.MeshToonMaterial({ color: c, gradientMap: toonGrad(), ...extra });
 const basic = (c, extra = {}) => new THREE.MeshBasicMaterial({ color: c, ...extra });
 
 // 廟的尺寸（公尺）：正殿寬 30、深 21、高 8，約是第一版的 5 倍面積
@@ -127,10 +134,15 @@ export class Temple {
   on(ev, fn) { (this.listeners[ev] ||= []).push(fn); }
   emit(ev, ...a) { (this.listeners[ev] || []).forEach(f => f(...a)); }
 
+  // 把畫面中心往上移（例如自訂外觀時，角色在上半部、選單在下半部）
+  // 鏡頭直接跳到角色後面（傳送時用，不要慢慢飛過去）
+  snapCam() { this._snap = true; }
+  viewShift(frac) { this.shiftFrac = frac; this.resize(); }
   resize() {
     const w = innerWidth, h = innerHeight;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
+    if (this.shiftFrac) this.camera.setViewOffset(w, h, 0, h * this.shiftFrac, w, h); else this.camera.clearViewOffset();
     // 直式手機視角放寬、鏡頭拉遠，才看得到整個場景
     this.camera.fov = w < h ? 60 : 50;
     this.camera.updateProjectionMatrix();
@@ -138,9 +150,9 @@ export class Temple {
 
   build() {
     const S = this.scene;
-    this.hemi = new THREE.HemisphereLight(0xfff1dc, 0x5a4636, 1.6); S.add(this.hemi);
-    this.sun = new THREE.DirectionalLight(0xffe2b8, 1.6); this.sun.position.set(-8, 14, 10); S.add(this.sun);
-    S.fog = new THREE.Fog(0xe9c9a4, 45, 120);
+    this.hemi = new THREE.HemisphereLight(0xffffff, 0x8a7a5a, 1.5); S.add(this.hemi);
+    this.sun = new THREE.DirectionalLight(0xfff2d8, 1.9); this.sun.position.set(-8, 14, 10); S.add(this.sun);
+    S.fog = new THREE.Fog(0xcfeaff, 50, 130);
 
     // 地面：外圍石地＋中庭石板＋殿內紅磚
     const outer = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), lam('#7d6a58')); outer.rotation.x = -Math.PI / 2; outer.position.y = -0.02; S.add(outer);
@@ -787,7 +799,7 @@ export class Temple {
       const g = new THREE.Group(); g.position.set(x, 0, z);
       const t = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 2.2, 8), lam('#5a3a24')); t.position.y = 1.1; g.add(t);
       [[0, 2.8, 0, 1.4], [0.7, 2.4, 0.3, 1], [-0.6, 2.5, -0.2, 1.05], [0, 3.6, 0, 0.9]].forEach(([a, b, c, r]) => {
-        const l = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), lam('#4f7a3a', { flatShading: true })); l.position.set(a, b, c); g.add(l);
+        const l = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), lam('#5cb04a')); l.position.set(a, b, c); g.add(l);
       });
       S.add(g);
     });
@@ -938,9 +950,9 @@ export class Temple {
 
   setNight(on) {
     this.night = on;
-    this.hemi.intensity = on ? 0.55 : 1.6; this.hemi.color.set(on ? 0x8a9ad8 : 0xfff1dc);
-    this.sun.intensity = on ? 0.25 : 1.6; this.sun.color.set(on ? 0x9aa8ff : 0xffe2b8);
-    this.scene.fog.color.set(on ? 0x141a33 : 0xe9c9a4);
+    this.hemi.intensity = on ? 0.55 : 1.5; this.hemi.color.set(on ? 0x8a9ad8 : 0xffffff);
+    this.sun.intensity = on ? 0.25 : 1.9; this.sun.color.set(on ? 0x9aa8ff : 0xfff2d8);
+    this.scene.fog.color.set(on ? 0x141a33 : 0xcfeaff);
     this.lanterns.forEach(l => l.material.emissive.set(on ? '#ff5a2a' : '#3a0800'));
     this.godLight.intensity = on ? 10 : 6;
   }
@@ -1176,6 +1188,7 @@ export class Temple {
       let want = at(this.camDist);
       // 擋到牆、天花板、天公爐等就拉近
       for (let d = this.camDist - 0.4; (!camClear(want, pp) || this.camHit?.(want)) && d > 1.6; d -= 0.4) want = at(d);
+      if (this._snap) { this._snap = false; this.camYaw = this.camYawTarget; this.camera.position.copy(want); this._look = tgt.clone(); }
       this.camera.position.lerp(want, Math.min(1, dt * 5));
       this._look = this._look ? this._look.lerp(tgt, Math.min(1, dt * 5)) : tgt.clone();
       this.camera.lookAt(this._look);

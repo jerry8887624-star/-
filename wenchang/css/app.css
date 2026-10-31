@@ -20,7 +20,8 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, button { touch-action: manipulation; } /* 連點按鈕不會放大畫面 */
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font-family: var(--sans); }
-body { background: linear-gradient(#f3c99a, #e9b07e 40%, #c98a5e); overscroll-behavior: none; }
+/* 白天：明亮的藍天 */
+body { background: linear-gradient(#7cc8f8, #b8e4ff 45%, #e6f6ff); overscroll-behavior: none; }
 body.night { background: linear-gradient(#0b1030, #1c2250 55%, #3a2a4a); }
 button { font: inherit; color: inherit; cursor: pointer; }
 h1, h2, h3 { font-family: var(--serif); }
@@ -590,3 +591,20 @@ body.chatting #near-btn { display: none; }
 @keyframes bossHit { 30% { transform: translateX(calc(-50% + 4px)); } 60% { transform: translateX(calc(-50% - 4px)); } }
 body.guide-open #boss-bar { top: auto; bottom: calc(300px + var(--sab)); }
 @media (orientation: landscape) and (max-height: 520px) { #boss-bar, body.guide-open #boss-bar { top: calc(58px + var(--sat)); bottom: auto; width: min(300px, 40%); } }
+
+/* 自訂外觀：角色在上半部，選單在下半部可捲動 */
+body.customizing .splash-top, body.customizing #splash .disclaimer, body.customizing #splash-install { display: none; }
+body.customizing #splash { justify-content: flex-end; background: linear-gradient(rgba(20, 10, 6, 0) 40%, rgba(20, 10, 6, .82) 58%); }
+body.customizing .splash-bottom { gap: 8px; }
+body.customizing #customize { max-height: 34vh; overflow-y: auto; }
+body.customizing .nick { display: none; }
+
+/* 地圖 */
+#map-btn { position: absolute; right: 12px; top: calc(64px + var(--sat)); width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--gold); z-index: 3;
+  background: var(--glass-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; color: #fff4d6; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); }
+#map-btn span { font-size: 20px; line-height: 1; } #map-btn small { font-size: 10px; }
+body.chatting #map-btn, body.studying #map-btn, body.photo-mode #map-btn { display: none; }
+.map-dlg canvas { display: block; width: 100%; aspect-ratio: 64 / 80; max-height: 52vh; margin: 8px auto 0; border-radius: 12px; border: 1px solid var(--line); touch-action: manipulation; }
+.map-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.map-list button { padding: 6px 10px; min-height: 34px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); color: var(--ink); font-size: 13px; }
+@media (orientation: landscape) and (max-height: 520px) { #map-btn { top: auto; bottom: calc(80px + var(--sab)); right: calc(80px + env(safe-area-inset-right, 0px)); } .map-dlg canvas { max-height: 40vh; width: auto; } }
