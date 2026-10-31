@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS, TIANGONG_SEAT0, MAIN_CUSHIONS, DESKS, DESK_SEAT0 } from './scene.js';
-import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES, ACCS } from './avatar.js';
+import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES, ACCS, HEADS, EYES, MOUTHS, CHEEKS } from './avatar.js';
 import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI, TASK_POOL, DAILY_COUNT, WEEK_GOAL, TITLES, FXS, REWARDS, FOCUS_MIN, FOCUS_SOUNDS, FOCUS_CHEERS, FEAST_DATES, FEAST_DAYS_BEFORE } from './data.js';
 import { Net } from './net.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
@@ -113,6 +113,10 @@ const buzz = ms => { try { navigator.vibrate?.(ms); } catch (e) {} };
 
 // ---------- 開場：選外觀 ----------
 const parts = [
+  ['head', '頭型', HEADS.length, v => HEADS[v]],
+  ['eye', '眼睛', EYES.length, v => EYES[v]],
+  ['mouth', '嘴巴', MOUTHS.length, v => MOUTHS[v]],
+  ['cheek', '臉頰', CHEEKS.length, v => CHEEKS[v]],
   ['hair', '髮型', HAIRS.length, v => HAIRS[v]],
   ['hairColor', '髮色', HAIR_COLORS.length, v => `<i class="sw" style="background:${HAIR_COLORS[v]}"></i>`],
   ['skin', '膚色', SKINS.length, v => `<i class="sw" style="background:${SKINS[v]}"></i>`],
@@ -122,16 +126,18 @@ const parts = [
 function renderPicker() {
   document.querySelectorAll('[data-gender]').forEach(b => b.setAttribute('aria-pressed', b.dataset.gender === look.gender));
   $('#customize').innerHTML = parts.map(([k, name, n, fmt]) =>
-    `<div class="crow" data-part="${k}"><span>${name}</span><button type="button" data-d="-1" aria-label="上一個${name}">◀</button><b>${fmt(look[k] % n)}</b><button type="button" data-d="1" aria-label="下一個${name}">▶</button></div>`).join('');
+    `<div class="crow" data-part="${k}"><span>${k === 'hairColor' && (look.head | 0) ? '毛色' : name}</span><button type="button" data-d="-1" aria-label="上一個${name}">◀</button><b>${fmt((look[k] | 0) % n)}</b><button type="button" data-d="1" aria-label="下一個${name}">▶</button></div>`).join('');
 }
 function setLook(l) { look = l; store.set('look', l); me.setLook(l); me.hold(state.carry.incense); net.setLook(l); renderPicker(); }
-const keepRewards = l => ({ ...l, acc: look.acc | 0, ttl: look.ttl | 0, fx: look.fx | 0 });
+const keepRewards = l => ({ ...l, acc: look.acc | 0, ttl: look.ttl | 0, fx: look.fx | 0, head: look.head | 0 });
 document.querySelectorAll('[data-gender]').forEach(b => b.onclick = () => setLook(keepRewards(randomLook(b.dataset.gender))));
 $('#pick-shuffle').onclick = () => setLook(keepRewards(randomLook(look.gender)));
+// 換頭型：人類 → 小熊 → 小貓 → 小兔 → 小狗 → 熊貓 → 外星人
+$('#pick-head').onclick = () => { const v = ((look.head | 0) + 1) % HEADS.length; setLook({ ...look, head: v }); toast(`頭型：${HEADS[v]}`, 1400); };
 $('#pick-custom').onclick = e => { const open = $('#customize').hidden; $('#customize').hidden = !open; e.currentTarget.setAttribute('aria-expanded', open); };
 $('#customize').onclick = e => {
   const b = e.target.closest('button'); if (!b) return; const row = b.closest('.crow'), k = row.dataset.part, n = parts.find(p => p[0] === k)[2];
-  let v = look[k];
+  let v = look[k] | 0;
   do { v = (v + +b.dataset.d + n) % n; } while (k === 'outfit' && !isOpen('outfit', v) && v !== look[k]);
   setLook({ ...look, [k]: v });
 };
