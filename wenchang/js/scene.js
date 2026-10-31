@@ -553,7 +553,11 @@ export class Temple {
 
   // 廣場：讀書角、許願池、光明燈牆
   buildPlaza() {
-    const S = this.scene, wood = lam('#7a4a2a'), dark = lam('#4a2a1a');
+    const S0 = this.scene, wood = lam('#7a4a2a'), dark = lam('#4a2a1a');
+    // 可以點的地方：點書桌、池子、合照牌子就開始
+    this.places = [];
+    const grp = id => { const g = new THREE.Group(); S0.add(g); this.places.push([id, g]); return g; };
+    let S = grp('study');
     DESKS.forEach(d => {
       const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.5), wood); top.position.set(d.x, 0.78, d.z - 0.7); S.add(top);
       [-0.52, 0.52].forEach(dx => { const l = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.74, 0.44), dark); l.position.set(d.x + dx, 0.37, d.z - 0.7); S.add(l); });
@@ -565,6 +569,7 @@ export class Temple {
     sign.position.set(-11, 1.9, 1.6); S.add(sign);
     [-12.3, -9.7].forEach(x => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.9), dark); p.position.set(x, 0.95, 1.6); S.add(p); });
     // 許願池
+    S = grp('pool');
     const P = POOL;
     const rim = new THREE.Mesh(new THREE.TorusGeometry(P.r, 0.22, 10, 36), lam('#9a8a78')); rim.rotation.x = Math.PI / 2; rim.position.set(P.x, 0.3, P.z); S.add(rim);
     const wall = new THREE.Mesh(new THREE.CylinderGeometry(P.r, P.r, 0.3, 36, 1, true), lam('#8a7a68', { side: THREE.DoubleSide })); wall.position.set(P.x, 0.15, P.z); S.add(wall);
@@ -574,8 +579,17 @@ export class Temple {
     const lotus = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), lam('#f2a0b8')); lotus.scale.y = 0.6; lotus.position.set(P.x + 0.5, 0.3, P.z - 0.4); S.add(lotus);
     const pad = new THREE.Mesh(new THREE.CircleGeometry(0.35, 14), lam('#4f8a3a')); pad.rotation.x = -Math.PI / 2; pad.position.set(P.x + 0.5, 0.25, P.z - 0.4); S.add(pad);
     this.ripples = [];
+    // 合照打卡點：地上金色圓圈＋立牌
+    S = grp('photo');
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.7, 32), basic('#e8c15a', { side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.set(4, 0.03, 11); S.add(ring);
+    const spot = new THREE.Mesh(new THREE.CircleGeometry(0.55, 32), basic('#c8352b', { transparent: true, opacity: 0.35 })); spot.rotation.x = -Math.PI / 2; spot.position.set(4, 0.025, 11); S.add(spot);
+    const pt = plaqueTex('合照打卡', { w: 512, h: 150, font: 92, bg: '#b8241c', fg: '#f6dc94' });
+    const photoSign = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.55, 0.06), [dark, dark, dark, dark, basic('#fff', { map: pt }), basic('#fff', { map: pt })]); photoSign.position.set(5.6, 1.9, 11.4); S.add(photoSign);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.65), dark); post.position.set(5.6, 0.82, 11.4); S.add(post);
+    const tip = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.3), basic('#fff', { map: plaqueTex('站進圓圈拍照', { w: 512, h: 96, font: 56, bg: '#2a1410', fg: '#f6dc94' }), side: THREE.DoubleSide }));
+    tip.position.set(5.6, 1.45, 11.44); S.add(tip);
     // 光明燈牆（殿內左側牆，兩扇圓窗中間）
-    const g = new THREE.Group(); g.position.set(-14.8, 0, -8.25); g.rotation.y = Math.PI / 2; S.add(g);
+    const g = new THREE.Group(); g.position.set(-14.8, 0, -8.25); g.rotation.y = Math.PI / 2; S0.add(g);
     const c = document.createElement('canvas'); c.width = 512; c.height = 448; this.lampCanvas = c;
     const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; this.lampTex = tex;
     const board = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 2.98), basic('#fff', { map: tex })); board.position.set(0, 2.45, 0.06); g.add(board); this.lampBoard = board;
@@ -903,6 +917,7 @@ export class Temple {
       if (ray.intersectObject(this.lxScreen, false)[0]) { this.emit('tapLingxi'); return; }
       if (ray.intersectObject(this.bangBoard, true)[0]) { this.emit('tapBang'); return; }
       if (ray.intersectObject(this.lampBoard, false)[0]) { this.emit('tapLamp'); return; }
+      for (const [id, obj] of this.places) if (ray.intersectObject(obj, true)[0]) { this.emit('tapPlace', id); return; }
       const hitK = ray.intersectObject(this.wall, true)[0];
       if (hitK) { let o = hitK.object; while (o && !o.userData.card && o !== this.wall) o = o.parent; this.emit('tapWall', o?.userData.card || null); return; }
       const hitC = ray.intersectObjects(this.cushionMeshes, false)[0];

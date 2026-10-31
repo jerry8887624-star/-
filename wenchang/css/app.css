@@ -520,3 +520,13 @@ body.photo-mode #hud > *:not(#labels), body.photo-mode .mark { visibility: hidde
 .tag .ttl { color: var(--gold-2); margin-right: 3px; font-size: .92em; }
 body.studying #guide { display: none; }
 @media (max-width: 430px) { #dock span { font-size: 10.5px; letter-spacing: -.04em; } }
+/* 走到廣場地點附近出現的大按鈕 */
+#near-btn { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(236px + var(--sab)); z-index: 4; padding: 12px 26px; min-height: 52px; border-radius: 999px;
+  border: 1.5px solid var(--gold); background: linear-gradient(180deg, var(--red-2), var(--red)); color: #fff6e0; font-size: 17px; font-weight: 700; white-space: nowrap;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .45), 0 0 0 4px rgba(232, 193, 90, .18); animation: nearPulse 2s ease-in-out infinite; }
+#near-btn.pop { animation: nearIn .35s var(--ease), nearPulse 2s .35s ease-in-out infinite; }
+@keyframes nearIn { from { transform: translateX(-50%) scale(.6); opacity: 0; } }
+@keyframes nearPulse { 50% { box-shadow: 0 6px 22px rgba(0, 0, 0, .45), 0 0 0 9px rgba(232, 193, 90, .1); } }
+body.kneeling #near-btn { bottom: calc(300px + var(--sab)); }
+body.chatting #near-btn { display: none; }
+@media (orientation: landscape) and (max-height: 520px) { #near-btn { bottom: calc(96px + var(--sab)); } body.kneeling #near-btn { bottom: calc(150px + var(--sab)); } }
