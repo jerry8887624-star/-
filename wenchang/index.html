@@ -16,6 +16,24 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
+<script>
+// 保險：樣式沒有載入（手機網路不穩、離線快取出錯）就自動再載一次；還是不行就清掉離線快取、重新整理一次
+addEventListener('load', function () {
+  var ok = function () { var s = document.getElementById('splash'); return !s || getComputedStyle(s).position === 'fixed'; };
+  setTimeout(function () {
+    if (ok()) return;
+    var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/app.css?r=' + Date.now(); document.head.appendChild(l);
+    setTimeout(function () {
+      if (ok()) return;
+      try { if (sessionStorage.getItem('wc.cssfix')) return; sessionStorage.setItem('wc.cssfix', '1'); } catch (e) {}
+      var sw = navigator.serviceWorker ? navigator.serviceWorker.getRegistrations() : Promise.resolve([]);
+      sw.then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })
+        .then(function () { return window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : 0; })
+        .then(function () { location.reload(); }, function () { location.reload(); });
+    }, 3000);
+  }, 800);
+});
+</script>
 <title>線上參拜文昌帝君</title>
 </head>
 <body>
@@ -530,7 +548,7 @@
 <script src="data/qian.js"></script>
 <script type="module" src="js/main.js"></script>
 <script>
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
 </script>
 </body>
 </html>

@@ -14,6 +14,7 @@ self.addEventListener('fetch',e=>{
       .catch(()=>{clearTimeout(t);caches.match('index.html').then(m=>{if(!done){done=true;res(m||Response.error())}})})}));return}
   if(u.origin!==location.origin&&!/fonts\.(googleapis|gstatic)\.com$/.test(u.hostname))return;
   // 程式與樣式：先網路（確保新版一起生效），失敗才用快取
-  if(u.origin===location.origin&&/\.(js|css)$/.test(u.pathname)){e.respondWith(fetch(r,{cache:'no-store'}).then(x=>put(r,x)).catch(()=>caches.match(r)));return}
-  e.respondWith(caches.match(r).then(m=>{const n=fetch(r).then(x=>put(r,x)).catch(()=>m);return m||n}));
+  // 網路回傳錯誤或連不上時用快取；快取也沒有就再試一次網路（絕對不能回傳空的，否則整頁會沒有樣式）
+  if(u.origin===location.origin&&/\.(js|css)$/.test(u.pathname)){e.respondWith(fetch(r,{cache:'no-store'}).then(x=>x.ok?put(r,x):caches.match(r).then(m=>m||x)).catch(()=>caches.match(r).then(m=>m||fetch(r))));return}
+  e.respondWith(caches.match(r).then(m=>{const n=fetch(r).then(x=>put(r,x)).catch(()=>m||Response.error());return m||n}));
 });
