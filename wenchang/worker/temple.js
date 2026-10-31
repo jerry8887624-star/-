@@ -42,7 +42,8 @@ const int = (v, lo, hi) => Math.round(num(v, lo, hi));
 function cleanLook(l) {
   l = l || {};
   return { gender: l.gender === 'm' ? 'm' : 'f', hair: int(l.hair, 0, 20), hairColor: int(l.hairColor, 0, 20),
-    skin: int(l.skin, 0, 20), outfit: int(l.outfit, 0, 20), glasses: int(l.glasses, 0, 2), acc: int(l.acc, 0, 3), ttl: int(l.ttl, 0, 30), fx: int(l.fx, 0, 5) };
+    skin: int(l.skin, 0, 20), outfit: int(l.outfit, 0, 20), glasses: int(l.glasses, 0, 2), acc: int(l.acc, 0, 3), ttl: int(l.ttl, 0, 30), fx: int(l.fx, 0, 5),
+    head: int(l.head, 0, 10), eye: int(l.eye, 0, 10), mouth: int(l.mouth, 0, 10), cheek: int(l.cheek, 0, 5) };
 }
 
 export class Temple {
