@@ -530,3 +530,22 @@ body.studying #guide { display: none; }
 body.kneeling #near-btn { bottom: calc(300px + var(--sab)); }
 body.chatting #near-btn { display: none; }
 @media (orientation: landscape) and (max-height: 520px) { #near-btn { bottom: calc(96px + var(--sab)); } body.kneeling #near-btn { bottom: calc(150px + var(--sab)); } }
+/* 全螢幕專注畫面 */
+#focus-screen { position: fixed; inset: 0; z-index: 25; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: calc(20px + var(--sat)) 20px calc(20px + var(--sab));
+  background: radial-gradient(ellipse at 50% 30%, #3a1a14 0%, #1a0c08 70%); color: var(--ink); text-align: center; overflow-y: auto; touch-action: manipulation; }
+.fs-top { margin: 0; color: var(--gold-2); font-family: var(--serif); font-weight: 700; letter-spacing: .08em; }
+.fs-time { margin: 0; font-family: var(--serif); font-size: clamp(64px, 22vw, 120px); font-weight: 700; color: #f6dc94; font-variant-numeric: tabular-nums; text-shadow: 0 0 30px rgba(232, 193, 90, .35); line-height: 1; }
+.fs-cheer { margin: 0; font-family: var(--serif); font-size: 17px; color: #fff4d6; min-height: 1.4em; }
+.fs-together { margin: 0; font-size: 14px; color: var(--muted); }
+.fs-sound { width: min(420px, 100%); margin-top: 6px; }
+.fs-lbl { margin: 0 0 6px; font-size: 13px; color: var(--gold-2); }
+.fs-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.fs-chips button { padding: 6px 12px; min-height: 34px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); color: var(--ink); font-size: 13.5px; }
+.fs-chips button[aria-pressed="true"] { background: var(--red); border-color: var(--gold); }
+.fs-chips .grp { width: 100%; margin: 4px 0 0; font-size: 11.5px; color: var(--muted); }
+.fs-stats { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.fs-unlock { position: relative; overflow: hidden; margin-top: 10px; padding: 12px 26px; min-height: 48px; border-radius: 999px; border: 1px solid var(--gold); background: rgba(255, 255, 255, .06); color: #fff4d6; font-size: 15px; font-weight: 700; user-select: none; -webkit-user-select: none; }
+.fs-unlock i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(232, 193, 90, .35); }
+.fs-unlock span { position: relative; }
+.fs-note { margin: 0; font-size: 12px; color: var(--muted); }
+@media (orientation: landscape) and (max-height: 520px) { #focus-screen { gap: 6px; } .fs-time { font-size: 64px; } }

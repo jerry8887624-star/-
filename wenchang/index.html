@@ -325,6 +325,7 @@
     <ul id="task-list" class="task-list"></ul>
     <p class="say" id="task-days"></p>
     <p class="say" id="week-line"></p>
+    <p class="say" id="focus-line"></p>
   </section>
   <section class="tbox" id="reward-box">
     <h3>🏅 獎勵 <small id="reward-count"></small></h3>
@@ -400,9 +401,24 @@
   <div id="study-run" hidden>
     <p class="pop-title">📖 專注中</p>
     <p id="study-time" class="study-time">25:00</p>
-    <p class="pending">手機可以先放下，時間到會叫你。</p>
-    <div class="row tight"><button type="button" class="ghost small" id="study-stop">結束</button></div>
+    <p class="pending">離開座位就會結束這輪專注。</p>
+    <div class="row tight"><button type="button" class="ghost small" id="study-stop">結束</button><button type="button" id="study-back">回到專注畫面</button></div>
   </div>
+</section>
+
+<!-- 全螢幕專注畫面：蓋住遊戲，誤觸也不會離開座位 -->
+<section id="focus-screen" hidden aria-label="專注中">
+  <p class="fs-top">📖 一起讀書角・專注中</p>
+  <p id="fs-time" class="fs-time">25:00</p>
+  <p id="fs-cheer" class="fs-cheer"></p>
+  <p id="fs-together" class="fs-together"></p>
+  <div class="fs-sound">
+    <p class="fs-lbl">專注聲音</p>
+    <div id="fs-sounds" class="fs-chips"></div>
+  </div>
+  <p id="fs-stats" class="fs-stats"></p>
+  <button type="button" id="fs-unlock" class="fs-unlock"><i id="fs-hold"></i><span>按住 1 秒回到廟裡</span></button>
+  <p class="fs-note">回到廟裡後專注會繼續計時；離開座位才會結束。</p>
 </section>
 
 <!-- 任務完成慶祝 -->

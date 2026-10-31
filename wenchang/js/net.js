@@ -38,7 +38,7 @@ export class Net {
   unblock(id) { this.send({ t: 'unblock', id }); }
   bless(id) { this.send({ t: 'bless', id }); }
   bang(x) { this.send({ t: 'bang', x }); }
-  study(on) { this.send({ t: 'study', on: on ? 1 : 0 }); }
+  study(on, m = 0) { this.send({ t: 'study', on: on ? 1 : 0, m }); }
   lamp(x) { this.send({ t: 'lamp', x }); }
   wish() { this.send({ t: 'wish' }); }
   // 向伺服器要一個座位（拜墊／拜位）；離線時直接當作成功
