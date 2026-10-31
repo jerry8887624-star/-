@@ -354,7 +354,6 @@
   <header class="lx-bar">
     <button type="button" id="lx-back" class="ghost small" hidden>‹ 選單</button>
     <h2>靈犀 LINGXI</h2>
-    <a id="lx-out" class="ghost small" href="https://lingxi-397.pages.dev/" target="_blank" rel="noopener">另開</a>
     <button type="button" id="lx-close" class="ghost small" aria-label="回到文昌祠">回廟裡 ✕</button>
   </header>
   <div id="lx-menu" class="lx-menu">
@@ -362,7 +361,8 @@
     <div id="lx-grid" class="lx-grid"></div>
     <p class="pending">靈犀是同一位作者的命理占卜 App，內容僅供參考與娛樂。</p>
   </div>
-  <iframe id="lx-frame" title="靈犀占卜" hidden allow="autoplay; clipboard-write"></iframe>
+  <!-- sandbox 不給 allow-popups／allow-top-navigation：靈犀裡的連結不能另開分頁或把整頁帶離文昌祠 -->
+  <iframe id="lx-frame" title="靈犀占卜" hidden allow="autoplay; clipboard-write; web-share" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"></iframe>
 </section>
 
 <!-- 說明 -->

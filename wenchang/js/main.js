@@ -692,7 +692,7 @@ function closeLingxi() {
 }
 $('#lx-grid').onclick = e => {
   const b = e.target.closest('[data-v]'); if (!b) return; const url = LINGXI_URL + '#' + b.dataset.v;
-  $('#lx-frame').src = url; $('#lx-out').href = url; $('#lx-frame').hidden = false; $('#lx-menu').hidden = true; $('#lx-back').hidden = false;
+  $('#lx-frame').src = url; $('#lx-frame').hidden = false; $('#lx-menu').hidden = true; $('#lx-back').hidden = false;
 };
 $('#lx-back').onclick = () => { $('#lx-frame').src = 'about:blank'; $('#lx-frame').hidden = true; $('#lx-menu').hidden = false; $('#lx-back').hidden = true; };
 $('#lx-close').onclick = closeLingxi;
