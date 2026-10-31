@@ -1,5 +1,5 @@
 /* 離線快取：網頁先試網路（不讀 HTTP 快取，4 秒逾時才用手機裡的版本），其他資源先用快取並在背景更新 */
-const V='wc-72554f7f19';
+const V='wc-7529e102bb';
 const CORE=['./','index.html','manifest.webmanifest','css/app.css','js/main.js','js/scene.js','js/avatar.js','js/data.js','js/net.js','js/outside.js','js/music.js','js/config.js','js/chatfilter.js','js/changes.js','js/update.js','data/qian.js','vendor/three.module.min.js','icons/icon.svg','icons/icon-192.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CORE.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('wc-')&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
@@ -14,6 +14,7 @@ self.addEventListener('fetch',e=>{
       .catch(()=>{clearTimeout(t);caches.match('index.html').then(m=>{if(!done){done=true;res(m||Response.error())}})})}));return}
   if(u.origin!==location.origin&&!/fonts\.(googleapis|gstatic)\.com$/.test(u.hostname))return;
   // 程式與樣式：先網路（確保新版一起生效），失敗才用快取
-  if(u.origin===location.origin&&/\.(js|css)$/.test(u.pathname)){e.respondWith(fetch(r,{cache:'no-store'}).then(x=>put(r,x)).catch(()=>caches.match(r)));return}
-  e.respondWith(caches.match(r).then(m=>{const n=fetch(r).then(x=>put(r,x)).catch(()=>m);return m||n}));
+  // 網路回傳錯誤或連不上時用快取；快取也沒有就再試一次網路（絕對不能回傳空的，否則整頁會沒有樣式）
+  if(u.origin===location.origin&&/\.(js|css)$/.test(u.pathname)){e.respondWith(fetch(r,{cache:'no-store'}).then(x=>x.ok?put(r,x):caches.match(r).then(m=>m||x)).catch(()=>caches.match(r).then(m=>m||fetch(r))));return}
+  e.respondWith(caches.match(r).then(m=>{const n=fetch(r).then(x=>put(r,x)).catch(()=>m||Response.error());return m||n}));
 });
