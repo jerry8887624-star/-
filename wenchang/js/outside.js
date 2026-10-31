@@ -147,6 +147,12 @@ export class Outside {
   buildSky() {
     const pad = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.06, 28), lam('#b9a07a')); pad.position.set(14, 0.03, 30); this.S.add(pad);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.08, 6, 36), lam('#c8352b')); ring.rotation.x = Math.PI / 2; ring.position.set(14, 0.07, 30); this.S.add(ring);
+    // 廣場中間擺一盞還沒點的天燈，點它也能放
+    const g = new THREE.Group(); g.position.set(14, 0, 30); this.S.add(g);
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.3, 12), lam('#8a5a3a')); stand.position.y = 0.15; g.add(stand);
+    const lan = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.32, 0.8, 10), lam('#f4e2b8')); lan.position.y = 0.72; g.add(lan);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.03, 6, 16), lam('#c8352b')); rim.rotation.x = Math.PI / 2; rim.position.y = 1.12; g.add(rim);
+    this.t.tapTargets.push([g, () => this.t.emit('tapSky')]); this.t.tapTargets.push([pad, () => this.t.emit('tapSky')]);
   }
   releaseLantern(x, z) {
     const g = new THREE.Group(); g.position.set(x, 1.6, z);
@@ -344,17 +350,41 @@ export class Outside {
     this.hpCanvas = document.createElement('canvas'); this.hpCanvas.width = 256; this.hpCanvas.height = 40;
     this.hpTex = new THREE.CanvasTexture(this.hpCanvas); this.hpTex.colorSpace = THREE.SRGBColorSpace;
     const hp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.hpTex, depthWrite: false })); hp.scale.set(2.4, 0.375, 1); hp.position.y = 3.15; g.add(hp);
-    this.zzz = textSprite('被打倒了・明天再來', { sx: 2.2, bg: 'rgba(36,20,14,.85)' }); this.zzz.position.y = 2.6; this.zzz.visible = false; g.add(this.zzz);
+    // 魔王不在時：原地立一塊牌子寫下次出現的時間
+    this.bossSign = new THREE.Group(); this.bossSign.position.set(BOSS_AT.x, 0, BOSS_AT.z); this.bossSign.visible = false; this.S.add(this.bossSign);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.6), lam('#5a3a24')); post.position.y = 0.8; this.bossSign.add(post);
     this.t.tapTargets.push([g, () => this.t.emit('tapBoss')]);
-    this.setBoss(200, 200);
+    this.setBoss(120, 120, 0);
   }
-  setBoss(hp, max) {
-    this.bossHp = hp; this.bossMax = max; const g = this.hpCanvas.getContext('2d'), W = 256, H = 40;
+  setBoss(hp, max, next) {
+    const was = this.bossHp; this.bossHp = hp; this.bossMax = max; const g = this.hpCanvas.getContext('2d'), W = 256, H = 40;
     g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(20,10,20,.85)'; g.beginPath(); g.roundRect(0, 0, W, H, 10); g.fill();
     g.fillStyle = '#e8402a'; g.beginPath(); g.roundRect(4, 4, (W - 8) * Math.max(0, hp / max), H - 8, 7); g.fill();
     g.fillStyle = '#fff'; g.font = '700 22px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(`${Math.max(0, hp)} / ${max}`, W / 2, H / 2 + 1);
     this.hpTex.needsUpdate = true;
-    const down = hp <= 0; this.zzz.visible = down; this.bossBody.material.color.set(down ? '#7a7a8a' : '#5a3a8a');
+    const down = hp <= 0;
+    // 被打倒：跟小怪一樣炸開消失；新的一隻出現：從地上冒出來
+    if (down && this.boss.visible) { if (was > 0 && this.ready) this.bossVanish(); else this.boss.visible = false; }
+    if (!down && !this.boss.visible) this.bossAppear(this.ready);
+    if (next && next !== this.bossNext) {
+      this.bossNext = next; if (this.signTag) this.bossSign.remove(this.signTag);
+      const t = new Date(next), hh = String(t.getHours()).padStart(2, '0'), mm = String(t.getMinutes()).padStart(2, '0');
+      this.signTag = textSprite(`👹 下一隻魔王 ${hh}:${mm} 出現`, { w: 420, h: 72, font: 32, sx: 3, bg: 'rgba(60,20,80,.9)' }); this.signTag.position.y = 1.9; this.bossSign.add(this.signTag);
+    }
+    this.bossSign.visible = down;
+    this.ready = true;
+  }
+  bossVanish() {
+    const g = this.boss, b = this.bossBody; b.material.emissive.set('#ffffff');
+    this.say({ g }, '可惡…我還會再來的！', 4.1, 900);
+    this.t.tween(500, k => g.scale.setScalar(1 + k * 0.35), 0, t => t, () => { g.visible = false; g.scale.setScalar(1); b.material.emissive.set('#000000'); this.bossPoof(); });
+  }
+  bossAppear(anim) {
+    const g = this.boss; g.visible = true; this.bossSign.visible = false;
+    if (!anim) return;
+    g.scale.setScalar(0.01); this.poof(new THREE.Vector3(BOSS_AT.x, 0.6, BOSS_AT.z), '#5a3a8a');
+    this.t.tween(900, k => g.scale.setScalar(0.01 + k * 0.99), 200, t => 1 - Math.pow(1 - t, 3));
+    this.say({ g }, '哈哈哈！考試魔王來了！', 4.1, 2000);
   }
   hitBoss() {
     const b = this.bossBody; this.t.tween(250, k => { b.scale.set(1 + Math.sin(k * Math.PI) * 0.08, 0.85 - Math.sin(k * Math.PI) * 0.08, 1); });
@@ -392,7 +422,7 @@ export class Outside {
     }
     // 寶物：轉圈、上下浮動
     for (const o of this.treasures) if (o.g.visible) { o.m.rotation.y += dt * 1.5; o.g.position.y = 0.5 + Math.sin(t * 2 + o.x) * 0.1; }
-    if (this.boss && this.bossHp > 0) this.boss.position.y = Math.abs(Math.sin(t * 1.5)) * 0.1;
+    if (this.boss && this.bossHp > 0 && this.boss.visible) this.boss.position.y = Math.abs(Math.sin(t * 1.5)) * 0.1;
     // 粒子（水滴、星星、飼料）
     for (let i = this.fx.length - 1; i >= 0; i--) {
       const f = this.fx[i]; f.life -= dt;

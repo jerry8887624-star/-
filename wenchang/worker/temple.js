@@ -19,7 +19,8 @@ const MAX_LAMPS = 200;      // 光明燈最多幾盞
 const LAMP_DAYS = 7;        // 光明燈亮幾天
 const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500, offer: 10000, sow: 5000, water: 2500, sky: 8000, hit: 450 };
 const PLOT_COUNT = 48;   // 金榜樹林的樹位
-const BOSS_HP = 200;     // 考試魔王每天的血量
+const BOSS_HP = 120;     // 考試魔王的血量（每兩小時出現一隻）
+const BOSS_EVERY = 2 * 3600e3;
 // 台灣時間的日期與週（週一開始），排行榜用
 const twNow = () => new Date(Date.now() + 8 * 3600e3);
 const dayKey = () => twNow().toISOString().slice(0, 10);
@@ -283,8 +284,10 @@ export class Temple {
 
   saveTrees() { this.state.storage.put('trees', this.trees); for (const q of this.players.values()) if (q.look) send(q, { t: 'trees', trees: this.publicTrees(q) }); }
   publicTrees(p) { const d = dayKey(); return this.trees.map((t, i) => t && { i, n: t.n, s: t.s, wt: t.d === d ? 1 : 0, mine: p.uid && t.u === p.uid ? 1 : 0 }).filter(Boolean); }
-  bossToday() { const d = dayKey(); if (this.boss.d !== d) this.boss = { d, hp: BOSS_HP, hit: [] }; return this.boss; }
-  bossState() { const b = this.bossToday(); return { hp: Math.max(0, b.hp), max: BOSS_HP }; }
+  // 考試魔王每兩小時一隻（台灣時間 0、2、4…點）；被打倒就消失，等下一個時段再出現
+  bossSlot() { return Math.floor((Date.now() + 8 * 3600e3) / BOSS_EVERY); }
+  bossToday() { const d = String(this.bossSlot()); if (this.boss.d !== d) this.boss = { d, hp: BOSS_HP, hit: [] }; return this.boss; }
+  bossState() { const b = this.bossToday(); return { hp: Math.max(0, b.hp), max: BOSS_HP, next: (this.bossSlot() + 1) * BOSS_EVERY - 8 * 3600e3 }; }
 
   publicOffers(p) { return this.offers.map(e => ({ o: e.o, tk: e.tk, mine: p.uid && e.u === p.uid ? 1 : 0 })); }
 
@@ -307,6 +310,8 @@ export class Temple {
       if (!this.players.size) { this.timer = null; this.lastMin = 0; return; }
       const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, n: p.name || '', st: p.seat ?? -1, su: p.su || 0, look: p.look }));
       this.broadcast({ t: 'state', players: list, online: list.length, total: this.total });
+      // 新的時段到了：魔王重新出現
+      if (this.boss.d !== String(this.bossSlot())) { this.bossToday(); this.state.storage.put('boss', this.boss); this.broadcast({ t: 'boss', ...this.bossState(), spawn: 1 }); }
       if (this.bossDirty) { this.bossDirty = false; this.broadcast({ t: 'boss', ...this.bossState() }); }
       if (Date.now() - (this.lastMin || 0) >= 60000) { if (this.lastMin) this.creditActive(); this.lastMin = Date.now(); }
       this.timer = setTimeout(loop, list.length > 40 ? 400 : 250); // 人多時降低更新頻率，伺服器才撐得住
