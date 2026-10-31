@@ -608,3 +608,6 @@ body.chatting #map-btn, body.studying #map-btn, body.photo-mode #map-btn { displ
 .map-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .map-list button { padding: 6px 10px; min-height: 34px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, .05); color: var(--ink); font-size: 13px; }
 @media (orientation: landscape) and (max-height: 520px) { #map-btn { top: auto; bottom: calc(80px + var(--sab)); right: calc(80px + env(safe-area-inset-right, 0px)); } .map-dlg canvas { max-height: 40vh; width: auto; } }
+
+.fs-mute { margin: 8px 0 0; font-size: 13.5px; color: #ffcf8a; }
+.fs-mute button { margin-left: 6px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--gold); background: var(--red); color: #fff6e0; font-size: 13px; }

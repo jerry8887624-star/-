@@ -56,7 +56,9 @@ const current = () => STEPS.find(s => !state.done.has(s.id));
 const sound = {
   on: store.get('sound', true), ctx: null,
   init() {
-    if (this.ctx) return; try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+    if (this.ctx) return;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {} // iPhone：當成媒體播放，比較不會被靜音
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
     const c = this.ctx, len = c.sampleRate * 2, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
     let last = 0; for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3; }
     const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
@@ -1355,21 +1357,15 @@ function closeFocusScreen() { $('#focus-screen').hidden = true; temple.lockMove 
 })();
 
 // 專注聲音：靈犀配樂或環境聲，用原生 <audio> 循環播放；專注時先暫停廟裡的背景音樂
-const focusAudio = new Audio(); focusAudio.loop = true; focusAudio.preload = 'none';
-let focusSnd = store.get('focusSnd', 'rain'), musicWas = false;
-function playFocusSound() {
-  const s = FOCUS_SOUNDS.find(x => x.k === focusSnd) || FOCUS_SOUNDS[0];
-  if (music.playing) { musicWas = true; music.pause(); }
-  if (!s.src || !sound.on) { focusAudio.pause(); return; }
-  if (!focusAudio.src.endsWith(s.src)) focusAudio.src = s.src;
-  focusAudio.volume = s.vol ?? 0.8; focusAudio.play().catch(() => {});
-}
-function stopFocusSound() { focusAudio.pause(); if (musicWas) { musicWas = false; music.play(); } }
+let focusSnd = store.get('focusSnd', 'rain');
+function playFocusSound() { const s = FOCUS_SOUNDS.find(x => x.k === focusSnd) || FOCUS_SOUNDS[0]; music.focusOn(s.src || null, s.vol ?? 0.85); }
+function stopFocusSound() { music.focusOff(); }
 $('#fs-sounds').onclick = e => {
   const b = e.target.closest('[data-snd]'); if (!b) return;
   focusSnd = b.dataset.snd; store.set('focusSnd', focusSnd); playFocusSound(); renderFocusScreen();
-  if (!sound.on && focusSnd !== 'none') toast('右上角喇叭目前是關的，打開後才聽得到。');
 };
+// 喇叭關著時，專注畫面上直接提示並可以打開（一般的提示會被專注畫面蓋住）
+$('#fs-mute-on').onclick = () => { sound.init(); if (!sound.on) sound.toggle(); $('#sound-btn').setAttribute('aria-pressed', sound.on); playFocusSound(); renderFocusScreen(); };
 
 // 專注紀錄：今天、本週、累積
 // 今日面板在載入時就會畫，所以這裡用函式（不用 const），才不會還沒定義就被呼叫
@@ -1398,6 +1394,7 @@ function renderFocusScreen() {
   const n = studyingNow();
   $('#fs-together').textContent = `${n > 1 ? `現在有 ${n} 人和你一起讀書・` : ''}今天大家一共專注了 ${focusAll} 分鐘`;
   $('#fs-stats').textContent = focusText();
+  $('#fs-mute').hidden = sound.on;
 }
 setInterval(() => { drawStudyBoard(); renderFocusScreen(); }, 5000);
 
