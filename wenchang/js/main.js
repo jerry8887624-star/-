@@ -99,6 +99,29 @@ const sound = {
       const g = c.createGain(); g.gain.value = 0.7; s.connect(bp).connect(g).connect(this.master); s.start(t);
     }
   },
+  // 廟外活動的音效：全部用 Web Audio 即時合成，不用另外下載音檔
+  tone(f0, f1, dur, type = 'sine', vol = 0.2, delay = 0) {
+    const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(this.master); o.start(t); o.stop(t + dur + 0.02);
+  },
+  noise(dur, f0, f1, vol = 0.3, type = 'bandpass', delay = 0) {
+    const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime + delay, len = Math.floor(c.sampleRate * dur), b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const s = c.createBufferSource(); s.buffer = b; const f = c.createBiquadFilter(); f.type = type; f.Q.value = 1.2; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = c.createGain(); g.gain.value = vol; s.connect(f).connect(g).connect(this.master); s.start(t);
+  },
+  sfx(k) {
+    if (k === 'hit') { this.tone(220, 70, 0.14, 'sine', 0.35); this.noise(0.06, 2500, 1200, 0.25); }                 // 打中：咚
+    if (k === 'pop') { this.noise(0.35, 3000, 300, 0.45, 'lowpass'); this.tone(160, 50, 0.25, 'sine', 0.4); this.tone(900, 1800, 0.08, 'triangle', 0.12, 0.02); } // 啵！
+    if (k === 'sparkle') [1318, 1568, 2093, 2637].forEach((f, i) => this.tone(f, f, 0.35, 'triangle', 0.08, i * 0.07));     // 叮叮叮
+    if (k === 'whoosh') { this.noise(1.4, 300, 2400, 0.25); this.tone(523, 784, 0.9, 'sine', 0.06, 0.3); }               // 天燈升空
+    if (k === 'splash') for (let i = 0; i < 6; i++) this.tone(300 + Math.random() * 700, 120 + Math.random() * 200, 0.12, 'sine', 0.12, i * 0.06 + Math.random() * 0.04); // 噗嚕噗嚕
+    if (k === 'coin') { this.tone(2093, 2093, 0.18, 'triangle', 0.1); this.tone(2637, 2637, 0.3, 'triangle', 0.08, 0.08); }
+    if (k === 'growl') { this.tone(90, 55, 1.0, 'sawtooth', 0.12); this.tone(95, 60, 1.0, 'sawtooth', 0.1, 0.05); this.noise(0.8, 400, 150, 0.2, 'lowpass'); }
+    if (k === 'warp') { this.tone(400, 1400, 0.3, 'sine', 0.12); this.tone(600, 2000, 0.3, 'triangle', 0.06, 0.05); }
+  },
   fire() { // 金紙入爐：一陣火焰呼呼聲
     const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime, len = c.sampleRate * 1.2, b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(Math.sin(Math.PI * i / len), 1.5);
@@ -136,7 +159,13 @@ document.querySelectorAll('[data-gender]').forEach(b => b.onclick = () => setLoo
 $('#pick-shuffle').onclick = () => setLook(keepRewards(randomLook(look.gender)));
 // 換頭型：人類 → 小熊 → 小貓 → 小兔 → 小狗 → 熊貓 → 外星人
 $('#pick-head').onclick = () => { const v = ((look.head | 0) + 1) % HEADS.length; setLook({ ...look, head: v }); toast(`頭型：${HEADS[v]}`, 1400); };
-$('#pick-custom').onclick = e => { const open = $('#customize').hidden; $('#customize').hidden = !open; e.currentTarget.setAttribute('aria-expanded', open); };
+// 自訂外觀：選單在下半部，鏡頭拉近、把角色放到畫面上半部，邊換邊看得到
+$('#pick-custom').onclick = e => {
+  const open = $('#customize').hidden; $('#customize').hidden = !open; e.currentTarget.setAttribute('aria-expanded', open);
+  document.body.classList.toggle('customizing', open);
+  temple.camDist = open ? 5.4 : 5.6; temple.camPitch = open ? 0.12 : 0.14; temple.focus = new THREE.Vector3(me.root.position.x, open ? 0.8 : 0.75, me.root.position.z);
+  temple.viewShift(open ? 0.2 : 0);
+};
 $('#customize').onclick = e => {
   const b = e.target.closest('button'); if (!b) return; const row = b.closest('.crow'), k = row.dataset.part, n = parts.find(p => p[0] === k)[2];
   let v = look[k] | 0;
@@ -156,7 +185,7 @@ $('#enter-btn').onclick = async () => {
   nick = nr.text; store.set('nick', nick); $('#nick-input').blur();
   sound.init(); sound.bell(0.12);
   music.night = night; music.muted = !sound.on; music.start();
-  $('#splash').classList.add('leaving');
+  $('#splash').classList.add('leaving'); document.body.classList.remove('customizing'); temple.viewShift(0);
   setTimeout(() => { $('#splash').hidden = true; }, 500);
   $('#hud').hidden = false;
   temple.focus = null; temple.camDist = innerWidth < innerHeight ? 9 : 8; temple.camPitch = 0.32;
@@ -779,7 +808,7 @@ const net = new Net(wsUrl, {
     else if (m.t === 'sky') { if (m.from !== myId) { out.releaseLantern(m.x, m.z); if (performance.now() - lastWishFeed > 6000) { lastWishFeed = performance.now(); feed(`🏮 ${who(m.from)} 放了一盞天燈`); } } }
     else if (m.t === 'boss') {
       out.setBoss(m.hp, m.max, m.next);
-      if (m.spawn) feed('👹 考試魔王出現了！到樹林最裡面一起打');
+      if (m.spawn) { feed('👹 考試魔王出現了！到樹林最裡面一起打'); if (Math.hypot(me.root.position.x - BOSS_AT.x, me.root.position.z - BOSS_AT.z) < 25) sound.sfx('growl'); }
       if (m.beat) { if (m.hitters?.includes(myId)) bossBeat(); else feed(`⚔️ 大家一起打倒了考試魔王！下一隻 ${hhmm(m.next)} 出現`); }
     }
     else if (m.t === 'board') { board = m; if ($('#rank-dlg').open) renderRank(); }
@@ -793,7 +822,9 @@ const net = new Net(wsUrl, {
         let av = remotes.get(p.id);
         if (!av) { av = temple.addAvatar(new Avatar(p.look)); av.netId = p.id; av.root.position.set(p.x, 0, p.z); av.speed = 4.5; remotes.set(p.id, av); }
         else if (JSON.stringify(av.look) !== JSON.stringify(p.look)) av.setLook(p.look);
-        if (Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z) > 0.1) { av.path = null; av.target = { x: p.x, z: p.z, face: p.f }; } else av.faceTo = p.f;
+        // 別人用地圖傳送：距離太遠就直接出現在新位置，不要跑過整張地圖
+        if (Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z) > 10) { av.path = null; av.target = null; av.root.position.set(p.x, 0, p.z); av.faceTo = p.f; }
+        else if (Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z) > 0.1) { av.path = null; av.target = { x: p.x, z: p.z, face: p.f }; } else av.faceTo = p.f;
         av.hold(!!p.h); av.kneel(!!p.k); av.sit(!!p.su); av.study = !!p.su; if (p.b && av.bowT < 0) av.bow(1);
         peers.set(p.id, { s: p.s || 0, n: p.n || '' });
       }
@@ -1429,7 +1460,7 @@ async function wishAct() {
   if (!ok) return;
   const w = $('#wish-text').value.trim().slice(0, 40); $('#wish-text').value = '';
   me.emote('bow'); await wait(500);
-  await temple.tossCoin(me.root.position); sound.sample('ting', 0.6); buzz(15);
+  sound.sfx('coin'); await temple.tossCoin(me.root.position); sound.sfx('splash'); buzz(15);
   bubble(me, '🪙 許下心願', 'bubble', 2200);
   net.wish(); if (!net.alive) wishes++;
   addStat('wish'); toast(w ? `許下心願：「${esc(w)}」` : '許下心願了，願望會實現的。', 3200);
@@ -1575,7 +1606,7 @@ async function walkToTree(i) { const p = PLOTS[i]; me.faceTo = null; return temp
 async function water(i) {
   const tr = outTrees.find(t => t.i === i); if (!tr) return;
   if (Math.hypot(me.root.position.x - PLOTS[i].x, me.root.position.z - PLOTS[i].z) > 2 && !(await walkToTree(i))) return;
-  me.faceTo = Math.PI; bubble(me, '💧', 'bubble', 1500); out.splash(i); sound.sample('ting', 0.4);
+  me.faceTo = Math.PI; bubble(me, '💧', 'bubble', 1500); out.splash(i); sound.sfx('splash');
   if (!net.alive) { const t = store.get('treeLocal', { s: 0, d: '' }), grew = t.d !== today(); if (grew) { t.s++; t.d = today(); } store.set('treeLocal', t); setTrees(localTrees()); watered({ i, grew, s: t.s, mine: 1 }); return; }
   net.water(i);
 }
@@ -1595,7 +1626,7 @@ async function skyAct() {
   const ok = await new Promise(res => { $('#sky-ok').onclick = () => dlg.close('ok'); dlg.onclose = () => res(dlg.returnValue === 'ok'); dlg.returnValue = ''; dlg.showModal(); });
   if (!ok) return;
   const w = $('#sky-text').value.trim().slice(0, 30); $('#sky-text').value = '';
-  me.emote('jump'); out.releaseLantern(me.root.position.x, me.root.position.z); net.sky(); sound.chime();
+  me.emote('jump'); out.releaseLantern(me.root.position.x, me.root.position.z); net.sky(); sound.sfx('whoosh');
   temple.camPitch = 0.55; addStat('sky'); task('sky');
   toast(w ? `天燈帶著「${esc(w)}」飛上天了。` : '天燈飛上天了，願望會被聽見。', 3200);
 }
@@ -1605,7 +1636,7 @@ async function koiAct() {
   if (!(await arrive('koi'))) return;
   const p = me.root.position, fx = p.x + (KOI.x - p.x) * 0.45, fz = p.z + (KOI.z - p.z) * 0.45;
   const golden = Math.random() < 0.12;
-  me.emote('wave'); out.feed(fx, fz, golden); sound.sample('ting', 0.3); task('koi');
+  me.emote('wave'); out.feed(fx, fz, golden); sound.sfx('splash'); task('koi');
   if (golden) setTimeout(() => { sound.bell(); addStat('goldkoi'); celebrate({ big: true, confetti: true, title: '🐟 鯉躍龍門！', sub: '金色錦鯉跳出水面了！好兆頭，考運旺旺。' }); }, 1500);
   else toast('撒了一把飼料，錦鯉都游過來了。', 2400);
 }
@@ -1623,7 +1654,7 @@ resetTreasures();
 function pickTreasure(o) {
   if (o.got) return;
   const p = me.root.position; if (Math.hypot(p.x - o.x, p.z - o.z) > 2.2) { toast(`走近一點才撿得到${o.name}。`); return; }
-  out.pickTreasure(o); sound.sample('ting', 0.6); buzz(15); bubble(me, `✨ ${o.name}`, 'bubble', 1800);
+  out.pickTreasure(o); sound.sfx('sparkle'); buzz(15); bubble(me, `✨ ${o.name}`, 'bubble', 1800);
   const g = store.get('treasure', { d: '', got: [] }); if (g.d !== today()) { g.d = today(); g.got = []; }
   g.got.push(o.k); store.set('treasure', g); task('treasure');
   if (g.got.length === TREASURE_KINDS.length) { addStat('treasure'); celebrate({ big: true, confetti: true, title: '✨ 文房五寶找齊了！', sub: '筆、墨、紙、硯、書卷都到手，明天寶物會藏到新的地方。' }); }
@@ -1647,12 +1678,13 @@ async function hitMonster(m) {
   temple.frame(me.faceTo, 0.42); if (temple.camDist < 6) temple.camDist = 7; temple.camPitch = Math.max(temple.camPitch, 0.3);
   out.throwBrush(p, { x: gp.x, y: 0.5, z: gp.z }, () => {
     throwing = false; if (!m.alive) return;
-    const down = out.damage(m); sound.clack(1);
+    const down = out.damage(m); sound.sfx('hit');
     if (!down) { temple.shake(0.08, 0.18); hitFlash(true); buzz(12); return; }
     // 打倒：鼓起來 → 「啵！」 → 金光飛進身體
     out.defeatMonster(m, () => me.root.position); buzz([20, 40, 30]);
-    setTimeout(() => { temple.shake(0.22, 0.35); hitFlash(); sound.sample('ting', 0.7); }, 380);
-    out.onAbsorb = () => { sound.chime(); bubble(me, '✨', 'bubble', 1000); };
+    setTimeout(() => { temple.shake(0.22, 0.35); hitFlash(); }, 380);
+    setTimeout(() => sound.sfx('pop'), 380);
+    out.onAbsorb = () => { sound.sfx('sparkle'); bubble(me, '✨', 'bubble', 1000); };
     addStat('monster'); task('monster');
   });
 }
@@ -1683,7 +1715,7 @@ async function bossAct() {
   if (throwing) return; throwing = true;
   me.faceTo = Math.atan2(BOSS_AT.x - p.x, BOSS_AT.z - p.z); me.emote('wave'); temple.frame(me.faceTo, 0.6); if (temple.camDist < 7) temple.camDist = 8;
   out.throwBrush(p, { x: BOSS_AT.x, y: 1.4, z: BOSS_AT.z }, () => {
-    throwing = false; out.hitBoss(); sound.clack(1); buzz(10); temple.shake(0.1, 0.2); hitFlash(true);
+    throwing = false; out.hitBoss(); sound.sfx('hit'); buzz(10); temple.shake(0.1, 0.2); hitFlash(true);
     const bb = $('#boss-bar'); bb.classList.remove('hit'); void bb.offsetWidth; bb.classList.add('hit');
     store.set('bossHit', today()); bossHitToday = true;
     if (!net.alive) { const b = localBoss(); b.hp = Math.max(0, b.hp - 1); store.set('bossLocal', b); out.setBoss(b.hp, 30, nextBoss()); if (!b.hp) bossBeat(); return; }
@@ -1691,7 +1723,7 @@ async function bossAct() {
   });
 }
 function bossBeat() {
-  addStat('boss'); sound.bell(); me.emote('jump');
+  addStat('boss'); sound.bell(); me.emote('jump'); setTimeout(() => sound.sfx('pop'), 500);
   temple.shake(0.35, 0.6); hitFlash(); buzz([40, 60, 40, 60, 80]);
   // 等魔王炸開、消失以後再跳出慶祝，才看得到爆炸
   setTimeout(() => celebrate({ big: true, confetti: true, title: '⚔️ 打倒考試魔王了！', sub: `大家一起把考試魔王打跑了！考試那天也會這麼順利。下一隻 ${hhmm(out.bossNext)} 出現。` }), 1500);
@@ -1725,6 +1757,75 @@ function nearOutside(p) {
   const m = out.nearestMonster(p.x, p.z, 7);
   if (m) return { id: 'mo' + m.g.id, label: `✏️ 丟毛筆打${m.name}`, fn: () => hitMonster(m) };
   return null;
+}
+
+// ---------- 🗺️ 地圖與快速移動 ----------
+const MAP_SPOTS = [
+  { k: 'cushion', name: '文昌帝君', icon: '🙏', x: 0, z: -13.2, f: Math.PI },
+  { k: 'qianTube', name: '籤筒', icon: '🎋', ...SPOTS.qianTube },
+  { k: 'lamp', name: '光明燈', icon: '🏮', ...SPOTS.lamp },
+  { k: 'counter', name: '辦事處', icon: '🧺', ...SPOTS.counter },
+  { k: 'censerOut', name: '天公爐', icon: '🔥', x: 0, z: L.CZ + 2.6, f: Math.PI },
+  { k: 'study', name: '讀書角', icon: '📖', ...SPOTS.study },
+  { k: 'pool', name: '許願池', icon: '🪙', ...SPOTS.pool },
+  { k: 'photo', name: '合照打卡', icon: '📸', ...SPOTS.photo },
+  { k: 'wall', name: '祈福牆', icon: '🙏', ...SPOTS.wall },
+  { k: 'lingxi', name: '靈犀占卜', icon: '🔮', ...SPOTS.lingxi },
+  { k: 'bang', name: '還願紅榜', icon: '🎉', ...SPOTS.bang },
+  { k: 'jinlu', name: '金爐', icon: '♨️', ...SPOTS.jinlu },
+  { k: 'grove', name: '金榜樹林', icon: '🌳', ...SPOTS.grove },
+  { k: 'sky', name: '天燈廣場', icon: '🏮', ...SPOTS.sky },
+  { k: 'koi', name: '錦鯉池', icon: '🐟', ...SPOTS.koi },
+  { k: 'boss', name: '考試魔王', icon: '👹', ...SPOTS.boss },
+];
+const MAP_B = { x0: -32, x1: 32, z0: -24, z1: 56 };
+function mapXY(x, z, W, H) { return [(x - MAP_B.x0) / (MAP_B.x1 - MAP_B.x0) * W, (z - MAP_B.z0) / (MAP_B.z1 - MAP_B.z0) * H]; }
+function drawMap() {
+  const c = $('#map-canvas'), r = c.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  c.width = r.width * dpr; c.height = r.height * dpr; const g = c.getContext('2d'); g.scale(dpr, dpr); const W = r.width, H = r.height;
+  const rect = (x0, z0, x1, z1, col) => { const [a, b] = mapXY(x0, z0, W, H), [e, f] = mapXY(x1, z1, W, H); g.fillStyle = col; g.fillRect(a, b, e - a, f - b); };
+  g.fillStyle = '#d8c8a8'; g.fillRect(0, 0, W, H);
+  rect(-L.FW, L.GZ, L.FW, L.FZ, '#8fd06a');             // 樹林
+  rect(-1.5, L.GZ, 1.5, L.FZ, '#e6d2a0'); rect(-L.FW + 3, 35.3, L.FW - 3, 37.7, '#e6d2a0'); // 步道
+  rect(-L.CW, L.HF, L.CW, L.GZ, '#e8dcc4');             // 中庭
+  rect(-L.HW, L.HB, L.HW, L.HF, '#c8584a');             // 正殿
+  { const [x, y] = mapXY(KOI.x, KOI.z, W, H); g.fillStyle = '#5ab0d8'; g.beginPath(); g.arc(x, y, KOI.r / (MAP_B.x1 - MAP_B.x0) * W, 0, 7); g.fill(); }
+  { const [x, y] = mapXY(-10, 14.4, W, H); g.fillStyle = '#5ab0d8'; g.beginPath(); g.arc(x, y, 1.7 / (MAP_B.x1 - MAP_B.x0) * W, 0, 7); g.fill(); }
+  g.strokeStyle = '#8a3a2a'; g.lineWidth = 3; { const [a, b] = mapXY(-L.CW, L.GZ, W, H), [e] = mapXY(-3, L.GZ, W, H), [f] = mapXY(3, L.GZ, W, H), [h] = mapXY(L.CW, L.GZ, W, H); g.beginPath(); g.moveTo(a, b); g.lineTo(e, b); g.moveTo(f, b); g.lineTo(h, b); g.stroke(); }
+  g.fillStyle = 'rgba(255,255,255,.85)'; g.font = '700 11px sans-serif'; g.textAlign = 'center';
+  { const [x, y] = mapXY(0, -20.5, W, H); g.fillText('正殿', x, y); } { const [x, y] = mapXY(0, L.GZ - 1, W, H); g.fillStyle = '#6a3a2a'; g.fillText('山門', x, y); }
+  g.textBaseline = 'middle';
+  for (const s of MAP_SPOTS) { const [x, y] = mapXY(s.x, s.z, W, H); g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath(); g.arc(x, y, 11, 0, 7); g.fill(); g.font = '13px sans-serif'; g.fillText(s.icon, x, y + 1); }
+  // 其他考生（藍點）和自己（紅點＋方向）
+  g.fillStyle = '#3a6ab8'; for (const av of remotes.values()) { const [x, y] = mapXY(av.root.position.x, av.root.position.z, W, H); g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); }
+  const p = me.root.position, [mx, my] = mapXY(p.x, p.z, W, H), f = me.root.rotation.y;
+  g.fillStyle = '#e8402a'; g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.moveTo(mx + Math.sin(f) * 10, my + Math.cos(f) * 10); g.lineTo(mx + Math.sin(f + 2.5) * 7, my + Math.cos(f + 2.5) * 7); g.lineTo(mx + Math.sin(f - 2.5) * 7, my + Math.cos(f - 2.5) * 7); g.closePath(); g.fill(); g.stroke();
+}
+function openMap() {
+  hideCheer(); hideSocial(); hideMusic();
+  $('#map-list').innerHTML = MAP_SPOTS.map(s => `<button type="button" data-k="${s.k}">${s.icon} ${s.name}</button>`).join('');
+  $('#map-dlg').showModal(); requestAnimationFrame(drawMap);
+}
+$('#map-btn').onclick = openMap;
+$('#map-list').onclick = e => { const b = e.target.closest('[data-k]'); if (b) teleport(MAP_SPOTS.find(s => s.k === b.dataset.k)); };
+$('#map-canvas').onclick = e => {
+  const r = e.currentTarget.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  let best = null, bd = 26; for (const s of MAP_SPOTS) { const [x, y] = mapXY(s.x, s.z, r.width, r.height), d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = s; } }
+  if (best) teleport(best);
+};
+// 傳送：原地冒一陣煙、在目的地出現
+function teleport(s) {
+  if (state.busy) { toast('正在做動作，等一下再傳送。'); return; }
+  $('#map-dlg').close();
+  if (studyAt != null) leaveDesk(); leaveSeat(); me.kneel(false); me.sit(false);
+  me.path = null; me.target = null; me._arrive?.(false); me._arrive = null; me.faceTo = null;
+  const from = me.root.position.clone(); from.y = 0.6; out.poof(from, '#e8c15a');
+  // 金榜樹林：有自己的樹就直接到樹旁邊
+  if (s.k === 'grove' && myTree()) { const q = PLOTS[myTree().i]; s = { ...s, x: q.x, z: q.z + 1.1, f: Math.PI }; }
+  const p = temple.freeSpot(s.x, s.z, s.f ?? 0);
+  me.root.position.set(p.x, 0, p.z); me.root.rotation.y = s.f ?? 0; temple.frame(s.f ?? 0, 0.2); temple.snapCam();
+  const to = me.root.position.clone(); to.y = 0.6; out.poof(to, '#e8c15a');
+  sound.sfx('warp'); buzz(15); toast(`${s.icon} 到了：${s.name}`, 1600);
 }
 
 // 沒有連線時：幾位示意香客在廟裡走動、拜拜

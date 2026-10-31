@@ -87,6 +87,7 @@
 
   <ol id="feed" aria-live="polite"></ol>
 
+  <button type="button" id="map-btn" aria-label="地圖、快速移動"><span aria-hidden="true">🗺️</span><small>地圖</small></button>
   <button type="button" id="social-btn" aria-expanded="false" aria-label="和其他考生互動">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 15c-2.5 0-4-1.6-4-3.8C3 8.6 5.2 7 7.6 7c1 0 1.9.3 2.6.8"/><path d="M21 11.5c0 2.6-2.4 4.5-5.4 4.5-.7 0-1.4-.1-2-.3L10 17.5l.8-2.6c-1.1-.9-1.8-2.1-1.8-3.4C9 8.9 11.4 7 14.4 7h1.2c3 0 5.4 2 5.4 4.5z"/></svg>
     <span>互動</span>
@@ -408,6 +409,15 @@
   <label><span>我的願望（可不填）</span><input id="wish-text" maxlength="40" autocomplete="off" placeholder="例如：數學考 A"></label>
   <p class="pending" id="wish-count"></p>
   <div class="row"><button type="button" class="ghost" data-close>取消</button><button type="button" id="wish-ok">投下許願幣</button></div>
+</dialog>
+
+<!-- 地圖與快速移動 -->
+<dialog id="map-dlg" class="map-dlg">
+  <h2>🗺️ 地圖</h2>
+  <p class="pending">紅色箭頭是你，藍點是其他考生。點地圖上的圖示或下面的按鈕，就會直接傳送過去。</p>
+  <canvas id="map-canvas" aria-label="文昌祠地圖"></canvas>
+  <div id="map-list" class="map-list"></div>
+  <div class="row"><button type="button" data-close>關閉</button></div>
 </dialog>
 
 <!-- 放天燈 -->
