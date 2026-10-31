@@ -19,7 +19,7 @@ export const SPOTS = {
   cushion: { x: 0, z: CUSHION_Z, f: Math.PI, kneel: true },
   wcCenser: { x: 0, z: WC_CENSER_Z + 1.05, f: Math.PI },
   jinlu: { x: JINLU.x - 0.8, z: JINLU.z - 1.9, f: 0.35, cam: 0.6 }, // 站在爐口左前方，才不會擋住火光
-  qianTube: { x: 5.5, z: -16.4, f: Math.PI, cam: -0.45 },
+  qianTube: { x: 6.4, z: -16.4, f: Math.PI, cam: -0.45 },
   wall: { x: 16.4, z: 8, f: Math.PI / 2 },
   lingxi: { x: 16.3, z: 14.6, f: Math.PI / 2, cam: 0.35 },
   bang: { x: 16.4, z: 1.8, f: Math.PI / 2, cam: 0.3 },
@@ -38,7 +38,7 @@ export const MARKS = [
   { id: 'counter', name: '辦事處', pos: [-17.6, 2.9, 11] },
   { id: 'censer', name: '天公爐', pos: [0, 2.6, L.CZ] },
   { id: 'cushion', name: '文昌帝君', pos: [0, 6.4, -20.4] },
-  { id: 'qianTube', name: '籤筒', pos: [5.5, 1.9, -17.6] },
+  { id: 'qianTube', name: '籤筒', pos: [6.4, 1.9, -17.6] },
   { id: 'wall', name: '祈福牆', pos: [18.2, 3.4, 8] },
   { id: 'jinlu', name: '金爐', pos: [JINLU.x, 4.6, JINLU.z] },
   { id: 'lingxi', name: '靈犀占卜', pos: [18.6, 4.3, 14.6] },
@@ -49,7 +49,7 @@ export const MARKS = [
   { id: 'photo', name: '合照打卡', pos: [4, 2.6, 11] },
 ];
 // 鏡頭特寫用的位置
-export const FOCUS = { altar: [0, 2.2, -19.5], censer: [0, 2.2, L.CZ], wcCenser: [0, 1.6, WC_CENSER_Z], jinlu: [JINLU.x, 1.6, JINLU.z], wall: [18.2, 2, 8] };
+export const FOCUS = { altar: [-0.6, 1.6, -18.4], censer: [0, 2.2, L.CZ], wcCenser: [0, 1.6, WC_CENSER_Z], jinlu: [JINLU.x, 1.6, JINLU.z], wall: [18.2, 2, 8] };
 
 // 天公爐前的拜位：面朝廟外一排五個，一人一位，滿了就要等
 export const TIANGONG_SLOTS = [];
@@ -70,9 +70,9 @@ export const MAIN_CUSHIONS = 5;
 // 不能走進去的區塊（矩形 x1,z1,x2,z2）與圓形（x,z,r）
 const BOXES = [
   [-18.8, 9, -16.6, 13],            // 辦事處櫃台
-  [-2.6, ALTAR_Z - 0.6, 2.6, ALTAR_Z + 0.6], // 供桌
+  [-4.6, ALTAR_Z - 0.7, 4.6, ALTAR_Z + 0.7], // 供桌（加長）
   [-2.4, L.HB, 2.4, -19.6],         // 神龕
-  [5, -18.1, 6, -17.1],             // 籤筒桌
+  [5.9, -18.1, 6.9, -17.1],         // 籤筒桌
   [17.6, 5.2, 19.2, 10.8],          // 祈福牆
   [18.1, 12.8, 19.4, 16.4],         // 靈犀占卜電子牆
   [18.1, 0.1, 19.3, 3.5],           // 還願紅榜
@@ -83,7 +83,7 @@ const BOXES = [
 const FRONT_PILLARS = [-14.2, -8.5, -3.4, 3.4, 8.5, 14.2];
 const INNER_PILLARS = [];
 [-11.8, 11.8].forEach(x => [-6, -12, -18].forEach(z => INNER_PILLARS.push([x, z])));
-const CIRCLES = [[-10, 14.4, 1.9], [0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
+const CIRCLES = [[-10, 14.4, 1.9], [-2.95, -20.2, 0.3], [2.95, -20.2, 0.3], [0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
 
 function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
@@ -161,7 +161,7 @@ export class Temple {
     const step = new THREE.Mesh(new THREE.BoxGeometry(L.HW * 2 + 0.4, 0.12, 0.5), lam('#a89580')); step.position.set(0, 0.06, L.HF + 0.45); S.add(step);
 
     this.buildHall(); this.buildGate(); this.buildCourt(); this.buildGod();
-    this.buildCenser(); this.buildWenchangCenser(); this.buildJinlu(); this.buildLingxiScreen(); this.buildBang(); this.buildPlaza(); this.buildCounter(); this.buildWall(); this.buildTrees();
+    this.buildCenser(); this.buildShrineDecor(); this.buildWenchangCenser(); this.buildJinlu(); this.buildLingxiScreen(); this.buildBang(); this.buildPlaza(); this.buildCounter(); this.buildWall(); this.buildTrees();
 
     this.ground = [outer, court, hallFloor];
   }
@@ -222,22 +222,43 @@ export class Temple {
     [-7.5, 7.5].forEach(x => [-5, -10, -15].forEach(z => this.addLantern(x, HH - 1.8, z)));
     // 天花板
     const ceil = new THREE.Mesh(new THREE.PlaneGeometry(HW * 2, hd), lam('#5a2a20', { side: THREE.DoubleSide })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, HH, mid); S.add(ceil);
-    // 供桌
-    const tableM = lam('#8a2a20');
-    const table = new THREE.Mesh(new THREE.BoxGeometry(5, 1.0, 1.1), tableM); table.position.set(0, 0.5, ALTAR_Z); S.add(table);
-    const cloth = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 0.8), basic('#fff', { map: canvasTex(512, 96, (g, W, H) => {
-      g.fillStyle = '#c8352b'; g.fillRect(0, 0, W, H); g.fillStyle = '#f3d27a'; g.font = '900 58px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('文 星 高 照', W / 2, H / 2 + 3);
+    // 供桌：加長到 9 公尺，大家的供品和准考證都擺得下
+    const TW = 9, tableM = lam('#8a2a20'), goldM = lam('#d8ab45');
+    const table = new THREE.Mesh(new THREE.BoxGeometry(TW, 1.0, 1.3), tableM); table.position.set(0, 0.5, ALTAR_Z); S.add(table);
+    // 桌裙：紅底金邊、祥雲、正中「文星高照」
+    const cloth = new THREE.Mesh(new THREE.PlaneGeometry(TW - 0.3, 0.86), basic('#fff', { map: canvasTex(1024, 98, (g, W, H) => {
+      g.fillStyle = '#c8352b'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#e8b84a'; g.fillRect(0, 0, W, 7); g.fillRect(0, H - 7, W, 7);
+      g.strokeStyle = 'rgba(243,210,122,.75)'; g.lineWidth = 2.5;
+      for (let x = 40; x < W; x += 92) { if (Math.abs(x - W / 2) < 160) continue; g.beginPath(); g.arc(x, H / 2, 14, Math.PI * 0.2, Math.PI * 1.8); g.stroke(); g.beginPath(); g.arc(x + 18, H / 2 + 6, 9, Math.PI, Math.PI * 2.5); g.stroke(); }
+      g.fillStyle = '#f3d27a'; g.font = '900 56px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('文 星 高 照', W / 2, H / 2 + 3);
     }) }));
-    cloth.position.set(0, 0.55, ALTAR_Z + 0.56); S.add(cloth);
-    const topBoard = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 1.2), lam('#5a1a14')); topBoard.position.set(0, 1.03, ALTAR_Z); S.add(topBoard);
-    // 燭台
-    [-2.1, 2.1].forEach(x => {
-      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.5), lam('#d23a2a')); c.position.set(x, 1.32, ALTAR_Z - 0.2); S.add(c);
-      const f = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), basic('#ffcc66')); f.scale.y = 1.6; f.position.set(x, 1.65, ALTAR_Z - 0.2); S.add(f);
+    cloth.position.set(0, 0.55, ALTAR_Z + 0.66); S.add(cloth);
+    const topBoard = new THREE.Mesh(new THREE.BoxGeometry(TW + 0.2, 0.08, 1.4), lam('#5a1a14')); topBoard.position.set(0, 1.03, ALTAR_Z); S.add(topBoard);
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(TW + 0.24, 0.04, 0.04), goldM); edge.position.set(0, 1.05, ALTAR_Z + 0.71); S.add(edge);
+    // 燭台（兩端，金色底座）
+    [-1, 1].forEach(sd => {
+      const x = sd * (TW / 2 - 0.35), base = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.17, 0.12, 12), goldM); base.position.set(x, 1.13, ALTAR_Z - 0.3); S.add(base);
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.6), lam('#d23a2a')); c.position.set(x, 1.48, ALTAR_Z - 0.3); S.add(c);
+      const f = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 6), basic('#ffcc66')); f.scale.y = 1.6; f.position.set(x, 1.86, ALTAR_Z - 0.3); S.add(f);
+      // 花瓶插花
+      const vx = sd * (TW / 2 - 1.0), vase = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.42, 14), lam('#2f6fa8')); vase.position.set(vx, 1.28, ALTAR_Z - 0.38); S.add(vase);
+      const neck = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.025, 6, 14), goldM); neck.rotation.x = Math.PI / 2; neck.position.set(vx, 1.49, ALTAR_Z - 0.38); S.add(neck);
+      for (let k = 0; k < 7; k++) {
+        const a = k * 0.9, st = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.36), lam('#3f7a3a')); st.position.set(vx + Math.cos(a) * 0.05, 1.66, ALTAR_Z - 0.38 + Math.sin(a) * 0.05); st.rotation.set(Math.sin(a) * 0.3, 0, Math.cos(a) * 0.3); S.add(st);
+        const fl = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), lam(['#e8c15a', '#f2a0b8', '#c8352b', '#f4efe2'][k % 4])); fl.position.set(vx + Math.cos(a) * 0.12, 1.84 + (k % 3) * 0.04, ALTAR_Z - 0.38 + Math.sin(a) * 0.1); S.add(fl);
+      }
+      // 水果塔（桌子後排）
+      const fx = sd * 2.2, plate = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.05, 16), lam('#f4efe2')); plate.position.set(fx, 1.1, ALTAR_Z - 0.4); S.add(plate);
+      [[0, 0, 0], [0.11, 0, 0.06], [-0.11, 0, 0.06], [0, 0, -0.12], [0.06, 0.13, 0], [-0.06, 0.13, 0], [0, 0.24, 0]].forEach(([dx, dy, dz]) => {
+        const o = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), lam(sd < 0 ? '#f0902a' : '#e8402a')); o.position.set(fx + dx, 1.2 + dy, ALTAR_Z - 0.4 + dz); S.add(o);
+      });
     });
     // 小香爐
-    const small = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.26, 0.3, 16), lam('#9a7a3a')); small.position.set(0, 1.22, ALTAR_Z - 0.25); S.add(small);
-    this.offeringSlots = new THREE.Group(); this.offeringSlots.position.set(0, 1.07, ALTAR_Z + 0.15); S.add(this.offeringSlots);
+    const small = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.26, 0.3, 16), lam('#9a7a3a')); small.position.set(0, 1.22, ALTAR_Z - 0.35); S.add(small);
+    // 供品區：桌子前半。正中間被文昌爐擋住，所以自己的擺在爐子左邊，其他人的往兩邊擺
+    this.offeringSlots = new THREE.Group(); this.offeringSlots.position.set(0, 1.07, ALTAR_Z + 0.22); S.add(this.offeringSlots);
+    this.myOffer = null; this.otherOffers = [];
     // 拜墊（可以跪的）
     const cushionM = lam('#b8322a'), cushionTop = lam('#d8473a');
     // 用 InstancedMesh 一次畫完所有拜墊，人多拜墊多時手機也不會卡
@@ -248,8 +269,8 @@ export class Temple {
     CUSHIONS.forEach((c, i) => { mtx.makeTranslation(c.x, 0.08, c.z); cBody.setMatrixAt(i, mtx); mtx.makeTranslation(c.x, 0.165, c.z); cRing.setMatrixAt(i, mtx); });
     S.add(cBody, cRing); this.cushionMeshes = [cBody];
     // 籤筒桌
-    const st = new THREE.Mesh(new THREE.BoxGeometry(1, 0.9, 1), lam('#6a2a1e')); st.position.set(5.5, 0.45, -17.6); S.add(st);
-    const tube = new THREE.Group(); tube.position.set(5.5, 0.9, -17.6); S.add(tube); this.qianTube = tube;
+    const st = new THREE.Mesh(new THREE.BoxGeometry(1, 0.9, 1), lam('#6a2a1e')); st.position.set(6.4, 0.45, -17.6); S.add(st);
+    const tube = new THREE.Group(); tube.position.set(6.4, 0.9, -17.6); S.add(tube); this.qianTube = tube;
     const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.55, 16, 1, true), lam('#8a5a2a', { side: THREE.DoubleSide })); tb.position.y = 0.28; tube.add(tb);
     for (let i = 0; i < 18; i++) {
       const a = i * 2.4, r = 0.05 + (i % 3) * 0.04;
@@ -770,20 +791,101 @@ export class Temple {
   }
 
   // ---------- 供品、插香、擲筊 ----------
-  setOfferings(list) {
-    this.offeringSlots.clear();
-    list.forEach((o, i) => {
-      const x = (i - (list.length - 1) / 2) * 0.62;
-      const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.2, 0.04, 16), lam('#f4efe2')); plate.position.set(x, 0.02, 0); this.offeringSlots.add(plate);
-      let m;
-      if (o.id === 'scallion' || o.id === 'celery') { m = new THREE.Group(); for (let k = 0; k < 4; k++) { const s = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.42), lam(o.color)); s.rotation.z = Math.PI / 2 + (k - 1.5) * 0.08; s.position.set(0, 0.06 + k * 0.03, (k - 1.5) * 0.04); m.add(s); } }
-      else if (o.id === 'radish') { m = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.42, 12), lam(o.color)); m.rotation.z = Math.PI / 2; m.position.y = 0.1; }
-      else if (o.id === 'zongzi') { m = new THREE.Mesh(new THREE.TetrahedronGeometry(0.17), lam(o.color)); m.position.y = 0.13; }
-      else if (o.id === 'tea') { m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.28, 0.12), lam('#c8352b')); m.position.y = 0.16; }
-      else if (o.id === 'fagao') { m = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.18, 12), lam(o.color)); m.position.y = 0.11; }
-      else { m = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), lam(o.color)); m.scale.y = 0.8; m.position.y = 0.12; }
-      m.position.x += x; this.offeringSlots.add(m);
+  // 神明身邊的裝飾：天聾地啞兩位書僮、蓮花燈、宮燈、塔香、綵帶
+  buildShrineDecor() {
+    const S = this.scene, gold = lam('#d8ab45'), red = lam('#c8352b'), skin = lam('#efc9a3'), black = lam('#161414');
+    // 書僮：天聾（左，捧書）、地啞（右，捧印）站在神龕上，個子比帝君小
+    [[-1.62, '#2f7d6d', 'book'], [1.62, '#b8322a', 'seal']].forEach(([x, robeC, item]) => {
+      const g = new THREE.Group(); g.position.set(x, 1.6, -20.35); S.add(g);
+      const robe = lam(robeC);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.32, 0.8, 14), robe); body.position.y = 0.4; g.add(body);
+      const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.215, 0.215, 0.05, 14), gold); belt.position.y = 0.55; g.add(belt);
+      const collar = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.03, 6, 14), lam('#f4efe2')); collar.rotation.x = Math.PI / 2; collar.position.y = 0.8; g.add(collar);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 12), skin); head.position.y = 0.97; g.add(head);
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.175, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), black); hair.rotation.x = -0.35; hair.position.set(0, 0.99, -0.02); g.add(hair);
+      [-1, 1].forEach(e => { const bun = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), black); bun.position.set(0.12 * e, 1.13, -0.02); g.add(bun); });
+      [-1, 1].forEach(e => { const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4), black); eye.position.set(0.055 * e, 0.98, 0.155); g.add(eye); });
+      [-1, 1].forEach(e => { const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.22, 4, 8), robe); arm.position.set(0.15 * e, 0.6, 0.12); arm.rotation.x = -1.1; g.add(arm); });
+      const it = item === 'book' ? new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.05, 0.18), lam('#2a4f8a')) : new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.16), lam('#e2b13c'));
+      it.position.set(0, 0.64, 0.28); g.add(it);
+      if (item === 'seal') { const knob = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), red); knob.position.set(0, 0.74, 0.28); g.add(knob); }
+      else { const pages = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.16), lam('#f4efe2')); pages.position.set(0, 0.675, 0.28); g.add(pages); }
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 0.06, 14), gold); base.position.y = 0.03; g.add(base);
     });
+    // 蓮花燈：神龕兩側的落地燈
+    [-2.95, 2.95].forEach(x => {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 2.4, 10), gold); pole.position.set(x, 1.2, -20.2); S.add(pole);
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.12, 12), gold); foot.position.set(x, 0.06, -20.2); S.add(foot);
+      for (let k = 0; k < 8; k++) {
+        const a = k / 8 * Math.PI * 2, petal = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), lam('#f2a0b8')); petal.scale.set(0.5, 1, 0.3);
+        petal.position.set(x + Math.cos(a) * 0.14, 2.5, -20.2 + Math.sin(a) * 0.14); petal.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); S.add(petal);
+      }
+      const light = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), basic('#ffd77a')); light.position.set(x, 2.6, -20.2); S.add(light);
+    });
+    // 宮燈：六角紅燈，掛在神龕兩邊
+    [-3.6, 3.6].forEach(x => {
+      const g = new THREE.Group(); g.position.set(x, 5.4, -19.4); S.add(g);
+      const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, L.HH - 5.4 - 0.5), lam('#5a2a18')); rope.position.y = (L.HH - 5.4) / 2 + 0.2; g.add(rope);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.62, 6), lam('#d8322a', { emissive: '#4a0a00' })); g.add(body);
+      [0.33, -0.33].forEach(y => { const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.07, 6), gold); cap.position.y = y; g.add(cap); });
+      for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, t = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.03, 0.3), lam('#e8b84a')); t.position.set(Math.cos(a) * 0.38, -0.52, Math.sin(a) * 0.38); g.add(t); }
+      const tas = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.07, 0.4), red); tas.position.y = -0.6; g.add(tas);
+    });
+    // 塔香：螺旋盤香掛在供桌兩端上方，慢慢冒煙
+    [-3.7, 3.7].forEach(x => {
+      const g = new THREE.Group(); g.position.set(x, 3.5, -18.5); S.add(g);
+      const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, L.HH - 3.5), lam('#5a2a18')); rope.position.y = (L.HH - 3.5) / 2; g.add(rope);
+      for (let k = 0; k < 7; k++) { const r = 0.34 - k * 0.042, ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.016, 5, 22), lam('#7a5a3a')); ring.rotation.x = Math.PI / 2; ring.position.y = -k * 0.07; g.add(ring); }
+      const ember = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 4), basic('#ff8a3a')); ember.position.set(0.06, -0.49, 0); g.add(ember);
+      this.addSmoke(new THREE.Vector3(x, 3.0, -18.5), 14, 0.15, 1.6, 0.12);
+    });
+    // 綵帶：神龕上方的紅色垂幔
+    for (let k = 0; k < 4; k++) {
+      const arc = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.07, 6, 18, Math.PI), red); arc.rotation.z = Math.PI; arc.position.set(-1.6 + k * 1.07, 5.32, -20.12); S.add(arc);
+    }
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.1, 0.1), gold); bar.position.set(0, 5.34, -20.1); S.add(bar);
+  }
+
+  // 一樣供品的 3D 模型（底部在 y=0）
+  offerMesh(o) {
+    let m;
+    if (o.id === 'scallion' || o.id === 'celery') { m = new THREE.Group(); for (let k = 0; k < 4; k++) { const s = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.42), lam(o.color)); s.rotation.z = Math.PI / 2 + (k - 1.5) * 0.08; s.position.set(0, 0.04 + k * 0.03, (k - 1.5) * 0.04); m.add(s); } }
+    else if (o.id === 'radish') { m = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.42, 12), lam(o.color)); m.rotation.z = Math.PI / 2; m.position.y = 0.1; }
+    else if (o.id === 'zongzi') { m = new THREE.Mesh(new THREE.TetrahedronGeometry(0.17), lam(o.color)); m.position.y = 0.13; }
+    else if (o.id === 'tea') { m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.28, 0.12), lam('#c8352b')); m.position.y = 0.14; }
+    else if (o.id === 'fagao') { m = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.18, 12), lam(o.color)); m.position.y = 0.09; }
+    else { m = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), lam(o.color)); m.scale.y = 0.8; m.position.y = 0.11; }
+    const g = new THREE.Group(); g.add(m); return g;
+  }
+  // 一份供品：紅色托盤＋供品（最多七樣，排兩排）＋准考證影本與鉛筆
+  offerTray(items, ticket, mine) {
+    const g = new THREE.Group();
+    const tray = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.04, 0.5), lam(mine ? '#b8241c' : '#8a2a20')); tray.position.y = 0.02; g.add(tray);
+    const rim = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.03, 0.54), lam('#d8ab45')); rim.position.y = 0.005; g.add(rim);
+    items.slice(0, 7).forEach((o, i) => {
+      const back = i < 4, n = back ? Math.min(4, items.length) : items.length - 4, k = back ? i : i - 4;
+      const m = this.offerMesh(o); m.scale.setScalar(0.68); m.position.set((k - (n - 1) / 2) * 0.19, 0.04, back ? -0.11 : 0.11); g.add(m);
+    });
+    if (ticket) {
+      if (!this._ticketTex) this._ticketTex = canvasTex(96, 128, (c, W, H) => {
+        c.fillStyle = '#fbf8ef'; c.fillRect(0, 0, W, H); c.fillStyle = '#3a2a20'; c.font = '700 17px sans-serif'; c.textAlign = 'center'; c.fillText('准考證', W / 2, 24);
+        c.fillStyle = '#c9c2b2'; c.fillRect(14, 36, 30, 38); for (let y = 42; y < 108; y += 11) c.fillRect(52, y, 32, 3);
+        c.strokeStyle = '#c8352b'; c.lineWidth = 3; c.beginPath(); c.arc(70, 104, 12, 0, 7); c.stroke();
+      });
+      const paper = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.23), basic('#fff', { map: this._ticketTex })); paper.rotation.x = -Math.PI / 2; paper.rotation.z = 0.15; paper.position.set(0.22, 0.012, 0.37); g.add(paper);
+      const pencil = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.2, 6), lam('#e8c040')); pencil.rotation.z = Math.PI / 2; pencil.rotation.y = 0.4; pencil.position.set(0.0, 0.012, 0.4); g.add(pencil);
+    }
+    return g;
+  }
+  // 自己的供品（正中間）
+  setOfferings(list, ticket = false) { this.myOffer = list.length ? { items: list, tk: ticket } : null; this.renderAltar(); }
+  // 其他人的供品：最新的放離中間最近
+  setOtherOffers(list) { this.otherOffers = list; this.renderAltar(); }
+  renderAltar() {
+    this.offeringSlots.clear();
+    if (this.myOffer) { const t = this.offerTray(this.myOffer.items, this.myOffer.tk, true); t.position.x = -0.95; this.offeringSlots.add(t); }
+    const xs = [0.95, -1.9, 1.9, -2.85, 2.85, -3.75, 3.75];
+    this.otherOffers.slice(-xs.length).reverse().forEach((o, i) => { const t = this.offerTray(o.items, o.tk); t.position.x = xs[i]; this.offeringSlots.add(t); });
   }
   // 從拜墊把香「送」進文昌爐（不用擠到爐前）
   flyIncense(from, n = 2) {

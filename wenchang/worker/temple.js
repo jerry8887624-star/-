@@ -17,7 +17,7 @@ const MAX_CARDS = 60;
 const MAX_BANG = 60;        // 還願紅榜最多保留幾筆
 const MAX_LAMPS = 200;      // 光明燈最多幾盞
 const LAMP_DAYS = 7;        // 光明燈亮幾天
-const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500 };
+const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500, offer: 10000 };
 // 台灣時間的日期與週（週一開始），排行榜用
 const twNow = () => new Date(Date.now() + 8 * 3600e3);
 const dayKey = () => twNow().toISOString().slice(0, 10);
@@ -62,6 +62,7 @@ export class Temple {
       this.lamps = (await state.storage.get('lamps')) || [];
       this.wishes = (await state.storage.get('wishes')) || 0;
       this.focus = (await state.storage.get('focus')) || { d: '', m: 0 };
+      this.offers = (await state.storage.get('offers')) || [];
       // 排行榜：每支手機（匿名代碼）一筆，記暱稱、專注分鐘、在廟裡的分鐘（今日／本週／累積）
       this.recs = new Map();
       for (const [k, v] of await state.storage.list({ prefix: 'u:' })) this.recs.set(k.slice(2), v);
@@ -100,7 +101,7 @@ export class Temple {
       p.rank = m.rank !== 0; this.syncRec(p);
       this.total += 1; this.state.storage.put('total', this.total);
       const mine = this.cards.filter(c => p.uid && c.u === p.uid);
-      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.publicCards(p), bang: this.bang.map(e => ({ x: e.x, n: e.n, d: e.d })), lamps: this.publicLamps(), wishes: this.wishes, focus: this.focusToday(), myBless: mine.reduce((n, c) => n + (c.b || 0), 0) }));
+      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.publicCards(p), bang: this.bang.map(e => ({ x: e.x, n: e.n, d: e.d })), lamps: this.publicLamps(), wishes: this.wishes, focus: this.focusToday(), offers: this.publicOffers(p), myBless: mine.reduce((n, c) => n + (c.b || 0), 0) }));
       this.broadcast({ t: 'feed', from: p.id, k: 'join', n: p.name }, p.ws);
     } else if (!p.look) {
       return;
@@ -157,6 +158,15 @@ export class Temple {
       if (!this.allow(p, 'wish')) return;
       this.wishes += 1; this.state.storage.put('wishes', this.wishes);
       this.broadcast({ t: 'wish', from: p.id, n: this.wishes });
+    } else if (m.t === 'offer') {
+      // 供桌：每支手機一份（供品編號＋有沒有准考證），最多 8 份，最新的擺在最靠近中間
+      if (!this.allow(p, 'offer')) return;
+      const o = [...new Set((Array.isArray(m.o) ? m.o : []).filter(v => Number.isInteger(v) && v >= 0 && v <= 7))].slice(0, 7);
+      if (!o.length) return;
+      this.offers = this.offers.filter(e => !(p.uid && e.u === p.uid)); this.offers.push({ o, tk: m.tk ? 1 : 0, u: p.uid, d: Date.now() });
+      if (this.offers.length > 8) this.offers.splice(0, this.offers.length - 8);
+      this.state.storage.put('offers', this.offers);
+      for (const q of this.players.values()) if (q.look) send(q, { t: 'offer', offers: this.publicOffers(q) });
     } else if (m.t === 'rank') {
       // 要不要顯示在排行榜
       p.rank = !!m.on; this.syncRec(p);
@@ -230,6 +240,8 @@ export class Temple {
 
   // 台灣日期換日就歸零
   focusToday() { const d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); if (this.focus.d !== d) this.focus = { d, m: 0 }; return this.focus.m; }
+
+  publicOffers(p) { return this.offers.map(e => ({ o: e.o, tk: e.tk, mine: p.uid && e.u === p.uid ? 1 : 0 })); }
 
   publicLamps() { const now = Date.now(); return this.lamps.filter(e => now - e.d < LAMP_DAYS * 864e5).map(e => ({ x: e.x, n: e.n, d: e.d })); }
 
