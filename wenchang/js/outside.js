@@ -39,12 +39,14 @@ export const OUT_MARKS = [
 export const TREASURE_KINDS = [{ k: 'brush', name: '毛筆' }, { k: 'ink', name: '墨條' }, { k: 'paper', name: '宣紙' }, { k: 'stone', name: '硯台' }, { k: 'scroll', name: '書卷' }];
 // 寶物可能出現的地方（每天依日期挑 5 個，大家一樣）
 export const TREASURE_SPOTS = [[-28, 22.5], [-27, 38], [-5, 52.5], [6, 52], [27, 23], [28, 37], [25, 52.5], [-15, 52], [-3, 29], [5, 35], [10, 23.5], [-29, 51], [11, 51], [-5, 41], [24, 31], [8, 44], [-17, 2], [17, 18.5], [-13, 18.5], [26, 44], [-2, 24]];
+// hp：要打幾下；hit：被打中時說的話；bye：被打倒時說的話
 export const MONSTER_KINDS = [
-  { name: '拖延怪', color: '#8a6ac8', say: '等一下再讀…' },
-  { name: '滑手機怪', color: '#4a8ad8', say: '再滑一下就好' },
-  { name: '緊張怪', color: '#e8705a', say: '完蛋了完蛋了' },
-  { name: '瞌睡蟲', color: '#7ac86a', say: '好睏喔…' },
+  { name: '拖延怪', color: '#8a6ac8', hp: 3, say: '等一下再讀…', hit: ['哎呀！', '明天再讀嘛～', '別催我啦！'], bye: '哇！我不拖了～' },
+  { name: '滑手機怪', color: '#4a8ad8', hp: 4, say: '再滑一下就好', hit: ['我的手機！', '再一則就好！', '電量剩 1%…'], bye: '手機還你啦！' },
+  { name: '緊張怪', color: '#e8705a', hp: 3, say: '完蛋了完蛋了', hit: ['好可怕！', '心跳好快！', '你怎麼這麼冷靜？'], bye: '深呼吸…我放鬆了～' },
+  { name: '瞌睡蟲', color: '#7ac86a', hp: 2, say: '好睏喔…', hit: ['呼…嗯？', '再睡五分鐘…'], bye: '醒了醒了！' },
 ];
+export const BOSS_LINES = ['這題你不會吧？', '時間只剩五分鐘！', '選擇題全部選 C？', '我還有附加題！', '哼，有兩下子', '畫卡畫歪了吧？'];
 const inArea = (x, z) => x > -L.FW + 1.5 && x < L.FW - 1.5 && z > L.GZ + 2.5 && z < L.FZ - 1 && Math.hypot(x - KOI.x, z - KOI.z) > KOI.r + 1.2 && Math.hypot(x - BOSS_AT.x, z - BOSS_AT.z) > 3;
 
 export class Outside {
@@ -228,8 +230,13 @@ export class Outside {
     if (kind === 2) { const sw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), lam('#8ad0ff')); sw.scale.y = 1.5; sw.position.set(0.32, 0.72, 0.25); g.add(sw); }
     if (kind === 3) { const cap = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.45, 10), lam('#3a5a9a')); cap.position.set(0, 0.92, -0.05); cap.rotation.z = 0.5; g.add(cap); const pom = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), lam('#ffffff')); pom.position.set(0.2, 1.07, -0.05); g.add(pom); }
     if (kind === 0) [-1, 1].forEach(s => { const h = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 6), lam('#5a4a8a')); h.position.set(0.2 * s, 0.78, 0); g.add(h); });
-    const tag = textSprite(K.name, { sx: 1.1, bg: 'rgba(60,30,80,.8)' }); tag.position.y = 1.25; g.add(tag);
-    const m = { g, kind, name: K.name, say: K.say, x, z, tx: x, tz: z, t: Math.random() * 5, alive: true };
+    const tag = textSprite(K.name, { sx: 1.1, bg: 'rgba(60,30,80,.8)' }); tag.position.y = 1.42; g.add(tag);
+    // 頭上的小血條
+    const hc = document.createElement('canvas'); hc.width = 128; hc.height = 20; const ht = new THREE.CanvasTexture(hc); ht.colorSpace = THREE.SRGBColorSpace;
+    const hpBar = new THREE.Sprite(new THREE.SpriteMaterial({ map: ht, depthWrite: false })); hpBar.scale.set(0.9, 0.14, 1); hpBar.position.y = 1.17; g.add(hpBar);
+    const mats = []; g.traverse(o => { if (o.isMesh && o.material?.emissive) mats.push(o.material); });
+    const m = { g, kind, name: K.name, say: K.say, x, z, tx: x, tz: z, t: Math.random() * 5, alive: true, hp: K.hp, max: K.hp, hc, ht, mats };
+    this.drawHp(m);
     this.monsters.push(m); this.t.tapTargets.push([g, () => this.t.emit('tapMonster', m)]);
     g.scale.setScalar(0.01); this.t.tween(500, k => g.scale.setScalar(0.01 + k * 0.99));
     return m;
@@ -252,13 +259,71 @@ export class Outside {
       this.fx.push({ m: s, vx: Math.cos(a) * 2, vz: Math.sin(a) * 2, vy: 2 + Math.random() * 2, life: 0.8, g: -8 });
     }
   }
-  defeatMonster(m) {
-    m.alive = false; const g = m.g, from = g.position.clone();
-    const away = Math.atan2(g.position.x, g.position.z - 30) + (Math.random() - 0.5);
-    this.t.tween(900, k => { g.position.set(from.x + Math.sin(away) * k * 4, Math.sin(k * Math.PI) * 0.6, from.z + Math.cos(away) * k * 4); g.scale.setScalar(1 - k * 0.95); g.rotation.y += 0.3; }, 0, t => t, () => {
+  drawHp(m) {
+    const g = m.hc.getContext('2d'), W = 128, H = 20, k = Math.max(0, m.hp / m.max);
+    g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(20,10,20,.85)'; g.beginPath(); g.roundRect(0, 0, W, H, 6); g.fill();
+    g.fillStyle = k > 0.5 ? '#5ad06a' : k > 0.25 ? '#f0c040' : '#e8402a'; g.beginPath(); g.roundRect(3, 3, (W - 6) * k, H - 6, 4); g.fill();
+    g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 2; for (let i = 1; i < m.max; i++) { const x = 3 + (W - 6) * i / m.max; g.beginPath(); g.moveTo(x, 3); g.lineTo(x, H - 3); g.stroke(); }
+    m.ht.needsUpdate = true;
+  }
+  // 怪物頭上冒出一句話（對話泡泡）
+  say(obj, text, y = 1.75, ms = 1300) {
+    if (obj.bubble) obj.g.remove(obj.bubble);
+    const b = textSprite(text, { w: 320, h: 64, font: 30, bg: 'rgba(255,250,240,.95)', fg: '#3a2410', sx: 1.6 }); b.position.y = y; obj.g.add(b); obj.bubble = b;
+    clearTimeout(obj.bubbleT); obj.bubbleT = setTimeout(() => { if (obj.bubble === b) { obj.g.remove(b); obj.bubble = null; } }, ms);
+  }
+  // 打中：閃白、被打得一縮、扣一格血；回傳是不是打倒了
+  damage(m) {
+    if (!m.alive) return false;
+    m.hp -= 1; this.drawHp(m);
+    m.mats.forEach(mt => mt.emissive.set('#ffffff')); setTimeout(() => m.mats.forEach(mt => mt.emissive.set('#000000')), 110);
+    const g = m.g; this.t.tween(260, k => { const s = Math.sin(k * Math.PI); g.scale.set(1 + s * 0.25, 1 - s * 0.25, 1 + s * 0.25); });
+    if (m.hp > 0) { const K = MONSTER_KINDS[m.kind]; this.say(m, K.hit[(m.max - m.hp - 1) % K.hit.length]); m.tx = g.position.x + (Math.random() - 0.5) * 6; m.tz = g.position.z + (Math.random() - 0.5) * 6; return false; }
+    return true;
+  }
+  // 打倒：說最後一句話 → 鼓起來 → 「啵！」煙霧和紙花 → 化成金光飛進玩家身體
+  defeatMonster(m, toward) {
+    m.alive = false; const g = m.g, K = MONSTER_KINDS[m.kind];
+    this.say(m, K.bye, 1.75, 900);
+    m.mats.forEach(mt => mt.emissive.set('#ffffff'));
+    this.t.tween(380, k => g.scale.setScalar(1 + k * 0.5), 0, t => t, () => {
+      const p = g.position.clone(); p.y = 0.5;
       this.S.remove(g); this.monsters = this.monsters.filter(x => x !== m); this.t.tapTargets = this.t.tapTargets.filter(tt => tt[0] !== g);
+      this.poof(p, K.color); this.absorb(p, toward);
       setTimeout(() => this.spawnMonster(), 6000 + Math.random() * 6000);
     });
+  }
+  poof(p, color) {
+    // 白色煙霧：幾團球往外膨脹變淡
+    for (let k = 0; k < 9; k++) {
+      const a = k / 9 * Math.PI * 2, puff = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), basic(k % 3 ? '#ffffff' : color, { transparent: true, opacity: 0.9, depthWrite: false }));
+      puff.position.copy(p); this.S.add(puff);
+      const dx = Math.cos(a) * 0.9, dz = Math.sin(a) * 0.9, dy = 0.2 + Math.random() * 0.6;
+      this.t.tween(650, t => { puff.position.set(p.x + dx * t, p.y + dy * t, p.z + dz * t); puff.scale.setScalar(1 + t * 1.6); puff.material.opacity = 0.9 * (1 - t); }, 0, t => 1 - Math.pow(1 - t, 3), () => { this.S.remove(puff); puff.material.dispose(); });
+    }
+    // 中間一圈白光
+    const flash = glowSprite('#ffffff', 0.5); flash.position.copy(p); this.S.add(flash);
+    this.t.tween(350, t => { flash.scale.setScalar(0.5 + t * 3.5); flash.material.opacity = 1 - t; }, 0, t => t, () => this.S.remove(flash));
+    // 彩色紙花
+    const cols = ['#e8c15a', '#c8352b', '#5ad06a', '#4a8ad8', '#f2a0b8'];
+    for (let k = 0; k < 18; k++) {
+      const c = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.12), basic(cols[k % 5], { side: THREE.DoubleSide, transparent: true }));
+      c.position.copy(p); c.position.y += 0.3; this.S.add(c); const a = Math.random() * 6.28, sp = 1.5 + Math.random() * 2;
+      this.fx.push({ m: c, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: 3 + Math.random() * 2.5, life: 1.4, g: -7, spin: true });
+    }
+  }
+  // 金光：一串光點從怪物飛向玩家，到了以後在玩家身上亮一下
+  absorb(from, toward) {
+    if (!toward) return;
+    for (let k = 0; k < 8; k++) {
+      const s = glowSprite('#ffd76a', 0.45); s.position.copy(from); this.S.add(s);
+      const side = (Math.random() - 0.5) * 3, up = 1 + Math.random() * 1.5;
+      this.t.tween(700, t => { const q = toward(); const ix = from.x + (q.x - from.x) * t, iz = from.z + (q.z - from.z) * t; s.position.set(ix + Math.sin(t * Math.PI) * side * 0.4, from.y + (1.1 - from.y) * t + Math.sin(t * Math.PI) * up, iz); s.material.opacity = 0.4 + t * 0.6; },
+        250 + k * 60, t => t * t, () => {
+          this.S.remove(s);
+          if (k === 7) { const q = toward(), aura = glowSprite('#ffd76a', 1); aura.position.set(q.x, 1, q.z); this.S.add(aura); this.t.tween(500, t => { aura.scale.setScalar(1 + t * 2.2); aura.material.opacity = 1 - t; }, 0, t => t, () => this.S.remove(aura)); this.onAbsorb?.(); }
+        });
+    }
   }
 
   // ---------- 考試魔王：大家一起打，每天復活 ----------
@@ -284,14 +349,20 @@ export class Outside {
     this.setBoss(200, 200);
   }
   setBoss(hp, max) {
-    this.bossHp = hp; const g = this.hpCanvas.getContext('2d'), W = 256, H = 40;
+    this.bossHp = hp; this.bossMax = max; const g = this.hpCanvas.getContext('2d'), W = 256, H = 40;
     g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(20,10,20,.85)'; g.beginPath(); g.roundRect(0, 0, W, H, 10); g.fill();
     g.fillStyle = '#e8402a'; g.beginPath(); g.roundRect(4, 4, (W - 8) * Math.max(0, hp / max), H - 8, 7); g.fill();
     g.fillStyle = '#fff'; g.font = '700 22px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(`${Math.max(0, hp)} / ${max}`, W / 2, H / 2 + 1);
     this.hpTex.needsUpdate = true;
     const down = hp <= 0; this.zzz.visible = down; this.bossBody.material.color.set(down ? '#7a7a8a' : '#5a3a8a');
   }
-  hitBoss() { const b = this.bossBody; this.t.tween(250, k => { b.scale.set(1 + Math.sin(k * Math.PI) * 0.08, 0.85 - Math.sin(k * Math.PI) * 0.08, 1); }); }
+  hitBoss() {
+    const b = this.bossBody; this.t.tween(250, k => { b.scale.set(1 + Math.sin(k * Math.PI) * 0.08, 0.85 - Math.sin(k * Math.PI) * 0.08, 1); });
+    b.material.emissive.set('#ffffff'); setTimeout(() => b.material.emissive.set('#000000'), 110);
+    if (Math.random() < 0.35) this.say({ g: this.boss }, BOSS_LINES[Math.floor(Math.random() * BOSS_LINES.length)], 4.1, 1600);
+  }
+  // 魔王被打倒：大爆炸
+  bossPoof() { const p = new THREE.Vector3(BOSS_AT.x, 1.4, BOSS_AT.z); this.poof(p, '#5a3a8a'); setTimeout(() => this.poof(p.clone().setY(2.2), '#e8c15a'), 220); }
 
   update(dt) {
     this.time += dt; const t = this.time;
@@ -326,6 +397,7 @@ export class Outside {
     for (let i = this.fx.length - 1; i >= 0; i--) {
       const f = this.fx[i]; f.life -= dt;
       if (f.vx) { f.m.position.x += f.vx * dt; f.m.position.z += f.vz * dt; }
+      if (f.spin) { f.m.rotation.x += dt * 9; f.m.rotation.y += dt * 7; f.vx *= 0.98; f.vz *= 0.98; }
       if (f.g) { f.vy += f.g * dt; f.m.position.y = Math.max(0.03, f.m.position.y + f.vy * dt); }
       if (f.m.material?.transparent) f.m.material.opacity = Math.min(1, f.life * 2);
       if (f.life <= 0) { this.S.remove(f.m); this.fx.splice(i, 1); }

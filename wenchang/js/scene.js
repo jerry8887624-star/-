@@ -1058,6 +1058,7 @@ export class Temple {
     return { x: (p.x + 1) / 2 * innerWidth, y: (1 - p.y) / 2 * innerHeight, vis: p.z < 1 && p.z > -1 };
   }
 
+  shake(amt = 0.15, sec = 0.25) { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; this.shakeAmt = amt; this.shakeT = this.shakeDur = sec; }
   footprint(p, f, side) {
     if (this.feet.length > 80) return;
     if (!this._footG) this._footG = new THREE.CircleGeometry(0.09, 10);
@@ -1144,7 +1145,10 @@ export class Temple {
     this.perfTick(dt);
     for (const fn of this.updaters) fn(dt);
     // 動畫
-    this.anims = this.anims.filter(a => { a.t += dt * 1000; if (a.t < 0) return true; const k = Math.min(1, a.t / a.ms); a.fn(a.ease(k)); if (k >= 1) a.done?.(); return k < 1; });
+    // 動畫結束時可能又開始新的動畫：先把清單換新，跑完再把新加的接回去，才不會被丟掉
+    const running = this.anims; this.anims = [];
+    const keep = running.filter(a => { a.t += dt * 1000; if (a.t < 0) return true; const k = Math.min(1, a.t / a.ms); a.fn(a.ease(k)); if (k >= 1) a.done?.(); return k < 1; });
+    this.anims = keep.concat(this.anims);
     // 香煙、金爐煙與火光
     for (const sm of this.smokes) {
       const a = sm.arr, boost = sm === this.jinluSmoke ? 1 + this.fireBoost * 1.5 : 1;
@@ -1175,6 +1179,8 @@ export class Temple {
       this.camera.position.lerp(want, Math.min(1, dt * 5));
       this._look = this._look ? this._look.lerp(tgt, Math.min(1, dt * 5)) : tgt.clone();
       this.camera.lookAt(this._look);
+      // 畫面震動（打中怪物時）：鏡頭位置隨機抖一下，慢慢停下來
+      if (this.shakeT > 0) { this.shakeT -= dt; const a = this.shakeAmt * Math.max(0, this.shakeT / this.shakeDur); this.camera.position.x += (Math.random() - 0.5) * a; this.camera.position.y += (Math.random() - 0.5) * a; }
     }
     this.renderer.render(this.scene, this.camera);
     return dt;

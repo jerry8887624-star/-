@@ -572,3 +572,21 @@ body.chatting #near-btn { display: none; }
 .install-steps .ico { width: 22px; height: 22px; vertical-align: -5px; margin: 0 2px; fill: none; stroke: var(--gold-2); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .install-steps .note { display: block; font-size: 12.5px; color: var(--muted); }
 .install-steps.done li::before { content: "✓"; background: var(--jade); }
+
+/* 打怪：畫面邊緣閃金光、魔王大血條 */
+#hit-flash { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0; box-shadow: inset 0 0 120px 30px rgba(255, 215, 106, .85); }
+#hit-flash.on { animation: hitFlash .55s ease-out; }
+#hit-flash.small.on { animation: hitFlashS .3s ease-out; }
+@keyframes hitFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes hitFlashS { 0% { opacity: .45; } 100% { opacity: 0; } }
+#boss-bar { position: absolute; left: 50%; transform: translateX(-50%); top: calc(166px + var(--sat)); z-index: 4; width: min(360px, calc(100% - 24px)); padding: 8px 12px 6px; border-radius: 14px;
+  background: rgba(40, 14, 50, .88); border: 1.5px solid #b48ae8; text-align: center; pointer-events: none; animation: dlg .25s var(--ease); }
+#boss-bar b { font-family: var(--serif); color: #f0d8ff; font-size: 15px; letter-spacing: .1em; }
+.bb-track { position: relative; height: 16px; margin: 5px 0 3px; border-radius: 8px; background: rgba(0, 0, 0, .55); overflow: hidden; border: 1px solid rgba(255, 255, 255, .2); }
+.bb-track i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #e8402a, #f08a3a); transition: width .3s var(--ease); }
+.bb-track span { position: relative; font-size: 11.5px; font-weight: 700; color: #fff; line-height: 16px; text-shadow: 0 1px 2px #000; }
+#boss-bar small { font-size: 11px; color: #c8b0e0; }
+#boss-bar.hit { animation: bossHit .25s ease-out; }
+@keyframes bossHit { 30% { transform: translateX(calc(-50% + 4px)); } 60% { transform: translateX(calc(-50% - 4px)); } }
+body.guide-open #boss-bar { top: auto; bottom: calc(300px + var(--sab)); }
+@media (orientation: landscape) and (max-height: 520px) { #boss-bar, body.guide-open #boss-bar { top: calc(58px + var(--sat)); bottom: auto; width: min(300px, 40%); } }
