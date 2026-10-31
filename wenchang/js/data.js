@@ -145,3 +145,20 @@ export const FOCUS_MIN = [15, 25, 50]; // 讀書角專注時間（分鐘）
 export const FEAST_DATES = ['2026-03-21', '2027-03-10', '2028-02-27', '2029-03-17', '2030-03-06', '2031-02-23', '2032-03-14', '2033-03-03', '2034-03-22', '2035-03-12',
   '2036-02-29', '2037-03-19', '2038-03-08', '2039-02-25', '2040-03-15', '2041-03-04', '2042-02-22', '2043-03-13', '2044-03-02', '2045-03-21'];
 export const FEAST_DAYS_BEFORE = 2; // 聖誕前兩天到當天算活動期間
+// 專注時的聲音：靈犀配樂，或輕柔的環境聲（audio/focus/，取自開源專案 Moodist，CC0／Pixabay 授權，來源見 README）
+export const FOCUS_SOUNDS = [
+  { k: 'none', zh: '安靜', group: '' },
+  { k: 'ritual', zh: '儀式靜心', src: 'audio/ritual-pause.mp3', group: '靈犀配樂' },
+  { k: 'still', zh: '缽音入定', src: 'audio/resonant-stillness.mp3', group: '靈犀配樂' },
+  { k: 'dawn', zh: '晨鐘回響', src: 'audio/resonant-dawn.mp3', group: '靈犀配樂' },
+  { k: 'night', zh: '靜夜安神', src: 'audio/nocturnal-calm.mp3', group: '靈犀配樂' },
+  { k: 'rain', zh: '細雨', src: 'audio/focus/rain.mp3', group: '環境聲' },
+  { k: 'window', zh: '雨打窗', src: 'audio/focus/window.mp3', group: '環境聲' },
+  { k: 'library', zh: '圖書館', src: 'audio/focus/library.mp3', group: '環境聲', vol: 0.45 },
+  { k: 'paper', zh: '翻紙聲', src: 'audio/focus/paper.mp3', group: '環境聲' },
+  { k: 'temple', zh: '寺院', src: 'audio/focus/temple.mp3', group: '環境聲' },
+  { k: 'river', zh: '溪流', src: 'audio/focus/river.mp3', group: '環境聲' },
+  { k: 'crickets', zh: '夏夜蟲鳴', src: 'audio/focus/crickets.mp3', group: '環境聲' },
+  { k: 'clock', zh: '時鐘滴答', src: 'audio/focus/clock.mp3', group: '環境聲' },
+];
+export const FOCUS_CHEERS = ['一次只做一件事', '慢慢來，比較快', '今天的努力，考場上看得見', '寫錯沒關係，弄懂就好', '文昌帝君陪你讀書', '專注的你最帥／最美'];

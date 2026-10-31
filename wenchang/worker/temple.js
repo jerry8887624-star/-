@@ -56,6 +56,7 @@ export class Temple {
       this.bang = (await state.storage.get('bang')) || [];
       this.lamps = (await state.storage.get('lamps')) || [];
       this.wishes = (await state.storage.get('wishes')) || 0;
+      this.focus = (await state.storage.get('focus')) || { d: '', m: 0 };
     });
   }
 
@@ -89,7 +90,7 @@ export class Temple {
       p.uid = String(m.uid || '').replace(/[^a-z0-9]/gi, '').slice(0, 24);
       this.total += 1; this.state.storage.put('total', this.total);
       const mine = this.cards.filter(c => p.uid && c.u === p.uid);
-      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.publicCards(p), bang: this.bang.map(e => ({ x: e.x, n: e.n, d: e.d })), lamps: this.publicLamps(), wishes: this.wishes, myBless: mine.reduce((n, c) => n + (c.b || 0), 0) }));
+      p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.publicCards(p), bang: this.bang.map(e => ({ x: e.x, n: e.n, d: e.d })), lamps: this.publicLamps(), wishes: this.wishes, focus: this.focusToday(), myBless: mine.reduce((n, c) => n + (c.b || 0), 0) }));
       this.broadcast({ t: 'feed', from: p.id, k: 'join', n: p.name }, p.ws);
     } else if (!p.look) {
       return;
@@ -128,6 +129,9 @@ export class Temple {
     } else if (m.t === 'study') {
       // 讀書角：頭上顯示「專注中」
       if (!this.allow(p, 'study') && m.on) return;
+      // 專注結束：把專注的分鐘加進「今天大家一共專注」（只有真的在專注中的人才算）
+      if (!m.on && p.su) { const mins = Math.min(int(m.m, 0, 60), Math.ceil((Date.now() - (p.suAt || 0)) / 60000)); if (mins > 0) { this.focusToday(); this.focus.m += mins; this.state.storage.put('focus', this.focus); this.broadcast({ t: 'focus', m: this.focus.m }); } }
+      if (m.on && !p.su) p.suAt = Date.now();
       p.su = m.on ? 1 : 0;
     } else if (m.t === 'lamp') {
       // 光明燈：一支手機同時只亮一盞，再點就換新、重新亮七天
@@ -175,6 +179,9 @@ export class Temple {
       p.blocked.delete(int(m.id, 0, 1e9));
     }
   }
+
+  // 台灣日期換日就歸零
+  focusToday() { const d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); if (this.focus.d !== d) this.focus = { d, m: 0 }; return this.focus.m; }
 
   publicLamps() { const now = Date.now(); return this.lamps.filter(e => now - e.d < LAMP_DAYS * 864e5).map(e => ({ x: e.x, n: e.n, d: e.d })); }
 

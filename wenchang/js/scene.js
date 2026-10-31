@@ -565,8 +565,14 @@ export class Temple {
       const cover = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.08, 0.28), lam('#2a4f8a')); cover.position.set(d.x + 0.4, 0.86, d.z - 0.72); S.add(cover);
       const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.3, 12), dark); stool.position.set(d.x, 0.15, d.z); S.add(stool);
     });
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.6), basic('#fff', { map: plaqueTex('一起讀書角', { w: 512, h: 128, font: 80, bg: '#2a4f8a', fg: '#f6dc94' }), side: THREE.DoubleSide }));
-    sign.position.set(-11, 1.9, 1.6); S.add(sign);
+    // 兩面各貼一張，從殿那邊或書桌那邊看都是正的字
+    const twoSided = (map, w, h, y) => [[0, 1.62], [Math.PI, 1.58]].forEach(([r, z]) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), basic('#fff', { map })); m.position.set(-11, y, z); m.rotation.y = r; S.add(m); });
+    twoSided(plaqueTex('一起讀書角', { w: 512, h: 128, font: 80, bg: '#2a4f8a', fg: '#f6dc94' }), 2.4, 0.6, 1.9);
+    // 告示板：今天大家一起專注了幾分鐘、現在幾個人在讀書
+    const bc = document.createElement('canvas'); bc.width = 512; bc.height = 128; this.studyCanvas = bc;
+    this.studyTex = new THREE.CanvasTexture(bc); this.studyTex.colorSpace = THREE.SRGBColorSpace;
+    twoSided(this.studyTex, 2.4, 0.6, 1.22);
+    this.drawStudyBoard(0, 0);
     [-12.3, -9.7].forEach(x => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.9), dark); p.position.set(x, 0.95, 1.6); S.add(p); });
     // 許願池
     S = grp('pool');
@@ -596,6 +602,13 @@ export class Temple {
     const frame = new THREE.Mesh(new THREE.BoxGeometry(3.6, 3.18, 0.08), lam('#d8ab45')); frame.position.set(0, 2.45, 0); g.add(frame);
     this.drawLamps([]);
     this.feet = [];
+  }
+  drawStudyBoard(total, now) {
+    const g = this.studyCanvas.getContext('2d'), W = 512, H = 128;
+    g.fillStyle = '#1f2f4a'; g.fillRect(0, 0, W, H); g.strokeStyle = '#e8c15a'; g.lineWidth = 4; g.strokeRect(4, 4, W - 8, H - 8);
+    g.fillStyle = '#f6dc94'; g.textAlign = 'center'; g.font = '700 34px "Noto Serif TC",serif'; g.fillText(`今天大家專注了 ${total} 分鐘`, W / 2, 54);
+    g.fillStyle = '#e8eef8'; g.font = '500 26px "Noto Serif TC",serif'; g.fillText(now ? `現在 ${now} 人在讀書・坐下來一起吧` : '坐下來，一起讀書吧', W / 2, 98);
+    this.studyTex.needsUpdate = true;
   }
   dropCoin(x, z) {
     const m = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.012, 10), lam('#e8c15a', { emissive: '#3a2600' })); m.position.set(x, 0.245, z); this.coins.add(m);
@@ -962,7 +975,7 @@ export class Temple {
     const k = this.keys, P = this.player;
     // 鍵盤或方向搖桿：以鏡頭方向為「前」
     let f = 0, sd = 0;
-    if (P) {
+    if (P && !this.lockMove) {
       f = (k.w || k.arrowup ? 1 : 0) - (k.s || k.arrowdown ? 1 : 0); sd = (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0);
       if (Math.hypot(this.stick.x, this.stick.y) > 0.12) { f = this.stick.y; sd = this.stick.x; }
     }

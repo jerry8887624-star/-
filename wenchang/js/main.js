@@ -1,7 +1,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS, TIANGONG_SEAT0, MAIN_CUSHIONS, DESKS, DESK_SEAT0 } from './scene.js';
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES, ACCS } from './avatar.js';
-import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI, TASK_POOL, DAILY_COUNT, WEEK_GOAL, TITLES, FXS, REWARDS, FOCUS_MIN, FEAST_DATES, FEAST_DAYS_BEFORE } from './data.js';
+import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI, TASK_POOL, DAILY_COUNT, WEEK_GOAL, TITLES, FXS, REWARDS, FOCUS_MIN, FOCUS_SOUNDS, FOCUS_CHEERS, FEAST_DATES, FEAST_DAYS_BEFORE } from './data.js';
 import { Net } from './net.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
@@ -732,7 +732,7 @@ const net = new Net(wsUrl, {
   message(m) {
     if (m.t === 'welcome') {
       myId = m.you; temple.setSharedCards(m.cards || [], CARD_COLORS.map(c => c.hex), cardLabel); if (m.cards?.length) feed(`祈福牆上已經有 ${m.cards.length} 張大家的卡`);
-      blessing.clear(); blessOk.clear(); if (m.bang) setBang(m.bang); if (m.lamps) setLamps(m.lamps); wishes = m.wishes || 0;
+      blessing.clear(); blessOk.clear(); if (m.bang) setBang(m.bang); if (m.lamps) setLamps(m.lamps); wishes = m.wishes || 0; focusAll = m.focus || 0; drawStudyBoard();
       if (typeof m.myBless === 'number' && m.myBless > myBless) { myBless = m.myBless; store.set('myBless', myBless); }
       renderToday();
     }
@@ -757,6 +757,7 @@ const net = new Net(wsUrl, {
       const av = remotes.get(m.from); if (av?.root.visible) temple.tossCoin(av.root.position);
       if (performance.now() - lastWishFeed > 6000) { lastWishFeed = performance.now(); feed(`🪙 ${who(m.from)} 在許願池許了願`); }
     }
+    else if (m.t === 'focus') { focusAll = m.m || 0; drawStudyBoard(); renderFocusScreen(); }
     else if (m.t === 'bang-dup') toast('這項考試你已經還願過了，紅榜上有你的名字。');
     else if (m.t === 'state') {
       $('#presence .online').textContent = `${m.online} 人`; $('#presence').setAttribute('aria-label', `${m.online} 人在廟裡，點開互動`);
@@ -1184,6 +1185,7 @@ function renderToday() {
   const html = taskItems(); $('#task-list').innerHTML = html; $('#task-mini').innerHTML = html;
   $('#task-chip-n').textContent = left ? `${list.length - left} / ${list.length}` : '完成 ✓'; $('#task-chip').classList.toggle('done', !left);
   if (stats.wk !== weekKey()) { stats.wk = weekKey(); stats.wd = 0; store.set('stats', stats); }
+  $('#focus-line').textContent = `📖 ${focusText()}`;
   $('#week-line').textContent = `本週已完成 ${Math.min(stats.wd || 0, 7)} 天（${WEEK_GOAL} 天可得稱號「本週全勤」）。`;
   renderRewards();
   const days = store.get('days', 0), streak = store.get('streak', 0), last = store.get('lastDay', '');
@@ -1234,10 +1236,10 @@ setInterval(() => { if (daily.d !== today()) { freshDaily(); startToday(); } }, 
 // ---------- 廣場：讀書角、光明燈、許願池、合照打卡 ----------
 // 讀書角：坐下來專注計時，頭上顯示 📖；本機測試加 ?fast 會把分鐘當秒
 const MIN_MS = location.hostname === 'localhost' && new URLSearchParams(location.search).has('fast') ? 1000 : 60000;
-let studyAt = null, focusEnd = 0, focusMin = 0, focusTimer = 0;
+let studyAt = null, focusEnd = 0, focusStart = 0, focusMin = 0, focusTimer = 0;
 $('#study-mins').innerHTML = FOCUS_MIN.map(m => `<button type="button" data-m="${m}">${m} 分鐘</button>`).join('');
 async function study() {
-  if (studyAt != null) { showStudy(); return; }
+  if (studyAt != null) { focusEnd ? openFocusScreen() : showStudy(); return; }
   me.kneel(false);
   let got = -1;
   for (let k = 0; k < DESKS.length; k++) { if (temple.freeSlot([DESKS[k]], me, DESK_SEAT0 + k) !== 0) continue; if (await takeSeat(DESK_SEAT0 + k)) { got = k; break; } }
@@ -1255,21 +1257,89 @@ function leaveDesk(msg) {
 }
 $('#study-mins').onclick = e => {
   const b = e.target.closest('[data-m]'); if (!b) return;
-  focusMin = +b.dataset.m; focusEnd = Date.now() + focusMin * MIN_MS; net.study(1); showStudy(); tickFocus(); bubble(me, '📖', 'bubble', 1500);
+  focusMin = +b.dataset.m; focusStart = Date.now(); focusEnd = focusStart + focusMin * MIN_MS;
+  net.study(1); showStudy(); tickFocus(); bubble(me, '📖', 'bubble', 1500);
+  $('#fs-cheer').textContent = FOCUS_CHEERS[Math.floor(Math.random() * FOCUS_CHEERS.length)];
+  openFocusScreen(); playFocusSound();
 };
 function tickFocus() {
   clearTimeout(focusTimer); if (!focusEnd) return;
   const left = Math.max(0, focusEnd - Date.now()), sec = Math.ceil(left / 1000);
-  $('#study-time').textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+  const t = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+  $('#study-time').textContent = t; $('#fs-time').textContent = t;
   if (left <= 0) { stopFocus(true); return; }
   focusTimer = setTimeout(tickFocus, 500);
 }
+// 結束：完成就算一輪；提早結束也把專注過的分鐘記下來
 function stopFocus(done) {
-  clearTimeout(focusTimer); focusEnd = 0; net.study(0); if (studyAt != null) showStudy();
+  clearTimeout(focusTimer);
+  const mins = done ? focusMin : Math.floor((Date.now() - focusStart) / MIN_MS);
+  focusEnd = 0; net.study(0, mins); addFocusMinutes(mins); stopFocusSound(); closeFocusScreen();
+  if (studyAt != null) showStudy();
   if (done) { sound.bell(); buzz([30, 80, 30]); addStat('study'); toast(`專注 ${focusMin} 分鐘完成！休息一下再繼續。`, 4000); task('study'); }
 }
 $('#study-stop').onclick = () => { stopFocus(false); toast('這輪專注提早結束了。'); };
+$('#study-back').onclick = () => openFocusScreen();
 $('#study-leave').onclick = () => { leaveDesk(); leaveSeat(); me.root.position.z += 0.9; };
+
+// 全螢幕專注畫面：蓋住整個遊戲，點到哪裡都不會走動；按住「解鎖」1 秒才回到廟裡
+function openFocusScreen() { $('#focus-screen').hidden = false; temple.lockMove = true; renderFocusScreen(); }
+function closeFocusScreen() { $('#focus-screen').hidden = true; temple.lockMove = false; }
+(() => {
+  const btn = $('#fs-unlock'), bar = $('#fs-hold'); let t0 = 0, raf = 0;
+  const step = () => { const k = Math.min(1, (performance.now() - t0) / 1000); bar.style.width = k * 100 + '%'; if (k >= 1) { end(); closeFocusScreen(); buzz(15); return; } raf = requestAnimationFrame(step); };
+  const end = () => { cancelAnimationFrame(raf); t0 = 0; bar.style.width = '0%'; };
+  btn.addEventListener('pointerdown', e => { e.preventDefault(); t0 = performance.now(); raf = requestAnimationFrame(step); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, end));
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+})();
+
+// 專注聲音：靈犀配樂或環境聲，用原生 <audio> 循環播放；專注時先暫停廟裡的背景音樂
+const focusAudio = new Audio(); focusAudio.loop = true; focusAudio.preload = 'none';
+let focusSnd = store.get('focusSnd', 'rain'), musicWas = false;
+function playFocusSound() {
+  const s = FOCUS_SOUNDS.find(x => x.k === focusSnd) || FOCUS_SOUNDS[0];
+  if (music.playing) { musicWas = true; music.pause(); }
+  if (!s.src || !sound.on) { focusAudio.pause(); return; }
+  if (!focusAudio.src.endsWith(s.src)) focusAudio.src = s.src;
+  focusAudio.volume = s.vol ?? 0.8; focusAudio.play().catch(() => {});
+}
+function stopFocusSound() { focusAudio.pause(); if (musicWas) { musicWas = false; music.play(); } }
+$('#fs-sounds').onclick = e => {
+  const b = e.target.closest('[data-snd]'); if (!b) return;
+  focusSnd = b.dataset.snd; store.set('focusSnd', focusSnd); playFocusSound(); renderFocusScreen();
+  if (!sound.on && focusSnd !== 'none') toast('右上角喇叭目前是關的，打開後才聽得到。');
+};
+
+// 專注紀錄：今天、本週、累積
+// 今日面板在載入時就會畫，所以這裡用函式（不用 const），才不會還沒定義就被呼叫
+function readFocusLog() { return store.get('focusLog', { d: '', day: 0, wk: '', week: 0, total: 0 }); }
+function addFocusMinutes(m) {
+  if (!m) return;
+  const focusLog = readFocusLog();
+  if (focusLog.d !== today()) { focusLog.d = today(); focusLog.day = 0; }
+  if (focusLog.wk !== weekKey()) { focusLog.wk = weekKey(); focusLog.week = 0; }
+  focusLog.day += m; focusLog.week += m; focusLog.total += m; store.set('focusLog', focusLog);
+  if (!net.alive) { focusAll += m; drawStudyBoard(); }
+  renderToday();
+}
+function focusText() {
+  const focusLog = readFocusLog(), day = focusLog.d === today() ? focusLog.day : 0, week = focusLog.wk === weekKey() ? focusLog.week : 0;
+  return `今天專注 ${day} 分鐘・本週 ${week} 分鐘・累積 ${focusLog.total} 分鐘`;
+}
+// 一起專注：今天全廟累計的專注分鐘、現在有幾個人在讀書
+let focusAll = 0;
+const studyingNow = () => [...remotes.values()].filter(av => av.study).length + (focusEnd ? 1 : 0);
+function drawStudyBoard() { temple.drawStudyBoard(focusAll, studyingNow()); }
+function renderFocusScreen() {
+  if ($('#focus-screen').hidden) return;
+  let grp = '';
+  $('#fs-sounds').innerHTML = FOCUS_SOUNDS.map(s => { const g = s.group !== grp ? `<p class="grp">${s.group}</p>` : ''; grp = s.group; return `${g}<button type="button" data-snd="${s.k}" aria-pressed="${s.k === focusSnd}">${s.zh}</button>`; }).join('');
+  const n = studyingNow();
+  $('#fs-together').textContent = `${n > 1 ? `現在有 ${n} 人和你一起讀書・` : ''}今天大家一共專注了 ${focusAll} 分鐘`;
+  $('#fs-stats').textContent = focusText();
+}
+setInterval(() => { drawStudyBoard(); renderFocusScreen(); }, 5000);
 
 // 光明燈：殿內左牆，點亮七天、顯示暱稱
 let lamps = [];
