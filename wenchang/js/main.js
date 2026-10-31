@@ -744,7 +744,7 @@ const net = new Net(wsUrl, {
   message(m) {
     if (m.t === 'welcome') {
       myId = m.you; temple.setSharedCards(m.cards || [], CARD_COLORS.map(c => c.hex), cardLabel); if (m.cards?.length) feed(`祈福牆上已經有 ${m.cards.length} 張大家的卡`);
-      blessing.clear(); blessOk.clear(); if (m.bang) setBang(m.bang); if (m.lamps) setLamps(m.lamps); setOthersOffers(m.offers || []); if (m.trees) setTrees(m.trees); if (m.boss) out.setBoss(m.boss.hp, m.boss.max); wishes = m.wishes || 0; focusAll = m.focus || 0; drawStudyBoard();
+      blessing.clear(); blessOk.clear(); if (m.bang) setBang(m.bang); if (m.lamps) setLamps(m.lamps); setOthersOffers(m.offers || []); if (m.trees) setTrees(m.trees); if (m.boss) out.setBoss(m.boss.hp, m.boss.max, m.boss.next); wishes = m.wishes || 0; focusAll = m.focus || 0; drawStudyBoard();
       if (typeof m.myBless === 'number' && m.myBless > myBless) { myBless = m.myBless; store.set('myBless', myBless); }
       renderToday();
     }
@@ -778,8 +778,9 @@ const net = new Net(wsUrl, {
     else if (m.t === 'tree-full') toast('金榜樹林的位置都滿了，過幾天再來看看。');
     else if (m.t === 'sky') { if (m.from !== myId) { out.releaseLantern(m.x, m.z); if (performance.now() - lastWishFeed > 6000) { lastWishFeed = performance.now(); feed(`🏮 ${who(m.from)} 放了一盞天燈`); } } }
     else if (m.t === 'boss') {
-      out.setBoss(m.hp, m.max);
-      if (m.beat) { if (m.hitters?.includes(myId)) bossBeat(); else feed('⚔️ 大家一起打倒了考試魔王！明天牠還會再來'); }
+      out.setBoss(m.hp, m.max, m.next);
+      if (m.spawn) feed('👹 考試魔王出現了！到樹林最裡面一起打');
+      if (m.beat) { if (m.hitters?.includes(myId)) bossBeat(); else feed(`⚔️ 大家一起打倒了考試魔王！下一隻 ${hhmm(m.next)} 出現`); }
     }
     else if (m.t === 'board') { board = m; if ($('#rank-dlg').open) renderRank(); }
     else if (m.t === 'focus') { focusAll = m.m || 0; drawStudyBoard(); renderFocusScreen(); }
@@ -1665,13 +1666,19 @@ async function forest() {
   await temple.walk(me, p.x + (gp.x - p.x) * k, p.z + (gp.z - p.z) * k);
 }
 
-// 考試魔王：大家共用一條血，一起打；每天復活
+// 考試魔王：大家共用一條血，一起打；每兩小時（台灣時間 0、2、4…點）出現一隻，被打倒就消失
+const BOSS_EVERY = 2 * 3600e3;
+const bossSlot = () => Math.floor((Date.now() + 8 * 3600e3) / BOSS_EVERY);
+const nextBoss = () => (bossSlot() + 1) * BOSS_EVERY - 8 * 3600e3;
+const hhmm = t => { const d = new Date(t || nextBoss()); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 let bossHp = 200, bossMax = 200, bossHitToday = store.get('bossHit', '') === today();
-function localBoss() { const b = store.get('bossLocal', { d: '', hp: 30 }); if (b.d !== today()) { b.d = today(); b.hp = 30; } return b; }
-if (!net.alive) { const b = localBoss(); out.setBoss(b.hp, 30); }
+function localBoss() { const b = store.get('bossLocal', { d: '', hp: 30 }); if (b.d !== String(bossSlot())) { b.d = String(bossSlot()); b.hp = 30; } return b; }
+if (!net.alive) { const b = localBoss(); out.setBoss(b.hp, 30, nextBoss()); }
+// 沒連線時，自己檢查是不是該換下一隻
+setInterval(() => { if (net.alive) return; const b = localBoss(); if (b.hp > 0 && out.bossHp <= 0) feed('👹 考試魔王出現了！到樹林最裡面一起打'); out.setBoss(b.hp, 30, nextBoss()); }, 30000);
 async function bossAct() {
   const p = me.root.position, d = Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z);
-  if (out.bossHp <= 0) { toast('考試魔王今天已經被大家打倒了，明天牠還會再來！'); return; }
+  if (out.bossHp <= 0) { toast(`這隻考試魔王已經被打倒了，下一隻 ${hhmm(out.bossNext)} 出現！`); return; }
   if (d > 8 && !(await arrive('boss'))) return;
   if (throwing) return; throwing = true;
   me.faceTo = Math.atan2(BOSS_AT.x - p.x, BOSS_AT.z - p.z); me.emote('wave'); temple.frame(me.faceTo, 0.6); if (temple.camDist < 7) temple.camDist = 8;
@@ -1679,26 +1686,28 @@ async function bossAct() {
     throwing = false; out.hitBoss(); sound.clack(1); buzz(10); temple.shake(0.1, 0.2); hitFlash(true);
     const bb = $('#boss-bar'); bb.classList.remove('hit'); void bb.offsetWidth; bb.classList.add('hit');
     store.set('bossHit', today()); bossHitToday = true;
-    if (!net.alive) { const b = localBoss(); b.hp = Math.max(0, b.hp - 1); store.set('bossLocal', b); out.setBoss(b.hp, 30); if (!b.hp) bossBeat(); return; }
+    if (!net.alive) { const b = localBoss(); b.hp = Math.max(0, b.hp - 1); store.set('bossLocal', b); out.setBoss(b.hp, 30, nextBoss()); if (!b.hp) bossBeat(); return; }
     net.hit();
   });
 }
 function bossBeat() {
   addStat('boss'); sound.bell(); me.emote('jump');
-  out.bossPoof(); temple.shake(0.35, 0.6); hitFlash(); buzz([40, 60, 40, 60, 80]);
-  celebrate({ big: true, confetti: true, title: '⚔️ 打倒考試魔王了！', sub: '大家一起把考試魔王打跑了！考試那天也會這麼順利。明天牠還會再來。' });
+  temple.shake(0.35, 0.6); hitFlash(); buzz([40, 60, 40, 60, 80]);
+  // 等魔王炸開、消失以後再跳出慶祝，才看得到爆炸
+  setTimeout(() => celebrate({ big: true, confetti: true, title: '⚔️ 打倒考試魔王了！', sub: `大家一起把考試魔王打跑了！考試那天也會這麼順利。下一隻 ${hhmm(out.bossNext)} 出現。` }), 1500);
 }
 temple.on('tapBoss', () => { if (!state.busy) act('boss'); });
+temple.on('tapSky', () => { if (!state.busy) act('sky'); });
 // 畫面邊緣閃一下金光（small：打中但還沒倒）
 function hitFlash(small) { const f = $('#hit-flash'); f.classList.toggle('small', !!small); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); }
 // 靠近考試魔王時，畫面上方出現大血條
 function bossBarTick() {
-  const p = me.root.position, near = Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z) < 10 && !document.body.classList.contains('photo-mode'), bar = $('#boss-bar');
+  const p = me.root.position, near = Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z) < 10 && out.bossHp > 0 && !document.body.classList.contains('photo-mode'), bar = $('#boss-bar');
   if (bar.hidden !== !near) bar.hidden = !near;
   if (!near) return;
   const max = net.alive ? out.bossMax || 200 : 30, hp = Math.max(0, out.bossHp);
   $('#bb-fill').style.width = `${hp / max * 100}%`; $('#bb-num').textContent = hp > 0 ? `${hp} / ${max}` : '被打倒了';
-  $('#bb-note').textContent = hp > 0 ? (net.alive ? '廟裡的人一起打，每天復活' : '每天復活') : '明天牠還會再來';
+  $('#bb-note').textContent = net.alive ? '廟裡的人一起打・每兩小時出現一隻' : '每兩小時出現一隻';
 }
 
 // 廟外的「走近就出現按鈕」：寶物 > 種樹 > 澆水 > 魔王 > 拖延怪（拖延怪會亂跑，放最後才不會擋住其他按鈕）
@@ -1709,6 +1718,9 @@ function nearOutside(p) {
   if (!myTree() && Math.hypot(p.x + 9.5, p.z - 22.4) < 3) return { id: 'sow', label: '🌱 種一棵金榜樹', fn: () => act('grove') };
   const t = nearTree(p);
   if (t) return { id: 'tree' + t.i, label: t.mine ? '💧 幫我的金榜樹澆水' : `💧 幫${t.n || '考生'}的樹澆水`, fn: () => act('water' + t.i) };
+  // 天燈廣場、錦鯉池：走進去就有按鈕（比拖延怪優先，怪物晃過來也不會蓋掉）
+  if (Math.hypot(p.x - 14, p.z - 30) < 3.2) return { id: 'sky', label: '🏮 放一盞天燈', fn: () => act('sky') };
+  if (Math.hypot(p.x - KOI.x, p.z - KOI.z) < KOI.r + 2.2) return { id: 'koi', label: '🐟 撒飼料餵錦鯉', fn: () => act('koi') };
   if (Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z) < 7 && out.bossHp > 0) return { id: 'boss', label: '⚔️ 一起打考試魔王', fn: () => act('boss') };
   const m = out.nearestMonster(p.x, p.z, 7);
   if (m) return { id: 'mo' + m.g.id, label: `✏️ 丟毛筆打${m.name}`, fn: () => hitMonster(m) };

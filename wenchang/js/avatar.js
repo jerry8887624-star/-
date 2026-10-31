@@ -46,7 +46,14 @@ export function randomLook(gender) {
     outfit: FREE_OUTFIT_IDS[r(FREE_OUTFITS)], glasses: Math.random() < 0.3 ? 1 + r(2) : 0, head: 0, eye: r(EYES.length), mouth: r(MOUTHS.length), cheek: Math.random() < 0.75 ? 0 : 1 + r(2) };
 }
 
-const lam = (c, extra = {}) => new THREE.MeshLambertMaterial({ color: c, ...extra });
+// 卡通（賽璐璐）明暗：三段色階，看起來像可愛的動畫角色
+let _grad;
+function toonGrad() {
+  if (_grad) return _grad;
+  _grad = new THREE.DataTexture(new Uint8Array([110, 190, 255]), 3, 1, THREE.RedFormat);
+  _grad.minFilter = _grad.magFilter = THREE.NearestFilter; _grad.needsUpdate = true; return _grad;
+}
+const lam = (c, extra = {}) => new THREE.MeshToonMaterial({ color: c, gradientMap: toonGrad(), ...extra });
 // 光暈貼圖：大家共用一張
 let _glow;
 function glowTex() {
@@ -148,7 +155,7 @@ export class Avatar {
       else if (es === 2) { part(new THREE.SphereGeometry(0.062, 12, 10), eyeM, x, 0, z - 0.005, 1, 1.2, 0.5); part(new THREE.SphereGeometry(0.02, 6, 4), lam('#ffffff'), x + 0.02, 0.03, z + 0.03); part(new THREE.SphereGeometry(0.011, 6, 4), lam('#ffffff'), x - 0.02, -0.025, z + 0.03); }
       else if (es === 3) { part(new THREE.SphereGeometry(0.045, 10, 8), eyeM, x, -0.01, z, 1.1, 0.5, 0.5); part(new THREE.BoxGeometry(0.11, 0.014, 0.02), eyeM, x, 0.018, z + 0.008); }
       else if (es === 4) { const gm = lam('#e8b030', { emissive: '#5a3a00' }); const a = part(new THREE.OctahedronGeometry(0.055), gm, x, 0, z, 1, 1.3, 0.35); const b2 = part(new THREE.OctahedronGeometry(0.04), gm, x, 0, z + 0.005, 1.3, 1, 0.35); b2.rotation.z = Math.PI / 4; }
-      else part(new THREE.SphereGeometry(0.045, 10, 8), eyeM, x, 0, z, 1, 1.25, 0.5);
+      else { part(new THREE.SphereGeometry(0.05, 12, 10), eyeM, x, 0, z, 1, 1.25, 0.5); part(new THREE.SphereGeometry(0.016, 6, 4), lam('#ffffff'), x + 0.016 * s, 0.025, z + 0.024); } // 圓圓眼加上亮點
     });
     // 臉頰
     const ck = (L.cheek | 0) % CHEEKS.length;
