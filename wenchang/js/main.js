@@ -158,6 +158,8 @@ $('#enter-btn').onclick = async () => {
   if (!wsUrl) startNpcs();
   else setTimeout(() => { if (!net.alive) startNpcs(); }, 5000); // 連不上伺服器就先放示意香客
   refresh(); startToday();
+  const visits = store.get('visits', 0) + 1; store.set('visits', visits);
+  if (visits >= 2) setTimeout(maybeInstall, 25000);
   setTimeout(showNewsOnce, 900);
   setTimeout(() => toast(innerWidth < 720 ? '點地板走動、拖曳轉動視角。下方按鈕會帶你一步步參拜。' : '點地板或用 WASD／方向鍵走動，拖曳轉動視角。下方按鈕會帶你一步步參拜。', 4200), 700);
 };
@@ -685,6 +687,7 @@ function restartRitual() {
   toast('重新開始參拜：先到<b>辦事處</b>備供品、領香和金紙。', 4000);
 }
 $('#again-btn').onclick = () => { $('#done-dlg').close(); restartRitual(); };
+$('#done-dlg').addEventListener('close', () => { if (store.get('rounds', 0) === 1) setTimeout(maybeInstall, 3000); });
 $('#again-guide').onclick = () => { if (!state.busy) restartRitual(); };
 
 // 靈犀占卜：點電子牆在遊戲裡打開靈犀（同一位作者的命理 App）
@@ -757,6 +760,7 @@ const net = new Net(wsUrl, {
       const av = remotes.get(m.from); if (av?.root.visible) temple.tossCoin(av.root.position);
       if (performance.now() - lastWishFeed > 6000) { lastWishFeed = performance.now(); feed(`🪙 ${who(m.from)} 在許願池許了願`); }
     }
+    else if (m.t === 'board') { board = m; if ($('#rank-dlg').open) renderRank(); }
     else if (m.t === 'focus') { focusAll = m.m || 0; drawStudyBoard(); renderFocusScreen(); }
     else if (m.t === 'bang-dup') toast('這項考試你已經還願過了，紅榜上有你的名字。');
     else if (m.t === 'state') {
@@ -1442,6 +1446,75 @@ async function shareBlob(blob, name, msg) {
   toast('圖片已存到手機。');
 }
 $('#photo-share').onclick = () => { if (photoBlob) shareBlob(photoBlob, '文昌祠合照.jpg', '在線上文昌祠合照打卡！'); };
+
+// ---------- 排行榜：專注時間、在廟裡的時間（今日／本週／總榜） ----------
+let rankOn = store.get('rankOn', true), board = null, rankKind = 'focus', rankPer = 'd';
+net.rankOn = rankOn; $('#rank-allow').checked = rankOn;
+$('#rank-allow').onchange = e => { rankOn = e.target.checked; store.set('rankOn', rankOn); net.rank(rankOn); toast(rankOn ? '會用你的暱稱顯示在排行榜。' : '不會顯示在排行榜，自己的紀錄還是看得到。'); };
+const fmtMin = m => m >= 60 ? `${Math.floor(m / 60)} 小時${m % 60 ? ` ${m % 60} 分` : ''}` : `${m} 分鐘`;
+function openRank() {
+  if ($('#today-dlg').open) $('#today-dlg').close(); hideSocial();
+  $('#rank-dlg').showModal();
+  if (net.alive) { net.board(); if (!board) $('#rank-list').innerHTML = '<li class="empty">讀取中…</li>'; }
+  renderRank();
+}
+function renderRank() {
+  document.querySelectorAll('#rank-kind [data-k]').forEach(b => b.setAttribute('aria-selected', b.dataset.k === rankKind));
+  document.querySelectorAll('#rank-per [data-p]').forEach(b => b.setAttribute('aria-selected', b.dataset.p === rankPer));
+  if (!net.alive) { $('#rank-list').innerHTML = '<li class="empty">連上多人伺服器才看得到排行榜。</li>'; $('#rank-me').textContent = rankKind === 'focus' ? `你的專注：${focusText()}` : ''; return; }
+  if (!board) return;
+  const b = board[rankKind], list = b[rankPer], me = b.me, medal = ['🥇', '🥈', '🥉'];
+  $('#rank-list').innerHTML = list.length ? list.map((e, i) => `<li class="${e.me ? 'me' : ''}"><b>${medal[i] || i + 1}</b><span>${esc(e.n)}${e.me ? '（你）' : ''}</span><em>${fmtMin(e.v)}</em></li>`).join('')
+    : `<li class="empty">${rankPer === 'd' ? '今天' : rankPer === 'w' ? '這週' : ''}還沒有人上榜，${rankKind === 'focus' ? '去讀書角專注一輪' : '多在廟裡走走、拜拜'}就能上榜！</li>`;
+  const v = me?.[rankPer] || 0, r = me?.['r' + rankPer] || 0;
+  $('#rank-me').textContent = board.hidden ? `你設定了不上榜・你的紀錄：${fmtMin(v)}` : v ? `你：${fmtMin(v)}・第 ${r} 名` : `你${rankPer === 'd' ? '今天' : rankPer === 'w' ? '這週' : ''}還沒有紀錄`;
+}
+$('#rank-kind').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { rankKind = b.dataset.k; renderRank(); } };
+$('#rank-per').onclick = e => { const b = e.target.closest('[data-p]'); if (b) { rankPer = b.dataset.p; renderRank(); } };
+document.querySelectorAll('.rank-open').forEach(b => b.addEventListener('click', openRank));
+
+// ---------- 加到主畫面：依手機與瀏覽器給不同教學 ----------
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+addEventListener('appinstalled', () => { installEvt = null; store.set('installed', true); toast('已加到主畫面，下次從桌面的「線上文昌祠」打開！', 4000); renderInstallBtns(); });
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const UA = navigator.userAgent;
+const isIOS = /iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+const inApp = /\bLine\/|FBAN|FBAV|Instagram|MicroMessenger|GSA\//i.test(UA);
+const isAndroid = /Android/i.test(UA);
+const ICO_SHARE = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5v10h14V11h-1"/></svg>';
+const ICO_ADD = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg>';
+const ICO_MORE = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>';
+function installSteps() {
+  if (isStandalone()) return ['你已經是從主畫面打開的，不用再加了 👍'];
+  if (inApp) return [`在 LINE／FB／IG 裡打開的網頁沒辦法加到主畫面。先點右上角的 ${ICO_MORE} 或「⋯」`, `選「<b>用瀏覽器開啟</b>」${isIOS ? '（Safari）' : '（Chrome）'}<span class="note">找不到的話，按下面「複製網址」，再貼到瀏覽器打開。</span>`, '在瀏覽器裡再打開這份教學（左上角 ⓘ「說明」→「看怎麼加」）'];
+  if (isIOS) return [`點${/CriOS|EdgiOS|FxiOS/.test(UA) ? '網址列旁邊' : '畫面下方（iPad 在上方）'}的「分享」按鈕 ${ICO_SHARE}`, `往下滑，點「<b>加入主畫面</b>」${ICO_ADD}<span class="note">沒看到的話，在最下面「編輯動作」把它加進來。</span>`, '按右上角「<b>加入</b>」，桌面就會出現「線上文昌祠」'];
+  if (installEvt) return ['按下面的「<b>立即安裝</b>」', '在跳出來的視窗按「安裝」，桌面就會出現「線上文昌祠」'];
+  if (isAndroid) return [`點右上角的 ${ICO_MORE}`, '選「<b>加到主畫面</b>」或「<b>安裝應用程式</b>」', '按「新增／安裝」，桌面就會出現「線上文昌祠」'];
+  return [`電腦版 Chrome／Edge：點網址列右邊的安裝圖示 ${ICO_ADD}，或右上角 ${ICO_MORE} →「安裝線上文昌祠」`, '手機打開這個網址，也可以照著教學加到主畫面'];
+}
+function openInstall(auto) {
+  const steps = installSteps(), done = isStandalone();
+  $('#install-steps').className = 'install-steps' + (done ? ' done' : '');
+  $('#install-steps').innerHTML = steps.map(s => `<li><span>${s}</span></li>`).join('') + (inApp ? '<li><span><button type="button" class="ghost small" id="install-copy">複製網址</button></span></li>' : '');
+  $('#install-go').hidden = !installEvt || done; $('#install-later').hidden = !auto || done;
+  $('#install-copy')?.addEventListener('click', () => { navigator.clipboard?.writeText(location.origin + location.pathname).then(() => toast('網址複製好了，貼到瀏覽器打開。')).catch(() => toast(location.origin + location.pathname, 6000)); });
+  const d = $('#install-dlg'); if (!d.open) d.showModal();
+}
+$('#install-go').onclick = async () => { if (!installEvt) return; installEvt.prompt(); const r = await installEvt.userChoice.catch(() => null); installEvt = null; $('#install-dlg').close(); if (r?.outcome !== 'accepted') snoozeInstall(); };
+$('#install-ok').onclick = () => { $('#install-dlg').close(); snoozeInstall(); };
+$('#install-later').onclick = () => { $('#install-dlg').close(); snoozeInstall(); toast('之後想加，可以在「說明」或「📅 今日」找到「加到主畫面」。', 3600); };
+function snoozeInstall() { const s = store.get('installSnooze', { n: 0, t: 0 }); store.set('installSnooze', { n: s.n + 1, t: Date.now() }); }
+// 自動提醒：第二次進廟或第一次參拜完成後；按過就隔 7 天，最多 3 次
+function maybeInstall(tries = 0) {
+  if (isStandalone() || store.get('installed', false)) return;
+  const s = store.get('installSnooze', { n: 0, t: 0 }); if (s.n >= 3 || Date.now() - s.t < 7 * 864e5) return;
+  if (document.querySelector('dialog[open]') || !$('#celebrate').hidden || state.busy || studyAt != null) { if (tries < 30) setTimeout(() => maybeInstall(tries + 1), 4000); return; }
+  openInstall(true);
+}
+function renderInstallBtns() { const hide = isStandalone(); document.querySelectorAll('.install-open, #splash-install').forEach(b => { b.hidden = hide; }); }
+document.querySelectorAll('.install-open, #splash-install').forEach(b => b.addEventListener('click', () => openInstall(false)));
+renderInstallBtns();
 
 // 沒有連線時：幾位示意香客在廟裡走動、拜拜
 const npcs = [];

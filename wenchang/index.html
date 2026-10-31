@@ -42,6 +42,7 @@
       <button type="button" class="ghost" id="pick-custom" aria-expanded="false">自訂外觀</button>
     </div>
     <div id="customize" hidden></div>
+    <button type="button" id="splash-install" class="install-link" hidden>📲 加到主畫面，全螢幕更好玩</button>
     <p class="disclaimer">非官方個人教育作品，不代表任何廟宇。場景為示意，實際參拜請依廟方指示。</p>
   </div>
 </section>
@@ -102,6 +103,8 @@
     </div>
     <div class="my-nick"><label for="my-nick">我的暱稱</label><input id="my-nick" maxlength="8" autocomplete="off" placeholder="可不填"><button type="button" id="my-nick-save">儲存</button></div>
     <label class="check dm-toggle"><input type="checkbox" id="dm-allow" checked> 接收別人的密語</label>
+    <label class="check dm-toggle"><input type="checkbox" id="rank-allow" checked> 用我的暱稱顯示在排行榜</label>
+    <button type="button" class="ghost small rank-open">🏆 看排行榜</button>
     <p class="pending" id="social-offline" hidden>現在沒有連上多人伺服器，廟裡是示意香客；動作只有你自己看得到。</p>
   </div>
 
@@ -327,6 +330,11 @@
     <p class="say" id="week-line"></p>
     <p class="say" id="focus-line"></p>
   </section>
+  <section class="tbox">
+    <h3>🏆 排行榜</h3>
+    <p class="say">專注時間、在廟裡的時間，今日／本週／總榜。</p>
+    <div class="row tight"><button type="button" class="ghost small install-open install-btn">📲 加到主畫面</button><button type="button" class="rank-open">看排行榜</button></div>
+  </section>
   <section class="tbox" id="reward-box">
     <h3>🏅 獎勵 <small id="reward-count"></small></h3>
     <p class="say" id="next-reward"></p>
@@ -352,6 +360,25 @@
     <div class="exam-row"><select id="bang-exam" aria-label="考上的考試"></select><button type="button" id="bang-btn">我考上了，回來還願</button></div>
   </section>
   <div class="row"><button type="button" data-close>關閉</button></div>
+</dialog>
+
+<!-- 排行榜 -->
+<dialog id="rank-dlg">
+  <h2>🏆 排行榜</h2>
+  <div class="seg" id="rank-kind" role="tablist" aria-label="排行項目"><button type="button" role="tab" data-k="focus" aria-selected="true">📖 專注時間</button><button type="button" role="tab" data-k="active" aria-selected="false">⏱️ 在廟裡的時間</button></div>
+  <div class="seg sm" id="rank-per" role="tablist" aria-label="期間"><button type="button" role="tab" data-p="d" aria-selected="true">今日</button><button type="button" role="tab" data-p="w" aria-selected="false">本週</button><button type="button" role="tab" data-p="t" aria-selected="false">總榜</button></div>
+  <ol id="rank-list" class="rank-list"></ol>
+  <p id="rank-me" class="rank-me"></p>
+  <p class="pending">用目前的暱稱上榜（沒有暱稱顯示「考生」）。「在廟裡的時間」只算有在動或在專注的時間，3 分鐘沒動作就不算。不想上榜可以在「互動」裡關掉。</p>
+  <div class="row"><button type="button" data-close>關閉</button></div>
+</dialog>
+
+<!-- 加到主畫面教學 -->
+<dialog id="install-dlg">
+  <h2>📲 加到主畫面</h2>
+  <p class="say">加到主畫面後，像 App 一樣從桌面一點就開：<b>全螢幕、畫面更大、載入更快</b>，也不會跟其他分頁混在一起。</p>
+  <ol id="install-steps" class="install-steps"></ol>
+  <div class="row"><button type="button" class="ghost" id="install-later">不用了</button><button type="button" id="install-go" hidden>立即安裝</button><button type="button" id="install-ok">知道了</button></div>
 </dialog>
 
 <!-- 每天第一次進廟：今天的任務 -->
@@ -473,6 +500,8 @@
   <p class="pending" id="info-sources"></p>
   <h3>操作方式</h3>
   <p>點地板走過去、拖曳轉動視角；電腦可用 WASD／方向鍵。下方按鈕會帶你走到對的位置並完成動作。點其他香客可以送打氣語。</p>
+  <h3>加到手機主畫面</h3>
+  <p>像 App 一樣從桌面一點就開，全螢幕、畫面更大。<button type="button" class="ghost small install-open">📲 看怎麼加</button></p>
   <p class="disclaimer">非官方個人教育作品，不代表任何廟宇。<span id="app-ver"></span></p>
   <div class="row"><button type="button" data-close>關閉</button></div>
 </dialog>

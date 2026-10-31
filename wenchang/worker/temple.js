@@ -17,7 +17,12 @@ const MAX_CARDS = 60;
 const MAX_BANG = 60;        // 還願紅榜最多保留幾筆
 const MAX_LAMPS = 200;      // 光明燈最多幾盞
 const LAMP_DAYS = 7;        // 光明燈亮幾天
-const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000 };
+const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500 };
+// 台灣時間的日期與週（週一開始），排行榜用
+const twNow = () => new Date(Date.now() + 8 * 3600e3);
+const dayKey = () => twNow().toISOString().slice(0, 10);
+const weekKey = () => { const d = twNow(); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); return d.toISOString().slice(0, 10); };
+const IDLE_MS = 3 * 60000; // 超過 3 分鐘沒動作就不算「在廟裡的時間」
 
 export default {
   async fetch(req, env) {
@@ -57,6 +62,9 @@ export class Temple {
       this.lamps = (await state.storage.get('lamps')) || [];
       this.wishes = (await state.storage.get('wishes')) || 0;
       this.focus = (await state.storage.get('focus')) || { d: '', m: 0 };
+      // 排行榜：每支手機（匿名代碼）一筆，記暱稱、專注分鐘、在廟裡的分鐘（今日／本週／累積）
+      this.recs = new Map();
+      for (const [k, v] of await state.storage.list({ prefix: 'u:' })) this.recs.set(k.slice(2), v);
     });
   }
 
@@ -84,10 +92,12 @@ export class Temple {
   onMessage(p, raw) {
     if (typeof raw !== 'string' || raw.length > 600) return;
     let m; try { m = JSON.parse(raw); } catch (_) { return; }
+    p.lastAct = Date.now();
     if (m.t === 'hi' && !p.look) {
       p.look = cleanLook(m.look);
       const n = checkName(m.name); p.name = n.ok ? n.text : '';
       p.uid = String(m.uid || '').replace(/[^a-z0-9]/gi, '').slice(0, 24);
+      p.rank = m.rank !== 0; this.syncRec(p);
       this.total += 1; this.state.storage.put('total', this.total);
       const mine = this.cards.filter(c => p.uid && c.u === p.uid);
       p.ws.send(JSON.stringify({ t: 'welcome', you: p.id, total: this.total, cards: this.publicCards(p), bang: this.bang.map(e => ({ x: e.x, n: e.n, d: e.d })), lamps: this.publicLamps(), wishes: this.wishes, focus: this.focusToday(), myBless: mine.reduce((n, c) => n + (c.b || 0), 0) }));
@@ -97,7 +107,7 @@ export class Temple {
     } else if (m.t === 'look') {
       p.look = cleanLook(m.look);
     } else if (m.t === 'name') {
-      const n = checkName(m.name); if (n.ok) p.name = n.text;
+      const n = checkName(m.name); if (n.ok) p.name = n.text; this.syncRec(p);
     } else if (m.t === 'pos') {
       p.x = num(m.x, -30, 40); p.z = num(m.z, -30, 40); p.f = num(m.f, -10, 10); p.h = m.h ? 1 : 0; p.b = m.b ? 1 : 0; p.k = m.k ? 1 : 0;
     } else if (m.t === 'step') {
@@ -130,7 +140,7 @@ export class Temple {
       // 讀書角：頭上顯示「專注中」
       if (!this.allow(p, 'study') && m.on) return;
       // 專注結束：把專注的分鐘加進「今天大家一共專注」（只有真的在專注中的人才算）
-      if (!m.on && p.su) { const mins = Math.min(int(m.m, 0, 60), Math.ceil((Date.now() - (p.suAt || 0)) / 60000)); if (mins > 0) { this.focusToday(); this.focus.m += mins; this.state.storage.put('focus', this.focus); this.broadcast({ t: 'focus', m: this.focus.m }); } }
+      if (!m.on && p.su) { const mins = Math.min(int(m.m, 0, 60), Math.ceil((Date.now() - (p.suAt || 0)) / 60000)); if (mins > 0) { this.addRec(p, 'f', mins); this.focusToday(); this.focus.m += mins; this.state.storage.put('focus', this.focus); this.broadcast({ t: 'focus', m: this.focus.m }); } }
       if (m.on && !p.su) p.suAt = Date.now();
       p.su = m.on ? 1 : 0;
     } else if (m.t === 'lamp') {
@@ -147,6 +157,12 @@ export class Temple {
       if (!this.allow(p, 'wish')) return;
       this.wishes += 1; this.state.storage.put('wishes', this.wishes);
       this.broadcast({ t: 'wish', from: p.id, n: this.wishes });
+    } else if (m.t === 'rank') {
+      // 要不要顯示在排行榜
+      p.rank = !!m.on; this.syncRec(p);
+    } else if (m.t === 'board') {
+      if (!this.allow(p, 'board')) return;
+      send(p, this.board(p));
     } else if (m.t === 'bang') {
       // 還願紅榜：考上了回來答謝（暱稱＋考試類別），同一支手機同一種考試只登一次
       const x = int(m.x, 0, EXAM_COUNT - 1);
@@ -180,6 +196,38 @@ export class Temple {
     }
   }
 
+  // 排行榜紀錄：換日、換週就把「今日」「本週」歸零
+  rec(uid) {
+    let r = this.recs.get(uid);
+    if (!r) { r = { n: '', h: false, d: '', w: '', fd: 0, fw: 0, ft: 0, ad: 0, aw: 0, at: 0 }; this.recs.set(uid, r); }
+    const d = dayKey(), w = weekKey();
+    if (r.d !== d) { r.d = d; r.fd = 0; r.ad = 0; }
+    if (r.w !== w) { r.w = w; r.fw = 0; r.aw = 0; }
+    return r;
+  }
+  syncRec(p) { if (!p.uid) return; const r = this.rec(p.uid); r.n = p.name || ''; r.h = !p.rank; this.state.storage.put('u:' + p.uid, r); }
+  addRec(p, k, mins) { if (!p.uid) return; const r = this.rec(p.uid); r[k + 'd'] += mins; r[k + 'w'] += mins; r[k + 't'] += mins; this.state.storage.put('u:' + p.uid, r); }
+  // 每分鐘：有在動（或正在專注）的人，在廟裡的時間 +1 分鐘
+  creditActive() {
+    const now = Date.now(), seen = new Set();
+    for (const p of this.players.values()) {
+      if (!p.look || !p.uid || seen.has(p.uid)) continue; seen.add(p.uid);
+      if (p.su || now - (p.lastAct || 0) < IDLE_MS) this.addRec(p, 'a', 1);
+    }
+  }
+  board(p) {
+    const d = dayKey(), w = weekKey();
+    const val = (r, k, per) => per === 't' ? r[k + 't'] : per === 'w' ? (r.w === w ? r[k + 'w'] : 0) : (r.d === d ? r[k + 'd'] : 0);
+    const recs = [...this.recs.entries()];
+    const top = (k, per) => recs.filter(([, r]) => !r.h && val(r, k, per) > 0).sort((a, b) => val(b[1], k, per) - val(a[1], k, per)).slice(0, 10)
+      .map(([u, r]) => ({ n: r.n || '考生', v: val(r, k, per), me: u === p.uid ? 1 : 0 }));
+    const mine = p.uid && this.recs.get(p.uid);
+    const myRank = (k, per) => { if (!mine) return 0; const v = val(mine, k, per); if (!v) return 0; return 1 + recs.filter(([u, r]) => u !== p.uid && !r.h && val(r, k, per) > v).length; };
+    const pack = k => ({ d: top(k, 'd'), w: top(k, 'w'), t: top(k, 't'),
+      me: mine ? { d: val(mine, k, 'd'), w: val(mine, k, 'w'), t: val(mine, k, 't'), rd: myRank(k, 'd'), rw: myRank(k, 'w'), rt: myRank(k, 't') } : null });
+    return { t: 'board', focus: pack('f'), active: pack('a'), hidden: !!mine?.h };
+  }
+
   // 台灣日期換日就歸零
   focusToday() { const d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10); if (this.focus.d !== d) this.focus = { d, m: 0 }; return this.focus.m; }
 
@@ -199,9 +247,10 @@ export class Temple {
   tick() {
     if (this.timer) return;
     const loop = () => {
-      if (!this.players.size) { this.timer = null; return; }
+      if (!this.players.size) { this.timer = null; this.lastMin = 0; return; }
       const list = [...this.players.values()].filter(p => p.look).map(p => ({ id: p.id, x: p.x, z: p.z, f: p.f, h: p.h, b: p.b, k: p.k || 0, s: p.s, n: p.name || '', st: p.seat ?? -1, su: p.su || 0, look: p.look }));
       this.broadcast({ t: 'state', players: list, online: list.length, total: this.total });
+      if (Date.now() - (this.lastMin || 0) >= 60000) { if (this.lastMin) this.creditActive(); this.lastMin = Date.now(); }
       this.timer = setTimeout(loop, list.length > 40 ? 400 : 250); // 人多時降低更新頻率，伺服器才撐得住
     };
     this.timer = setTimeout(loop, 250);
