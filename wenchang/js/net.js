@@ -43,6 +43,7 @@ export class Net {
   wish() { this.send({ t: 'wish' }); }
   rank(on) { this.rankOn = on; this.send({ t: 'rank', on: on ? 1 : 0 }); }
   board() { this.send({ t: 'board' }); }
+  offer(o, tk) { this.send({ t: 'offer', o, tk: tk ? 1 : 0 }); }
   // 向伺服器要一個座位（拜墊／拜位）；離線時直接當作成功
   seat(i) {
     if (!this.alive) return Promise.resolve(true);

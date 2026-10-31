@@ -43,7 +43,7 @@ const state = {
 };
 const save = () => { sess.set('done', [...state.done]); sess.set('carry', state.carry); };
 if (state.carry.incense) { me.hold(true); me.setSticks(state.carry.sticks ?? 3); }
-if (state.done.has('wenchang')) temple.setOfferings(OFFERINGS.filter(o => state.carry.offerings.includes(o.id)));
+if (state.done.has('wenchang')) temple.setOfferings(OFFERINGS.filter(o => state.carry.offerings.includes(o.id)), state.carry.ticket);
 const myCard = store.get('card', null);
 const cardLabel = c => (c.x >= 0 ? EXAMS[c.x] : '祈福').replace('期中期末考', '期中期末').replace('分科測驗', '分科');
 temple.setSharedCards([], CARD_COLORS.map(c => c.hex), cardLabel);
@@ -449,8 +449,9 @@ async function wenchang() {
   if (!need(state.done.has('heaven'), '先到天公爐前<b>拜天公</b>，再入殿拜文昌帝君。')) return;
   if (state.done.has('wenchang')) { if (!(await arrive('cushion'))) return; toast('再向文昌帝君拜一拜。想請示可以<b>擲筊</b>。'); sound.bell(); await me.bow(3); return; }
   if (!(await arrive('cushion'))) return;
-  temple.setOfferings(OFFERINGS.filter(o => state.carry.offerings.includes(o.id)));
-  toast('供品擺上供桌了。', 1800);
+  temple.setOfferings(OFFERINGS.filter(o => state.carry.offerings.includes(o.id)), state.carry.ticket);
+  net.offer(state.carry.offerings.map(id => OFFERINGS.findIndex(o => o.id === id)), state.carry.ticket);
+  toast(state.carry.ticket ? '供品和准考證影本擺上供桌了。' : '供品擺上供桌了。', 1800);
   temple.focus = new THREE.Vector3(...FOCUS.altar);
   await wait(1200); temple.focus = null;
   examPick = ''; document.querySelectorAll('#exam-chips button').forEach(x => x.setAttribute('aria-pressed', 'false'));
@@ -735,7 +736,7 @@ const net = new Net(wsUrl, {
   message(m) {
     if (m.t === 'welcome') {
       myId = m.you; temple.setSharedCards(m.cards || [], CARD_COLORS.map(c => c.hex), cardLabel); if (m.cards?.length) feed(`祈福牆上已經有 ${m.cards.length} 張大家的卡`);
-      blessing.clear(); blessOk.clear(); if (m.bang) setBang(m.bang); if (m.lamps) setLamps(m.lamps); wishes = m.wishes || 0; focusAll = m.focus || 0; drawStudyBoard();
+      blessing.clear(); blessOk.clear(); if (m.bang) setBang(m.bang); if (m.lamps) setLamps(m.lamps); setOthersOffers(m.offers || []); wishes = m.wishes || 0; focusAll = m.focus || 0; drawStudyBoard();
       if (typeof m.myBless === 'number' && m.myBless > myBless) { myBless = m.myBless; store.set('myBless', myBless); }
       renderToday();
     }
@@ -760,6 +761,7 @@ const net = new Net(wsUrl, {
       const av = remotes.get(m.from); if (av?.root.visible) temple.tossCoin(av.root.position);
       if (performance.now() - lastWishFeed > 6000) { lastWishFeed = performance.now(); feed(`🪙 ${who(m.from)} 在許願池許了願`); }
     }
+    else if (m.t === 'offer') setOthersOffers(m.offers || []);
     else if (m.t === 'board') { board = m; if ($('#rank-dlg').open) renderRank(); }
     else if (m.t === 'focus') { focusAll = m.m || 0; drawStudyBoard(); renderFocusScreen(); }
     else if (m.t === 'bang-dup') toast('這項考試你已經還願過了，紅榜上有你的名字。');
@@ -1378,7 +1380,7 @@ const PLACES = [
   { id: 'lamp', x: -13.4, z: -8.25, r: 2.4, label: '🏮 點光明燈' },
   { id: 'lingxi', x: 16.3, z: 14.6, r: 3, label: '🔮 打開靈犀占卜' },
   { id: 'bang', x: 16.4, z: 1.8, r: 3, label: '🏮 看還願紅榜' },
-  { id: 'qian', x: 5.5, z: -16.4, r: 1.8, label: '🎋 求籤' },
+  { id: 'qian', x: 6.4, z: -16.4, r: 1.8, label: '🎋 求籤' },
 ];
 let nearId = '';
 function nearCheck() {
@@ -1515,6 +1517,14 @@ function maybeInstall(tries = 0) {
 function renderInstallBtns() { const hide = isStandalone(); document.querySelectorAll('.install-open, #splash-install').forEach(b => { b.hidden = hide; }); }
 document.querySelectorAll('.install-open, #splash-install').forEach(b => b.addEventListener('click', () => openInstall(false)));
 renderInstallBtns();
+
+// 供桌上其他人的供品：連線時是真的考生擺的；人少時補幾份示意的，供桌才不會空蕩蕩
+const decoOffers = Array.from({ length: 4 }, (_, i) => ({ items: OFFERINGS.filter((o, k) => (k + i) % 3 === 0).slice(0, 3 + (i % 2) * 2), tk: i % 2 === 0 }));
+function setOthersOffers(list) {
+  const real = list.filter(o => !o.mine).map(o => ({ items: (o.o || []).map(i => OFFERINGS[i]).filter(Boolean), tk: !!o.tk })).filter(o => o.items.length);
+  temple.setOtherOffers([...decoOffers.slice(0, Math.max(0, 4 - real.length)), ...real]);
+}
+setOthersOffers([]);
 
 // 沒有連線時：幾位示意香客在廟裡走動、拜拜
 const npcs = [];
