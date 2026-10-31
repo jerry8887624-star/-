@@ -37,23 +37,41 @@ export const music = {
   },
   load(t) { const a = this.ensure(); this.cur = t; a.src = t.src; a.loop = this.pick !== 'auto'; this.emit(); },
   play() {
-    if (!this.on || this.muted) return;
+    if (this.focusing || !this.on || this.muted) return;
     const a = this.ensure();
     if (!this.cur || (this.pick !== 'auto' && this.cur.k !== this.pick)) this.load(this.choose());
     a.play().catch(() => {});
     this.emit();
   },
   pause() { this.el?.pause(); this.emit(); },
-  next() { if (!this.on) return; this.load(this.choose()); this.play(); },
+  next() { if (!this.on || this.focusing) return; this.load(this.choose()); this.play(); },
   // 從「進入廟宇」等使用者點擊時呼叫（手機要使用者先點過才能播放聲音）
   start() { this.ensure(); this.play(); },
   setOn(on) { this.on = on; set('musicOn', on); on ? this.play() : this.pause(); },
   setPick(k) { this.pick = k; set('music', k); this.load(this.choose()); this.on = true; set('musicOn', true); this.play(); },
-  setMuted(m) { this.muted = m; m ? this.pause() : this.play(); },
+  setMuted(m) { this.muted = m; if (this.focusing) { if (m) this.el?.pause(); else if (this.focusSrc) this.el.play().catch(() => {}); return; } m ? this.pause() : this.play(); },
+  // 讀書角專注聲音：跟背景音樂用同一個播放器（iPhone 上這個播放器已經被點過、確定能出聲），結束再換回背景音樂
+  focusOn(src, vol = 0.8) {
+    const a = this.ensure();
+    if (!this.focusing) { this.wasPlaying = this.playing; this.focusing = true; }
+    this.focusSrc = src;
+    if (!src) { a.pause(); this.emit(); return; }
+    a.loop = true; a.volume = vol;
+    if (!a.src.endsWith(src)) a.src = src;
+    if (!this.muted) a.play().catch(() => {});
+    this.emit();
+  },
+  focusOff() {
+    if (!this.focusing) return;
+    this.focusing = false; this.focusSrc = null;
+    const a = this.el; a.pause(); a.volume = 0.55; this.cur = null;
+    if (this.wasPlaying) this.play();
+    this.emit();
+  },
   // 白天／夜晚切換：自動模式下換成適合的曲子
   setNight(n) {
     if (this.night === n) return; this.night = n;
-    if (this.pick === 'auto' && this.cur && this.el && !this.el.paused) { this.load(this.choose()); this.play(); }
+    if (!this.focusing && this.pick === 'auto' && this.cur && this.el && !this.el.paused) { this.load(this.choose()); this.play(); }
   },
   get playing() { return !!this.el && !this.el.paused; },
 };
