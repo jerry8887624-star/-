@@ -322,8 +322,12 @@ function placeLabels() {
   const cur = current(), whereMark = cur ? { counter: 'counter', censerOut: 'censer', censer: 'censer', cushion: 'cushion', wcCenser: 'cushion', wall: 'wall', jinlu: 'jinlu' }[cur.where] : null;
   const pp = me.root.position;
   markEls.forEach(({ m, el, v }) => {
-    const p = temple.project(v), far = Math.hypot(v.x - pp.x, v.z - pp.z);
-    el.style.display = p.vis && !$('#hud').hidden ? '' : 'none';
+    // 走近才出現：一般地點 13 公尺內才看得到、慢慢淡出；下一步要去的地點遠一點也看得到
+    const p = temple.project(v), far = Math.hypot(v.x - pp.x, v.z - pp.z), lim = m.id === whereMark ? 40 : 13;
+    const show = p.vis && !$('#hud').hidden && far < lim && !temple.fpv;
+    el.style.display = show ? '' : 'none';
+    if (!show) return;
+    el.style.opacity = far < lim - 4 ? 1 : (lim - far) / 4;
     el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
     el.classList.toggle('goal', m.id === whereMark); el.classList.toggle('dim', m.id !== whereMark && far < 2.2);
   });

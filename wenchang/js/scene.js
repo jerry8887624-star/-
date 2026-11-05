@@ -186,7 +186,9 @@ export class Temple {
   buildHall() {
     const S = this.scene, red = lam('#9e2a22'), dark = lam('#3a1d16'), gold = lam('#d8ab45');
     const { HW, HF, HB, HH } = L, hd = HF - HB, mid = (HF + HB) / 2;
-    const wallM = lam('#b2483a');
+    // 琉璃廟：牆和柱子是半透明的藍綠色玻璃，晚上裡面透出暖光
+    const wallM = this.glassWall = lam('#8fd0e0', { transparent: true, opacity: 0.55, emissive: '#000000' });
+    const pillarM = this.glassPillar = lam('#7ec4d8', { transparent: true, opacity: 0.75, emissive: '#000000' });
     const back = new THREE.Mesh(new THREE.BoxGeometry(HW * 2 + 0.4, HH, 0.4), wallM); back.position.set(0, HH / 2, HB - 0.2); S.add(back);
     [-1, 1].forEach(s => {
       const side = new THREE.Mesh(new THREE.BoxGeometry(0.4, HH, hd), wallM); side.position.set((HW + 0.2) * s, HH / 2, mid); S.add(side);
@@ -198,7 +200,8 @@ export class Temple {
     });
     // 前排柱子＋對聯
     FRONT_PILLARS.forEach(x => {
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, HH, 14), red); p.position.set(x, HH / 2, HF); S.add(p);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.33, HH, 14), pillarM); p.position.set(x, HH / 2, HF); S.add(p);
+      this.glowLine(new THREE.Vector3(x, 0.4, HF), new THREE.Vector3(x, HH - 0.9, HF), 0.07);
       const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.5, 0.35, 8), lam('#9a8a78')); base.position.set(x, 0.17, HF); S.add(base);
       if (Math.abs(x) < 4) {
         const t = plaqueTex(x < 0 ? '文章司命' : '桂籍名高', { bg: '#a62a20', fg: '#f3d27a', vertical: true, w: 120, h: 480, font: 92 });
@@ -207,7 +210,8 @@ export class Temple {
     });
     // 殿內柱子
     INNER_PILLARS.forEach(([x, z]) => {
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.44, HH, 14), red); p.position.set(x, HH / 2, z); S.add(p);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.44, HH, 14), pillarM); p.position.set(x, HH / 2, z); S.add(p);
+      this.glowLine(new THREE.Vector3(x, 0.4, z), new THREE.Vector3(x, HH - 0.2, z), 0.08);
       const base = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.62, 0.4, 8), lam('#9a8a78')); base.position.set(x, 0.2, z); S.add(base);
     });
     // 彩繪橫樑
@@ -222,17 +226,19 @@ export class Temple {
     const pl = new THREE.Mesh(new THREE.BoxGeometry(5, 1.5, 0.15), [gold, gold, gold, gold, basic('#fff', { map: plaqueTex('文昌帝君', { w: 640, h: 190, font: 120 }) }), gold]);
     pl.position.set(0, HH - 1.6, HF + 0.35); S.add(pl);
     // 屋頂：四面坡＋燕尾脊
-    const tile = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#b5543a'; g.fillRect(0, 0, W, H); g.fillStyle = '#8f3c28'; for (let x = 0; x < W; x += 16) g.fillRect(x, 0, 6, H); });
+    // 琉璃瓦：藍綠色、一條條亮邊
+    const tile = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#4fa6b8'; g.fillRect(0, 0, W, H); g.fillStyle = '#2f7d92'; for (let x = 0; x < W; x += 16) g.fillRect(x, 0, 6, H); g.fillStyle = 'rgba(255,255,255,.35)'; for (let x = 10; x < W; x += 16) g.fillRect(x, 0, 2, H); });
     tile.wrapS = tile.wrapT = THREE.RepeatWrapping; tile.repeat.set(20, 5);
     const rb = (HW + 1.5) * Math.SQRT2;
-    const roof = new THREE.Mesh(new THREE.CylinderGeometry(2.6, rb, 5, 4, 1), lam('#fff', { map: tile }));
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(2.6, rb, 5, 4, 1), lam('#fff', { map: tile, emissive: '#000000' })); this.glassRoof = roof.material;
     roof.rotation.y = Math.PI / 4; roof.scale.set(1, 1, (hd / 2 + 1.5) / (HW + 1.5)); roof.position.set(0, HH + 2.45, mid); S.add(roof);
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(HW * 1.35, 0.6, 0.8), lam('#7a2a1c')); ridge.position.set(0, HH + 5.1, mid); S.add(ridge);
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(HW * 1.35, 0.6, 0.8), lam('#e8c15a')); ridge.position.set(0, HH + 5.1, mid); S.add(ridge);
     [-1, 1].forEach(s => {
-      const tail = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.22, 8, 16, Math.PI / 2), lam('#7a2a1c'));
+      const tail = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.22, 8, 16, Math.PI / 2), lam('#e8c15a'));
       tail.position.set(HW * 0.675 * s, HH + 6.6, mid); tail.rotation.z = s > 0 ? -Math.PI / 2 : Math.PI; S.add(tail);
     });
     const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 12), lam('#e8b84a', { emissive: '#5a3a00' })); pearl.position.set(0, HH + 5.9, mid); S.add(pearl);
+    this.hallGlow({ HW, HH, mid, hd, rb });
     // 燈籠：殿前一排、殿內兩排
     this.lanterns = [];
     [-11, -6, -1.8, 1.8, 6, 11].forEach(x => this.addLantern(x, HH - 1.6, HF + 0.4));
@@ -295,6 +301,30 @@ export class Temple {
     }
   }
 
+  // 光帶：兩點之間一條會發光的細管（白天淡淡的，晚上變成流動的琉璃光）
+  glowLine(a, b, r = 0.07) {
+    const len = a.distanceTo(b); if (len < 0.01) return;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 6), new THREE.MeshBasicMaterial({ color: '#fff2c8' }));
+    m.position.copy(a).lerp(b, 0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    this.scene.add(m); (this.glows ||= []).push({ m, k: (a.x + a.z) * 0.05 + a.y * 0.03 });
+  }
+  // 正殿屋頂的光帶：屋簷一圈、四條斜脊、正脊、燕尾，還有玻璃牆的金框
+  hallGlow({ HW, HH, mid, hd, rb }) {
+    const V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const bx = HW + 1.5, bz = hd / 2 + 1.5, by = HH - 0.03, tx = 2.6 / Math.SQRT2, tz = tx * bz / bx, ty = HH + 4.95;
+    const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+    c.forEach(([sx, sz], i) => { const [nx, nz] = c[(i + 1) % 4]; this.glowLine(V(sx * bx, by, mid + sz * bz), V(nx * bx, by, mid + nz * bz)); this.glowLine(V(sx * bx, by, mid + sz * bz), V(sx * tx, ty, mid + sz * tz)); });
+    this.glowLine(V(-HW * 0.675, HH + 5.42, mid + 0.42), V(HW * 0.675, HH + 5.42, mid + 0.42), 0.09);
+    // 玻璃牆上的金色窗框
+    const gold = lam('#e8c15a'), bar = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), gold); m.position.set(x, y, z); this.scene.add(m); };
+    [-1, 1].forEach(s => {
+      for (let z = L.HB; z <= L.HF; z += 3) bar(0.12, HH, 0.12, (HW + 0.42) * s, HH / 2, z);
+      [2.6, 5.2].forEach(y => bar(0.12, 0.12, hd, (HW + 0.42) * s, y, mid));
+    });
+    for (let x = -HW; x <= HW; x += 3) bar(0.12, HH, 0.12, x, HH / 2, L.HB - 0.42);
+    [2.6, 5.2].forEach(y => bar(HW * 2, 0.12, 0.12, 0, y, L.HB - 0.42));
+  }
+
   addLantern(x, y, z) {
     const g = new THREE.Group(); g.position.set(x, y, z);
     const m = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), lam('#d8322a', { emissive: '#3a0800' })); m.scale.y = 1.15; g.add(m);
@@ -305,10 +335,13 @@ export class Temple {
   }
 
   buildGate() {
-    const S = this.scene, red = lam('#a12c22'), G = L.GZ, CW = L.CW;
-    [-2.9, 2.9].forEach(x => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 4, 12), red); p.position.set(x, 2, G); S.add(p); });
+    const S = this.scene, G = L.GZ, CW = L.CW;
+    [-2.9, 2.9].forEach(x => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 4, 12), this.glassPillar); p.position.set(x, 2, G); S.add(p); this.glowLine(new THREE.Vector3(x, 0.3, G), new THREE.Vector3(x, 3.8, G), 0.06); });
     const lintel = new THREE.Mesh(new THREE.BoxGeometry(7, 0.5, 0.6), lam('#2a4f8a')); lintel.position.set(0, 4.1, G); S.add(lintel);
-    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 5.2, 1.3, 4, 1), lam('#b5543a')); roof.rotation.y = Math.PI / 4; roof.scale.set(1, 1, 0.3); roof.position.set(0, 4.95, G); S.add(roof);
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 5.2, 1.3, 4, 1), lam('#4fa6b8')); roof.rotation.y = Math.PI / 4; roof.scale.set(1, 1, 0.3); roof.position.set(0, 4.95, G); S.add(roof);
+    // 山門屋簷的光帶
+    const e = 5.2 / Math.SQRT2, ez = e * 0.3; [[-e, -ez, e, -ez], [-e, ez, e, ez], [-e, -ez, -e, ez], [e, -ez, e, ez]].forEach(([x1, z1, x2, z2]) => this.glowLine(new THREE.Vector3(x1, 4.32, G + z1), new THREE.Vector3(x2, 4.32, G + z2), 0.05));
+    this.glowLine(new THREE.Vector3(-3.5, 4.38, G + 0.32), new THREE.Vector3(3.5, 4.38, G + 0.32), 0.05);
     const pt = plaqueTex('文昌祠', { w: 512, h: 170, font: 110 });
     const pl = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.8, 0.1), [lam('#d8ab45'), lam('#d8ab45'), lam('#d8ab45'), lam('#d8ab45'), basic('#fff', { map: pt }), basic('#fff', { map: pt })]);
     pl.position.set(0, 3.45, G + 0.3); S.add(pl);
@@ -956,6 +989,8 @@ export class Temple {
     this.sun.intensity = on ? 0.25 : 1.9; this.sun.color.set(on ? 0x9aa8ff : 0xfff2d8);
     this.scene.fog.color.set(on ? 0x141a33 : 0xcfeaff);
     this.lanterns.forEach(l => l.material.emissive.set(on ? '#ff5a2a' : '#3a0800'));
+    // 琉璃廟：晚上玻璃牆、柱子、屋瓦透出暖光
+    this.glassWall?.emissive.set(on ? '#c87a3a' : '#000000'); this.glassPillar?.emissive.set(on ? '#3a8ab8' : '#000000'); this.glassRoof?.emissive.set(on ? '#1a4a6a' : '#000000');
     this.godLight.intensity = on ? 10 : 6;
   }
 
@@ -1159,6 +1194,8 @@ export class Temple {
     // 腳印淡出
     for (let i = this.feet.length - 1; i >= 0; i--) { const f = this.feet[i]; f.life -= dt; f.m.material.opacity = Math.max(0, f.life / 2) * 0.8; if (f.life <= 0) { this.scene.remove(f.m); f.m.material.dispose(); this.feet.splice(i, 1); } }
     this.perfTick(dt);
+    // 光帶：白天是淡淡的暖白；晚上顏色慢慢流動（金、粉、藍、紫），像琉璃光
+    if (this.glows) { const t = this.clock.elapsedTime; for (const g of this.glows) { if (this.night) g.m.material.color.setHSL(((t * 0.06 + g.k) % 1 + 1) % 1, 0.85, 0.62); else g.m.material.color.set('#fff2c8'); } }
     for (const fn of this.updaters) fn(dt);
     // 動畫
     // 動畫結束時可能又開始新的動畫：先把清單換新，跑完再把新加的接回去，才不會被丟掉
