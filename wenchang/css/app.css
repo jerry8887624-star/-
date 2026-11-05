@@ -664,5 +664,12 @@ body.fighting #social-btn, body.fighting #dm-btn, body.fighting #next { display:
   background: var(--glass-2); border: 1.5px solid var(--gold); font-weight: 700; white-space: nowrap; box-shadow: 0 6px 18px rgba(0, 0, 0, .4); }
 #ride-ui button { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--gold); background: linear-gradient(180deg, var(--red-2), var(--red)); color: #fff6e0; font-weight: 700; }
 body.riding #ride-ui { display: flex; }
-body.riding #stick, body.riding #near-btn, body.riding #combat, body.riding #dock, body.riding #next, body.riding #kneel-bar, body.riding #feed { display: none; }
+body.riding #near-btn, body.riding #combat, body.riding #dock, body.riding #next, body.riding #kneel-bar, body.riding #feed { display: none; }
 body.riding .mark { display: none; }
+
+/* 0.24：摩天輪上可以用搖桿走動；切換第一人稱的按鈕 */
+#ride-ui { flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px); bottom: calc(16px + var(--sab)); } /* 下方工具列搭車時藏起來，放到最下面才不會蓋到搖桿 */
+#ride-ui button.ghost { background: rgba(255,246,224,.12); color: #fff6e0; border-color: rgba(232,193,90,.7); }
+@media (orientation: landscape) and (max-height: 560px) { #ride-ui { left: calc(50% + 50px); } }
+@media (orientation: portrait) { body.riding #stick { bottom: calc(130px + var(--sab)); } }
+body.riding #guide { display: none; } /* 搭摩天輪時收起參拜指引，畫面和搖桿不被擋 */
