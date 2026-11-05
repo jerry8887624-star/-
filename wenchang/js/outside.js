@@ -28,12 +28,15 @@ const glowSprite = (color = '#ffd76a', size = 1) => { const s = new THREE.Sprite
 // 位置
 export const KOI = { x: 16, z: 45, r: 4 };
 export const BOSS_AT = { x: 0, z: 47.5 };
+// 摩天輪：中心在 (x, z)，輪軸高 hub、半徑 r、12 個車廂、轉一圈 period 秒
+export const WHEEL = { x: 37, z: 41, hub: 13.5, r: 11, n: 12, period: 120 };
 export const PLOTS = [];
 for (let r = 0; r < 8; r++) for (let c = 0; c < 6; c++) PLOTS.push({ x: -26 + c * 3.6, z: 25 + r * 3.6 });
 export const OUT_SPOTS = {
   grove: { x: -9.5, z: 23.2, f: Math.PI },
   sky: { x: 14, z: 30, f: 0 },
   koi: { x: 16, z: 39.6, f: 0 },
+  wheel: { x: 37, z: 36.5, f: 0 },
   boss: { x: 0, z: 42.5, f: 0 },
   forest: { x: 0, z: 34, f: 0 },
 };
@@ -42,6 +45,7 @@ export const OUT_MARKS = [
   { id: 'sky', name: '天燈廣場', pos: [14, 3.2, 27] },
   { id: 'koi', name: '錦鯉池', pos: [16, 2.6, 45] },
   { id: 'boss', name: '考試魔王', pos: [0, 4.8, 47.5] },
+  { id: 'wheel', name: '摩天輪', pos: [37, 27, 41] },
 ];
 export const TREASURE_KINDS = [{ k: 'brush', name: '毛筆' }, { k: 'ink', name: '墨條' }, { k: 'paper', name: '宣紙' }, { k: 'stone', name: '硯台' }, { k: 'scroll', name: '書卷' }];
 // 寶物可能出現的地方（每天依日期挑 5 個，大家一樣）
@@ -54,13 +58,13 @@ export const MONSTER_KINDS = [
   { name: '瞌睡蟲', color: '#7ac86a', hp: 2, say: '好睏喔…', hit: ['呼…嗯？', '再睡五分鐘…'], bye: '醒了醒了！' },
 ];
 export const BOSS_LINES = ['這題你不會吧？', '時間只剩五分鐘！', '選擇題全部選 C？', '我還有附加題！', '哼，有兩下子', '畫卡畫歪了吧？'];
-const inArea = (x, z) => x > -L.FW + 1.5 && x < L.FW - 1.5 && z > L.GZ + 2.5 && z < L.FZ - 1 && Math.hypot(x - KOI.x, z - KOI.z) > KOI.r + 1.2 && Math.hypot(x - BOSS_AT.x, z - BOSS_AT.z) > 3;
+const inArea = (x, z) => x > -28 && x < 28 && z > L.GZ + 2.5 && z < L.FZ - 1 && Math.hypot(x - KOI.x, z - KOI.z) > KOI.r + 1.2 && Math.hypot(x - BOSS_AT.x, z - BOSS_AT.z) > 3;
 
 export class Outside {
   constructor(t) {
     this.t = t; this.S = t.scene; this.time = 0;
     this.trees = []; this.lanterns = []; this.fish = []; this.food = null; this.monsters = []; this.treasures = []; this.fx = [];
-    this.buildLand(); this.buildGrove(); this.buildSky(); this.buildKoi(); this.buildBoss();
+    this.buildLand(); this.buildGrove(); this.buildSky(); this.buildKoi(); this.buildBoss(); this.buildWheel(); this.buildFar();
     for (let i = 0; i < 6; i++) this.spawnMonster();
     t.updaters.push(dt => this.update(dt));
     // 鏡頭不要鑽進樹冠裡
@@ -94,7 +98,77 @@ export class Outside {
       const tex = canvasTex(256, 80, (c, W, H) => { c.fillStyle = '#6a3a22'; c.fillRect(0, 0, W, H); c.strokeStyle = '#e8c15a'; c.lineWidth = 4; c.strokeRect(4, 4, W - 8, H - 8); c.fillStyle = '#f6dc94'; c.font = '700 36px "Noto Serif TC",serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, W / 2, H / 2 + 2); });
       [0, Math.PI].forEach(r => { const b = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.44), basic('#fff', { map: tex })); b.position.y = 1.55; b.rotation.y = r; b.position.z = r ? -0.03 : 0.03; g.add(b); });
     };
-    sign(-4, 22.6, '← 金榜樹林'); sign(4, 22.6, '天燈廣場 →'); sign(4.5, 38.4, '錦鯉池 →'); sign(-2.2, 42, '↓ 考試魔王');
+    sign(-4, 22.6, '← 金榜樹林'); sign(4, 22.6, '天燈廣場 →'); sign(24, 36.4, '摩天輪 →'); sign(4.5, 38.4, '錦鯉池 →'); sign(-2.2, 42, '↓ 考試魔王');
+  }
+
+  // ---------- 摩天輪：12 個車廂、兩人一格；轉動角度用時間算，所有人看到的一樣 ----------
+  buildWheel() {
+    const S = this.S, W = WHEEL, white = lam('#f4f2ee'), red = lam('#e8584a'), gold = lam('#e8c15a');
+    const g = new THREE.Group(); g.position.set(W.x, 0, W.z); S.add(g); this.wheel = g;
+    // 支架：兩組 A 字腳
+    [-1.4, 1.4].forEach(dz => [-1, 1].forEach(s => {
+      const len = Math.hypot(W.hub, 6), leg = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, len, 10), white);
+      leg.position.set(s * 3, W.hub / 2, dz); leg.rotation.z = Math.atan2(6, W.hub) * -s; g.add(leg);
+    }));
+    const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 3.4, 12), gold); axle.rotation.x = Math.PI / 2; axle.position.y = W.hub; g.add(axle);
+    // 會轉的部分：外圈、輻條、燈
+    const rot = new THREE.Group(); rot.position.y = W.hub; g.add(rot); this.wheelRot = rot;
+    [-0.9, 0.9].forEach(z => { const rim = new THREE.Mesh(new THREE.TorusGeometry(W.r, 0.16, 8, 60), red); rim.position.z = z; rot.add(rim); const inner = new THREE.Mesh(new THREE.TorusGeometry(W.r * 0.45, 0.1, 6, 36), white); inner.position.z = z; rot.add(inner); });
+    for (let i = 0; i < W.n; i++) {
+      const a = i / W.n * Math.PI * 2;
+      [-0.9, 0.9].forEach(z => { const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, W.r), white); sp.position.set(Math.sin(a) * W.r / 2, -Math.cos(a) * W.r / 2, z); sp.rotation.z = a; rot.add(sp); });
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), basic(['#ffd76a', '#ff8ab0', '#8ad0ff'][i % 3])); bulb.position.set(Math.sin(a) * W.r, -Math.cos(a) * W.r, 1.05); rot.add(bulb);
+    }
+    // 車廂：掛在外圈上，永遠保持直立
+    const cols = ['#ff9aa8', '#ffd36a', '#8ad0ff', '#9ae0a0', '#c8a8ff', '#ffb07a'];
+    this.cabins = [];
+    for (let i = 0; i < W.n; i++) {
+      const c = new THREE.Group(); S.add(c);
+      const col = lam(cols[i % cols.length]);
+      const floor = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.12, 16), col); floor.position.y = -1.0; c.add(floor);
+      const back = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 1.0, 16, 1, true, -Math.PI * 0.3, Math.PI * 0.6), col); back.material = lam(cols[i % cols.length], { side: THREE.DoubleSide }); back.position.y = -0.45; c.add(back);
+      const rail = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.04, 6, 24), white); rail.rotation.x = Math.PI / 2; rail.position.y = -0.55; c.add(rail);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.15, 0.6, 16), col); roof.position.y = 1.1; c.add(roof);
+      [0, Math.PI / 2, Math.PI, Math.PI * 1.5].forEach(a => { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.0), white); post.position.set(Math.sin(a) * 0.95, 0, Math.cos(a) * 0.95); c.add(post); });
+      const hang = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.6), gold); hang.position.y = 1.55; c.add(hang);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 2.7), gold); arm.position.set(0, 1.85, 1.3); c.add(arm); // 接到輪框的橫桿
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.12, 0.45), white); seat.position.set(0, -0.6, 0.35); c.add(seat);
+      this.cabins.push(c);
+    }
+    // 上下車的月台
+    const plat = new THREE.Mesh(new THREE.BoxGeometry(5, 0.3, 3), lam('#c8a878')); plat.position.set(W.x, 0.15, W.z - 3.2); S.add(plat);
+    const steps = new THREE.Mesh(new THREE.BoxGeometry(3, 0.15, 1), lam('#b89868')); steps.position.set(W.x, 0.07, W.z - 5.1); S.add(steps);
+    this.t.tapTargets.push([plat, () => this.t.emit('tapWheel')]);
+    this.updateWheel();
+  }
+  wheelAngle() { return (Date.now() / 1000) / WHEEL.period * Math.PI * 2; }
+  // 第 i 個車廂現在的角度（0 = 最下面，月台的位置）
+  cabinAngle(i) { return this.wheelAngle() + i / WHEEL.n * Math.PI * 2; }
+  // 車廂掛在輪子前面（靠廟的那一側），坐在裡面往外看不會被輪框擋住
+  cabinPos(i, out = new THREE.Vector3()) { const a = this.cabinAngle(i), W = WHEEL; return out.set(W.x + Math.sin(a) * W.r, W.hub - Math.cos(a) * W.r - 1.2, W.z - 2.6); }
+  updateWheel() {
+    this.wheelRot.rotation.z = this.wheelAngle();
+    this.cabins.forEach((c, i) => { this.cabinPos(i, c.position); c.position.y += 1.2; c.rotation.z = Math.sin(this.time * 0.8 + i) * 0.04; });
+  }
+
+  // ---------- 遠方的山、雲 ----------
+  buildFar() {
+    const S = this.S;
+    const mtn = (x, z, r, h, col) => { const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), lam(col)); m.position.set(x, h / 2 - 1, z); m.rotation.y = Math.random() * 6; S.add(m); return m; };
+    // 近一點的綠色山丘
+    for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, R = 95 + (i % 3) * 12; mtn(Math.cos(a) * R, 15 + Math.sin(a) * R, 18 + (i % 4) * 5, 14 + (i % 5) * 5, ['#6cba5a', '#5aa850', '#7cc466'][i % 3]); }
+    // 遠方的高山（藍綠色，有雪頂）
+    for (let i = 0; i < 14; i++) {
+      const a = i / 14 * Math.PI * 2 + 0.2, R = 160 + (i % 2) * 20, h = 45 + (i % 4) * 14, x = Math.cos(a) * R, z = 15 + Math.sin(a) * R;
+      mtn(x, z, 34 + (i % 3) * 8, h, ['#6a9ab8', '#7aa8c4', '#5a8aa8'][i % 3]);
+      const cap = new THREE.Mesh(new THREE.ConeGeometry((34 + (i % 3) * 8) * 0.28, h * 0.28, 7), lam('#f4f8ff')); cap.position.set(x, h - 1 - h * 0.14, z); S.add(cap);
+    }
+    // 雲
+    for (let i = 0; i < 10; i++) {
+      const c = new THREE.Group(), a = i * 0.63, R = 70 + (i % 3) * 25; c.position.set(Math.cos(a) * R, 38 + (i % 4) * 6, 15 + Math.sin(a) * R);
+      [[0, 0, 0, 5], [5, -1, 0, 3.5], [-5, -1, 1, 3.8], [2, 2, -1, 3.2]].forEach(([x, y, z, r]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), lam('#ffffff')); b.position.set(x, y, z); b.scale.y = 0.6; c.add(b); });
+      S.add(c); (this.clouds ||= []).push(c);
+    }
   }
 
   // ---------- 金榜樹林：一人一棵，每天澆水就長大 ----------
@@ -286,9 +360,9 @@ export class Outside {
     clearTimeout(obj.bubbleT); obj.bubbleT = setTimeout(() => { if (obj.bubble === b) { obj.g.remove(b); obj.bubble = null; } }, ms);
   }
   // 打中：閃白、被打得一縮、扣一格血；回傳是不是打倒了
-  damage(m) {
+  damage(m, amount = 1) {
     if (!m.alive) return false;
-    m.hp -= 1; this.drawHp(m);
+    m.hp -= amount; this.drawHp(m);
     m.mats.forEach(mt => mt.emissive.set('#ffffff')); setTimeout(() => m.mats.forEach(mt => mt.emissive.set('#000000')), 110);
     const g = m.g; this.t.tween(260, k => { const s = Math.sin(k * Math.PI); g.scale.set(1 + s * 0.25, 1 - s * 0.25, 1 + s * 0.25); });
     if (m.hp > 0) { const K = MONSTER_KINDS[m.kind]; this.say(m, K.hit[(m.max - m.hp - 1) % K.hit.length]); m.tx = g.position.x + (Math.random() - 0.5) * 6; m.tz = g.position.z + (Math.random() - 0.5) * 6; return false; }
@@ -352,11 +426,11 @@ export class Outside {
     const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.06, 6, 14, Math.PI), lam('#2a1a3a')); mouth.position.set(0, 1.05, 1.3); g.add(mouth);
     // 考卷：魔王手上拿著寫滿紅字的考卷
     const paper = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.1), basic('#fff', { map: canvasTex(128, 160, (c, W, H) => { c.fillStyle = '#fbf8ef'; c.fillRect(0, 0, W, H); c.fillStyle = '#c8241c'; c.font = '900 64px serif'; c.textAlign = 'center'; c.fillText('0', W / 2, 90); c.fillStyle = '#888'; for (let y = 110; y < 150; y += 12) c.fillRect(16, y, 96, 4); }), side: THREE.DoubleSide }));
-    paper.position.set(1.55, 1.2, 0.6); paper.rotation.y = -0.5; g.add(paper);
-    this.bossTag = textSprite('考試魔王', { sx: 2, bg: 'rgba(90,30,120,.88)' }); this.bossTag.position.y = 3.6; g.add(this.bossTag);
+    paper.position.set(1.55, 1.2, 0.6); paper.rotation.y = -0.5; g.add(paper); this.bossPaper = paper;
+    this.bossPos = { x: BOSS_AT.x, z: BOSS_AT.z, tx: BOSS_AT.x, tz: BOSS_AT.z, t: 0, face: 0 };
     this.hpCanvas = document.createElement('canvas'); this.hpCanvas.width = 256; this.hpCanvas.height = 40;
     this.hpTex = new THREE.CanvasTexture(this.hpCanvas); this.hpTex.colorSpace = THREE.SRGBColorSpace;
-    const hp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.hpTex, depthWrite: false })); hp.scale.set(2.4, 0.375, 1); hp.position.y = 3.15; g.add(hp);
+    // 名字和血條只放在畫面上方的大血條（頭上的會被鏡頭切到）
     // 魔王不在時：原地立一塊牌子寫下次出現的時間
     this.bossSign = new THREE.Group(); this.bossSign.position.set(BOSS_AT.x, 0, BOSS_AT.z); this.bossSign.visible = false; this.S.add(this.bossSign);
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.6), lam('#5a3a24')); post.position.y = 0.8; this.bossSign.add(post);
@@ -383,26 +457,96 @@ export class Outside {
   }
   bossVanish() {
     const g = this.boss, b = this.bossBody; b.material.emissive.set('#ffffff');
-    this.say({ g }, '可惡…我還會再來的！', 4.1, 900);
+    this.say({ g }, '可惡…我還會再來的！', 3.4, 900);
     this.t.tween(500, k => g.scale.setScalar(1 + k * 0.35), 0, t => t, () => { g.visible = false; g.scale.setScalar(1); b.material.emissive.set('#000000'); this.bossPoof(); });
   }
   bossAppear(anim) {
     const g = this.boss; g.visible = true; this.bossSign.visible = false;
     if (!anim) return;
+    g.position.set(BOSS_AT.x, 0, BOSS_AT.z); Object.assign(this.bossPos, { x: BOSS_AT.x, z: BOSS_AT.z, tx: BOSS_AT.x, tz: BOSS_AT.z });
     g.scale.setScalar(0.01); this.poof(new THREE.Vector3(BOSS_AT.x, 0.6, BOSS_AT.z), '#5a3a8a');
     this.t.tween(900, k => g.scale.setScalar(0.01 + k * 0.99), 200, t => 1 - Math.pow(1 - t, 3));
-    this.say({ g }, '哈哈哈！考試魔王來了！', 4.1, 2000);
+    this.say({ g }, '哈哈哈！考試魔王來了！', 3.4, 2000);
   }
   hitBoss() {
     const b = this.bossBody; this.t.tween(250, k => { b.scale.set(1 + Math.sin(k * Math.PI) * 0.08, 0.85 - Math.sin(k * Math.PI) * 0.08, 1); });
     b.material.emissive.set('#ffffff'); setTimeout(() => b.material.emissive.set('#000000'), 110);
-    if (Math.random() < 0.35) this.say({ g: this.boss }, BOSS_LINES[Math.floor(Math.random() * BOSS_LINES.length)], 4.1, 1600);
+    if (Math.random() < 0.3) this.say({ g: this.boss }, BOSS_LINES[Math.floor(Math.random() * BOSS_LINES.length)], 3.4, 1600);
   }
   // 魔王被打倒：大爆炸
-  bossPoof() { const p = new THREE.Vector3(BOSS_AT.x, 1.4, BOSS_AT.z); this.poof(p, '#5a3a8a'); setTimeout(() => this.poof(p.clone().setY(2.2), '#e8c15a'), 220); }
+  bossPoof() { const p = new THREE.Vector3(this.boss.position.x, 1.4, this.boss.position.z); this.poof(p, '#5a3a8a'); setTimeout(() => this.poof(p.clone().setY(2.2), '#e8c15a'), 220); }
+
+  // 考試魔王：在自己的地盤走來走去、跳一跳，身體轉向最近的玩家；血剩一半以下進入狂暴（變紅、變大、變快）
+  get rage() { return this.bossHp > 0 && this.bossHp / (this.bossMax || 1) < 0.5; }
+  updateBoss(dt, t) {
+    const b = this.bossPos, g = this.boss, rage = this.rage, sp = rage ? 1.9 : 1.0;
+    b.t += dt;
+    if (Math.hypot(b.tx - b.x, b.tz - b.z) < 0.2 || b.t > (rage ? 2.5 : 4)) { b.t = 0; const a = Math.random() * 6.28, r = Math.random() * 4.5; b.tx = BOSS_AT.x + Math.cos(a) * r; b.tz = BOSS_AT.z + Math.sin(a) * r * 0.7; }
+    const dx = b.tx - b.x, dz = b.tz - b.z, d = Math.hypot(dx, dz);
+    if (d > 0.05) { b.x += dx / d * Math.min(d, dt * sp); b.z += dz / d * Math.min(d, dt * sp); }
+    const near = this.nearestPlayer?.(b.x, b.z);
+    const want = near ? Math.atan2(near.x - b.x, near.z - b.z) : Math.atan2(dx, dz);
+    let df = want - b.face; df = Math.atan2(Math.sin(df), Math.cos(df)); b.face += df * Math.min(1, dt * 3);
+    g.position.set(b.x, Math.abs(Math.sin(t * (rage ? 4 : 2.2))) * (rage ? 0.35 : 0.2), b.z); g.rotation.y = b.face;
+    if (this.bossPaper) this.bossPaper.rotation.z = Math.sin(t * (rage ? 9 : 4)) * 0.35;
+    const want2 = rage ? 1.22 : 1; g.scale.setScalar(g.scale.x + (want2 - g.scale.x) * Math.min(1, dt * 2));
+    this.bossBody.material.color.set(rage ? '#b8302a' : '#5a3a8a');
+  }
+  // 魔王反擊：地上先出現紅圈（1.2 秒），然後一張考卷砸下來；砸完呼叫 done(落點)
+  bossThrow(to, done) {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.25, 32), basic('#e8402a', { transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.set(to.x, 0.05, to.z); this.S.add(ring);
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(1.0, 32), basic('#e8402a', { transparent: true, opacity: 0.25, depthWrite: false })); fill.rotation.x = -Math.PI / 2; fill.position.set(to.x, 0.04, to.z); this.S.add(fill);
+    this.t.tween(1200, k => { fill.scale.setScalar(Math.max(0.01, k)); ring.material.opacity = 0.5 + Math.sin(k * 20) * 0.35; });
+    this.say({ g: this.boss }, ['考卷來了！', '接招！隨堂考！', '這題送分喔～', '突襲小考！'][Math.floor(Math.random() * 4)], 3.4, 1200);
+    const from = this.boss.position.clone(); from.y = 2.2;
+    const paper = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.9), basic('#fbf8ef', { side: THREE.DoubleSide })); this.S.add(paper);
+    paper.position.copy(from);
+    this.t.tween(1200, k => { paper.position.set(from.x + (to.x - from.x) * k, from.y + Math.sin(k * Math.PI) * 4 - (from.y - 0.2) * k, from.z + (to.z - from.z) * k); paper.rotation.set(k * 14, k * 9, 0); }, 0, t => t, () => {
+      this.S.remove(paper); this.S.remove(ring); this.S.remove(fill); this.poof(new THREE.Vector3(to.x, 0.3, to.z), '#fbf8ef'); done?.(to);
+    });
+  }
+  // 在某個位置叫出一隻拖延怪（魔王召喚用）
+  spawnMonsterAt(x, z) { const m = this.spawnMonster(); m.g.position.set(x, 0, z); m.tx = x; m.tz = z; this.poof(new THREE.Vector3(x, 0.4, z), '#8a6ac8'); return m; }
+  // 傷害數字：從目標頭上飄起來，爆擊用金色大字
+  dmgText(pos, text, crit) {
+    const s = textSprite(text, { w: 256, h: 80, font: crit ? 44 : 38, bg: 'rgba(0,0,0,0)', fg: crit ? '#ffd23a' : '#ffffff', sx: crit ? 1.9 : 1.3 });
+    s.material.depthTest = false; s.renderOrder = 10; s.position.set(pos.x + (Math.random() - 0.5) * 0.6, (pos.y ?? 1.4), pos.z); this.S.add(s);
+    const y0 = s.position.y;
+    this.t.tween(900, k => { s.position.y = y0 + k * 1.3; s.material.opacity = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4; s.scale.multiplyScalar(k < 0.15 ? 1.04 : 1); }, 0, t => t, () => this.S.remove(s));
+  }
+  // 技能一：墨汁潑灑（往外擴散的墨圈和墨點）
+  inkSplash(c, r) {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.7, 40), basic('#1a1a2a', { transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.set(c.x, 0.06, c.z); this.S.add(ring);
+    this.t.tween(600, k => { ring.scale.setScalar(1 + k * r * 1.5); ring.material.opacity = 0.85 * (1 - k); }, 0, t => 1 - Math.pow(1 - t, 2), () => this.S.remove(ring));
+    for (let k = 0; k < 26; k++) {
+      const d = new THREE.Mesh(new THREE.SphereGeometry(0.09 + Math.random() * 0.08, 6, 5), basic('#151522', { transparent: true }));
+      d.position.set(c.x, 1, c.z); this.S.add(d); const a = Math.random() * 6.28, sp = 3 + Math.random() * 5;
+      this.fx.push({ m: d, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: 3 + Math.random() * 3, life: 0.9, g: -12 });
+    }
+  }
+  // 技能二：文昌光束（從玩家射向目標的一道金光）
+  beam(from, to) {
+    const a = new THREE.Vector3(from.x, 1.3, from.z), b = new THREE.Vector3(to.x, to.y ?? 1.2, to.z), len = a.distanceTo(b);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, len, 10, 1, true), basic('#ffe08a', { transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+    m.position.copy(a).lerp(b, 0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); this.S.add(m);
+    const glow = glowSprite('#ffe08a', 3); glow.position.copy(b); this.S.add(glow);
+    this.t.tween(550, k => { m.scale.set(1 + k * 1.5, 1, 1 + k * 1.5); m.material.opacity = 0.95 * (1 - k); glow.scale.setScalar(3 + k * 3); glow.material.opacity = 1 - k; }, 0, t => t, () => { this.S.remove(m); this.S.remove(glow); });
+  }
+  // 技能三：金榜題名（一道道金色光柱從天而降）
+  goldRain(points) {
+    points.forEach((p, i) => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 30, 12, 1, true), basic('#ffd76a', { transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      col.position.set(p.x, 15, p.z); this.S.add(col);
+      this.t.tween(900, k => { col.material.opacity = Math.sin(k * Math.PI) * 0.8; col.scale.set(1 + k, 1, 1 + k); }, i * 70, t => t, () => { this.S.remove(col); this.stars(p.x, 0.8, p.z); });
+    });
+  }
 
   update(dt) {
     this.time += dt; const t = this.time;
+    this.updateWheel();
+    if (this.clouds) this.clouds.forEach((c, i) => { c.position.x += dt * (0.4 + (i % 3) * 0.2); if (c.position.x > 160) c.position.x = -160; });
     // 天燈慢慢往上飄，40 秒後消失
     for (let i = this.lanterns.length - 1; i >= 0; i--) {
       const o = this.lanterns[i]; o.t += dt; o.g.position.y += dt * 0.9; o.g.position.x += Math.sin(t * 0.5 + o.ph) * dt * 0.3;
@@ -429,7 +573,7 @@ export class Outside {
     }
     // 寶物：轉圈、上下浮動
     for (const o of this.treasures) if (o.g.visible) { o.m.rotation.y += dt * 1.5; o.g.position.y = 0.5 + Math.sin(t * 2 + o.x) * 0.1; }
-    if (this.boss && this.bossHp > 0 && this.boss.visible) this.boss.position.y = Math.abs(Math.sin(t * 1.5)) * 0.1;
+    if (this.boss && this.bossHp > 0 && this.boss.visible) this.updateBoss(dt, t);
     // 粒子（水滴、星星、飼料）
     for (let i = this.fx.length - 1; i >= 0; i--) {
       const f = this.fx[i]; f.life -= dt;

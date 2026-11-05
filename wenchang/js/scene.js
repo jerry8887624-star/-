@@ -13,7 +13,7 @@ const lam = (c, extra = {}) => new THREE.MeshToonMaterial({ color: c, gradientMa
 const basic = (c, extra = {}) => new THREE.MeshBasicMaterial({ color: c, ...extra });
 
 // 廟的尺寸（公尺）：正殿寬 30、深 21、高 8，約是第一版的 5 倍面積
-export const L = { HW: 15, HF: -1, HB: -22, HH: 8, CW: 20, GZ: 20, CZ: 6, FW: 30, FZ: 54 }; // FW、FZ：廟門外樹林的寬度與最遠處
+export const L = { HW: 15, HF: -1, HB: -22, HH: 8, CW: 20, GZ: 20, CZ: 6, FW: 46, FZ: 56 }; // FW、FZ：廟門外樹林的寬度與最遠處
 const ALTAR_Z = -18.3, CUSHION_Z = -15.3, WC_CENSER_Z = -16.85; // 供桌、主拜墊、文昌爐
 const JINLU = { x: 12, z: 13 }; // 金爐
 
@@ -85,13 +85,14 @@ const BOXES = [
   [18.1, 0.1, 19.3, 3.5],           // 還願紅榜
   ...[-14, -11, -8].flatMap(x => [3.4, 6.6].map(z => [x - 0.65, z - 0.95, x + 0.65, z - 0.45])), // 讀書角書桌
   [-15, -10.1, -14.3, -6.4],        // 光明燈牆
+  [30.6, 39.6, 43.4, 42.4],         // 摩天輪底座
   [-10.3, 21.15, -8.7, 22.05],      // 廟外苗圃
   [-L.CW - 0.4, L.GZ - 0.2, -3.3, L.GZ + 0.4], [3.3, L.GZ - 0.2, L.CW + 0.4, L.GZ + 0.4], // 前牆
 ];
 const FRONT_PILLARS = [-14.2, -8.5, -3.4, 3.4, 8.5, 14.2];
 const INNER_PILLARS = [];
 [-11.8, 11.8].forEach(x => [-6, -12, -18].forEach(z => INNER_PILLARS.push([x, z])));
-const CIRCLES = [[-10, 14.4, 1.9], [16, 45, 4.3], [0, 47.5, 1.6], [22, 24.5, 0.35], [27, 31, 0.35], [23, 51.5, 0.35], [-2.95, -20.2, 0.3], [2.95, -20.2, 0.3], [0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
+const CIRCLES = [[-10, 14.4, 1.9], [16, 45, 4.3], [22, 24.5, 0.35], [27, 31, 0.35], [23, 51.5, 0.35], [-2.95, -20.2, 0.3], [2.95, -20.2, 0.3], [0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
 
 function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
@@ -114,7 +115,7 @@ export class Temple {
     this.renderer.setPixelRatio(Math.min(1.75, window.devicePixelRatio || 1)); // 大場景在手機上省一點效能
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 260);
+    this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 420);
     this.clock = new THREE.Clock();
     this.camYaw = 0; this.camYawTarget = 0; this.camDist = 8; this.camPitch = 0.32; // 仰角：0＝平視，1.45＝幾乎正上方往下看
     this.stick = { x: 0, y: 0 }; // 方向搖桿
@@ -152,10 +153,10 @@ export class Temple {
     const S = this.scene;
     this.hemi = new THREE.HemisphereLight(0xffffff, 0x8a7a5a, 1.5); S.add(this.hemi);
     this.sun = new THREE.DirectionalLight(0xfff2d8, 1.9); this.sun.position.set(-8, 14, 10); S.add(this.sun);
-    S.fog = new THREE.Fog(0xcfeaff, 50, 130);
+    S.fog = new THREE.Fog(0xcfeaff, 60, 230); // 遠一點也看得到山
 
     // 地面：外圍石地＋中庭石板＋殿內紅磚
-    const outer = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), lam('#7d6a58')); outer.rotation.x = -Math.PI / 2; outer.position.y = -0.02; S.add(outer);
+    const outer = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), lam('#8aaa6a')); outer.rotation.x = -Math.PI / 2; outer.position.y = -0.02; S.add(outer);
     const slab = canvasTex(512, 512, (g, W, H) => {
       g.fillStyle = '#c9b49a'; g.fillRect(0, 0, W, H);
       for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
@@ -1182,12 +1183,19 @@ export class Temple {
     // 鏡頭：繞著角色轉（左右＝方位、上下＝仰角、遠近＝距離），可以一路轉到頭頂往下看
     if (P) {
       this.camYaw = lerpAngle(this.camYaw, this.camYawTarget, Math.min(1, dt * 3));
-      const pp = P.root.position, tgt = this.focus || new THREE.Vector3(pp.x, 1.2, pp.z);
-      const piv = new THREE.Vector3(pp.x, 1.2, pp.z), cp = Math.cos(this.camPitch), sp = Math.sin(this.camPitch);
+      const pp = P.root.position, tgt = this.focus || new THREE.Vector3(pp.x, pp.y + 1.2, pp.z);
+      const piv = new THREE.Vector3(pp.x, pp.y + 1.2, pp.z), cp = Math.cos(this.camPitch), sp = Math.sin(this.camPitch);
       const at = d => new THREE.Vector3(piv.x + Math.sin(this.camYaw) * cp * d, Math.max(0.35, piv.y + sp * d), piv.z + Math.cos(this.camYaw) * cp * d);
       let want = at(this.camDist);
       // 擋到牆、天花板、天公爐等就拉近
       for (let d = this.camDist - 0.4; (!camClear(want, pp) || this.camHit?.(want)) && d > 1.6; d -= 0.4) want = at(d);
+      // 第一人稱（搭摩天輪時）：鏡頭在角色的頭，拖曳一樣可以轉方向、上下看
+      if (this.fpv) {
+        this.camYaw = lerpAngle(this.camYaw, this.camYawTarget, Math.min(1, dt * 3));
+        const cp2 = Math.cos(this.camPitch), sp2 = Math.sin(this.camPitch), head = new THREE.Vector3(pp.x, pp.y + 1.35, pp.z);
+        this.camera.position.copy(head); this.camera.lookAt(head.x - Math.sin(this.camYaw) * cp2, head.y - sp2, head.z - Math.cos(this.camYaw) * cp2);
+        this._look = null; this.renderer.render(this.scene, this.camera); return dt;
+      }
       if (this._snap) { this._snap = false; this.camYaw = this.camYawTarget; this.camera.position.copy(want); this._look = tgt.clone(); }
       this.camera.position.lerp(want, Math.min(1, dt * 5));
       this._look = this._look ? this._look.lerp(tgt, Math.min(1, dt * 5)) : tgt.clone();
@@ -1228,7 +1236,7 @@ function route(a, b) {
     const side = (cur.x + b.x) / 2 >= POOL.x ? 1 : -1; pts.push({ x: POOL.x + side * (POOL.r + 1.2), z: POOL.z }); cur = pts[pts.length - 1];
   }
   // 廟外的錦鯉池、考試魔王：一樣從旁邊繞
-  for (const [ox, oz, orr] of [[16, 45, 4.3], [0, 47.5, 1.6]]) {
+  for (const [ox, oz, orr] of [[16, 45, 4.3]]) {
     const vx = b.x - cur.x, vz = b.z - cur.z, Ln = vx * vx + vz * vz || 1, t = Math.max(0, Math.min(1, ((ox - cur.x) * vx + (oz - cur.z) * vz) / Ln));
     if (Math.hypot(cur.x + vx * t - ox, cur.z + vz * t - oz) < orr + 0.5 && Math.hypot(b.x - ox, b.z - oz) > orr) {
       const side = (cur.z + b.z) / 2 >= oz ? 1 : -1; pts.push({ x: ox + (b.x >= ox ? 1 : -1) * (orr + 1.2), z: oz + side * (orr + 1.2) }); cur = pts[pts.length - 1];

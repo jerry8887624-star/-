@@ -99,7 +99,22 @@ addEventListener('load', function () {
   </aside>
 
   <p id="next"></p>
-  <div id="boss-bar" hidden><b>👹 考試魔王</b><div class="bb-track"><i id="bb-fill"></i><span id="bb-num"></span></div><small id="bb-note">廟裡的人一起打，每天復活</small></div>
+  <div id="boss-bar" hidden>
+    <div class="bb-face" aria-hidden="true">👹</div>
+    <div class="bb-main">
+      <div class="bb-top"><b>考試魔王</b><span id="bb-num"></span></div>
+      <div class="bb-track"><i id="bb-lag"></i><i id="bb-fill"></i><span class="bb-seg"></span></div>
+      <small id="bb-note"></small>
+    </div>
+  </div>
+  <!-- 搭摩天輪中 -->
+  <div id="ride-ui"><span id="ride-info">🎡</span><button type="button" id="ride-exit">下車</button></div>
+  <!-- 戰鬥：攻擊鍵、技能鍵、等級 -->
+  <div id="combat" hidden>
+    <div class="lv-info"><b id="lv-badge">Lv.1</b><span class="lv-track"><i id="lv-bar"></i></span><small id="atk-power">攻擊 1</small></div>
+    <div id="skill-btns"></div>
+    <button type="button" id="atk-btn" aria-label="攻擊（丟毛筆）"><i aria-hidden="true">✒️</i><span>攻擊</span></button>
+  </div>
   <button type="button" id="near-btn" hidden></button>
   <div id="toast" role="status" aria-live="polite"></div>
 
@@ -116,6 +131,7 @@ addEventListener('load', function () {
     <div id="people-wrap">
       <p class="pop-title" id="people-title">在廟裡的考生</p>
       <ul id="people-list"></ul>
+      <p class="pending people-tip">按「打氣」直接送出一句加油；長按可以自己挑句子。</p>
       <p class="pending" id="people-empty">目前只有你一個人。分享網址給同學，一起來拜拜、互相打氣吧！</p>
     </div>
     <div id="blocked-wrap" hidden>
@@ -326,8 +342,11 @@ addEventListener('load', function () {
 <!-- 今日：考試倒數、每日一籤、每日任務、加持、還願紅榜、聖誕 -->
 <dialog id="today-dlg" class="today">
   <h2>今日 <small id="today-date"></small></h2>
-  <section id="fest-box" class="tbox fest" hidden></section>
-  <section class="tbox">
+  <div class="tabs" id="today-tabs" role="tablist" aria-label="今日">
+    <button type="button" role="tab" data-t="tasks">✅ 任務</button><button type="button" role="tab" data-t="reward">🏅 獎勵</button><button type="button" role="tab" data-t="exam">⏳ 倒數</button><button type="button" role="tab" data-t="bang">🏮 紅榜</button>
+  </div>
+  <section id="fest-box" class="tbox fest" data-tab="exam" hidden></section>
+  <section class="tbox" data-tab="exam">
     <h3>⏳ 考試倒數</h3>
     <p id="exam-count" class="big-count"></p>
     <div id="exam-edit">
@@ -339,24 +358,24 @@ addEventListener('load', function () {
     </div>
     <p class="pending">只存在這支手機。加到行事曆會在考前一天提醒你。</p>
   </section>
-  <section class="tbox">
+  <section class="tbox" data-tab="tasks">
     <h3>🎋 每日一籤</h3>
     <p class="say" id="daily-lot-text">每天可以抽一支屬於你的籤，明天再來換新的。</p>
     <div class="row tight"><button type="button" id="daily-lot-btn">抽今日一籤</button></div>
   </section>
-  <section class="tbox">
+  <section class="tbox" data-tab="tasks">
     <h3>✅ 每日小任務 <small id="task-count"></small></h3>
     <ul id="task-list" class="task-list"></ul>
     <p class="say" id="task-days"></p>
     <p class="say" id="week-line"></p>
     <p class="say" id="focus-line"></p>
   </section>
-  <section class="tbox">
+  <section class="tbox" data-tab="reward">
     <h3>🏆 排行榜</h3>
     <p class="say">專注時間、在廟裡的時間，今日／本週／總榜。</p>
     <div class="row tight"><button type="button" class="ghost small install-open install-btn">📲 加到主畫面</button><button type="button" class="rank-open">看排行榜</button></div>
   </section>
-  <section class="tbox" id="reward-box">
+  <section class="tbox" id="reward-box" data-tab="reward">
     <h3>🏅 獎勵 <small id="reward-count"></small></h3>
     <p class="say" id="next-reward"></p>
     <p class="lbl">稱號（顯示在名牌前面）</p>
@@ -369,12 +388,12 @@ addEventListener('load', function () {
     <div id="outfit-list" class="chips rw"></div>
     <p class="pending">稱號、特效、配件和服裝大家都看得到。</p>
   </section>
-  <section class="tbox">
+  <section class="tbox" data-tab="bang">
     <h3>🙏 祈福牆加持</h3>
     <p class="say" id="bless-mine"></p>
     <p class="pending">到祈福牆點別人掛的小卡，就能幫他加持；你的卡被加持時會通知你。</p>
   </section>
-  <section class="tbox" id="bang-box">
+  <section class="tbox" id="bang-box" data-tab="bang">
     <h3>🏮 還願紅榜</h3>
     <ol id="bang-list" class="bang-list"></ol>
     <p class="say">考上了嗎？回來向文昌帝君答謝，名字會掛上紅榜（只顯示暱稱與考試）。</p>
