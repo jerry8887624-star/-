@@ -121,6 +121,7 @@ export class Temple {
     this.stick = { x: 0, y: 0 }; // 方向搖桿
     this.takenSeats = new Set(); // 其他真人玩家佔用的座位（伺服器同步）
     this.focus = null; // 特寫目標
+    this.rideMove = null; // 搭摩天輪時：搖桿改成在車廂裡走動 (dx, dz, mag, dt) => void
     this.avatars = new Set();
     this.tapTargets = []; // 其他模組（例如廟外樹林）可以登記可點的物件：[物件, 點到時呼叫的函式]
     this.updaters = [];   // 每一格畫面都要更新的東西（傳入 dt）
@@ -1111,7 +1112,7 @@ export class Temple {
     if (this.feet.length > 80) return;
     if (!this._footG) this._footG = new THREE.CircleGeometry(0.09, 10);
     const m = new THREE.Mesh(this._footG, new THREE.MeshBasicMaterial({ color: '#ffd76a', transparent: true, opacity: 0.8, depthWrite: false }));
-    m.rotation.x = -Math.PI / 2; m.scale.set(1, 1.6, 1); m.position.set(p.x + Math.cos(f) * 0.12 * side, 0.02, p.z - Math.sin(f) * 0.12 * side); this.scene.add(m);
+    m.rotation.x = -Math.PI / 2; m.scale.set(1, 1.6, 1); m.position.set(p.x + Math.cos(f) * 0.12 * side, 0.045, p.z - Math.sin(f) * 0.12 * side); this.scene.add(m);
     this.feet.push({ m, life: 2 });
   }
   // 手機變卡時自動降低解析度，順了再慢慢調回來
@@ -1132,7 +1133,7 @@ export class Temple {
     const k = this.keys, P = this.player;
     // 鍵盤或方向搖桿：以鏡頭方向為「前」
     let f = 0, sd = 0;
-    if (P && !this.lockMove) {
+    if (P && (!this.lockMove || this.rideMove)) {
       f = (k.w || k.arrowup ? 1 : 0) - (k.s || k.arrowdown ? 1 : 0); sd = (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0);
       if (Math.hypot(this.stick.x, this.stick.y) > 0.12) { f = this.stick.y; sd = this.stick.x; }
     }
@@ -1140,8 +1141,9 @@ export class Temple {
     if (P && mag > 0) {
       const yaw = this.camYaw + Math.PI, fx = Math.sin(yaw), fz = Math.cos(yaw);
       const dx = (fx * f - fz * sd) / mag, dz = (fz * f + fx * sd) / mag;
+      if (this.rideMove) { this.rideMove(dx, dz, mag, dt); P.rideWalk = 0.12; } else {
       P.path = null; P.target = { x: P.root.position.x + dx * 0.6, z: P.root.position.z + dz * 0.6 }; P._arrive?.(false); P._arrive = null;
-      P.moveMul = 0.35 + 0.65 * mag; this.emit('manualMove');
+      P.moveMul = 0.35 + 0.65 * mag; this.emit('manualMove'); }
     } else if (P) P.moveMul = 1;
     for (const av of this.avatars) {
       const p = av.root.position; let moving = false;
@@ -1164,6 +1166,7 @@ export class Temple {
           }
         }
       }
+      if (av.rideWalk > 0) { av.rideWalk -= dt; moving = true; } // 在摩天輪車廂裡走動（位置由 main.js 擺）
       if (!moving && av.faceTo != null) { av.root.rotation.y = lerpAngle(av.root.rotation.y, av.faceTo, Math.min(1, dt * 8)); if (Math.abs(angDiff(av.root.rotation.y, av.faceTo)) < 0.01) av.faceTo = null; }
       if (moving && av.kneeling) av.kneel(false);
       if (moving && av.sitting && !av.netId) av.sit(false);
@@ -1225,7 +1228,7 @@ export class Temple {
       const at = d => new THREE.Vector3(piv.x + Math.sin(this.camYaw) * cp * d, Math.max(0.35, piv.y + sp * d), piv.z + Math.cos(this.camYaw) * cp * d);
       let want = at(this.camDist);
       // 擋到牆、天花板、天公爐等就拉近
-      for (let d = this.camDist - 0.4; (!camClear(want, pp) || this.camHit?.(want)) && d > 1.6; d -= 0.4) want = at(d);
+      if (!this.rideMove) for (let d = this.camDist - 0.4; (!camClear(want, pp) || this.camHit?.(want, pp)) && d > 1.6; d -= 0.4) want = at(d); // 摩天輪上在半空，不用閃牆和樹
       // 第一人稱（搭摩天輪時）：鏡頭在角色的頭，拖曳一樣可以轉方向、上下看
       if (this.fpv) {
         this.camYaw = lerpAngle(this.camYaw, this.camYawTarget, Math.min(1, dt * 3));

@@ -23,6 +23,26 @@ function glowTex() {
   _glow = canvasTex(64, 64, (g) => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,240,180,1)'); gr.addColorStop(0.4, 'rgba(255,210,90,.5)'); gr.addColorStop(1, 'rgba(255,200,60,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); });
   return _glow;
 }
+// 天燈的燈紙：米黃到橘的漸層、上下紅邊，正反兩面用直書寫上心願（右到左）
+function lanternTex(text) {
+  const chars = [...String(text || '金榜題名').replace(/\s+/g, '')].slice(0, 30);
+  const n = chars.length, per = n <= 5 ? n : n <= 12 ? 6 : n <= 20 ? 7 : 8, cols = Math.ceil(n / per);
+  return canvasTex(1024, 512, (g, W, H) => {
+    const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#fff4d8'); gr.addColorStop(0.55, '#ffd890'); gr.addColorStop(1, '#ff9a40');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#c8352b'; g.fillRect(0, 0, W, 22); g.fillRect(0, H - 26, W, 26);
+    g.strokeStyle = 'rgba(160,80,30,.35)'; g.lineWidth = 3; for (let k = 0; k < 8; k++) { const x = k * W / 8; g.beginPath(); g.moveTo(x, 22); g.lineTo(x, H - 26); g.stroke(); }
+    const area = H - 90, font = Math.min(82, Math.floor(area / per), Math.floor(300 / cols / 1.12));
+    g.fillStyle = '#9a1c14'; g.font = `900 ${font}px "Noto Serif TC","Kaiti TC","STKaiti",serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    [W * 0.25, W * 0.75].forEach(cx => {
+      const top = 22 + (H - 48 - per * font) / 2 + font / 2;
+      for (let c = 0; c < cols; c++) {
+        const x = cx + ((cols - 1) / 2 - c) * font * 1.12; // 第一行在最右邊
+        chars.slice(c * per, c * per + per).forEach((ch, r) => g.fillText(ch, x, top + r * font));
+      }
+    });
+  });
+}
 const glowSprite = (color = '#ffd76a', size = 1) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); s.scale.set(size, size, 1); return s; };
 
 // 位置
@@ -30,11 +50,13 @@ export const KOI = { x: 16, z: 45, r: 4 };
 export const BOSS_AT = { x: 0, z: 47.5 };
 // 摩天輪：中心在 (x, z)，輪軸高 hub、半徑 r、12 個車廂、轉一圈 period 秒
 export const WHEEL = { x: 37, z: 41, hub: 13.5, r: 11, n: 12, period: 120 };
+// 車廂半徑（可以在裡面走動）、車廂中心離輪子的距離
+export const CABIN_R = 1.45, CABIN_OFF = 2.95;
 export const PLOTS = [];
 for (let r = 0; r < 8; r++) for (let c = 0; c < 6; c++) PLOTS.push({ x: -26 + c * 3.6, z: 25 + r * 3.6 });
 export const OUT_SPOTS = {
   grove: { x: -9.5, z: 23.2, f: Math.PI },
-  sky: { x: 14, z: 30, f: 0 },
+  sky: { x: 14, z: 30, f: Math.PI }, // 面向廟放燈：鏡頭在廣場這一側，不會卡在樹後面
   koi: { x: 16, z: 39.6, f: 0 },
   wheel: { x: 37, z: 36.5, f: 0 },
   boss: { x: 0, z: 42.5, f: 0 },
@@ -68,7 +90,9 @@ export class Outside {
     for (let i = 0; i < 6; i++) this.spawnMonster();
     t.updaters.push(dt => this.update(dt));
     // 鏡頭不要鑽進樹冠裡
-    t.camHit = v => v.z > L.GZ && v.y < 6 && this.treeSpots.some(([x, z, r]) => Math.hypot(v.x - x, v.z - z) < r);
+    // 鏡頭到角色之間（不只鏡頭那一點）碰到樹冠就拉近，才不會整個畫面被一棵樹擋住
+    const hitAt = (x0, y0, z0) => z0 > L.GZ && y0 < 6.5 && this.treeSpots.some(([x, z, r]) => Math.hypot(x0 - x, z0 - z) < r + 0.4);
+    t.camHit = (v, pp) => { if (!pp) return hitAt(v.x, v.y, v.z); for (let k = 0.35; k <= 1.001; k += 0.13) if (hitAt(pp.x + (v.x - pp.x) * k, pp.y + 1.2 + (v.y - pp.y - 1.2) * k, pp.z + (v.z - pp.z) * k)) return true; return false; };
   }
 
   // ---------- 地面、步道、四周的樹 ----------
@@ -76,11 +100,13 @@ export class Outside {
     const S = this.S, z0 = L.GZ + 0.5, depth = L.FZ - z0 + 2;
     const grass = new THREE.Mesh(new THREE.PlaneGeometry(L.FW * 2 + 4, depth), lam('#7cc456')); grass.rotation.x = -Math.PI / 2; grass.position.set(0, 0.004, z0 + depth / 2); S.add(grass);
     this.t.ground.push(grass);
-    const path = new THREE.Mesh(new THREE.PlaneGeometry(3, depth), lam('#e6d2a0')); path.rotation.x = -Math.PI / 2; path.position.set(0, 0.008, z0 + depth / 2); S.add(path);
-    const cross = new THREE.Mesh(new THREE.PlaneGeometry(L.FW * 2 - 6, 2.4), lam('#c9b48a')); cross.rotation.x = -Math.PI / 2; cross.position.set(0, 0.008, 36.5); S.add(cross);
+    // 路面分層：草地 → 橫向路 → 直向步道，各自有高度差＋polygonOffset，路口才不會互相搶畫（出現馬賽克閃爍）
+    const road = (c, k) => lam(c, { polygonOffset: true, polygonOffsetFactor: -k, polygonOffsetUnits: -k * 2 });
+    const cross = new THREE.Mesh(new THREE.PlaneGeometry(L.FW * 2 - 6, 2.4), road('#c9b48a', 1)); cross.rotation.x = -Math.PI / 2; cross.position.set(0, 0.016, 36.5); S.add(cross);
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(3, depth), road('#e6d2a0', 2)); path.rotation.x = -Math.PI / 2; path.position.set(0, 0.028, z0 + depth / 2); S.add(path);
     // 四周的樹（樹林邊界）
     const trunkM = lam('#7a5232'), leafM = [lam('#5cb04a'), lam('#6cc456'), lam('#4a9a42')];
-    this.treeSpots = [];
+    this.treeSpots = [[-14, 24, 1.7], [14, 24.5, 1.7], [-8, 25, 1.7], [9, 26, 1.7]]; // 含 scene.js 種在廟門外的樹
     const tree = (x, z, s = 1) => {
       this.treeSpots.push([x, z, 1.7 * s]);
       const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s);
@@ -125,14 +151,16 @@ export class Outside {
     for (let i = 0; i < W.n; i++) {
       const c = new THREE.Group(); S.add(c);
       const col = lam(cols[i % cols.length]);
-      const floor = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.12, 16), col); floor.position.y = -1.0; c.add(floor);
-      const back = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 1.0, 16, 1, true, -Math.PI * 0.3, Math.PI * 0.6), col); back.material = lam(cols[i % cols.length], { side: THREE.DoubleSide }); back.position.y = -0.45; c.add(back);
-      const rail = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.04, 6, 24), white); rail.rotation.x = Math.PI / 2; rail.position.y = -0.55; c.add(rail);
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.15, 0.6, 16), col); roof.position.y = 1.1; c.add(roof);
-      [0, Math.PI / 2, Math.PI, Math.PI * 1.5].forEach(a => { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.0), white); post.position.set(Math.sin(a) * 0.95, 0, Math.cos(a) * 0.95); c.add(post); });
+      const R = CABIN_R;
+      const floor = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.12, 20), col); floor.position.y = -1.0; c.add(floor);
+      const back = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 1.0, 20, 1, true, -Math.PI * 0.3, Math.PI * 0.6), col); back.material = lam(cols[i % cols.length], { side: THREE.DoubleSide }); back.position.y = -0.45; c.add(back);
+      const rail = new THREE.Mesh(new THREE.TorusGeometry(R, 0.04, 6, 32), white); rail.rotation.x = Math.PI / 2; rail.position.y = -0.4; c.add(rail);
+      // 屋頂：自己搭的那一格會變半透明，從外面看得到裡面的人
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(R + 0.15, 0.6, 20), lam(cols[i % cols.length], { transparent: true })); roof.position.y = 1.1; c.add(roof); c.userData.roof = roof;
+      [0, Math.PI / 2, Math.PI, Math.PI * 1.5].forEach(a => { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.0), white); post.position.set(Math.sin(a) * (R - 0.05), 0, Math.cos(a) * (R - 0.05)); c.add(post); });
       const hang = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.6), gold); hang.position.y = 1.55; c.add(hang);
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 2.7), gold); arm.position.set(0, 1.85, 1.3); c.add(arm); // 接到輪框的橫桿
-      const seat = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.12, 0.45), white); seat.position.set(0, -0.6, 0.35); c.add(seat);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, CABIN_OFF), gold); arm.position.set(0, 1.85, CABIN_OFF / 2); c.add(arm); // 接到輪框的橫桿
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 0.45), white); seat.position.set(0, -0.6, R - 0.6); c.add(seat);
       this.cabins.push(c);
     }
     // 上下車的月台
@@ -145,7 +173,7 @@ export class Outside {
   // 第 i 個車廂現在的角度（0 = 最下面，月台的位置）
   cabinAngle(i) { return this.wheelAngle() + i / WHEEL.n * Math.PI * 2; }
   // 車廂掛在輪子前面（靠廟的那一側），坐在裡面往外看不會被輪框擋住
-  cabinPos(i, out = new THREE.Vector3()) { const a = this.cabinAngle(i), W = WHEEL; return out.set(W.x + Math.sin(a) * W.r, W.hub - Math.cos(a) * W.r - 1.2, W.z - 2.6); }
+  cabinPos(i, out = new THREE.Vector3()) { const a = this.cabinAngle(i), W = WHEEL; return out.set(W.x + Math.sin(a) * W.r, W.hub - Math.cos(a) * W.r - 1.2, W.z - CABIN_OFF); }
   updateWheel() {
     this.wheelRot.rotation.z = this.wheelAngle();
     this.cabins.forEach((c, i) => { this.cabinPos(i, c.position); c.position.y += 1.2; c.rotation.z = Math.sin(this.time * 0.8 + i) * 0.04; });
@@ -235,13 +263,23 @@ export class Outside {
     const rim = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.03, 6, 16), lam('#c8352b')); rim.rotation.x = Math.PI / 2; rim.position.y = 1.12; g.add(rim);
     this.t.tapTargets.push([g, () => this.t.emit('tapSky')]); this.t.tapTargets.push([pad, () => this.t.emit('tapSky')]);
   }
-  releaseLantern(x, z) {
-    const g = new THREE.Group(); g.position.set(x, 1.6, z);
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.24, 0.62, 10, 1, true), basic('#ffb04a', { side: THREE.DoubleSide, transparent: true }));
-    g.add(body); const top = new THREE.Mesh(new THREE.CircleGeometry(0.32, 10), basic('#ff9a3a', { transparent: true })); top.rotation.x = -Math.PI / 2; top.position.y = 0.31; g.add(top);
-    const glow = glowSprite('#ffb050', 1.6); g.add(glow);
-    this.S.add(g); this.lanterns.push({ g, t: 0, ph: Math.random() * 6, mats: [body.material, top.material, glow.material] });
-    if (this.lanterns.length > 40) { const o = this.lanterns.shift(); this.S.remove(o.g); }
+  // 天燈：x, z 是放燈的人站的位置；face 是燈要朝向的方向（看的人在哪一邊），字寫在燈身正反兩面
+  // 燈放在人的前面 1.4 公尺，先低低地浮著讓人看清楚字，再慢慢升空
+  releaseLantern(x, z, { text = '金榜題名', face = null, view = null, near = false } = {}) {
+    const g = new THREE.Group();
+    const dir = face ?? 0, fx = Math.sin(dir), fz = Math.cos(dir), d = near ? 1.7 : 0;
+    g.position.set(x + fx * d, near ? 1.9 : 1.6, z + fz * d);
+    const tex = lanternTex(text);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.46, 1.25, 24, 1, true), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true }));
+    g.add(body); const top = new THREE.Mesh(new THREE.CircleGeometry(0.62, 24), basic('#f2b860', { transparent: true })); top.rotation.x = -Math.PI / 2; top.position.y = 0.625; g.add(top);
+    const fire = glowSprite('#ffcf70', 0.7); fire.position.y = -0.62; g.add(fire);
+    const glow = glowSprite('#ffb050', 2.6); g.add(glow);
+    // 圓柱的 +x 面寫著字：轉到 +x 朝向看的人（view＝鏡頭在燈的哪個方向；沒給就朝放燈的人）
+    const base = view != null ? Math.atan2(-Math.cos(view), Math.sin(view)) : Math.atan2(fz, -fx);
+    body.rotation.y = base; this.S.add(g);
+    this.lanterns.push({ g, body, base, t: near ? -3 : 0, ph: Math.random() * 6, mats: [body.material, top.material, fire.material, glow.material] });
+    if (this.lanterns.length > 40) { const o = this.lanterns.shift(); this.S.remove(o.g); o.body.material.map?.dispose(); }
+    return g;
   }
 
   // ---------- 錦鯉池 ----------
@@ -549,9 +587,11 @@ export class Outside {
     if (this.clouds) this.clouds.forEach((c, i) => { c.position.x += dt * (0.4 + (i % 3) * 0.2); if (c.position.x > 160) c.position.x = -160; });
     // 天燈慢慢往上飄，40 秒後消失
     for (let i = this.lanterns.length - 1; i >= 0; i--) {
-      const o = this.lanterns[i]; o.t += dt; o.g.position.y += dt * 0.9; o.g.position.x += Math.sin(t * 0.5 + o.ph) * dt * 0.3;
+      // t < 0：剛點燃，在面前浮著（慢慢往上一點點），讓人看清楚燈上的字
+      const o = this.lanterns[i]; o.t += dt; o.g.position.y += dt * (o.t < 0 ? 0.12 : Math.min(0.9, 0.25 + o.t * 0.2)); o.g.position.x += Math.sin(t * 0.5 + o.ph) * dt * 0.3;
+      o.body.rotation.y = o.base + Math.sin(t * 0.6 + o.ph) * 0.35; // 輕輕左右轉，字一直朝著前面
       const a = o.t > 30 ? Math.max(0, 1 - (o.t - 30) / 10) : 1; o.mats.forEach(m => { m.opacity = a; });
-      if (o.t > 40) { this.S.remove(o.g); this.lanterns.splice(i, 1); }
+      if (o.t > 40) { this.S.remove(o.g); this.lanterns.splice(i, 1); o.body.material.map?.dispose(); }
     }
     // 錦鯉：繞圈游；有飼料就游過去
     if (this.food) { this.food.t -= dt; if (this.food.t <= 0) this.food = null; }

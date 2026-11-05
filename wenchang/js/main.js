@@ -3,7 +3,7 @@ import { L, Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS, TIANGONG_SEAT
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES, ACCS, HEADS, EYES, MOUTHS, CHEEKS } from './avatar.js';
 import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI, TASK_POOL, DAILY_COUNT, WEEK_GOAL, TITLES, FXS, REWARDS, FOCUS_MIN, FOCUS_SOUNDS, FOCUS_CHEERS, FEAST_DATES, FEAST_DAYS_BEFORE } from './data.js';
 import { Net } from './net.js';
-import { Outside, PLOTS, OUT_SPOTS, OUT_MARKS, TREASURE_KINDS, TREASURE_SPOTS, BOSS_AT, KOI, WHEEL } from './outside.js';
+import { Outside, PLOTS, OUT_SPOTS, OUT_MARKS, TREASURE_KINDS, TREASURE_SPOTS, BOSS_AT, KOI, WHEEL, CABIN_R } from './outside.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
 import { initUpdates, showNewsOnce } from './update.js';
@@ -1625,6 +1625,7 @@ setOthersOffers([]);
 
 // ---------- 廟門外的樹林：金榜樹、天燈、錦鯉、尋寶、拖延怪、考試魔王 ----------
 const out = new Outside(temple);
+if (location.hash === "#debug") window.__wc = { temple, me, out, THREE }; // 測試用
 const myTree = () => outTrees.find(t => t.mine);
 let outTrees = [];
 // 沒連線時：只有自己的樹，存在這支手機
@@ -1666,8 +1667,15 @@ async function skyAct() {
   const ok = await new Promise(res => { $('#sky-ok').onclick = () => dlg.close('ok'); dlg.onclose = () => res(dlg.returnValue === 'ok'); dlg.returnValue = ''; dlg.showModal(); });
   if (!ok) return;
   const w = $('#sky-text').value.trim().slice(0, 30); $('#sky-text').value = '';
-  me.emote('jump'); out.releaseLantern(me.root.position.x, me.root.position.z); net.sky(); sound.sfx('whoosh');
-  temple.camPitch = 0.55; addStat('sky'); task('sky');
+  // 燈放在角色正前方（鏡頭看過去的方向），字朝著鏡頭；鏡頭跟著燈往上看幾秒
+  const face = temple.camYaw + Math.PI; me.root.rotation.y = face; me.faceTo = null;
+  // 鏡頭退到斜後方、放低，看得到人和燈上的字（字朝著鏡頭）
+  const view = face + Math.PI + 0.95;
+  const lan = out.releaseLantern(me.root.position.x, me.root.position.z, { text: w || '金榜題名', face, view, near: true });
+  me.emote('jump'); net.sky(); sound.sfx('whoosh');
+  temple.camYawTarget = view; temple.camPitch = 0.04; temple.camDist = Math.max(temple.camDist, 6.5); const fp = lan.position; temple.focus = fp;
+  setTimeout(() => { if (temple.focus === fp) temple.focus = null; }, 12000);
+  addStat('sky'); task('sky');
   toast(w ? `天燈帶著「${esc(w)}」飛上天了。` : '天燈飛上天了，願望會被聽見。', 3200);
 }
 
@@ -1857,7 +1865,24 @@ function nextCabin() {
   for (let i = 0; i < WHEEL.n; i++) { let a = ((out.cabinAngle(i) % two) + two) % two; const w = (a < 0.08 ? 0 : two - a) / two * WHEEL.period; if (w < wait) { wait = w; best = i; } }
   return { cab: best, wait };
 }
-function seatSpot(cab, slot, v = new THREE.Vector3()) { out.cabinPos(cab, v); v.x += slot ? 0.35 : -0.35; v.y += 0.2; v.z += 0.35; return v; }
+function seatSpot(cab, slot, v = new THREE.Vector3()) { out.cabinPos(cab, v); v.x += slot ? 0.45 : -0.45; v.y += 0.2; v.z += CABIN_R - 0.6; return v; }
+// 車廂裡可以走動的範圍：圓形地板扣掉欄杆，後面是座椅
+const CAB_WALK = CABIN_R - 0.38, CAB_BACK = CABIN_R - 1.05;
+function cabWalk(dx, dz, mag, dt) {
+  if (!ride) return;
+  if (ride.seated) { ride.seated = false; ride.oz = Math.min(ride.oz, CAB_BACK); }
+  const sp = 1.5 * (0.35 + 0.65 * mag) * dt;
+  let x = ride.ox + dx * sp, z = Math.min(CAB_BACK, ride.oz + dz * sp); const r = Math.hypot(x, z);
+  if (r > CAB_WALK) { x *= CAB_WALK / r; z *= CAB_WALK / r; }
+  ride.ox = x; ride.oz = z; ride.idle = 0;
+  const want = Math.atan2(dx, dz), d = ((want - me.root.rotation.y) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+  me.root.rotation.y += d * Math.min(1, dt * 10);
+}
+function setRideView(fpv) {
+  if (!ride) return; ride.fpv = fpv; temple.fpv = fpv; me.root.visible = !fpv;
+  temple.camDist = fpv ? temple.camDist : 5; temple.camPitch = fpv ? 0.2 : 0.38;
+  $('#ride-view').textContent = fpv ? '👤 看自己' : '👁 第一人稱';
+}
 async function wheelAct() {
   if (ride) { leaveRide(); return; }
   if (!(await arrive('wheel'))) return;
@@ -1874,16 +1899,19 @@ async function wheelAct() {
   if (!mySeat || mySeat.id !== WHEEL_SEAT0 + pick.cab * 2 + pick.slot) return;
   ride = { ...pick, t0: performance.now() }; riding = true; temple.lockMove = true; document.body.classList.add('riding');
   me.kneel(false); me.sit(true); me.path = null; me.target = null; me.faceTo = null;
-  // 第一人稱看出去（自己的角色藏起來，旁邊的朋友看得到）
-  // 一開始面向廟（廟在左前方），拖曳可以轉頭看別的方向
-  const cp0 = out.cabinPos(pick.cab, new THREE.Vector3());
-  temple.fpv = true; me.root.visible = false; temple.camYaw = temple.camYawTarget = Math.atan2(cp0.x - 0, cp0.z + 6); temple.camPitch = 0.3; sound.sfx('warp');
+  // 先坐在椅子上；推搖桿（或 WASD）就站起來在車廂裡走動，走回椅子前停一下會自動坐下
+  ride.seated = true; ride.ox = pick.slot ? 0.45 : -0.45; ride.oz = CABIN_R - 0.6; ride.idle = 0;
+  temple.rideMove = cabWalk;
+  const roof = out.cabins[pick.cab].userData.roof; roof.material.opacity = 0.3; roof.material.depthWrite = false;
+  // 預設從車廂側邊看自己（看得到人、車廂和外面的風景）；可切第一人稱
+  temple.camYaw = temple.camYawTarget = Math.PI * 0.7; setRideView(false); sound.sfx('warp');
   temple.scene.fog.far = 340;
 }
 function leaveRide(msg) {
   if (!ride) return;
   const atBottom = Math.abs(Math.sin(out.cabinAngle(ride.cab) / 2)) < 0.15;
-  ride = null; riding = false; temple.lockMove = false; temple.fpv = false; me.root.visible = true; document.body.classList.remove('riding'); me.sit(false); leaveSeat();
+  const roof = out.cabins[ride.cab].userData.roof; roof.material.opacity = 1; roof.material.depthWrite = true;
+  ride = null; riding = false; temple.rideMove = null; me.rideWalk = 0; temple.lockMove = false; temple.fpv = false; me.root.visible = true; document.body.classList.remove('riding'); me.sit(false); leaveSeat();
   temple.camDist = 7; temple.camPitch = 0.3;
   temple.scene.fog.far = 230;
   // 不在最下面也可以提早下車：直接回到月台
@@ -1897,12 +1925,16 @@ function rideTick() {
   // 其他人坐在車廂裡：直接擺到座位上
   for (const [id, av] of remotes) { const s = cabinOfSeat(peerSeat.get(id) ?? -1); av.inCabin = !!s; if (s) { seatSpot(s.cab, s.slot, v); av.target = null; av.path = null; av.root.position.copy(v); av.root.rotation.y = Math.PI; av.sit(true); } else if (av.root.position.y) av.root.position.y = 0; }
   if (!ride) return;
-  seatSpot(ride.cab, ride.slot, v); me.root.position.copy(v); me.root.rotation.y = Math.PI; mySeat && (mySeat.x = v.x, mySeat.z = v.z, mySeat.near = true);
+  if (!ride.seated && (ride.idle += 1 / 60) > 1.2 && ride.oz > CAB_BACK - 0.08 && Math.abs(ride.ox) < 0.8) { ride.seated = true; ride.ox = ride.ox < 0 ? -0.45 : 0.45; ride.oz = CABIN_R - 0.6; me.sit(true); } // 走回椅子前停一下就坐下
+  if (ride.seated) { seatSpot(ride.cab, ride.slot, v); v.x += ride.ox - (ride.slot ? 0.45 : -0.45); me.root.rotation.y = Math.PI; }
+  else { out.cabinPos(ride.cab, v); v.x += ride.ox; v.y += 0.26; v.z += ride.oz; }
+  me.root.position.copy(v); mySeat && (mySeat.x = v.x, mySeat.z = v.z, mySeat.near = true);
   const el = (performance.now() - ride.t0) / 1000, left = Math.max(0, WHEEL.period - el), h = Math.max(0, v.y + 1.2);
   $('#ride-info').textContent = `🎡 高度 ${Math.round(h)} 公尺・還有 ${Math.ceil(left)} 秒`;
   if (el > WHEEL.period - 0.3) { leaveRide('🎡 繞完一圈了，歡迎再來搭！'); addXp(10); }
 }
 $('#ride-exit').onclick = () => leaveRide('提早下車了。');
+$('#ride-view').onclick = () => setRideView(!ride?.fpv);
 temple.on('tapWheel', () => { if (!state.busy) act('wheel'); });
 
 // 考試魔王：大家共用一條血，一起打；每兩小時（台灣時間 0、2、4…點）出現一隻，被打倒就消失
