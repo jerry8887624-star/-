@@ -244,6 +244,17 @@ $('#music-on').onchange = e => { sound.init(); music.setOn(e.target.checked); if
 $('#music-list').onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; sound.init(); music.setPick(b.dataset.k); if (!sound.on) toast('右上角喇叭目前是關的，打開後才聽得到。'); renderMusic(); };
 const hideMusic = () => { $('#music-pop').hidden = true; $('#music-btn').setAttribute('aria-expanded', 'false'); };
 $('#sound-btn').setAttribute('aria-pressed', sound.on);
+// iPhone：切到別的 App、鎖螢幕、來電、更新後重新整理、跳出系統視窗時，系統會把聲音暫停，而且不會自己恢復
+// → 之後只要點一下畫面（或按鍵、回到 App）就把音效和背景音樂接回來（手機規定要在點擊當下才能恢復播放）
+function wakeAudio() {
+  const c = sound.ctx;
+  if (c && c.state === 'closed') { sound.ctx = null; sound.init(); }
+  else if (c && c.state !== 'running') c.resume().catch(() => {});
+  if (sound.on && music.on && !music.muted && !music.focusing && music.el && music.el.paused && !document.body.classList.contains('lx-open')) music.play(); // 靈犀電子牆打開時是刻意暫停的
+}
+['pointerdown', 'touchend', 'keydown'].forEach(t => document.addEventListener(t, wakeAudio, { capture: true, passive: true }));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) wakeAudio(); });
+addEventListener('pageshow', wakeAudio);
 $('#sound-btn').onclick = e => { sound.init(); sound.toggle(); e.currentTarget.setAttribute('aria-pressed', sound.on); };
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close('cancel')));
 // 所有彈窗：右上角固定一個 ✕、點視窗外面也能關。
@@ -1625,7 +1636,6 @@ setOthersOffers([]);
 
 // ---------- 廟門外的樹林：金榜樹、天燈、錦鯉、尋寶、拖延怪、考試魔王 ----------
 const out = new Outside(temple);
-if (location.hash === "#debug") window.__wc = { temple, me, out, THREE }; // 測試用
 const myTree = () => outTrees.find(t => t.mine);
 let outTrees = [];
 // 沒連線時：只有自己的樹，存在這支手機
@@ -2154,4 +2164,4 @@ refresh();
 renderDm();
 initUpdates();
 requestAnimationFrame(loop);
-window.__wc = { temple, me, state, act, net, out };
+window.__wc = { temple, me, state, act, net, out, music, sound, THREE };
