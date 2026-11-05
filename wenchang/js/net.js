@@ -47,7 +47,7 @@ export class Net {
   sow() { this.send({ t: 'sow' }); }
   water(i) { this.send({ t: 'water', i }); }
   sky() { this.send({ t: 'sky' }); }
-  hit() { this.send({ t: 'hit' }); }
+  hit(d = 1) { this.send({ t: 'hit', d }); }
   // 向伺服器要一個座位（拜墊／拜位）；離線時直接當作成功
   seat(i) {
     if (!this.alive) return Promise.resolve(true);

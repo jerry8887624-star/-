@@ -17,7 +17,7 @@ const MAX_CARDS = 60;
 const MAX_BANG = 60;        // 還願紅榜最多保留幾筆
 const MAX_LAMPS = 200;      // 光明燈最多幾盞
 const LAMP_DAYS = 7;        // 光明燈亮幾天
-const GAP = { cheer: 2000, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500, offer: 10000, sow: 5000, water: 2500, sky: 8000, hit: 450 };
+const GAP = { cheer: 700, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500, offer: 10000, sow: 5000, water: 2500, sky: 8000, hit: 450 };
 const PLOT_COUNT = 48;   // 金榜樹林的樹位
 const BOSS_HP = 120;     // 考試魔王的血量（每兩小時出現一隻）
 const BOSS_EVERY = 2 * 3600e3;
@@ -47,7 +47,7 @@ function cleanLook(l) {
   l = l || {};
   return { gender: l.gender === 'm' ? 'm' : 'f', hair: int(l.hair, 0, 20), hairColor: int(l.hairColor, 0, 20),
     skin: int(l.skin, 0, 20), outfit: int(l.outfit, 0, 20), glasses: int(l.glasses, 0, 2), acc: int(l.acc, 0, 3), ttl: int(l.ttl, 0, 30), fx: int(l.fx, 0, 5),
-    head: int(l.head, 0, 10), eye: int(l.eye, 0, 10), mouth: int(l.mouth, 0, 10), cheek: int(l.cheek, 0, 5) };
+    lv: int(l.lv, 0, 99), head: int(l.head, 0, 10), eye: int(l.eye, 0, 10), mouth: int(l.mouth, 0, 10), cheek: int(l.cheek, 0, 5) };
 }
 
 export class Temple {
@@ -118,7 +118,7 @@ export class Temple {
     } else if (m.t === 'name') {
       const n = checkName(m.name); if (n.ok) p.name = n.text; this.syncRec(p);
     } else if (m.t === 'pos') {
-      p.x = num(m.x, -30, 40); p.z = num(m.z, -30, 40); p.f = num(m.f, -10, 10); p.h = m.h ? 1 : 0; p.b = m.b ? 1 : 0; p.k = m.k ? 1 : 0;
+      p.x = num(m.x, -60, 60); p.z = num(m.z, -30, 70); // 廟外樹林與摩天輪都在這個範圍內 p.f = num(m.f, -10, 10); p.h = m.h ? 1 : 0; p.b = m.b ? 1 : 0; p.k = m.k ? 1 : 0;
     } else if (m.t === 'step') {
       const s = int(m.s, 0, STEP_COUNT);
       if (s >= STEP_COUNT && p.s < STEP_COUNT) this.broadcast({ t: 'feed', from: p.id, k: 'done' });
@@ -202,7 +202,7 @@ export class Temple {
       // 打考試魔王：大家共用一條血，台灣時間每天復活
       if (!this.allow(p, 'hit')) return;
       const b = this.bossToday(); if (b.hp <= 0) return send(p, { t: 'boss', ...this.bossState() });
-      b.hp -= 1; if (p.uid && !b.hit.includes(p.uid)) b.hit.push(p.uid);
+      b.hp -= int(m.d, 1, 30); if (p.uid && !b.hit.includes(p.uid)) b.hit.push(p.uid);
       if (b.hp <= 0) {
         const ids = [...this.players.values()].filter(q => q.uid && b.hit.includes(q.uid)).map(q => q.id);
         this.broadcast({ t: 'boss', ...this.bossState(), beat: 1, hitters: ids, by: p.id });

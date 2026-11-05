@@ -3,7 +3,7 @@ import { L, Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS, TIANGONG_SEAT
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES, ACCS, HEADS, EYES, MOUTHS, CHEEKS } from './avatar.js';
 import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI, TASK_POOL, DAILY_COUNT, WEEK_GOAL, TITLES, FXS, REWARDS, FOCUS_MIN, FOCUS_SOUNDS, FOCUS_CHEERS, FEAST_DATES, FEAST_DAYS_BEFORE } from './data.js';
 import { Net } from './net.js';
-import { Outside, PLOTS, OUT_SPOTS, OUT_MARKS, TREASURE_KINDS, TREASURE_SPOTS, BOSS_AT, KOI } from './outside.js';
+import { Outside, PLOTS, OUT_SPOTS, OUT_MARKS, TREASURE_KINDS, TREASURE_SPOTS, BOSS_AT, KOI, WHEEL } from './outside.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
 import { initUpdates, showNewsOnce } from './update.js';
@@ -156,7 +156,7 @@ function renderPicker() {
     `<div class="crow" data-part="${k}"><span>${k === 'hairColor' && (look.head | 0) ? '毛色' : name}</span><button type="button" data-d="-1" aria-label="上一個${name}">◀</button><b>${fmt((look[k] | 0) % n)}</b><button type="button" data-d="1" aria-label="下一個${name}">▶</button></div>`).join('');
 }
 function setLook(l) { look = l; store.set('look', l); me.setLook(l); me.hold(state.carry.incense); net.setLook(l); renderPicker(); }
-const keepRewards = l => ({ ...l, acc: look.acc | 0, ttl: look.ttl | 0, fx: look.fx | 0, head: look.head | 0 });
+const keepRewards = l => ({ ...l, acc: look.acc | 0, ttl: look.ttl | 0, fx: look.fx | 0, head: look.head | 0, lv: look.lv | 0 });
 document.querySelectorAll('[data-gender]').forEach(b => b.onclick = () => setLook(keepRewards(randomLook(b.dataset.gender))));
 $('#pick-shuffle').onclick = () => setLook(keepRewards(randomLook(look.gender)));
 // 換頭型：人類 → 小熊 → 小貓 → 小兔 → 小狗 → 熊貓 → 外星人
@@ -246,6 +246,16 @@ const hideMusic = () => { $('#music-pop').hidden = true; $('#music-btn').setAttr
 $('#sound-btn').setAttribute('aria-pressed', sound.on);
 $('#sound-btn').onclick = e => { sound.init(); sound.toggle(); e.currentTarget.setAttribute('aria-pressed', sound.on); };
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close('cancel')));
+// 所有彈窗：右上角固定一個 ✕、點視窗外面也能關。
+// ✕ 加上 autofocus：打開時焦點會落在它身上，而不是第一個下拉選單（iPhone 會直接跳出選單）
+document.querySelectorAll('dialog').forEach(d => {
+  const x = document.createElement('button'); x.type = 'button'; x.className = 'dlg-x'; x.setAttribute('aria-label', '關閉'); x.setAttribute('autofocus', ''); x.textContent = '✕';
+  x.onclick = () => d.close('cancel'); d.prepend(x);
+  d.addEventListener('click', e => {
+    if (e.target !== d) return; const r = d.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close('cancel');
+  });
+});
 
 // 說明內容
 $('#info-steps').innerHTML = STEPS.map(s => `<li>${s.label}</li>`).join('') + '<li>考上之後，回來還願答謝</li>';
@@ -284,7 +294,7 @@ const markEls = MARKS.map(m => {
     if (cur && ids.includes(cur.id)) act(cur.id);
     else if (m.id === 'qianTube') act('qian');
     else if (m.id === 'lingxi') act('lingxi');
-    else if (['study', 'pool', 'lamp', 'photo', 'grove', 'sky', 'koi', 'boss'].includes(m.id)) act(m.id);
+    else if (['study', 'pool', 'lamp', 'photo', 'grove', 'sky', 'koi', 'boss', 'wheel'].includes(m.id)) act(m.id);
     else if (m.id === 'bang') { if (!state.busy) { state.busy = true; arrive('bang').then(ok => { if (ok) openToday('bang'); }).finally(() => { state.busy = false; }); } }
     else if (!state.busy) { const sp = m.id === 'censer' ? 'censerOut' : m.id; state.busy = true; arrive(sp).finally(() => { state.busy = false; }); }
   };
@@ -297,13 +307,13 @@ function bubble(av, text, cls = 'bubble', ms = 2600) {
 }
 const tags = new Map(); // avatar -> el
 // 名牌：稱號（外框依等級）＋暱稱；讀書中前面加 📖
-function tagFor(av, name, mine, ttl = 0, studying = false) {
+function tagFor(av, name, mine, ttl = 0, studying = false, lv = 0) {
   let el = tags.get(av);
   if (!el) { el = document.createElement('button'); el.type = 'button'; el.className = 'tag' + (mine ? ' me' : ''); labelsEl.appendChild(el); tags.set(av, el); el.onclick = () => openCheer(av); }
-  const t = TITLES[ttl | 0] || TITLES[0], key = `${name}|${ttl | 0}|${studying}`;
+  const t = TITLES[ttl | 0] || TITLES[0], key = `${name}|${ttl | 0}|${studying}|${lv | 0}`;
   if (el.dataset.k !== key) {
     el.dataset.k = key; el.dataset.tier = ttl ? t.tier : 0;
-    el.innerHTML = `${studying ? '📖 ' : ''}${mine ? '你・' : ''}${ttl ? `<span class="ttl">${esc(t.name)}</span>` : ''}${esc(name)}`;
+    el.innerHTML = `${lv > 1 ? `<span class="lv">Lv${lv | 0}</span>` : ''}${studying ? '📖 ' : ''}${mine ? '你・' : ''}${ttl ? `<span class="ttl">${esc(t.name)}</span>` : ''}${esc(name)}`;
   }
   return el;
 }
@@ -332,7 +342,7 @@ function placeLabels() {
 }
 
 // ---------- 走動 ----------
-temple.on('tapGround', p => { if (state.busy) return; hideCheer(); hideSocial(); hideMusic(); me.faceTo = null; temple.walk(me, p.x, p.z).then(ok => { if (ok) kneelIfOnCushion(); }); });
+temple.on('tapGround', p => { if (state.busy || riding) return; hideCheer(); hideSocial(); hideMusic(); me.faceTo = null; temple.walk(me, p.x, p.z).then(ok => { if (ok) kneelIfOnCushion(); }); });
 // 拜墊：點拜墊或走到拜墊上就會跪下（面向文昌帝君），可以叩拜；一走動就起身
 temple.on('tapCushion', async i => {
   if (state.busy) return; hideCheer(); hideSocial();
@@ -372,7 +382,7 @@ async function walkTo(spot) { me.faceTo = null; const ok = await temple.goSpot(m
 async function act(id) {
   if (state.busy) return;
   hideCheer();
-  const fn = id.startsWith('water') ? () => water(+id.slice(5)) : { prepare, heaven, wenchang, plant, pass, jinzhi, card, jiaobei, qian, lingxi, study, lamp: lampAct, pool: wishAct, photo: photoAct, grove: sow, sky: skyAct, koi: koiAct, boss: bossAct, hunt, forest }[id];
+  const fn = id.startsWith('water') ? () => water(+id.slice(5)) : { prepare, heaven, wenchang, plant, pass, jinzhi, card, jiaobei, qian, lingxi, study, lamp: lampAct, pool: wishAct, photo: photoAct, grove: sow, sky: skyAct, koi: koiAct, boss: bossAct, hunt, forest, wheel: wheelAct }[id];
   state.busy = true; $('#dock').setAttribute('aria-busy', 'true');
   try { await fn(); } finally { state.busy = false; $('#dock').removeAttribute('aria-busy'); refresh(); }
 }
@@ -386,7 +396,8 @@ function need(cond, msg) { if (!cond) { toast(msg, 3600); buzz([10, 60, 10]); } 
 // 向伺服器登記座位（拜墊編號 0…、天公爐拜位 500…），一位一人，兩個人不會搶到同一個
 let mySeat = null;
 async function takeSeat(id) { const ok = await net.seat(id); if (ok) mySeat = { id, x: seatPos(id).x, z: seatPos(id).z }; else temple.takenSeats.add(id); return ok; }
-const seatPos = id => id >= DESK_SEAT0 ? DESKS[id - DESK_SEAT0] : id >= TIANGONG_SEAT0 ? TIANGONG_SLOTS[id - TIANGONG_SEAT0] : CUSHIONS[id];
+// 900 起是摩天輪的座位：等車時算在月台上，搭上去以後由 rideTick 跟著車廂更新
+const seatPos = id => id >= 900 ? { x: WHEEL.x, z: WHEEL.z - 4.5 } : id >= DESK_SEAT0 ? DESKS[id - DESK_SEAT0] : id >= TIANGONG_SEAT0 ? TIANGONG_SLOTS[id - TIANGONG_SEAT0] : CUSHIONS[id];
 function leaveSeat() { if (mySeat) { net.leaveSeat(); mySeat = null; } }
 
 async function arrive(spot) {
@@ -714,6 +725,7 @@ $('#lot-save').onclick = async () => {
 };
 
 function showDone() {
+  addXp(40);
   const n = store.get('rounds', 0) + 1; store.set('rounds', n);
   $('#done-text').textContent = `七個步驟都完成了${n > 1 ? `，這是你第 ${n} 次完整參拜` : ''}。祝你考試時頭腦清楚、下筆順利，金榜題名！`;
   sound.chime(); $('#done-dlg').showModal();
@@ -827,7 +839,8 @@ const net = new Net(wsUrl, {
         // 別人用地圖傳送：距離太遠就直接出現在新位置，不要跑過整張地圖
         if (Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z) > 10) { av.path = null; av.target = null; av.root.position.set(p.x, 0, p.z); av.faceTo = p.f; }
         else if (Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z) > 0.1) { av.path = null; av.target = { x: p.x, z: p.z, face: p.f }; } else av.faceTo = p.f;
-        av.hold(!!p.h); av.kneel(!!p.k); av.sit(!!p.su); av.study = !!p.su; if (p.b && av.bowT < 0) av.bow(1);
+        peerSeat.set(p.id, p.st ?? -1);
+        av.hold(!!p.h); av.kneel(!!p.k); if (!cabinOfSeat(p.st ?? -1)) av.sit(!!p.su); av.study = !!p.su; if (p.b && av.bowT < 0) av.bow(1);
         peers.set(p.id, { s: p.s || 0, n: p.n || '' });
       }
       for (const id of [...peers.keys()]) if (!seen.has(id)) peers.delete(id);
@@ -974,6 +987,24 @@ $('#emote-list').onclick = e => {
 function openSocial() { hideCheer(); renderPeople(); $('#social').hidden = false; $('#social-btn').setAttribute('aria-expanded', 'true'); }
 function hideSocial() { $('#social').hidden = true; $('#social-btn').setAttribute('aria-expanded', 'false'); }
 $('#social-btn').onclick = () => $('#social').hidden ? openSocial() : hideSocial();
+// 一鍵打氣：名單上按「打氣」就直接送出（輪流用不同的打氣語），名單不關，可以一個接一個按；長按可以自己選句子
+const QUICK_CHEERS = [0, 1, 2, 3, 4, 5];
+let cheerIdx = 0, longPressed = false, pressT = 0;
+const cheered = new Map(); // id -> 剛送出的打氣語（按鈕上顯示 1.6 秒）
+function quickCheer(id) {
+  if (blocked.has(id)) return;
+  const i = QUICK_CHEERS[cheerIdx++ % QUICK_CHEERS.length];
+  net.cheer(id, i); task('cheer'); buzz(10); bubble(me, CHEERS[i], 'bubble', 1600);
+  cheered.set(id, CHEERS[i]); renderPeople();
+  setTimeout(() => { cheered.delete(id); renderPeople(); }, 1600);
+}
+$('#people-list').addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-cheer]'); if (!b) return; longPressed = false; clearTimeout(pressT);
+  pressT = setTimeout(() => { longPressed = true; buzz(15); openCheerFor(+b.dataset.cheer); }, 520);
+});
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('#people-list').addEventListener(ev, () => clearTimeout(pressT)));
+$('#people-list').addEventListener('contextmenu', e => { if (e.target.closest('[data-cheer]')) e.preventDefault(); });
+
 function renderPeople() {
   const bl = [...blocked];
   $('#blocked-wrap').hidden = !bl.length;
@@ -984,7 +1015,7 @@ function renderPeople() {
   const ids = [...peers.keys()].filter(id => id !== myId).sort((a, b) => a - b);
   $('#people-title').textContent = `在廟裡的考生（${ids.length + (online ? 1 : 0)} 人，含你）`;
   $('#people-empty').hidden = ids.length > 0;
-  const html = ids.map(id => { const s = peers.get(id).s; return `<li><span><b>${esc(who(id))}</b><small>${peers.get(id).n ? `#${id}・` : ''}${s >= STEPS.length ? '已完成參拜 ✓' : s ? `參拜中・${s}/${STEPS.length}` : '剛進廟'}</small></span><span class="acts">${blocked.has(id) ? '' : `<button type="button" data-cheer="${id}">打氣</button>`}${blocked.has(id) ? `<button type="button" data-unblock-p="${id}">解除封鎖</button>` : `<button type="button" class="alt" data-whisper="${id}">密語</button>`}</span></li>`; }).join('');
+  const html = ids.map(id => { const s = peers.get(id).s; return `<li><span><b>${esc(who(id))}</b><small>${peers.get(id).n ? `#${id}・` : ''}${s >= STEPS.length ? '已完成參拜 ✓' : s ? `參拜中・${s}/${STEPS.length}` : '剛進廟'}</small></span><span class="acts">${blocked.has(id) ? '' : `<button type="button" data-cheer="${id}" class="${cheered.has(id) ? 'sent' : ''}">${cheered.has(id) ? `✓ ${esc(cheered.get(id))}` : '打氣'}</button>`}${blocked.has(id) ? `<button type="button" data-unblock-p="${id}">解除封鎖</button>` : `<button type="button" class="alt" data-whisper="${id}">密語</button>`}</span></li>`; }).join('');
   if ($('#people-list').innerHTML !== html) $('#people-list').innerHTML = html;
   const btn = $('#social-btn'); let dot = btn.querySelector('.dot');
   if (online && ids.length) { if (!dot) { dot = document.createElement('b'); dot.className = 'dot'; btn.appendChild(dot); } dot.textContent = ids.length; } else dot?.remove();
@@ -998,7 +1029,7 @@ $('#my-nick-save').onclick = () => {
 };
 $('#blocked-list').onclick = e => { const b = e.target.closest('[data-unblock]'); if (b) unblockUser(+b.dataset.unblock); };
 $('#people-list').onclick = e => {
-  const b = e.target.closest('[data-cheer]'); if (b) openCheerFor(+b.dataset.cheer);
+  const b = e.target.closest('[data-cheer]'); if (b) { if (longPressed) { longPressed = false; return; } quickCheer(+b.dataset.cheer); }
   const w = e.target.closest('[data-whisper]'); if (w) openDm(+w.dataset.whisper, true);
   const u = e.target.closest('[data-unblock-p]'); if (u) unblockUser(+u.dataset.unblockP);
 };
@@ -1046,7 +1077,7 @@ function task(id, n = 1) {
   if (!def || daily.t[id]) return;
   if (def.need) { daily.c ||= {}; const v = daily.c[id] = (daily.c[id] ?? (id === 'bless' ? daily.bless || 0 : 0)) + n; if (v < def.need) { saveDaily(); renderToday(); return; } }
   daily.t[id] = 1; saveDaily();
-  const left = tasksLeft(); sound.chime(); buzz(20);
+  const left = tasksLeft(); sound.chime(); buzz(20); addXp(5);
   celebrate({ title: `任務完成：${def.name}`, sub: left ? `今日任務 ${list.length - left} / ${list.length}，還有 ${left} 項` : '今天的任務全部完成！', done: list.length - left, total: list.length });
   if (!left) dayDone();
   renderToday(); const chip = $('#task-chip'); chip.classList.remove('pop'); void chip.offsetWidth; chip.classList.add('pop');
@@ -1080,7 +1111,7 @@ function dayDone() {
   if (stats.wk !== weekKey()) { stats.wk = weekKey(); stats.wd = 0; }
   stats.wd = (stats.wd || 0) + 1; if (stats.wd === WEEK_GOAL) stats.weeks = (stats.weeks || 0) + 1; store.set('stats', stats);
   if (feast().on && !store.get('accFest', false)) store.set('accFest', true);
-  const fresh = checkUnlocks(false);
+  const fresh = checkUnlocks(false); addXp(30);
   celebrate({ big: true, confetti: true, title: '🎉 今日任務全部完成！', sub: `累積 ${days} 天${streak > 1 ? `・連續 ${streak} 天` : ''}。明天還有新任務！`, rewards: fresh });
 }
 
@@ -1166,10 +1197,18 @@ function bangDone(e) {
 temple.on('tapBang', () => openToday('bang'));
 
 // 今日面板
+// 今日面板分成四頁：任務、獎勵、倒數、紅榜（不用一直往下滑）
+let todayTab = 'tasks';
+function setTodayTab(t) {
+  todayTab = t;
+  document.querySelectorAll('#today-tabs [data-t]').forEach(b => b.setAttribute('aria-selected', b.dataset.t === t));
+  document.querySelectorAll('#today-dlg [data-tab]').forEach(sec => sec.classList.toggle('off', sec.dataset.tab !== t));
+  $('#today-dlg').scrollTop = 0;
+}
+$('#today-tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) setTodayTab(b.dataset.t); };
 function openToday(part) {
-  renderToday(); const d = $('#today-dlg'); d.showModal();
-  const box = { bang: '#bang-box', reward: '#reward-box', tasks: '#task-list' }[part];
-  if (box) setTimeout(() => $(box).scrollIntoView({ block: 'start' }), 60); else d.scrollTop = 0;
+  renderToday(); setTodayTab({ bang: 'bang', reward: 'reward', tasks: 'tasks', exam: 'exam' }[part] || 'tasks');
+  $('#today-dlg').showModal();
 }
 $('#today-btn').onclick = () => openToday();
 // 任務清單（今日面板、左上小卡、每日第一次的清單共用）
@@ -1338,7 +1377,7 @@ function stopFocus(done) {
   const mins = done ? focusMin : Math.floor((Date.now() - focusStart) / MIN_MS);
   focusEnd = 0; net.study(0, mins); addFocusMinutes(mins); stopFocusSound(); closeFocusScreen();
   if (studyAt != null) showStudy();
-  if (done) { sound.bell(); buzz([30, 80, 30]); addStat('study'); toast(`專注 ${focusMin} 分鐘完成！休息一下再繼續。`, 4000); task('study'); }
+  if (done) { sound.bell(); buzz([30, 80, 30]); addStat('study'); addXp(15); toast(`專注 ${focusMin} 分鐘完成！休息一下再繼續。`, 4000); task('study'); }
 }
 $('#study-stop').onclick = () => { stopFocus(false); toast('這輪專注提早結束了。'); };
 $('#study-back').onclick = () => openFocusScreen();
@@ -1653,7 +1692,7 @@ function pickTreasure(o) {
   const p = me.root.position; if (Math.hypot(p.x - o.x, p.z - o.z) > 2.2) { toast(`走近一點才撿得到${o.name}。`); return; }
   out.pickTreasure(o); sound.sfx('sparkle'); buzz(15); bubble(me, `✨ ${o.name}`, 'bubble', 1800);
   const g = store.get('treasure', { d: '', got: [] }); if (g.d !== today()) { g.d = today(); g.got = []; }
-  g.got.push(o.k); store.set('treasure', g); task('treasure');
+  g.got.push(o.k); store.set('treasure', g); task('treasure'); addXp(5);
   if (g.got.length === TREASURE_KINDS.length) { addStat('treasure'); celebrate({ big: true, confetti: true, title: '✨ 文房五寶找齊了！', sub: '筆、墨、紙、硯、書卷都到手，明天寶物會藏到新的地方。' }); }
   else toast(`撿到${o.name}！今天還有 ${TREASURE_KINDS.length - g.got.length} 樣寶物藏在附近。`, 2600);
 }
@@ -1664,79 +1703,262 @@ async function hunt() {
   toast(`往發光的地方走：附近有一個${o.name}。`, 2400); me.faceTo = null; await temple.walk(me, o.x, o.z + 0.8);
 }
 
-// 拖延怪：點牠或靠近按按鈕，丟毛筆把牠打跑
-let throwing = false;
-async function hitMonster(m) {
-  if (!m?.alive || throwing) return;
-  const p = me.root.position, gp = m.g.position, d = Math.hypot(gp.x - p.x, gp.z - p.z);
-  if (d > 7) { me.faceTo = null; const k = (d - 5) / d; await temple.walk(me, p.x + (gp.x - p.x) * k, p.z + (gp.z - p.z) * k); if (!m.alive) return; }
-  throwing = true; me.faceTo = Math.atan2(gp.x - p.x, gp.z - p.z); me.emote('wave'); bubble(me, '✏️', 'bubble', 900);
-  // 鏡頭轉到斜後方，角色才不會擋住怪物和爆炸
-  temple.frame(me.faceTo, 0.42); if (temple.camDist < 6) temple.camDist = 7; temple.camPitch = Math.max(temple.camPitch, 0.3);
-  out.throwBrush(p, { x: gp.x, y: 0.5, z: gp.z }, () => {
-    throwing = false; if (!m.alive) return;
-    const down = out.damage(m); sound.sfx('hit');
-    if (!down) { temple.shake(0.08, 0.18); hitFlash(true); buzz(12); return; }
-    // 打倒：鼓起來 → 「啵！」 → 金光飛進身體
-    out.defeatMonster(m, () => me.root.position); buzz([20, 40, 30]);
-    setTimeout(() => { temple.shake(0.22, 0.35); hitFlash(); }, 380);
-    setTimeout(() => sound.sfx('pop'), 380);
-    out.onAbsorb = () => { sound.sfx('sparkle'); bubble(me, '✨', 'bubble', 1000); };
-    addStat('monster'); task('monster');
+// ---------- 戰鬥：等級、攻擊鍵、技能、考試魔王 ----------
+let riding = false; // 搭摩天輪中（不能打怪、魔王不會丟考卷）
+// 等級：打怪、做任務、參拜都有經驗值；每 5 級攻擊力 +1（Lv1 打 1、Lv5 打 2、Lv10 打 3…）
+const xpNeed = lv => 40 + lv * 20;              // 從 lv 升到 lv+1 要多少經驗
+function levelOf(xp) { let lv = 1; while (xp >= xpNeed(lv)) { xp -= xpNeed(lv); lv++; } return { lv, cur: xp, need: xpNeed(lv) }; }
+let myXp = store.get('xp', 0);
+const myLv = () => levelOf(myXp).lv;
+const atkPower = () => 1 + Math.floor(myLv() / 5);
+const SKILLS = [
+  { k: 'ink', name: '墨汁潑灑', icon: '🖋️', lv: 3, cd: 8000, desc: '身邊的怪都會中' },
+  { k: 'beam', name: '文昌光束', icon: '✨', lv: 6, cd: 12000, desc: '一道金光打單一目標，傷害三倍' },
+  { k: 'ult', name: '金榜題名', icon: '🏆', lv: 10, cd: 45000, desc: '大招：整片樹林的怪和魔王都會中' },
+];
+const skillReady = {}; // k -> 冷卻結束的時間
+function addXp(n, why) {
+  const before = myLv(); myXp += n; store.set('xp', myXp);
+  const lv = myLv(); renderCombat();
+  if (lv > before) levelUp(lv);
+}
+function levelUp(lv) {
+  sound.bell(); sound.sfx('sparkle'); buzz([30, 50, 30]); temple.shake(0.12, 0.3);
+  // 金色光柱從天而降、落在自己身上
+  out.goldRain([me.root.position.clone()]);
+  setLook({ ...look, lv });
+  const sk = SKILLS.find(s => s.lv === lv);
+  celebrate({ big: true, confetti: true, title: `⬆️ 升級！Lv.${lv}`, sub: sk ? `學會新技能「${sk.icon} ${sk.name}」：${sk.desc}。` : `攻擊力 ${atkPower()}${lv % 5 === 0 ? '（變強了！）' : ''}。繼續打怪、做任務升級吧！` });
+}
+// 舊玩家：名牌上的等級跟存檔對齊
+if ((look.lv | 0) !== myLv()) { look = { ...look, lv: myLv() }; store.set('look', look); me.setLook(look); }
+
+// 找目標：攻擊範圍內最近的拖延怪或魔王
+const BOSS_RANGE = 11, MON_RANGE = 8;
+function bossTarget() { const b = out.boss; return out.bossHp > 0 && b.visible ? b.position : null; }
+function findTarget(p = me.root.position) {
+  const m = out.nearestMonster(p.x, p.z, MON_RANGE), bp = bossTarget();
+  const bd = bp ? Math.hypot(bp.x - p.x, bp.z - p.z) : 99, md = m ? Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) : 99;
+  if (bp && bd < BOSS_RANGE && bd <= md + 1) return { boss: true, pos: bp };
+  if (m) return { m, pos: m.g.position };
+  return null;
+}
+// 一次傷害：15% 機率爆擊（兩倍半）
+function rollDmg(mult = 1) { const crit = Math.random() < 0.15; return { d: Math.ceil(atkPower() * mult * (crit ? 2.5 : 1)), crit }; }
+function hurtMonster(m, d, crit) {
+  if (!m?.alive) return;
+  const gp = m.g.position; out.dmgText({ x: gp.x, y: 1.5, z: gp.z }, crit ? `爆擊！-${d}` : `-${d}`, crit);
+  const down = out.damage(m, d); sound.sfx('hit');
+  if (!down) { temple.shake(crit ? 0.14 : 0.08, 0.18); hitFlash(true); buzz(12); return; }
+  out.defeatMonster(m, () => me.root.position); buzz([20, 40, 30]);
+  setTimeout(() => { temple.shake(0.22, 0.35); hitFlash(); sound.sfx('pop'); }, 380);
+  out.onAbsorb = () => { sound.sfx('sparkle'); bubble(me, '✨', 'bubble', 1000); };
+  addStat('monster'); task('monster'); addXp(8 + m.max * 2);
+}
+function hurtBoss(d, crit) {
+  if (out.bossHp <= 0) return;
+  const bp = out.boss.position; out.dmgText({ x: bp.x, y: 3.2, z: bp.z }, crit ? `爆擊！-${d}` : `-${d}`, crit);
+  out.hitBoss(); sound.sfx('hit'); buzz(10); temple.shake(crit ? 0.16 : 0.1, 0.2); hitFlash(true);
+  const bb = $('#boss-bar'); bb.classList.remove('hit'); void bb.offsetWidth; bb.classList.add('hit');
+  store.set('bossHit', today()); bossHitToday = true; addXp(1);
+  if (!net.alive) { const b = localBoss(); b.hp = Math.max(0, b.hp - d); store.set('bossLocal', b); out.setBoss(b.hp, 30, nextBoss()); if (!b.hp) bossBeat(); return; }
+  net.hit(d);
+}
+// 普通攻擊：丟毛筆（可以一直按）
+let throwing = false, stunnedUntil = 0;
+const stunned = () => performance.now() < stunnedUntil;
+function attack(target = findTarget()) {
+  if (!target) { toast('附近沒有怪物。拖延怪在廟外的樹林裡，考試魔王在樹林最裡面。', 2600); return; }
+  if (stunned()) { toast('💫 還在暈…等一下再攻擊'); return; }
+  if (throwing) return; throwing = true;
+  const p = me.root.position, gp = target.pos; me.faceTo = Math.atan2(gp.x - p.x, gp.z - p.z); me.emote('wave');
+  temple.frame(me.faceTo, 0.42); if (temple.camDist < 6.5) temple.camDist = target.boss ? 8.5 : 7; temple.camPitch = Math.max(temple.camPitch, 0.3);
+  const { d, crit } = rollDmg();
+  out.throwBrush(p, { x: gp.x, y: target.boss ? 1.6 : 0.5, z: gp.z }, () => {
+    throwing = false;
+    if (target.boss) hurtBoss(d, crit); else hurtMonster(target.m, d, crit);
   });
 }
-temple.on('tapMonster', m => { if (!state.busy) hitMonster(m); });
+// 技能
+function useSkill(k) {
+  const sk = SKILLS.find(s => s.k === k), now = performance.now();
+  if (myLv() < sk.lv) { toast(`🔒 「${sk.name}」Lv.${sk.lv} 解鎖。現在 Lv.${myLv()}，打怪和做任務可以升級。`, 3000); return; }
+  if (now < (skillReady[k] || 0)) return;
+  if (stunned()) { toast('💫 還在暈…等一下再用技能'); return; }
+  const p = me.root.position, power = atkPower();
+  if (k === 'ink') {
+    const hits = out.monsters.filter(m => m.alive && Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) < 5.5), bp = bossTarget();
+    if (!hits.length && !(bp && Math.hypot(bp.x - p.x, bp.z - p.z) < 6.5)) { toast('墨汁潑灑：要靠近怪物才打得到（5 公尺內）。'); return; }
+    out.inkSplash(p, 5.5); sound.sfx('splash'); sound.sfx('pop'); me.emote('jump');
+    setTimeout(() => { hits.forEach(m => { const r = rollDmg(1.5); hurtMonster(m, r.d, r.crit); }); if (bp && Math.hypot(bp.x - p.x, bp.z - p.z) < 6.5) { const r = rollDmg(1.5); hurtBoss(r.d, r.crit); } }, 250);
+  }
+  if (k === 'beam') {
+    const t = findTarget(); if (!t) { toast('文昌光束：附近沒有目標。'); return; }
+    me.faceTo = Math.atan2(t.pos.x - p.x, t.pos.z - p.z); out.beam(p, { x: t.pos.x, y: t.boss ? 1.6 : 0.6, z: t.pos.z }); sound.sfx('warp'); sound.sfx('sparkle');
+    const r = rollDmg(3); setTimeout(() => { if (t.boss) hurtBoss(r.d, r.crit); else hurtMonster(t.m, r.d, r.crit); }, 200);
+  }
+  if (k === 'ult') {
+    const ms = out.monsters.filter(m => m.alive), bp = bossTarget(), pts = ms.map(m => m.g.position.clone());
+    if (bp && Math.hypot(bp.x - p.x, bp.z - p.z) < 30) pts.push(bp.clone());
+    if (!pts.length) { toast('金榜題名：附近沒有怪物。'); return; }
+    out.goldRain(pts); sound.bell(); sound.sfx('whoosh'); hitFlash(); temple.shake(0.3, 0.6); me.emote('jump');
+    bubble(me, '🏆 金榜題名！', 'result-chip', 1800);
+    setTimeout(() => { ms.forEach(m => { const r = rollDmg(4); hurtMonster(m, r.d, r.crit); }); if (bp && Math.hypot(bp.x - p.x, bp.z - p.z) < 30) { const r = rollDmg(5); hurtBoss(r.d, r.crit); } }, 700);
+  }
+  skillReady[k] = now + sk.cd; buzz(20);
+}
+temple.on('tapMonster', m => { if (!state.busy && m?.alive) attack({ m, pos: m.g.position }); });
 // 前往打怪：走到離你最近的拖延怪旁邊
 async function forest() {
-  const p = me.root.position, m = out.nearestMonster(p.x, p.z) ;
-  toast('拖延怪在廟外的樹林裡晃來晃去，點牠或按下方按鈕丟毛筆！', 3000); me.faceTo = null;
+  const p = me.root.position, m = out.nearestMonster(p.x, p.z);
+  toast('拖延怪在廟外的樹林裡晃來晃去，靠近了按右下角「攻擊」！', 3000); me.faceTo = null;
   if (!m) { await temple.walk(me, OUT_SPOTS.forest.x, OUT_SPOTS.forest.z); return; }
   const gp = m.g.position, d = Math.hypot(gp.x - p.x, gp.z - p.z), k = Math.max(0, (d - 4) / d);
   await temple.walk(me, p.x + (gp.x - p.x) * k, p.z + (gp.z - p.z) * k);
 }
+
+// 攻擊鍵與技能鍵：附近有怪物時出現在右下角
+$('#skill-btns').innerHTML = SKILLS.map(s => `<button type="button" class="skill" data-sk="${s.k}" aria-label="${s.name}"><i aria-hidden="true">${s.icon}</i><small>${s.name}</small><b class="cd"></b><em class="lock">Lv${s.lv}</em></button>`).join('');
+$('#skill-btns').onclick = e => { const b = e.target.closest('[data-sk]'); if (b) useSkill(b.dataset.sk); };
+$('#atk-btn').onclick = () => attack();
+function renderCombat() {
+  const L2 = levelOf(myXp);
+  $('#lv-badge').textContent = `Lv.${L2.lv}`; $('#lv-bar').style.width = `${L2.cur / L2.need * 100}%`;
+  $('#atk-power').textContent = `攻擊 ${atkPower()}`;
+}
+function combatTick() {
+  const p = me.root.position, blocked = state.busy || studyAt != null || !!document.querySelector('dialog[open]') || document.body.classList.contains('photo-mode') || riding;
+  const show = !blocked && p.z > L.GZ - 2 && !!findTarget(p);
+  const c = $('#combat'); if (c.hidden === show) c.hidden = !show;
+  document.body.classList.toggle('fighting', show);
+  if (!show) return;
+  const now = performance.now(), lv = myLv();
+  document.querySelectorAll('#skill-btns [data-sk]').forEach(b => {
+    const sk = SKILLS.find(s => s.k === b.dataset.sk), left = Math.max(0, (skillReady[sk.k] || 0) - now), locked = lv < sk.lv;
+    b.classList.toggle('locked', locked); b.classList.toggle('cooling', left > 0);
+    b.style.setProperty('--cd', `${left / sk.cd * 360}deg`); b.querySelector('.cd').textContent = left > 0 ? Math.ceil(left / 1000) : '';
+  });
+  $('#atk-btn').classList.toggle('stun', stunned());
+}
+renderCombat();
+
+// ---------- 🎡 摩天輪：兩人一格，轉一圈 2 分鐘，可以看到整座廟、山頭和遠方 ----------
+// 座位編號 900 起：車廂 i 的兩個座位是 900+i*2、900+i*2+1（伺服器登記，一位一人）
+const WHEEL_SEAT0 = 900;
+let ride = null; // { cab, slot, t0 }
+const cabinOfSeat = st => st >= WHEEL_SEAT0 && st < WHEEL_SEAT0 + WHEEL.n * 2 ? { cab: Math.floor((st - WHEEL_SEAT0) / 2), slot: (st - WHEEL_SEAT0) % 2 } : null;
+// 下一個到站（最下面）的車廂，和還要等幾秒
+function nextCabin() {
+  const two = Math.PI * 2, step = two / WHEEL.n; let best = 0, wait = 1e9;
+  for (let i = 0; i < WHEEL.n; i++) { let a = ((out.cabinAngle(i) % two) + two) % two; const w = (a < 0.08 ? 0 : two - a) / two * WHEEL.period; if (w < wait) { wait = w; best = i; } }
+  return { cab: best, wait };
+}
+function seatSpot(cab, slot, v = new THREE.Vector3()) { out.cabinPos(cab, v); v.x += slot ? 0.35 : -0.35; v.y += 0.2; v.z += 0.35; return v; }
+async function wheelAct() {
+  if (ride) { leaveRide(); return; }
+  if (!(await arrive('wheel'))) return;
+  // 先找兩個人都還沒坐滿、最快到站的車廂（朋友一起按就會坐同一格）
+  let pick = null;
+  for (let k = 0; k < WHEEL.n && !pick; k++) {
+    const { cab, wait } = nextCabin(), c = (cab + k) % WHEEL.n, w = wait + k * WHEEL.period / WHEEL.n;
+    for (const slot of [0, 1]) { const id = WHEEL_SEAT0 + c * 2 + slot; if (temple.takenSeats.has(id)) continue; if (await takeSeat(id)) { pick = { cab: c, slot, wait: w }; break; } }
+  }
+  if (!pick) { toast('摩天輪坐滿了，等一下再來。'); return; }
+  const mate = [...remotes].find(([id]) => { const s = cabinOfSeat(peerSeat.get(id) ?? -1); return s && s.cab === pick.cab; });
+  toast(`🎡 ${pick.wait > 1 ? `第 ${pick.cab + 1} 號車廂 ${Math.ceil(pick.wait)} 秒後到站，等一下喔` : '車廂到站了，上車！'}${mate ? `（和 ${esc(who(mate[0]))} 同一格）` : ''}`, Math.max(2500, pick.wait * 1000));
+  await wait(Math.max(0, pick.wait * 1000));
+  if (!mySeat || mySeat.id !== WHEEL_SEAT0 + pick.cab * 2 + pick.slot) return;
+  ride = { ...pick, t0: performance.now() }; riding = true; temple.lockMove = true; document.body.classList.add('riding');
+  me.kneel(false); me.sit(true); me.path = null; me.target = null; me.faceTo = null;
+  // 第一人稱看出去（自己的角色藏起來，旁邊的朋友看得到）
+  // 一開始面向廟（廟在左前方），拖曳可以轉頭看別的方向
+  const cp0 = out.cabinPos(pick.cab, new THREE.Vector3());
+  temple.fpv = true; me.root.visible = false; temple.camYaw = temple.camYawTarget = Math.atan2(cp0.x - 0, cp0.z + 6); temple.camPitch = 0.3; sound.sfx('warp');
+  temple.scene.fog.far = 340;
+}
+function leaveRide(msg) {
+  if (!ride) return;
+  const atBottom = Math.abs(Math.sin(out.cabinAngle(ride.cab) / 2)) < 0.15;
+  ride = null; riding = false; temple.lockMove = false; temple.fpv = false; me.root.visible = true; document.body.classList.remove('riding'); me.sit(false); leaveSeat();
+  temple.camDist = 7; temple.camPitch = 0.3;
+  temple.scene.fog.far = 230;
+  // 不在最下面也可以提早下車：直接回到月台
+  const p = temple.freeSpot(SPOTS.wheel.x, SPOTS.wheel.z, 0); me.root.position.set(p.x, 0, p.z); me.root.rotation.y = Math.PI; temple.snapCam();
+  if (!atBottom) out.poof(new THREE.Vector3(p.x, 0.6, p.z), '#ffd76a');
+  if (msg) toast(msg, 3000);
+}
+const peerSeat = new Map(); // id -> 座位編號（用來擺摩天輪上的其他人）
+function rideTick() {
+  const v = new THREE.Vector3();
+  // 其他人坐在車廂裡：直接擺到座位上
+  for (const [id, av] of remotes) { const s = cabinOfSeat(peerSeat.get(id) ?? -1); av.inCabin = !!s; if (s) { seatSpot(s.cab, s.slot, v); av.target = null; av.path = null; av.root.position.copy(v); av.root.rotation.y = Math.PI; av.sit(true); } else if (av.root.position.y) av.root.position.y = 0; }
+  if (!ride) return;
+  seatSpot(ride.cab, ride.slot, v); me.root.position.copy(v); me.root.rotation.y = Math.PI; mySeat && (mySeat.x = v.x, mySeat.z = v.z, mySeat.near = true);
+  const el = (performance.now() - ride.t0) / 1000, left = Math.max(0, WHEEL.period - el), h = Math.max(0, v.y + 1.2);
+  $('#ride-info').textContent = `🎡 高度 ${Math.round(h)} 公尺・還有 ${Math.ceil(left)} 秒`;
+  if (el > WHEEL.period - 0.3) { leaveRide('🎡 繞完一圈了，歡迎再來搭！'); addXp(10); }
+}
+$('#ride-exit').onclick = () => leaveRide('提早下車了。');
+temple.on('tapWheel', () => { if (!state.busy) act('wheel'); });
 
 // 考試魔王：大家共用一條血，一起打；每兩小時（台灣時間 0、2、4…點）出現一隻，被打倒就消失
 const BOSS_EVERY = 2 * 3600e3;
 const bossSlot = () => Math.floor((Date.now() + 8 * 3600e3) / BOSS_EVERY);
 const nextBoss = () => (bossSlot() + 1) * BOSS_EVERY - 8 * 3600e3;
 const hhmm = t => { const d = new Date(t || nextBoss()); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-let bossHp = 200, bossMax = 200, bossHitToday = store.get('bossHit', '') === today();
+let bossHitToday = store.get('bossHit', '') === today();
 function localBoss() { const b = store.get('bossLocal', { d: '', hp: 30 }); if (b.d !== String(bossSlot())) { b.d = String(bossSlot()); b.hp = 30; } return b; }
 if (!net.alive) { const b = localBoss(); out.setBoss(b.hp, 30, nextBoss()); }
 // 沒連線時，自己檢查是不是該換下一隻
 setInterval(() => { if (net.alive) return; const b = localBoss(); if (b.hp > 0 && out.bossHp <= 0) feed('👹 考試魔王出現了！到樹林最裡面一起打'); out.setBoss(b.hp, 30, nextBoss()); }, 30000);
+// 魔王面向最近的玩家（自己或其他考生）
+out.nearestPlayer = (x, z) => { let best = me.root.position, bd = Math.hypot(best.x - x, best.z - z); for (const av of remotes.values()) { const q = av.root.position, d = Math.hypot(q.x - x, q.z - z); if (d < bd) { bd = d; best = q; } } return bd < 20 ? best : null; };
 async function bossAct() {
-  const p = me.root.position, d = Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z);
   if (out.bossHp <= 0) { toast(`這隻考試魔王已經被打倒了，下一隻 ${hhmm(out.bossNext)} 出現！`); return; }
-  if (d > 8 && !(await arrive('boss'))) return;
-  if (throwing) return; throwing = true;
-  me.faceTo = Math.atan2(BOSS_AT.x - p.x, BOSS_AT.z - p.z); me.emote('wave'); temple.frame(me.faceTo, 0.6); if (temple.camDist < 7) temple.camDist = 8;
-  out.throwBrush(p, { x: BOSS_AT.x, y: 1.4, z: BOSS_AT.z }, () => {
-    throwing = false; out.hitBoss(); sound.sfx('hit'); buzz(10); temple.shake(0.1, 0.2); hitFlash(true);
-    const bb = $('#boss-bar'); bb.classList.remove('hit'); void bb.offsetWidth; bb.classList.add('hit');
-    store.set('bossHit', today()); bossHitToday = true;
-    if (!net.alive) { const b = localBoss(); b.hp = Math.max(0, b.hp - 1); store.set('bossLocal', b); out.setBoss(b.hp, 30, nextBoss()); if (!b.hp) bossBeat(); return; }
-    net.hit();
-  });
+  const p = me.root.position, bp = out.boss.position;
+  if (Math.hypot(p.x - bp.x, p.z - bp.z) > BOSS_RANGE - 2 && !(await arrive('boss'))) return;
+  attack({ boss: true, pos: out.boss.position });
 }
 function bossBeat() {
-  addStat('boss'); sound.bell(); me.emote('jump'); setTimeout(() => sound.sfx('pop'), 500);
+  addStat('boss'); addXp(40); sound.bell(); me.emote('jump'); setTimeout(() => sound.sfx('pop'), 500);
   temple.shake(0.35, 0.6); hitFlash(); buzz([40, 60, 40, 60, 80]);
   // 等魔王炸開、消失以後再跳出慶祝，才看得到爆炸
-  setTimeout(() => celebrate({ big: true, confetti: true, title: '⚔️ 打倒考試魔王了！', sub: `大家一起把考試魔王打跑了！考試那天也會這麼順利。下一隻 ${hhmm(out.bossNext)} 出現。` }), 1500);
+  setTimeout(() => celebrate({ big: true, confetti: true, title: '⚔️ 打倒考試魔王了！', sub: `大家一起把考試魔王打跑了！經驗值 +40。下一隻 ${hhmm(out.bossNext)} 出現。` }), 1500);
 }
+// 魔王反擊：靠近時每隔幾秒丟一張考卷（狂暴時更頻繁）；地上紅圈是落點，沒閃開會暈 2 秒
+let bossAtkT = 0, lastSummon = 1;
+setInterval(() => {
+  if (out.bossHp <= 0 || !out.boss.visible || riding || studyAt != null) return;
+  const p = me.root.position, bp = out.boss.position;
+  if (Math.hypot(p.x - bp.x, p.z - bp.z) > 13) return;
+  // 召喚：血量掉到 75%、50%、25% 時叫出兩隻拖延怪
+  const ratio = out.bossHp / (out.bossMax || 1), step = ratio < 0.25 ? 0.25 : ratio < 0.5 ? 0.5 : ratio < 0.75 ? 0.75 : 1;
+  if (step < lastSummon) { lastSummon = step; out.say({ g: out.boss }, '小的們，上！', 3.4, 1500); [-1, 1].forEach(s => out.spawnMonsterAt(bp.x + s * 2.5, bp.z - 2)); sound.sfx('growl'); }
+  if (step === 1) lastSummon = 1;
+  bossAtkT -= 0.5; if (bossAtkT > 0) return;
+  bossAtkT = out.rage ? 3 + Math.random() * 1.5 : 5 + Math.random() * 2.5;
+  const target = { x: p.x, z: p.z };
+  out.bossThrow(target, at => {
+    const q = me.root.position;
+    if (Math.hypot(q.x - at.x, q.z - at.z) > 1.3) return;
+    stunnedUntil = performance.now() + 2000; sound.sfx('hit'); buzz([40, 30, 40]); temple.shake(0.25, 0.4); hitFlash();
+    bubble(me, '💫 被考卷嚇到了！', 'bubble', 2000); toast('💫 被考卷砸到，暈了 2 秒！看到地上紅圈要快點走開。', 2600);
+  });
+}, 500);
 temple.on('tapBoss', () => { if (!state.busy) act('boss'); });
 temple.on('tapSky', () => { if (!state.busy) act('sky'); });
 // 畫面邊緣閃一下金光（small：打中但還沒倒）
 function hitFlash(small) { const f = $('#hit-flash'); f.classList.toggle('small', !!small); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); }
-// 靠近考試魔王時，畫面上方出現大血條
+// 魔王大血條：靠近時固定在畫面上方；分段格線、扣血時白色殘影慢慢追上；狂暴時變紅閃爍
 function bossBarTick() {
-  const p = me.root.position, near = Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z) < 10 && out.bossHp > 0 && !document.body.classList.contains('photo-mode'), bar = $('#boss-bar');
+  const p = me.root.position, bp = out.boss.position, near = Math.hypot(p.x - bp.x, p.z - bp.z) < 16 && out.bossHp > 0 && out.boss.visible && !document.body.classList.contains('photo-mode') && !riding, bar = $('#boss-bar');
   if (bar.hidden !== !near) bar.hidden = !near;
   if (!near) return;
-  const max = net.alive ? out.bossMax || 200 : 30, hp = Math.max(0, out.bossHp);
-  $('#bb-fill').style.width = `${hp / max * 100}%`; $('#bb-num').textContent = hp > 0 ? `${hp} / ${max}` : '被打倒了';
-  $('#bb-note').textContent = net.alive ? '廟裡的人一起打・每兩小時出現一隻' : '每兩小時出現一隻';
+  const max = out.bossMax || 30, hp = Math.max(0, out.bossHp), w = `${hp / max * 100}%`;
+  if ($('#bb-fill').style.width !== w) { $('#bb-fill').style.width = w; $('#bb-lag').style.width = w; }
+  $('#bb-num').textContent = `${hp} / ${max}`;
+  bar.classList.toggle('rage', out.rage);
+  $('#bb-note').textContent = out.rage ? '🔥 狂暴中！快打倒牠！' : (net.alive ? '廟裡的人一起打・每兩小時出現一隻' : '每兩小時出現一隻');
 }
 
 // 廟外的「走近就出現按鈕」：寶物 > 種樹 > 澆水 > 魔王 > 拖延怪（拖延怪會亂跑，放最後才不會擋住其他按鈕）
@@ -1749,11 +1971,9 @@ function nearOutside(p) {
   if (t) return { id: 'tree' + t.i, label: t.mine ? '💧 幫我的金榜樹澆水' : `💧 幫${t.n || '考生'}的樹澆水`, fn: () => act('water' + t.i) };
   // 天燈廣場、錦鯉池：走進去就有按鈕（比拖延怪優先，怪物晃過來也不會蓋掉）
   if (Math.hypot(p.x - 14, p.z - 30) < 3.2) return { id: 'sky', label: '🏮 放一盞天燈', fn: () => act('sky') };
+  if (Math.hypot(p.x - WHEEL.x, p.z - (WHEEL.z - 4)) < 4) return { id: 'wheel', label: '🎡 搭摩天輪', fn: () => act('wheel') };
   if (Math.hypot(p.x - KOI.x, p.z - KOI.z) < KOI.r + 2.2) return { id: 'koi', label: '🐟 撒飼料餵錦鯉', fn: () => act('koi') };
-  if (Math.hypot(p.x - BOSS_AT.x, p.z - BOSS_AT.z) < 7 && out.bossHp > 0) return { id: 'boss', label: '⚔️ 一起打考試魔王', fn: () => act('boss') };
-  const m = out.nearestMonster(p.x, p.z, 7);
-  if (m) return { id: 'mo' + m.g.id, label: `✏️ 丟毛筆打${m.name}`, fn: () => hitMonster(m) };
-  return null;
+  return null; // 拖延怪、魔王改用右下角的攻擊鍵
 }
 
 // ---------- 🗺️ 地圖與快速移動 ----------
@@ -1774,8 +1994,9 @@ const MAP_SPOTS = [
   { k: 'sky', name: '天燈廣場', icon: '🏮', ...SPOTS.sky },
   { k: 'koi', name: '錦鯉池', icon: '🐟', ...SPOTS.koi },
   { k: 'boss', name: '考試魔王', icon: '👹', ...SPOTS.boss },
+  { k: 'wheel', name: '摩天輪', icon: '🎡', ...SPOTS.wheel },
 ];
-const MAP_B = { x0: -32, x1: 32, z0: -24, z1: 56 };
+const MAP_B = { x0: -L.FW - 2, x1: L.FW + 2, z0: -24, z1: L.FZ + 2 };
 function mapXY(x, z, W, H) { return [(x - MAP_B.x0) / (MAP_B.x1 - MAP_B.x0) * W, (z - MAP_B.z0) / (MAP_B.z1 - MAP_B.z0) * H]; }
 function drawMap() {
   const c = $('#map-canvas'), r = c.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
@@ -1814,7 +2035,7 @@ $('#map-canvas').onclick = e => {
 function teleport(s) {
   if (state.busy) { toast('正在做動作，等一下再傳送。'); return; }
   $('#map-dlg').close();
-  if (studyAt != null) leaveDesk(); leaveSeat(); me.kneel(false); me.sit(false);
+  if (ride) leaveRide(); if (studyAt != null) leaveDesk(); leaveSeat(); me.kneel(false); me.sit(false);
   me.path = null; me.target = null; me._arrive?.(false); me._arrive = null; me.faceTo = null;
   const from = me.root.position.clone(); from.y = 0.6; out.poof(from, '#e8c15a');
   // 金榜樹林：有自己的樹就直接到樹旁邊
@@ -1872,22 +2093,23 @@ function loop() {
   if (!$('#hud').hidden) {
     placeLabels();
     const p = me.root.position;
-    if (myId || look.ttl || focusEnd) tagFor(me, myId ? who(myId) : (nick || '我'), true, look.ttl, !!focusEnd);
+    if (myId || look.ttl || focusEnd) tagFor(me, myId ? who(myId) : (nick || '我'), true, look.ttl, !!focusEnd, look.lv);
     // 人多時只顯示離你最近的 12 個名牌，畫面才不會被名字蓋滿
     const near = [...remotes].map(([id, av]) => [id, av, Math.hypot(av.root.position.x - p.x, av.root.position.z - p.z)]).sort((a, b) => a[2] - b[2]);
     // 人很多時，只畫離你最近的 24 個人（遠處的人藏起來，手機才不會卡）
     const crowd = near.length > 24;
     near.forEach(([id, av, d], k) => {
       av.root.visible = !crowd || (k < 24 && d < 30);
-      const el = tagFor(av, who(id), false, av.look?.ttl, av.study); el.classList.toggle('done', (peers.get(id)?.s || 0) >= STEPS.length); el.classList.toggle('far', k >= 12 || d > 14 || !av.root.visible);
+      const el = tagFor(av, who(id), false, av.look?.ttl, av.study, av.look?.lv); el.classList.toggle('done', (peers.get(id)?.s || 0) >= STEPS.length); el.classList.toggle('far', k >= 12 || d > 14 || !av.root.visible);
     });
     if (studyAt != null && (!mySeat || mySeat.id !== DESK_SEAT0 + studyAt)) leaveDesk(focusEnd ? '離開座位，這輪專注沒有完成。' : '');
     net.pos(p.x, p.z, me.root.rotation.y, me.holding, me.bowT >= 0, me.kneeling);
     // 離開拜墊／拜位／書桌就釋放座位（走過去的路上不算，到了之後再離開才算）
-    if (mySeat) { const d = Math.hypot(p.x - mySeat.x, p.z - mySeat.z); if (d < 0.35) mySeat.near = true; else if (mySeat.near && d > 0.7) leaveSeat(); else if (!mySeat.near && !me.target && !me.path?.length && !state.busy) leaveSeat(); }
+    // 搭摩天輪時座位跟著車廂，不用檢查
+    if (mySeat && !ride) { const d = Math.hypot(p.x - mySeat.x, p.z - mySeat.z); if (d < 0.35) mySeat.near = true; else if (mySeat.near && d > 0.7) leaveSeat(); else if (!mySeat.near && !me.target && !me.path?.length && !state.busy) leaveSeat(); }
     $('#kneel-bar').hidden = !me.kneeling || state.busy || studyAt != null;
     document.body.classList.toggle('kneeling', !!me.kneeling);
-    nearCheck(); bossBarTick();
+    nearCheck(); bossBarTick(); combatTick(); rideTick();
   }
   requestAnimationFrame(loop);
 }
