@@ -345,8 +345,9 @@ function tagFor(av, name, mine, ttl = 0, studying = false, lv = 0) {
   if (!el) { el = document.createElement('button'); el.type = 'button'; el.className = 'tag' + (mine ? ' me' : ''); labelsEl.appendChild(el); tags.set(av, el); el.onclick = () => openCheer(av); }
   const t = TITLES[ttl | 0] || TITLES[0], key = `${name}|${ttl | 0}|${studying}|${lv | 0}`;
   if (el.dataset.k !== key) {
-    el.dataset.k = key; el.dataset.tier = ttl ? t.tier : 0;
-    el.innerHTML = `${lv > 1 ? `<span class="lv">Lv${lv | 0}</span>` : ''}${studying ? '📖 ' : ''}${mine ? '你・' : ''}${ttl ? `<span class="ttl">${esc(t.name)}</span>` : ''}${esc(name)}`;
+    el.dataset.k = key; el.dataset.tier = ttl ? t.tier : 0; el.dataset.glory = Math.max(0, (lv | 0) - 30);
+    const dl = Math.min(30, lv | 0), ri = rankIdx(dl);
+    el.innerHTML = `${lv > 1 ? `<span class="lv" data-r="${ri}">${RANKS[ri][1]} Lv${dl}</span>` : ''}${studying ? '📖 ' : ''}${mine ? '你・' : ''}${ttl ? `<span class="ttl">${esc(t.name)}</span>` : ''}${esc(name)}`;
   }
   return el;
 }
@@ -1861,27 +1862,67 @@ async function hunt() {
 let riding = false; // 搭摩天輪中（不能打怪、魔王不會丟考卷）
 // 等級：打怪、做任務、參拜都有經驗值；每 5 級攻擊力 +1（Lv1 打 1、Lv5 打 2、Lv10 打 3…）
 const xpNeed = lv => 40 + lv * 20;              // 從 lv 升到 lv+1 要多少經驗
-function levelOf(xp) { let lv = 1; while (xp >= xpNeed(lv)) { xp -= xpNeed(lv); lv++; } return { lv, cur: xp, need: xpNeed(lv) }; }
+// 0.28：等級上限 30（狀元）；滿級後的經驗每 600 點換 1 點「功名」，累積到 1、3、6、10、15 點時名牌外框升級
+const LV_CAP = 30, GLORY_XP = 600, GLORY_TIERS = [1, 3, 6, 10, 15];
+function levelOf(xp) { let lv = 1; while (lv < LV_CAP && xp >= xpNeed(lv)) { xp -= xpNeed(lv); lv++; } return lv >= LV_CAP ? { lv, cur: xp % GLORY_XP, need: GLORY_XP, over: xp } : { lv, cur: xp, need: xpNeed(lv), over: 0 }; }
+const glory = () => Math.floor(levelOf(myXp).over / GLORY_XP);
+const gloryTier = () => GLORY_TIERS.filter(n => glory() >= n).length;
+// 名牌上的稱號：童生 → 秀才 → 舉人 → 貢士 → 進士 → 探花 → 狀元
+const RANKS = [[1, '童生'], [5, '秀才'], [10, '舉人'], [15, '貢士'], [20, '進士'], [25, '探花'], [30, '狀元']];
+const rankIdx = lv => { let i = 0; RANKS.forEach(([n], k) => { if (lv >= n) i = k; }); return i; };
+const GLORY_NAMES = ['', '銅框', '銀框', '金框', '紫金框', '彩霞框'];
 let myXp = store.get('xp', 0);
 const myLv = () => levelOf(myXp).lv;
+const lookLv = () => myLv() + (myLv() >= LV_CAP ? gloryTier() : 0); // 傳給其他人的等級：30 以上代表功名外框
 const atkPower = () => 1 + Math.floor(myLv() / 5);           // 打考試魔王（大家共用血條，維持原本的平衡）
-const monPower = () => 1 + Math.floor(myLv() / 3) + WEAPONS[myWeapon()].bonus; // 打練功區的怪：等級＋手上的筆
+const monPower = () => 1 + Math.floor(myLv() / 3) + wEq().bonus; // 打練功區的怪：等級＋手上的筆
+
+// 技能樹：三條路線、每升一級拿 1 點技能點（Lv30 共 29 點，不夠全學，要自己挑）
+// act：主動技能（右下角有按鈕）；cd：冷卻毫秒（可依等級不同）；d(r)：第 r 級的說明
+const TREE = [
+  { b: 'atk', name: '筆鋒', sub: '攻擊', skills: [
+    { k: 'ink', name: '墨汁潑灑', icon: '🖋️', lv: 3, max: 3, act: true, cd: [8000, 7000, 6000], m: [1.5, 1.9, 2.3], d: r => `身邊 5.5 公尺內的怪都會中，${[1.5, 1.9, 2.3][r - 1]} 倍傷害（冷卻 ${[8, 7, 6][r - 1]} 秒）` },
+    { k: 'sharp', name: '利筆', icon: '🗡️', lv: 4, max: 3, d: r => `爆擊機率 +${5 * r}%（原本 15%）` },
+    { k: 'beam', name: '文昌光束', icon: '✨', lv: 6, max: 3, act: true, cd: [12000, 11000, 10000], m: [3, 3.8, 4.6], d: r => `一道金光打單一目標，${[3, 3.8, 4.6][r - 1]} 倍傷害` },
+    { k: 'ult', name: '金榜題名', icon: '🏆', lv: 10, max: 3, act: true, cd: [45000, 40000, 35000], m: [4, 5, 6], d: r => `30 公尺內的怪和魔王都會中，${[4, 5, 6][r - 1]} 倍傷害（冷卻 ${[45, 40, 35][r - 1]} 秒）` },
+    { k: 'dragon', name: '墨龍', icon: '🐉', lv: 20, max: 2, act: true, cd: [30000, 25000], m: [6, 8], d: r => `一條墨龍往前衝 10 公尺，路上的怪都受到 ${[6, 8][r - 1]} 倍傷害` },
+  ] },
+  { b: 'def', name: '守心', sub: '防守', skills: [
+    { k: 'tough', name: '厚實', icon: '🛡️', lv: 2, max: 3, d: r => `體力上限 +${8 * r}%` },
+    { k: 'calm', name: '沉著', icon: '🧘', lv: 5, max: 3, d: r => `被怪物打到的傷害 -${6 * r}%` },
+    { k: 'guard', name: '定心護盾', icon: '🔰', lv: 8, max: 3, act: true, cd: [20000, 18000, 16000], d: r => `張開護盾 6 秒，最多擋下體力上限 ${[25, 35, 45][r - 1]}% 的傷害` },
+    { k: 'mount', name: '不動如山', icon: '⛰️', lv: 14, max: 2, d: r => r === 1 ? '被考卷砸到只暈 1 秒' : '不會被考卷砸暈' },
+    { k: 'bell', name: '金鐘罩', icon: '🔔', lv: 20, max: 2, act: true, cd: [45000, 35000], d: r => `${[3, 4][r - 1]} 秒內完全不受傷害（冷卻 ${[45, 35][r - 1]} 秒）` },
+  ] },
+  { b: 'sup', name: '靜思', sub: '回復', skills: [
+    { k: 'breath', name: '調息', icon: '🌬️', lv: 2, max: 3, d: r => `脫離戰鬥 ${6 - r} 秒後開始回體力，每秒 ${3 + r}%` },
+    { k: 'heal', name: '回春', icon: '🌿', lv: 5, max: 3, act: true, cd: [25000, 22000, 18000], d: r => `馬上回復 ${[30, 40, 50][r - 1]}% 體力` },
+    { k: 'focus', name: '專注', icon: '📖', lv: 9, max: 3, d: r => `打怪經驗值 +${10 * r}%` },
+    { k: 'fortune', name: '聚寶', icon: '🪙', lv: 12, max: 3, d: r => `打怪金幣 +${15 * r}%` },
+    { k: 'blessing', name: '文昌加持', icon: '🌟', lv: 20, max: 2, act: true, cd: [45000, 40000], d: r => `${[12, 18][r - 1]} 秒內攻擊 +30%、每秒回 2% 體力` },
+  ] },
+];
+const ALL_SK = TREE.flatMap(t => t.skills.map(s => ({ ...s, b: t.b })));
+const SK = k => ALL_SK.find(s => s.k === k);
+let skills = store.get('skills', null);
+if (!skills) { // 舊存檔：原本依等級自動學會的三招，換成對應的技能點
+  skills = {}; const lv0 = myLv(); if (lv0 >= 3) skills.ink = 1; if (lv0 >= 6) skills.beam = 1; if (lv0 >= 10) skills.ult = 1; store.set('skills', skills);
+}
+const rk = k => skills[k] | 0;
+const ptsTotal = () => myLv() - 1;
+const ptsLeft = () => ptsTotal() - Object.values(skills).reduce((a, b) => a + b, 0);
+const skCd = (s, r = rk(s.k)) => s.cd[Math.max(0, r - 1)];
+const skM = (s, r = rk(s.k)) => s.m[Math.max(0, r - 1)];
+const skillReady = {}; // k -> 冷卻結束的時間
+let shieldHp = 0, shieldUntil = 0, bellUntil = 0, blessUntil = 0;
+const blessed = () => performance.now() < blessUntil;
 
 // ---------- 0.26 練功區：體力、金幣、文具鋪、傳送石碑、茶亭、木人樁、擂台、打擊感 ----------
-// 筆：打怪的攻擊力加成（魔王不吃加成）；lv＝幾級才能買
-const WEAPONS = [
-  { k: 'basic', name: '小楷毛筆', icon: '🖌️', bonus: 0, price: 0, lv: 1 },
-  { k: 'bamboo', name: '竹桿筆', icon: '🎋', bonus: 1, price: 40, lv: 4 },
-  { k: 'wolf', name: '狼毫筆', icon: '🐺', bonus: 3, price: 160, lv: 8 },
-  { k: 'purple', name: '紫毫筆', icon: '💜', bonus: 6, price: 420, lv: 13 },
-  { k: 'gold', name: '鎏金狀元筆', icon: '🏆', bonus: 10, price: 1000, lv: 18 },
-];
 const TEA_PRICE = 12;
-const myWeapon = () => Math.min(WEAPONS.length - 1, store.get('weapon', 0) | 0);
 let coins = store.get('coins', 0), teabags = store.get('teabags', 2);
 function addCoins(n) { coins += n; store.set('coins', coins); renderHp(); }
 // 體力：上限隨等級增加；離開戰鬥 6 秒後慢慢回復；歸零就被送回茶亭休息（不會掉等級或金幣）
-const maxHp = () => 60 + (myLv() - 1) * 12;
+const maxHp = () => Math.round((60 + (myLv() - 1) * 12) * (1 + 0.08 * rk('tough')));
 let hp = maxHp(), lastHurt = 0, fainted = false, respawnTea = store.get('respawnTea', 0) | 0;
 function renderHp() {
   const k = Math.max(0, hp / maxHp());
@@ -1890,7 +1931,10 @@ function renderHp() {
 }
 function hurtMe(d, by) {
   if (fainted || d <= 0) return;
-  hp = Math.max(0, hp - d); lastHurt = performance.now(); renderHp();
+  const now = performance.now();
+  if (now < bellUntil) { bubble(me, '🔔 擋下了！', 'bubble', 700); return; }
+  if (shieldHp > 0 && now < shieldUntil) { const a = Math.min(shieldHp, d); shieldHp -= a; d -= a; if (!d) { bubble(me, `🔰 護盾擋下 ${a}`, 'bubble', 700); return; } }
+  hp = Math.max(0, hp - d); lastHurt = now; renderHp();
   const q = me.root.position; out.dmgText({ x: q.x, y: 2, z: q.z }, `-${d}`, false, '#ff6a5a');
   if (hp <= 0) faint(by);
 }
@@ -1908,9 +1952,9 @@ function faint(by) {
 // 怪物撲上來咬到你（outside.js 呼叫）
 out.player = me.root.position;
 out.playerSafe = () => fainted || cam.on || riding || studyAt != null || state.busy || TEAS.some(t => Math.hypot(me.root.position.x - t.x, me.root.position.z - t.z) < 4);
-out.onMonsterHit = m => {
+out.onMonsterHit = (m, mult) => {
   if (out.playerSafe()) return;
-  const d = Math.max(1, Math.round(m.atk * (0.85 + Math.random() * 0.3)));
+  const d = Math.max(1, Math.round(m.atk * (mult || 1) * (0.85 + Math.random() * 0.3) * (1 - 0.06 * rk('calm'))));
   sound.sfx('hurt'); buzz([30, 20, 30]); temple.shake(0.18, 0.25); temple.hitStop(60); hurtFlash(); bubble(me, '💢', 'bubble', 700);
   hurtMe(d, m.name);
   if (!hurtTold && hp > 0) { hurtTold = true; toast(`被${m.name}咬了一口！左下角是體力。打不過就先往回走，到茶亭喝杯茶可以回滿。`, 4200); }
@@ -1924,6 +1968,7 @@ function comboHit() {
   const now = performance.now(); combo = now - comboT < 1600 ? combo + 1 : 1; comboT = now;
   const el = $('#combo');
   if (combo >= 2) { el.hidden = false; el.innerHTML = `<b>${combo}</b> 連擊！`; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); clearTimeout(comboHit.t); comboHit.t = setTimeout(() => { el.hidden = true; }, 1600); }
+  if (combo >= 2) trainHit('combo', combo);
   return combo - 1;
 }
 // 木人樁：打不倒，頭上顯示這一輪 10 秒的總傷害
@@ -1934,7 +1979,7 @@ function hitDummy(d, crit) {
   out.dmgText({ x: q.x, y: 2.3, z: q.z }, crit ? `爆擊！-${d}` : `-${d}`, crit); out.hitBurst(new THREE.Vector3(q.x, 1.4, q.z), 'rock', crit);
   sound.hit('rock', crit, c); temple.hitStop(crit ? 100 : 45); temple.shake(crit ? 0.16 : 0.07, 0.15); buzz(crit ? [25, 30, 45] : 12);
   out.t.tween(220, k => { out.dummy.rotation.z = Math.sin(k * Math.PI * 3) * 0.12 * (1 - k); });
-  out.say({ g: out.dummy }, `10 秒內共 ${sum} 傷害`, 3.2, 2200);
+  out.say({ g: out.dummy }, `10 秒內共 ${sum} 傷害`, 3.2, 2200); trainHit('dummy', sum);
 }
 // 擂台切磋：兩個人都站在擂台裡才打得到；切磋體力跟真正的體力分開，輸了也不會怎樣
 const SPAR_MAX = 100; let sparHp = SPAR_MAX, arenaTold = false;
@@ -1967,18 +2012,28 @@ function onSpar(m) {
 }
 // 文具鋪
 function openShop() {
-  const w = myWeapon(), lv = myLv();
-  $('#shop-coins').innerHTML = `你有 <b>🪙 ${coins}</b> 金幣・茶包 <b>${teabags}</b> 包・目前用 <b>${WEAPONS[w].icon} ${WEAPONS[w].name}</b>（打怪攻擊 ${monPower()}）`;
-  $('#shop-list').innerHTML = WEAPONS.slice(1).map((W, i) => {
-    const k = i + 1, own = w >= k, lock = lv < W.lv, poor = coins < W.price;
-    return `<div class="shop-item${own ? ' own' : ''}"><i aria-hidden="true">${W.icon}</i><span><b>${W.name}</b><small>攻擊 +${W.bonus}・Lv${W.lv} 以上</small></span><button type="button" data-buy="${k}" ${own || lock || poor ? 'disabled' : ''}>${own ? '已擁有' : lock ? `🔒 Lv${W.lv}` : `🪙 ${W.price}`}</button></div>`;
-  }).join('') + `<div class="shop-item"><i aria-hidden="true">🍵</i><span><b>烏龍茶包</b><small>在外面隨時喝，回一半體力（左下角 🍵）</small></span><button type="button" data-buy="tea" ${coins < TEA_PRICE ? 'disabled' : ''}>🪙 ${TEA_PRICE}</button></div>`;
+  const W0 = wEq(), lv = myLv(), respec = store.get('respec', 0) | 0, cost = respec ? 100 : 0;
+  $('#shop-coins').innerHTML = `你有 <b>🪙 ${coins}</b> 金幣・茶包 <b>${teabags}</b> 包・正在用 <b>${W0.icon} ${W0.name}</b>（打怪攻擊 ${monPower()}）`;
+  const row = (W, btn) => `<div class="shop-item${wEqK === W.k ? ' own' : ''}"><i aria-hidden="true">${W.icon}</i><span><b>${W.name}</b><small>攻擊 +${W.bonus}・Lv${W.lv} 以上${W.rare != null ? `・${ZONES[W.rare].name}頭目掉落` : ''}</small></span>${btn}</div>`;
+  $('#shop-list').innerHTML = '<h3>買筆</h3>' + WEAPONS.filter(W => W.price).map(W => { const own = wOwn.includes(W.k), lock = lv < W.lv, poor = coins < W.price;
+      return row(W, `<button type="button" data-buy="${W.k}" ${own || lock || poor ? 'disabled' : ''}>${own ? '已擁有' : lock ? `🔒 Lv${W.lv}` : `🪙 ${W.price}`}</button>`); }).join('')
+    + `<div class="shop-item"><i aria-hidden="true">🍵</i><span><b>烏龍茶包</b><small>在外面隨時喝，回一半體力（左下角 🍵）</small></span><button type="button" data-buy="tea" ${coins < TEA_PRICE ? 'disabled' : ''}>🪙 ${TEA_PRICE}</button></div>`
+    + '<h3>我的筆（點一下換上）</h3>' + WEAPONS.filter(W => wOwn.includes(W.k)).map(W => row(W, `<button type="button" data-eq="${W.k}" ${wEqK === W.k || lv < W.lv ? 'disabled' : ''}>${wEqK === W.k ? '使用中' : lv < W.lv ? `🔒 Lv${W.lv}` : '換上'}</button>`)).join('')
+    + `<p class="say">稀有名筆買不到，打倒各區的頭目 👑 有機會掉落。</p>`
+    + `<h3>技能點</h3><div class="shop-item"><i aria-hidden="true">🔄</i><span><b>重新分配技能點</b><small>全部技能點退回來重新挑${cost ? '' : '（第一次免費）'}</small></span><button type="button" data-buy="respec" ${coins < cost ? 'disabled' : ''}>${cost ? `🪙 ${cost}` : '免費'}</button></div>`;
   if (!$('#shop-dlg').open) $('#shop-dlg').showModal();
 }
 $('#shop-list').onclick = e => {
+  const eq = e.target.closest('[data-eq]'); if (eq && !eq.disabled) { const W = WEAPONS.find(w => w.k === eq.dataset.eq); equip(W.k); sound.sfx('sparkle'); toast(`${W.icon} 換上${W.name}，打怪攻擊 ${monPower()}。`); openShop(); return; }
   const b = e.target.closest('[data-buy]'); if (!b || b.disabled) return;
   if (b.dataset.buy === 'tea') { if (coins < TEA_PRICE) return; coins -= TEA_PRICE; teabags++; store.set('coins', coins); store.set('teabags', teabags); sound.sfx('coin'); }
-  else { const k = +b.dataset.buy, W = WEAPONS[k]; if (coins < W.price || myLv() < W.lv || myWeapon() >= k) return; coins -= W.price; store.set('coins', coins); store.set('weapon', k); sound.sfx('sparkle'); sound.sfx('coin'); toast(`${W.icon} 換上${W.name}了！打怪攻擊變成 ${monPower()}。`, 3000); renderCombat(); }
+  else if (b.dataset.buy === 'respec') {
+    const n = store.get('respec', 0) | 0, cost = n ? 100 : 0; if (coins < cost) return;
+    if (!confirm('把所有技能點退回來重新分配嗎？')) return;
+    coins -= cost; store.set('coins', coins); store.set('respec', n + 1); skills = {}; store.set('skills', skills); hp = Math.min(hp, maxHp());
+    renderSkillBtns(); renderSkillDot(); sound.sfx('warp'); toast(`技能點都退回來了（${ptsLeft()} 點），打開「✦ 技能」重新挑。`, 3000);
+  }
+  else { const W = WEAPONS.find(w => w.k === b.dataset.buy); if (!W || coins < W.price || myLv() < W.lv || wOwn.includes(W.k)) return; coins -= W.price; store.set('coins', coins); gainWeapon(W); sound.sfx('sparkle'); sound.sfx('coin'); toast(`${W.icon} 買了${W.name}！打怪攻擊變成 ${monPower()}。`, 3000); renderCombat(); }
   renderHp(); openShop();
 };
 temple.on('tapShop', () => { if (!state.busy) goNear(SHOP.x - 3.2, SHOP.z, openShop); });
@@ -2022,41 +2077,158 @@ function fieldTick() {
     }
   }
   const now = performance.now();
-  if (!fainted && hp < maxHp() && now - lastHurt > 6000) { hp = Math.min(maxHp(), hp + maxHp() * 0.03 / 60); if ((now | 0) % 30 === 0 || hp >= maxHp()) renderHp(); }
+  const br = rk('breath'), regenOn = now - lastHurt > (6 - br) * 1000, rate = (regenOn ? 0.03 + 0.01 * br : 0) + (blessed() ? 0.02 : 0);
+  if (!fainted && hp < maxHp() && rate) { hp = Math.min(maxHp(), hp + maxHp() * rate / 60); if ((now | 0) % 30 === 0 || hp >= maxHp()) renderHp(); }
+  lowHpTick(now);
   const show = p.z > L.GZ - 1 || hp < maxHp(); const hud = $('#hp-hud'); if (hud.hidden === show) { hud.hidden = !show; document.body.classList.toggle('fieldhud', show); if (show) renderHp(); }
   if (!state.busy) STELES.forEach(s => { if (!steles.has(s.i) && Math.hypot(p.x - s.x, p.z - s.z) < 2.6) touchStele(s.i); });
   const ia = inArena(p); if (!ia && sparHp < SPAR_MAX) sparHp = SPAR_MAX;
   if (ia && !arenaTold) { arenaTold = true; toast('⚔️ 站在擂台裡，按「攻擊」可以跟擂台上的其他考生切磋（點到為止，不影響等級）。', 3600); }
 }
 renderHp();
-const SKILLS = [
-  { k: 'ink', name: '墨汁潑灑', icon: '🖋️', lv: 3, cd: 8000, desc: '身邊的怪都會中' },
-  { k: 'beam', name: '文昌光束', icon: '✨', lv: 6, cd: 12000, desc: '一道金光打單一目標，傷害三倍' },
-  { k: 'ult', name: '金榜題名', icon: '🏆', lv: 10, cd: 45000, desc: '大招：整片樹林的怪和魔王都會中' },
+
+// ---------- 0.28 技能樹面板、頭目、稀有名筆、練功任務、按住連打、切換目標、低體力提醒 ----------
+// 技能面板：技能樹／練功任務／稱號
+let skTab = 'tree', skBranch = 'atk';
+function renderSkillDot() { const n = ptsLeft(), d = $('#sk-dot'); d.textContent = n > 0 ? n : ''; d.hidden = n <= 0; }
+function openSkills(tab) {
+  if (tab) skTab = tab; trainInit(); renderSkills();
+  if (!$('#skill-dlg').open) { hideCheer(); hideSocial(); hideMusic(); $('#skill-dlg').showModal(); }
+}
+function renderSkills() {
+  document.querySelectorAll('#sk-tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === skTab));
+  const lv = myLv(), body = $('#sk-body');
+  if (skTab === 'tree') {
+    const T = TREE.find(t => t.b === skBranch);
+    body.innerHTML = `<p class="sk-head"><b>${RANKS[rankIdx(lv)][1]} Lv${lv}</b>・技能點 <b class="pts">${ptsLeft()}</b> / ${ptsTotal()}<small>每升一級拿 1 點。點數不夠全學，挑自己喜歡的路線；想重來可以到文具鋪重新分配。</small></p>
+      <div class="seg sk-branch" role="tablist">${TREE.map(t => `<button type="button" role="tab" data-br="${t.b}" aria-selected="${t.b === skBranch}">${t.name}<small>${t.sub}・${t.skills.reduce((a, s) => a + rk(s.k), 0)} 點</small></button>`).join('')}</div>
+      <div class="sk-list">${T.skills.map(s => { const r = rk(s.k), lock = lv < s.lv, full = r >= s.max, can = !lock && !full && ptsLeft() > 0;
+        return `<div class="sk-card${r ? ' on' : ''}${lock ? ' lock' : ''}"><i aria-hidden="true">${s.icon}</i><div><b>${s.name}</b>${s.act ? '<em class="act">主動</em>' : '<em>被動</em>'}<span class="pips" aria-label="${r}/${s.max} 級">${'●'.repeat(r)}${'○'.repeat(s.max - r)}</span>
+          <small>${r ? `目前：${s.d(r)}` : `Lv${s.lv} 可學：${s.d(1)}`}</small>${r && !full ? `<small class="nx">下一級：${s.d(r + 1)}</small>` : ''}</div>
+          <button type="button" data-learn="${s.k}" ${can ? '' : 'disabled'}>${lock ? `🔒 Lv${s.lv}` : full ? '已滿級' : r ? '升級' : '學習'}</button></div>`; }).join('')}</div>`;
+  } else if (skTab === 'train') {
+    body.innerHTML = `<p class="sk-head">每天三個練功任務，依你的等級出題，完成就自動領獎勵。<small>台灣時間每天換新。</small></p><div class="sk-list">${train.list.map(q => `<div class="sk-card${q.done ? ' on' : ''}"><i aria-hidden="true">${q.done ? '✅' : { kill: '⚔️', boss: '👑', dummy: '🪵', crit: '💥', combo: '🔥' }[q.t]}</i><div><b>${trainText(q)}</b><span class="bar"><i style="width:${Math.min(100, q.n / q.need * 100)}%"></i></span><small>${Math.min(q.n, q.need)} / ${q.need}・獎勵 🪙 ${q.c}、經驗 ${q.x}</small></div></div>`).join('')}</div>`;
+  } else {
+    const g = glory(), gt = gloryTier();
+    body.innerHTML = `<p class="sk-head">等級越高，名牌上的稱號越厲害，大家都看得到。<small>Lv30「狀元」之後，經驗每 ${GLORY_XP} 點換 1 點功名，名牌外框跟著升級。</small></p>
+      <div class="sk-list">${RANKS.map(([n, t], i) => `<div class="sk-card${lv >= n ? ' on' : ''}"><span class="tag rank-demo" data-r="${i}"><span class="lv" data-r="${i}">${t}</span></span><div><b>${t}</b><small>Lv${n}${RANKS[i + 1] ? `–${RANKS[i + 1][0] - 1}` : ''}</small></div>${rankIdx(lv) === i ? '<em class="act">目前</em>' : ''}</div>`).join('')}
+      <div class="sk-card${lv >= LV_CAP ? ' on' : ''}"><i aria-hidden="true">🏅</i><div><b>功名 ${g} 點${gt ? `・${GLORY_NAMES[gt]}` : ''}</b><small>${GLORY_TIERS.map((n, i) => `${n} 點 ${GLORY_NAMES[i + 1]}`).join('、')}</small></div></div></div>`;
+  }
+}
+$('#sk-tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) { skTab = b.dataset.tab; renderSkills(); } };
+$('#sk-body').onclick = e => {
+  const br = e.target.closest('[data-br]'); if (br) { skBranch = br.dataset.br; renderSkills(); return; }
+  const b = e.target.closest('[data-learn]'); if (!b || b.disabled) return;
+  const s = SK(b.dataset.learn); if (myLv() < s.lv || rk(s.k) >= s.max || ptsLeft() <= 0) return;
+  skills[s.k] = rk(s.k) + 1; store.set('skills', skills); sound.sfx('sparkle'); buzz(15);
+  if (s.k === 'tough') { hp = Math.min(maxHp(), hp + maxHp() * 0.08); renderHp(); }
+  renderSkillBtns(); renderSkillDot(); renderSkills();
+  toast(`${s.icon} ${s.name} ${rk(s.k) > 1 ? `升到 ${rk(s.k)} 級` : '學會了'}！${s.act ? '右下角多了技能鍵。' : ''}`, 2400);
+};
+$('#sk-open').onclick = () => openSkills('tree');
+document.querySelector('#combat .lv-info').addEventListener('click', () => openSkills('tree'));
+renderSkillDot();
+
+// 筆：商店賣的＋頭目掉落的稀有名筆（買不到）
+const WEAPONS = [
+  { k: 'basic', name: '小楷毛筆', icon: '🖌️', bonus: 0, price: 0, lv: 1 },
+  { k: 'bamboo', name: '竹桿筆', icon: '🎋', bonus: 1, price: 40, lv: 4 },
+  { k: 'wolf', name: '狼毫筆', icon: '🐺', bonus: 3, price: 160, lv: 8 },
+  { k: 'purple', name: '紫毫筆', icon: '💜', bonus: 6, price: 420, lv: 13 },
+  { k: 'gold', name: '鎏金狀元筆', icon: '🏆', bonus: 10, price: 1000, lv: 18 },
+  { k: 'sprout', name: '嫩芽名筆', icon: '🌱', bonus: 2, lv: 3, rare: 0 },
+  { k: 'jade', name: '青竹名筆', icon: '🎍', bonus: 5, lv: 7, rare: 1 },
+  { k: 'stone', name: '磐石名筆', icon: '🪨', bonus: 8, lv: 12, rare: 2 },
+  { k: 'flame', name: '赤焰名筆', icon: '🔥', bonus: 13, lv: 17, rare: 3 },
+  { k: 'storm', name: '雷鳴名筆', icon: '⚡', bonus: 17, lv: 22, rare: 4 },
 ];
-const skillReady = {}; // k -> 冷卻結束的時間
+let wOwn = store.get('wOwn', null), wEqK = store.get('wEq', null);
+if (!wOwn) { const i = Math.min(4, store.get('weapon', 0) | 0); wOwn = WEAPONS.slice(0, i + 1).map(w => w.k); wEqK = WEAPONS[i].k; store.set('wOwn', wOwn); store.set('wEq', wEqK); }
+const wEq = () => WEAPONS.find(w => w.k === wEqK) || WEAPONS[0];
+function equip(k) { wEqK = k; store.set('wEq', k); renderCombat(); }
+function gainWeapon(w) { if (!wOwn.includes(w.k)) { wOwn.push(w.k); store.set('wOwn', wOwn); } if (myLv() >= w.lv && w.bonus > wEq().bonus) equip(w.k); }
+
+// 各區頭目：每 10 分鐘一隻（打倒後才開始算），一定掉很多金幣，35% 機率掉該區的稀有名筆
+const MB_RESPAWN = 10 * 60e3, mbDead = store.get('mbDead', {});
+function spawnZoneBoss(zi) { if (!out.monsters.some(m => m.isBoss && m.zi === zi && m.alive)) out.spawnZoneBoss(zi); }
+ZONES.forEach((Z, zi) => { const left = (mbDead[zi] || 0) + MB_RESPAWN - Date.now(); if (left <= 0) spawnZoneBoss(zi); else setTimeout(() => spawnZoneBoss(zi), left); });
+function onZoneBossDown(m) {
+  mbDead[m.zi] = Date.now(); store.set('mbDead', mbDead); setTimeout(() => spawnZoneBoss(m.zi), MB_RESPAWN);
+  trainHit('boss'); teabags++; store.set('teabags', teabags);
+  const w = WEAPONS.find(x => x.rare === m.zi), lucky = w && !wOwn.includes(w.k) && Math.random() < 0.35;
+  setTimeout(() => {
+    if (lucky) { gainWeapon(w); sound.bell(); celebrate({ big: true, confetti: true, title: `✨ 掉落稀有名筆：${w.icon} ${w.name}！`, sub: `打怪攻擊 +${w.bonus}（Lv${w.lv} 以上可以用）。${wEqK === w.k ? '已經幫你換上了。' : '到文具鋪的「我的筆」可以換上。'}` }); }
+    else celebrate({ title: `👑 打倒${m.name}！`, sub: `拿到 🪙 ${Math.ceil(m.coin * (1 + 0.15 * rk('fortune')))}、茶包 1 包。頭目 10 分鐘後會再出現${w && !wOwn.includes(w.k) ? `，有機會掉「${w.name}」` : ''}。` });
+  }, 1200);
+}
+
+// 練功任務：每天三個，依等級出題
+const trainText = q => ({ kill: `在「${ZONES[q.zi]?.name}」打倒 ${q.need} 隻怪物`, boss: '打倒任一區的頭目 👑', dummy: `木人樁 10 秒內打出 ${q.need} 傷害`, crit: `打出 ${q.need} 次爆擊`, combo: `連擊達到 ${q.need} 下` })[q.t];
+let train = store.get('train', null);
+function trainInit() {
+  if (train && train.d === today()) return;
+  const r = seeded(dayNum(today()) * 7 + 3), lv = myLv(); let zi = 0; ZONES.forEach((Z, i) => { if (lv >= Z.lv[0]) zi = i; });
+  const pool = [{ t: 'boss', need: 1 }, { t: 'dummy', need: monPower() * 14 }, { t: 'crit', need: 6 }, { t: 'combo', need: 8 }].map(q => [r(), q]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  train = { d: today(), list: [{ t: 'kill', zi, need: 6 }, pool[0], pool[1]].map(q => ({ ...q, n: 0, done: false, c: 15 + lv * 6, x: 25 + lv * 5 })) };
+  store.set('train', train);
+}
+function trainHit(t, v) {
+  trainInit(); let ch = false;
+  for (const q of train.list) {
+    if (q.done || q.t !== t || (t === 'kill' && v !== q.zi)) continue;
+    q.n = t === 'dummy' || t === 'combo' ? Math.max(q.n, v | 0) : q.n + 1; ch = true;
+    if (q.n >= q.need) { q.done = true; setTimeout(() => { addCoins(q.c); addXp(q.x); sound.sfx('coin'); celebrate({ title: '🎯 練功任務完成！', sub: `${trainText(q)}：金幣 +${q.c}、經驗 +${q.x}` }); }, 600); }
+  }
+  if (ch) { store.set('train', train); if ($('#skill-dlg').open) renderSkills(); }
+}
+
+// 按住攻擊鍵自動連打（放開或手指移開就停）
+let holdT = 0;
+const atkBtn = $('#atk-btn');
+atkBtn.onclick = e => { if (e.detail === 0) attack(); }; // 鍵盤按 Enter／空白鍵
+atkBtn.addEventListener('pointerdown', e => { e.preventDefault(); attack(); clearInterval(holdT); holdT = setInterval(() => { if (!$('#combat').hidden) attack(); else clearInterval(holdT); }, 300); });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => atkBtn.addEventListener(ev, () => clearInterval(holdT)));
+atkBtn.addEventListener('contextmenu', e => e.preventDefault());
+// 切換目標：在攻擊範圍內的怪物之間輪流鎖定
+let lockT = null;
+$('#tgt-btn').onclick = () => {
+  const p = me.root.position, list = out.monsters.filter(m => m.alive && m.g.visible && Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) < MON_RANGE + 2).sort((a, b) => Math.hypot(a.g.position.x - p.x, a.g.position.z - p.z) - Math.hypot(b.g.position.x - p.x, b.g.position.z - p.z));
+  if (!list.length) { lockT = null; return; }
+  const i = list.indexOf(lockT); lockT = list[(i + 1) % list.length]; sound.sample('ting', 0.2); buzz(8);
+  bubble(me, `🎯 ${lockT.name}`, 'bubble', 900);
+};
+// 低體力：畫面邊緣紅光、心跳聲
+let beatT = 0;
+function lowHpTick(now) {
+  const low = !fainted && hp > 0 && hp < maxHp() * 0.3 && me.root.position.z > L.GZ;
+  document.body.classList.toggle('lowhp', low);
+  if (low && now - beatT > 900) { beatT = now; sound.tone(70, 45, 0.12, 'sine', 0.35); sound.tone(66, 42, 0.12, 'sine', 0.28, 0.2); }
+}
 function addXp(n, why) {
   const before = myLv(); myXp += n; store.set('xp', myXp);
   const lv = myLv(); renderCombat();
   if (lv > before) { levelUp(lv); out.refreshTags(lv); hp = maxHp(); renderHp(); }
+  else if (lv >= LV_CAP && (look.lv | 0) !== lookLv()) { setLook({ ...look, lv: lookLv() }); celebrate({ big: true, confetti: true, title: `🏅 功名 ${glory()} 點：名牌換上${GLORY_NAMES[gloryTier()]}！`, sub: '狀元之後的經驗都會累積成功名，大家看得到你名牌的外框。' }); }
 }
 function levelUp(lv) {
   sound.bell(); sound.sfx('sparkle'); buzz([30, 50, 30]); temple.shake(0.12, 0.3);
   // 金色光柱從天而降、落在自己身上
   out.goldRain([me.root.position.clone()]);
-  setLook({ ...look, lv });
-  const sk = SKILLS.find(s => s.lv === lv);
-  const nz = ZONES.find(Z => Z.lv[0] === lv);
-  celebrate({ big: true, confetti: true, title: `⬆️ 升級！Lv.${lv}`, sub: sk ? `學會新技能「${sk.icon} ${sk.name}」：${sk.desc}。` : nz ? `可以去「${nz.name}」歷練了（建議 Lv${nz.lv[0]}–${nz.lv[1]}）。體力上限 ${maxHp()}。` : `打怪攻擊 ${monPower()}、體力上限 ${maxHp()}。繼續打怪、做任務升級吧！` });
+  setLook({ ...look, lv: lookLv() });
+  const sk = ALL_SK.find(s => s.lv === lv), nz = ZONES.find(Z => Z.lv[0] === lv), rn = RANKS.find(([n]) => n === lv);
+  renderSkillDot();
+  celebrate({ big: true, confetti: true, title: rn ? `⬆️ Lv.${lv}・升為「${rn[1]}」！` : `⬆️ 升級！Lv.${lv}`, sub: `拿到 1 點技能點（還有 ${ptsLeft()} 點），左下角「✦ 技能」去學。` + (sk ? `新技能「${sk.icon} ${sk.name}」可以學了。` : '') + (nz ? `也可以去「${nz.name}」歷練了。` : '') });
 }
 // 舊玩家：名牌上的等級跟存檔對齊
-if ((look.lv | 0) !== myLv()) { look = { ...look, lv: myLv() }; store.set('look', look); me.setLook(look); }
+if ((look.lv | 0) !== lookLv()) { look = { ...look, lv: lookLv() }; store.set('look', look); me.setLook(look); }
 
 // 找目標：攻擊範圍內最近的拖延怪或魔王
 const BOSS_RANGE = 11, MON_RANGE = 8;
 function bossTarget() { const b = out.boss; return out.bossHp > 0 && b.visible ? b.position : null; }
 function findTarget(p = me.root.position) {
   if (inArena(p)) { let best = null, bd = 6; for (const [id, av] of remotes) { const q = av.root.position; if (!inArena(q)) continue; const d = Math.hypot(q.x - p.x, q.z - p.z); if (d < bd) { bd = d; best = { spar: id, av, pos: q }; } } if (best) return best; }
+  if (lockT && (!lockT.alive || Math.hypot(lockT.g.position.x - p.x, lockT.g.position.z - p.z) > MON_RANGE + 4)) lockT = null;
+  if (lockT) return { m: lockT, pos: lockT.g.position, locked: true };
   const m = out.nearestMonster(p.x, p.z, MON_RANGE), bp = bossTarget();
   const bd = bp ? Math.hypot(bp.x - p.x, bp.z - p.z) : 99, md = m ? Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) : 99;
   if (bp && bd < BOSS_RANGE && bd <= md + 1) return { boss: true, pos: bp };
@@ -2065,7 +2237,7 @@ function findTarget(p = me.root.position) {
   return null;
 }
 // 一次傷害：15% 機率爆擊（兩倍半）
-function rollDmg(mult = 1, base = atkPower()) { const crit = Math.random() < 0.15; return { d: Math.ceil(base * mult * (crit ? 2.5 : 1)), crit }; }
+function rollDmg(mult = 1, base = atkPower()) { const crit = Math.random() < 0.15 + 0.05 * rk('sharp'); if (crit) trainHit('crit'); return { d: Math.ceil(base * mult * (blessed() ? 1.3 : 1) * (crit ? 2.5 : 1)), crit }; }
 function hurtMonster(m, d, crit) {
   if (!m?.alive) return;
   const gp = m.g.position, c = comboHit(); out.dmgText({ x: gp.x, y: m.top + 0.2, z: gp.z }, crit ? `爆擊！-${d}` : `-${d}`, crit);
@@ -2074,10 +2246,10 @@ function hurtMonster(m, d, crit) {
   if (!down) { temple.shake(crit ? 0.2 : 0.09, crit ? 0.25 : 0.16); hitFlash(true); buzz(crit ? [25, 30, 45] : 14); return; }
   out.defeatMonster(m, () => me.root.position); buzz([20, 40, 60]); temple.hitStop(150);
   setTimeout(() => { temple.shake(0.24, 0.35); hitFlash(); sound.sfx('ko'); }, 380);
-  out.onAbsorb = () => { sound.sfx('coin'); bubble(me, `🪙+${m.coin}`, 'bubble', 1200); };
+  out.onAbsorb = () => { sound.sfx('coin'); bubble(me, `🪙+${Math.ceil(m.coin * (1 + 0.15 * rk('fortune')))}`, 'bubble', 1200); };
   // 太弱的怪（比你低 6 級以上）經驗值只剩三成：去更強的地區歷練
-  const weak = m.lv <= myLv() - 6, xp = weak ? Math.ceil(m.xp * 0.3) : m.xp;
-  addCoins(m.coin); addStat('monster'); task('monster'); addXp(xp);
+  const weak = m.lv <= myLv() - 6, xp = Math.ceil((weak ? m.xp * 0.3 : m.xp) * (1 + 0.1 * rk('focus'))), gain = Math.ceil(m.coin * (1 + 0.15 * rk('fortune')));
+  addCoins(gain); trainHit('kill', m.zi); if (m.isBoss) onZoneBossDown(m); addStat('monster'); task('monster'); addXp(xp);
   if (weak && !weakTold) { weakTold = true; toast(`這裡的怪物對你來說太弱了，經驗值變少。往北走，去更強的地區歷練吧！`, 3600); }
 }
 function hurtBoss(d, crit) {
@@ -2086,7 +2258,7 @@ function hurtBoss(d, crit) {
   out.hitBoss(); sound.sfx('boss'); if (crit) sound.hit('rock', true, comboHit()); else comboHit(); buzz(crit ? [25, 30, 45] : 14); temple.hitStop(crit ? 120 : 60); temple.shake(crit ? 0.22 : 0.12, 0.22); hitFlash(true);
   const bb = $('#boss-bar'); bb.classList.remove('hit'); void bb.offsetWidth; bb.classList.add('hit');
   store.set('bossHit', today()); bossHitToday = true; addXp(1);
-  if (!net.alive) { const b = localBoss(); b.hp = Math.max(0, b.hp - d); store.set('bossLocal', b); out.setBoss(b.hp, 30, nextBoss()); if (!b.hp) bossBeat(); return; }
+  if (!net.alive) { const b = localBoss(); b.hp = Math.max(0, b.hp - d); store.set('bossLocal', b); out.setBoss(b.hp, LOCAL_BOSS_HP, nextBoss()); if (!b.hp) bossBeat(); return; }
   net.hit(d);
 }
 // 普通攻擊：丟毛筆（可以一直按）
@@ -2108,31 +2280,43 @@ function attack(target = findTarget()) {
 }
 // 技能
 function useSkill(k) {
-  const sk = SKILLS.find(s => s.k === k), now = performance.now();
-  if (myLv() < sk.lv) { toast(`🔒 「${sk.name}」Lv.${sk.lv} 解鎖。現在 Lv.${myLv()}，打怪和做任務可以升級。`, 3000); return; }
+  const sk = SK(k), r = rk(k), now = performance.now();
+  if (!sk || !r) { openSkills(); return; }
   if (now < (skillReady[k] || 0)) return;
   if (stunned()) { toast('💫 還在暈…等一下再用技能'); return; }
-  const p = me.root.position, power = atkPower();
+  if (fainted) return;
+  const p = me.root.position, bp0 = bossTarget(), near = (q, d) => Math.hypot(q.x - p.x, q.z - p.z) < d;
   if (k === 'ink') {
-    const hits = out.monsters.filter(m => m.alive && Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) < 5.5), bp = bossTarget();
-    if (!hits.length && !(bp && Math.hypot(bp.x - p.x, bp.z - p.z) < 6.5)) { toast('墨汁潑灑：要靠近怪物才打得到（5 公尺內）。'); return; }
+    const hits = out.monsters.filter(m => m.alive && near(m.g.position, 5.5)), boss = bp0 && near(bp0, 6.5);
+    if (!hits.length && !boss) { toast('墨汁潑灑：要靠近怪物才打得到（5 公尺內）。'); return; }
     out.inkSplash(p, 5.5); sound.sfx('splash'); sound.sfx('pop'); me.emote('jump');
-    setTimeout(() => { hits.forEach(m => { const r = rollDmg(1.5, monPower()); hurtMonster(m, r.d, r.crit); }); if (bp && Math.hypot(bp.x - p.x, bp.z - p.z) < 6.5) { const r = rollDmg(1.5); hurtBoss(r.d, r.crit); } }, 250);
+    setTimeout(() => { hits.forEach(m => { const q = rollDmg(skM(sk), monPower()); hurtMonster(m, q.d, q.crit); }); if (boss) { const q = rollDmg(skM(sk)); hurtBoss(q.d, q.crit); } }, 250);
   }
   if (k === 'beam') {
     const t = findTarget(); if (!t) { toast('文昌光束：附近沒有目標。'); return; }
     me.faceTo = Math.atan2(t.pos.x - p.x, t.pos.z - p.z); out.beam(p, { x: t.pos.x, y: t.boss ? 1.6 : 0.6, z: t.pos.z }); sound.sfx('warp'); sound.sfx('sparkle');
-    const r = t.boss ? rollDmg(3) : rollDmg(3, monPower()); setTimeout(() => { if (t.boss) hurtBoss(r.d, r.crit); else if (t.m) hurtMonster(t.m, r.d, r.crit); else if (t.dummy) hitDummy(r.d, r.crit); else if (t.spar) hitSpar(t, r.d, r.crit); }, 200);
+    const q = t.boss ? rollDmg(skM(sk)) : rollDmg(skM(sk), monPower()); setTimeout(() => { if (t.boss) hurtBoss(q.d, q.crit); else if (t.m) hurtMonster(t.m, q.d, q.crit); else if (t.dummy) hitDummy(q.d, q.crit); else if (t.spar) hitSpar(t, q.d, q.crit); }, 200);
   }
   if (k === 'ult') {
-    const ms = out.monsters.filter(m => m.alive && Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) < 30), bp = bossTarget(), pts = ms.map(m => m.g.position.clone());
-    if (bp && Math.hypot(bp.x - p.x, bp.z - p.z) < 30) pts.push(bp.clone());
+    const ms = out.monsters.filter(m => m.alive && near(m.g.position, 30)), boss = bp0 && near(bp0, 30), pts = ms.map(m => m.g.position.clone());
+    if (boss) pts.push(bp0.clone());
     if (!pts.length) { toast('金榜題名：30 公尺內沒有怪物。'); return; }
     out.goldRain(pts); sound.bell(); sound.sfx('whoosh'); hitFlash(); temple.shake(0.3, 0.6); me.emote('jump');
     bubble(me, '🏆 金榜題名！', 'result-chip', 1800);
-    setTimeout(() => { ms.forEach(m => { const r = rollDmg(4, monPower()); hurtMonster(m, r.d, r.crit); }); if (bp && Math.hypot(bp.x - p.x, bp.z - p.z) < 30) { const r = rollDmg(5); hurtBoss(r.d, r.crit); } }, 700);
+    setTimeout(() => { ms.forEach(m => { const q = rollDmg(skM(sk), monPower()); hurtMonster(m, q.d, q.crit); }); if (boss) { const q = rollDmg(skM(sk) + 1); hurtBoss(q.d, q.crit); } }, 700);
   }
-  skillReady[k] = now + sk.cd; buzz(20);
+  if (k === 'dragon') {
+    // 往目標（沒有就往鏡頭前方）衝出一條墨龍，打中路線兩側 1.6 公尺內的怪
+    const t = findTarget(), f = t ? Math.atan2(t.pos.x - p.x, t.pos.z - p.z) : temple.camYaw + Math.PI, ux = Math.sin(f), uz = Math.cos(f);
+    me.faceTo = f; out.inkDragon(p, f, 10); sound.sfx('whoosh'); sound.sfx('growl'); temple.shake(0.2, 0.5); me.emote('jump');
+    const inLine = q => { const dx = q.x - p.x, dz = q.z - p.z, along = dx * ux + dz * uz, side = Math.abs(dx * uz - dz * ux); return along > -0.5 && along < 10.5 && side < 1.8; };
+    setTimeout(() => { out.monsters.filter(m => m.alive && inLine(m.g.position)).forEach(m => { const q = rollDmg(skM(sk), monPower()); hurtMonster(m, q.d, q.crit); }); if (bp0 && inLine(bp0)) { const q = rollDmg(skM(sk)); hurtBoss(q.d, q.crit); } }, 350);
+  }
+  if (k === 'guard') { shieldHp = Math.round(maxHp() * [0.25, 0.35, 0.45][r - 1]); shieldUntil = now + 6000; out.aura(me.root, '#7ad8ff', 6000); sound.sfx('warp'); bubble(me, `🔰 護盾 ${shieldHp}`, 'bubble', 1200); }
+  if (k === 'bell') { bellUntil = now + [3000, 4000][r - 1]; out.aura(me.root, '#ffd76a', bellUntil - now, true); sound.bell(); bubble(me, '🔔 金鐘罩！', 'bubble', 1200); }
+  if (k === 'heal') { if (hp >= maxHp()) { toast('體力是滿的，先留著吧。'); return; } hp = Math.min(maxHp(), hp + maxHp() * [0.3, 0.4, 0.5][r - 1]); renderHp(); sound.sfx('heal'); out.aura(me.root, '#7ae08a', 1200); bubble(me, '🌿 回春', 'bubble', 1000); }
+  if (k === 'blessing') { blessUntil = now + [12000, 18000][r - 1]; out.aura(me.root, '#ffe08a', blessUntil - now); sound.bell(); sound.sfx('sparkle'); bubble(me, '🌟 文昌加持！攻擊 +30%', 'result-chip', 1800); }
+  skillReady[k] = now + skCd(sk); buzz(20);
 }
 temple.on('tapMonster', m => { if (!state.busy && m?.alive) attack({ m, pos: m.g.position }); });
 // 前往打怪：走到離你最近的拖延怪旁邊
@@ -2145,25 +2329,31 @@ async function forest() {
 }
 
 // 攻擊鍵與技能鍵：附近有怪物時出現在右下角
-$('#skill-btns').innerHTML = SKILLS.map(s => `<button type="button" class="skill" data-sk="${s.k}" aria-label="${s.name}"><i aria-hidden="true">${s.icon}</i><small>${s.name}</small><b class="cd"></b><em class="lock">Lv${s.lv}</em></button>`).join('');
-$('#skill-btns').onclick = e => { const b = e.target.closest('[data-sk]'); if (b) useSkill(b.dataset.sk); };
+function renderSkillBtns() {
+  const acts = ALL_SK.filter(s => s.act && rk(s.k));
+  $('#skill-btns').innerHTML = acts.map(s => `<button type="button" class="skill" data-sk="${s.k}" aria-label="${s.name}"><i aria-hidden="true">${s.icon}</i><small>${s.name}</small><b class="cd"></b></button>`).join('') || `<button type="button" class="skill learn" data-open-sk aria-label="學技能"><i aria-hidden="true">✦</i><small>學技能</small></button>`;
+  $('#skill-btns').classList.toggle('many', acts.length > 4);
+}
+renderSkillBtns();
+$('#skill-btns').onclick = e => { if (e.target.closest('[data-open-sk]')) { openSkills(); return; } const b = e.target.closest('[data-sk]'); if (b) useSkill(b.dataset.sk); };
 $('#atk-btn').onclick = () => attack();
 function renderCombat() {
   const L2 = levelOf(myXp);
-  $('#lv-badge').textContent = `Lv.${L2.lv}`; $('#lv-bar').style.width = `${L2.cur / L2.need * 100}%`;
+  $('#lv-badge').textContent = L2.lv >= LV_CAP ? `狀元・功名 ${glory()}` : `${RANKS[rankIdx(L2.lv)][1]} Lv.${L2.lv}`; $('#lv-bar').style.width = `${L2.cur / L2.need * 100}%`;
   $('#atk-power').textContent = `攻擊 ${monPower()}`;
 }
 function combatTick() {
   const p = me.root.position, blocked = state.busy || studyAt != null || !!document.querySelector('dialog[open]') || document.body.classList.contains('photo-mode') || riding;
-  const show = !blocked && !fainted && p.z > L.GZ - 2 && !!findTarget(p);
+  const tg = !blocked && !fainted && p.z > L.GZ - 2 ? findTarget(p) : null, show = !!tg;
+  out.setTargetRing(tg && (tg.m || tg.dummy) ? tg.pos : null, !!tg?.locked, tg?.m ? Math.max(0.9, tg.m.size * 0.65) : 0.9);
   const c = $('#combat'); if (c.hidden === show) c.hidden = !show;
   document.body.classList.toggle('fighting', show);
   if (!show) return;
-  const now = performance.now(), lv = myLv();
+  const now = performance.now();
   document.querySelectorAll('#skill-btns [data-sk]').forEach(b => {
-    const sk = SKILLS.find(s => s.k === b.dataset.sk), left = Math.max(0, (skillReady[sk.k] || 0) - now), locked = lv < sk.lv;
-    b.classList.toggle('locked', locked); b.classList.toggle('cooling', left > 0);
-    b.style.setProperty('--cd', `${left / sk.cd * 360}deg`); b.querySelector('.cd').textContent = left > 0 ? Math.ceil(left / 1000) : '';
+    const sk = SK(b.dataset.sk), left = Math.max(0, (skillReady[sk.k] || 0) - now);
+    b.classList.toggle('cooling', left > 0);
+    b.style.setProperty('--cd', `${left / skCd(sk) * 360}deg`); b.querySelector('.cd').textContent = left > 0 ? Math.ceil(left / 1000) : '';
   });
   $('#atk-btn').classList.toggle('stun', stunned());
 }
@@ -2258,10 +2448,11 @@ const bossSlot = () => Math.floor((Date.now() + 8 * 3600e3) / BOSS_EVERY);
 const nextBoss = () => (bossSlot() + 1) * BOSS_EVERY - 8 * 3600e3;
 const hhmm = t => { const d = new Date(t || nextBoss()); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 let bossHitToday = store.get('bossHit', '') === today();
-function localBoss() { const b = store.get('bossLocal', { d: '', hp: 30 }); if (b.d !== String(bossSlot())) { b.d = String(bossSlot()); b.hp = 30; } return b; }
-if (!net.alive) { const b = localBoss(); out.setBoss(b.hp, 30, nextBoss()); }
+const LOCAL_BOSS_HP = 200;
+function localBoss() { const b = store.get('bossLocal', { d: '', hp: LOCAL_BOSS_HP }); if (b.d !== String(bossSlot())) { b.d = String(bossSlot()); b.hp = LOCAL_BOSS_HP; } b.hp = Math.min(b.hp, LOCAL_BOSS_HP); return b; }
+if (!net.alive) { const b = localBoss(); out.setBoss(b.hp, LOCAL_BOSS_HP, nextBoss()); }
 // 沒連線時，自己檢查是不是該換下一隻
-setInterval(() => { if (net.alive) return; const b = localBoss(); if (b.hp > 0 && out.bossHp <= 0) feed('👹 考試魔王出現了！到樹林最裡面一起打'); out.setBoss(b.hp, 30, nextBoss()); }, 30000);
+setInterval(() => { if (net.alive) return; const b = localBoss(); if (b.hp > 0 && out.bossHp <= 0) feed('👹 考試魔王出現了！到樹林最裡面一起打'); out.setBoss(b.hp, LOCAL_BOSS_HP, nextBoss()); }, 30000);
 // 魔王面向最近的玩家（自己或其他考生）
 out.nearestPlayer = (x, z) => { let best = me.root.position, bd = Math.hypot(best.x - x, best.z - z); for (const av of remotes.values()) { const q = av.root.position, d = Math.hypot(q.x - x, q.z - z); if (d < bd) { bd = d; best = q; } } return bd < 20 ? best : null; };
 async function bossAct() {
@@ -2292,11 +2483,21 @@ setInterval(() => {
   if (step === 1) lastSummon = 1;
   bossAtkT -= 0.5; if (bossAtkT > 0) return;
   bossAtkT = out.rage ? 3 + Math.random() * 1.5 : 5 + Math.random() * 2.5;
+  // 狂暴時三成機率改放大範圍震波：紅圈裡的人都會被震飛
+  if (out.rage && Math.random() < 0.35) {
+    out.bossShock(6.5, () => {
+      const q = me.root.position, b2 = out.boss.position, d = Math.hypot(q.x - b2.x, q.z - b2.z); if (d > 6.5 || riding) return;
+      sound.sfx('hurt'); sound.sfx('thunder'); buzz([60, 30, 60]); temple.shake(0.4, 0.5); temple.hitStop(90); hurtFlash();
+      const ux = (q.x - b2.x) / (d || 1), uz = (q.z - b2.z) / (d || 1); const np = { x: q.x + ux * 3, z: q.z + uz * 3 }; temple.collide(np); me.root.position.x = np.x; me.root.position.z = np.z;
+      stunnedUntil = performance.now() + [1200, 600, 0][rk('mount')]; hurtMe(Math.round(maxHp() * 0.2), '考試魔王的震波');
+    });
+    return;
+  }
   const target = { x: p.x, z: p.z };
   out.bossThrow(target, at => {
     const q = me.root.position;
     if (Math.hypot(q.x - at.x, q.z - at.z) > 1.3) return;
-    stunnedUntil = performance.now() + 2000; sound.sfx('hurt'); buzz([40, 30, 40]); temple.shake(0.25, 0.4); hurtFlash(); hurtMe(Math.round(maxHp() * 0.15), '考卷');
+    stunnedUntil = performance.now() + [2000, 1000, 0][rk('mount')]; sound.sfx('hurt'); buzz([40, 30, 40]); temple.shake(0.25, 0.4); hurtFlash(); hurtMe(Math.round(maxHp() * 0.15), '考卷');
     bubble(me, '💫 被考卷嚇到了！', 'bubble', 2000); toast('💫 被考卷砸到，暈了 2 秒！看到地上紅圈要快點走開。', 2600);
   });
 }, 500);
@@ -2488,4 +2689,4 @@ refresh();
 renderDm();
 initUpdates();
 requestAnimationFrame(loop);
-window.__wc = { temple, me, state, act, net, out, music, sound, THREE, onSpar, remotes };
+window.__wc = { temple, me, state, act, net, out, music, sound, THREE, onSpar, remotes, get hp() { return hp; }, set hp(v) { hp = v; renderHp(); } };
