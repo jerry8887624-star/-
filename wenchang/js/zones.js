@@ -1,4 +1,4 @@
-// 廟外的五個練功區（由近到遠越來越強）、原創怪物（3D 卡通＋粗黑描邊）、傳送石碑、茶亭、文具鋪、木人樁與擂台
+// 廟外的五個練功區（由近到遠越來越強）、原創怪物（3D 卡通）、傳送石碑、茶亭、文具鋪、木人樁與擂台
 import * as THREE from '../vendor/three.module.min.js';
 
 // ---------- 小工具（跟 outside.js 同一種卡通畫風） ----------
@@ -23,14 +23,7 @@ function glowTex() {
 }
 export const glow = (color = '#ffd76a', size = 1) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); s.scale.set(size, size, 1); return s; };
 
-// 粗黑描邊：把同一個形狀沿法線往外推一點、只畫背面（卡通「外框」做法）
-const OUTLINE = new THREE.ShaderMaterial({
-  uniforms: { w: { value: 0.035 } },
-  vertexShader: 'uniform float w; void main(){ vec3 p = position + normalize(normal) * w; gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }',
-  fragmentShader: 'void main(){ gl_FragColor = vec4(0.11, 0.07, 0.06, 1.0); }',
-  side: THREE.BackSide,
-});
-const OUTLINE_THIN = OUTLINE.clone(); OUTLINE_THIN.uniforms = { w: { value: 0.02 } };
+// 0.28：拿掉粗黑描邊（角色、建築都不要框線），維持跟廟裡一樣的卡通明暗
 
 // ---------- 五個區域 ----------
 // z0～z1：區域範圍（往廟外越走越遠）；lv：怪物等級範圍；el：這區怪物的屬性
@@ -56,7 +49,7 @@ export const ZONE_COLLIDERS = [];
 export const CAM_POSTS = [];
 
 // ---------- 原創怪物：五個屬性，每種有一般型和進化型（進化型更大、更華麗） ----------
-// 參考 Q 版、粗描邊的風格自己設計，不是任何現有遊戲的角色
+// 參考 Q 版的風格自己設計，不是任何現有遊戲的角色
 export const SPECIES = {
   grass: [
     { name: '葉兜兔', color: '#8ed16a', say: '等一下再讀…', hit: ['哎呀！', '明天再讀嘛～', '別催我啦！'], bye: '我不拖了～' },
@@ -88,7 +81,6 @@ function part(g, geo, color, o = {}) {
   const mat = typeof color === 'string' ? lam(color, o.emissive ? { emissive: o.emissive } : {}) : color;
   const m = new THREE.Mesh(geo, mat);
   m.position.set(o.x || 0, o.y || 0, o.z || 0); m.scale.set(o.sx ?? 1, o.sy ?? 1, o.sz ?? 1); m.rotation.set(o.rx || 0, o.ry || 0, o.rz || 0);
-  if (o.ol !== false) m.add(new THREE.Mesh(geo, o.thin ? OUTLINE_THIN : OUTLINE));
   g.add(m); return m;
 }
 const S = (r, w = 16, h = 12) => new THREE.SphereGeometry(r, w, h);
