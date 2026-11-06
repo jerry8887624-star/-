@@ -747,3 +747,70 @@ body.camera-mode #hp-hud, body.camera-mode #combo, body.camera-mode #zone-banner
   #combat { bottom: calc(14px + var(--sab)); right: calc(16px + env(safe-area-inset-right, 0px)); }
   body.fighting #near-btn { bottom: calc(110px + var(--sab)); }
 }
+
+/* ---------- 0.28 技能樹、稱號名牌、切換目標、低體力 ---------- */
+#sk-open { position: relative; display: flex; align-items: center; gap: 2px; padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(232, 193, 90, .7); background: linear-gradient(180deg, #6a3a9a, #3a1a5a); color: #fff4d6; font-weight: 800; font-size: 13px; }
+#sk-open span { font-size: 11px; }
+#sk-open em { position: absolute; right: -6px; top: -7px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #e8402a; font: 700 11px/16px sans-serif; font-style: normal; text-align: center; animation: hpLow 1.2s infinite; }
+#sk-open em[hidden] { display: none; }
+#combat .lv-info { cursor: pointer; }
+#tgt-btn { position: absolute; right: 88px; bottom: -4px; width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid var(--gold); background: rgba(30, 16, 10, .8); color: #fff4d6; font-size: 17px; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#tgt-btn small { font-size: 9px; margin-top: 1px; }
+#combat { position: absolute; }
+#skill-btns.many { display: grid; grid-template-columns: repeat(2, 58px); }
+.skill.learn { background: radial-gradient(circle at 40% 35%, #8a5ac8, #3a1a5a); animation: nudge 2.4s ease-in-out infinite; }
+#atk-btn { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+@media (orientation: landscape) and (max-height: 560px) {
+  #skill-btns, #skill-btns.many { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, 58px); grid-template-columns: none; }
+  #tgt-btn { right: 92px; bottom: 0; }
+  body.fighting #guide { display: none; }
+  #zone-banner { top: calc(8px + var(--sat)); padding: 6px 16px; min-width: 0; } #zone-banner b { font-size: 18px; display: inline; margin-right: 8px; } #zone-banner span { display: inline; font-size: 12px; } #zone-banner small { font-size: 11px; }
+}
+#lowhp { position: fixed; inset: 0; z-index: 19; pointer-events: none; opacity: 0; box-shadow: inset 0 0 90px 30px rgba(220, 20, 20, .75); transition: opacity .4s; }
+body.lowhp #lowhp { opacity: 1; animation: lowBeat .9s ease-in-out infinite; }
+@keyframes lowBeat { 0%, 100% { opacity: .55; } 15% { opacity: 1; } 30% { opacity: .65; } 45% { opacity: .9; } }
+/* 名牌：稱號顏色依等級（童生→狀元）；功名外框 */
+.tag .lv[data-r="0"] { background: #6a7a8a; } .tag .lv[data-r="1"] { background: #3a8a5a; } .tag .lv[data-r="2"] { background: #3a6ab8; }
+.tag .lv[data-r="3"] { background: #7a4ac8; } .tag .lv[data-r="4"] { background: #c85a2a; } .tag .lv[data-r="5"] { background: #b8302a; }
+.tag .lv[data-r="6"] { background: linear-gradient(90deg, #c8961a, #f6d25a, #c8961a); color: #3a2400; }
+.tag[data-glory="1"] { box-shadow: 0 0 0 2px #b87a3a; } .tag[data-glory="2"] { box-shadow: 0 0 0 2px #d8dde4, 0 0 8px rgba(255, 255, 255, .5); }
+.tag[data-glory="3"] { box-shadow: 0 0 0 2px #f6d25a, 0 0 10px rgba(246, 210, 90, .7); } .tag[data-glory="4"] { box-shadow: 0 0 0 2px #c89aff, 0 0 12px rgba(200, 150, 255, .8); }
+.tag[data-glory="5"] { box-shadow: 0 0 0 2px #fff, 0 0 14px 2px rgba(255, 180, 120, .9); animation: gloryHue 3s linear infinite; }
+@keyframes gloryHue { to { filter: hue-rotate(360deg); } }
+.skill-dlg .seg { display: flex; gap: 4px; margin: 6px 0 10px; }
+.skill-dlg .seg button { flex: 1; padding: 8px 4px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: inherit; font-weight: 700; }
+.skill-dlg .seg button[aria-selected="true"] { background: linear-gradient(180deg, var(--red-2), var(--red)); color: #fff; border-color: var(--gold); }
+.skill-dlg .seg button small { display: block; font-size: 11px; font-weight: 500; opacity: .8; }
+.sk-head { margin: 0 0 8px; font-size: 14px; } .sk-head small { display: block; font-size: 12px; opacity: .75; margin-top: 2px; } .sk-head .pts { color: #ffd23a; font-size: 18px; }
+.sk-list { display: grid; gap: 8px; }
+.sk-card { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 12px; border: 1px solid var(--line); }
+.sk-card.on { border-color: rgba(232, 193, 90, .7); background: rgba(232, 193, 90, .08); }
+.sk-card.lock { opacity: .6; }
+.sk-card > i { font-size: 26px; font-style: normal; text-align: center; }
+.sk-card b { font-size: 15px; } .sk-card em { margin-left: 6px; padding: 1px 6px; border-radius: 6px; font-size: 11px; font-style: normal; background: rgba(255, 255, 255, .12); }
+.sk-card em.act { background: #7a4ac8; color: #fff; }
+.sk-card .pips { margin-left: 6px; color: #ffd23a; letter-spacing: 1px; font-size: 12px; }
+.sk-card small { display: block; font-size: 12px; opacity: .85; margin-top: 2px; } .sk-card small.nx { opacity: .6; }
+.sk-card button { min-width: 64px; padding: 8px 10px; border-radius: 999px; font-weight: 700; }
+.sk-card button:disabled { opacity: .5; }
+.sk-card .bar { display: block; height: 8px; margin-top: 6px; border-radius: 5px; background: rgba(0, 0, 0, .3); overflow: hidden; } .sk-card .bar i { display: block; height: 100%; background: linear-gradient(90deg, #4ad06a, #ffd23a); }
+.sk-card .rank-demo { position: static; transform: none; display: inline-block; pointer-events: none; }
+.shop-list h3 { margin: 8px 0 0; font-size: 14px; color: var(--gold-2); }
+/* 體力列改兩行，才不會蓋到右邊的技能鍵 */
+#hp-hud { flex-wrap: wrap; max-width: 196px; row-gap: 4px; border-radius: 16px; }
+#hp-hud .hp-track { width: 64px; }
+@media (orientation: landscape) and (max-height: 560px) { #hp-hud { max-width: none; flex-wrap: nowrap; border-radius: 999px; } }
+/* 戰鬥按鈕重新排：等級條 → 技能（一排四個）→ 換目標＋攻擊 */
+#combat { display: grid; grid-template-columns: auto auto; grid-template-areas: "lv lv" "sk sk" "tgt atk"; gap: 8px; align-items: end; justify-items: end; }
+#combat .lv-info { grid-area: lv; } #skill-btns, #skill-btns.many { grid-area: sk; display: grid; grid-template-columns: repeat(4, 52px); grid-auto-flow: row; direction: rtl; gap: 6px; }
+#skill-btns .skill { width: 52px; height: 52px; direction: ltr; } #skill-btns .skill i { font-size: 18px; } #skill-btns .skill small { font-size: 9px; bottom: 4px; }
+#atk-btn { grid-area: atk; } #tgt-btn { grid-area: tgt; position: static; align-self: center; }
+body.fighting #guide { display: none; }
+body.fighting #hp-hud { top: calc(64px + var(--sat)); bottom: auto; }
+@media (orientation: landscape) and (max-height: 560px) {
+  #combat { grid-template-columns: auto auto auto; grid-template-areas: "lv lv lv" "sk tgt atk"; }
+  #skill-btns, #skill-btns.many { grid-template-columns: none; grid-template-rows: repeat(2, 52px); grid-auto-flow: column; grid-auto-columns: 52px; }
+  #tgt-btn { position: static; align-self: end; }
+  body.fighting #hp-hud { top: auto; bottom: calc(158px + var(--sab)); }
+}
+#skill-btns { pointer-events: none; } #skill-btns .skill { pointer-events: auto; }

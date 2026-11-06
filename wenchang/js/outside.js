@@ -352,20 +352,26 @@ export class Outside {
 
   // ---------- 各區的怪物：等級依區域、一般型／進化型 ----------
   // zi：第幾區；at：指定位置（魔王叫小怪時）
-  spawnMonster(zi = 0, at = null) {
-    const Z = ZONES[zi];
+  spawnMonster(zi = 0, at = null, opt = {}) {
+    const Z = ZONES[zi], boss = !!opt.boss;
     let x, z, tries = 0;
     if (at) { x = at.x; z = at.z; }
     else do { x = (Math.random() - 0.5) * (zi ? WORLD.FW * 2 - 8 : 58); z = Z.z0 + 3 + Math.random() * (Z.z1 - Z.z0 - 5); } while (!inZone(x, z, zi) && ++tries < 40);
-    const lv = Z.lv[0] + Math.floor(Math.random() * (Z.lv[1] - Z.lv[0] + 1)), evo = lv >= Z.lv[0] + Math.ceil((Z.lv[1] - Z.lv[0]) * 0.6);
-    const sp = SPECIES[Z.el][evo ? 1 : 0], st = monStats(lv), size = (evo ? 1.35 : 1) * (0.92 + (lv - Z.lv[0]) / Math.max(1, Z.lv[1] - Z.lv[0]) * 0.16);
+    const lv = boss ? Z.lv[1] + 2 : Z.lv[0] + Math.floor(Math.random() * (Z.lv[1] - Z.lv[0] + 1)), evo = boss || lv >= Z.lv[0] + Math.ceil((Z.lv[1] - Z.lv[0]) * 0.6);
+    const sp = SPECIES[Z.el][evo ? 1 : 0], st = monStats(lv), size = boss ? 2.3 : (evo ? 1.35 : 1) * (0.92 + (lv - Z.lv[0]) / Math.max(1, Z.lv[1] - Z.lv[0]) * 0.16);
+    // 頭目：血量 7 倍、攻擊 1.35 倍、經驗 6 倍、金幣 8 倍
+    if (boss) { st.hp *= 7; st.atk = Math.round(st.atk * 1.35); st.xp *= 6; st.coin *= 8; }
     const g = new THREE.Group(); g.position.set(x, 0, z); this.S.add(g);
     const model = buildMonster(Z.el, evo); model.g.scale.setScalar(size); g.add(model.g);
     const top = (Z.el === 'grass' ? 1.45 : 1.25) * size;
     const hc = document.createElement('canvas'); hc.width = 128; hc.height = 20; const ht = new THREE.CanvasTexture(hc); ht.colorSpace = THREE.SRGBColorSpace;
-    const hpBar = new THREE.Sprite(new THREE.SpriteMaterial({ map: ht, depthWrite: false })); hpBar.scale.set(0.9, 0.14, 1); hpBar.position.y = top + 0.12; g.add(hpBar);
+    const hpBar = new THREE.Sprite(new THREE.SpriteMaterial({ map: ht, depthWrite: false })); hpBar.scale.set(boss ? 1.8 : 0.9, boss ? 0.22 : 0.14, 1); hpBar.position.y = top + 0.12; g.add(hpBar);
     const mats = []; model.g.traverse(o => { if (o.isMesh && o.material?.emissive && !mats.includes(o.material)) { o.material = o.material.clone(); o.material.userData.e0 = o.material.emissive.clone(); mats.push(o.material); } });
-    const m = { g, body: model.g, P: model.P, fxs: model.fxs, sp, el: Z.el, evo, zi, lv, name: sp.name, say: sp.say, x, z, home: { x, z }, tx: x, tz: z, t: Math.random() * 5, ph: Math.random() * 6,
+    if (boss) { const crown = new THREE.Group(); crown.position.y = (Z.el === 'grass' ? 1.12 : Z.el === 'thunder' ? 1.28 : 1.02); const gold = new THREE.MeshToonMaterial({ color: '#ffd23a', emissive: '#6a4a00' });
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.1, 14, 1, true), gold); band.material.side = THREE.DoubleSide; crown.add(band);
+      for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2, sp2 = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 5), gold); sp2.position.set(Math.cos(a) * 0.22, 0.12, Math.sin(a) * 0.22); crown.add(sp2); }
+      model.g.add(crown); const big = zglow(EL_COLOR[Z.el], 4); big.position.y = 0.6; big.material.opacity = 0.45; model.g.add(big); }
+    const m = { g, body: model.g, P: model.P, fxs: model.fxs, sp, el: Z.el, evo, zi, lv, isBoss: boss, name: boss ? `頭目・${sp.name}` : sp.name, say: sp.say, x, z, home: { x, z }, tx: x, tz: z, t: Math.random() * 5, ph: Math.random() * 6,
       alive: true, hp: st.hp, max: st.hp, atk: st.atk, xp: st.xp, coin: st.coin, cd: 1 + Math.random(), wind: 0, stun: 0, angry: 0, chase: false, size, top, hc, ht, mats };
     this.drawHp(m); this.setTag(m);
     this.monsters.push(m); this.t.tapTargets.push([g, () => this.t.emit('tapMonster', m)]);
@@ -376,7 +382,45 @@ export class Outside {
   setTag(m) {
     if (m.tag) m.g.remove(m.tag);
     const d = m.lv - this.playerLv, bg = d <= -6 ? 'rgba(90,90,90,.8)' : d <= 2 ? 'rgba(36,20,14,.82)' : d <= 5 ? 'rgba(190,100,20,.92)' : 'rgba(170,30,30,.94)';
-    m.tag = textSprite(`${d >= 6 ? '☠ ' : ''}Lv${m.lv} ${m.name}`, { w: 320, h: 64, font: 30, sx: 1.5, bg }); m.tag.position.y = m.top + 0.42; m.g.add(m.tag);
+    m.tag = textSprite(`${m.isBoss ? '👑 ' : d >= 6 ? '☠ ' : ''}Lv${m.lv} ${m.name}`, { w: m.isBoss ? 420 : 320, h: 64, font: 30, sx: m.isBoss ? 2.2 : 1.5, bg: m.isBoss ? 'rgba(120,70,10,.94)' : bg }); m.tag.position.y = m.top + 0.42; m.g.add(m.tag);
+  }
+  // 每一區的頭目：放在那一區中間偏左或偏右
+  spawnZoneBoss(zi) {
+    const Z = ZONES[zi], side = zi % 2 ? 1 : -1; let at = null;
+    for (let k = 0; k < 30 && !at; k++) { const x = side * (14 + Math.random() * 16), z = Z.z0 + 6 + Math.random() * (Z.z1 - Z.z0 - 10); if (inZone(x, z, zi)) at = { x, z }; }
+    const m = this.spawnMonster(zi, at || { x: side * 18, z: (Z.z0 + Z.z1) / 2 }, { boss: true }); this.poof(new THREE.Vector3(m.g.position.x, 1, m.g.position.z), EL_COLOR[Z.el]); return m;
+  }
+  // 地面往外擴散的震波圈
+  shockRing(at, r, color = '#ffffff') {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 1, 40), basic(color, { transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.set(at.x, 0.08, at.z); this.S.add(ring);
+    this.t.tween(380, k => { ring.scale.setScalar(0.4 + k * r); ring.material.opacity = 0.85 * (1 - k); }, 0, t => 1 - (1 - t) * (1 - t), () => this.S.remove(ring));
+  }
+  // 考試魔王狂暴時的大範圍震波：先出現紅色範圍 1.2 秒，然後爆開
+  bossShock(r, done) {
+    const b = this.boss.position, fill = new THREE.Mesh(new THREE.CircleGeometry(r, 48), basic('#e8402a', { transparent: true, opacity: 0.12, depthWrite: false })); fill.rotation.x = -Math.PI / 2; fill.position.set(b.x, 0.06, b.z); this.S.add(fill);
+    const edge = new THREE.Mesh(new THREE.RingGeometry(r - 0.25, r, 48), basic('#ff5a3a', { transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false })); edge.rotation.x = -Math.PI / 2; edge.position.set(b.x, 0.07, b.z); this.S.add(edge);
+    this.say({ g: this.boss }, '全部給我重考！', 3.4, 1200);
+    this.t.tween(1200, k => { fill.material.opacity = 0.12 + k * 0.3; fill.scale.setScalar(0.3 + k * 0.7); }, 0, t => t, () => { this.S.remove(fill); this.S.remove(edge); this.shockRing(b, r * 1.1, '#ffd23a'); this.shockRing(b, r * 0.7, '#ff5a3a'); done?.(); });
+  }
+  // 墨龍：一串墨珠往前衝
+  inkDragon(from, f, len) {
+    const ux = Math.sin(f), uz = Math.cos(f);
+    for (let k = 0; k < 14; k++) {
+      const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.42 - k * 0.02, 10, 8), basic(k ? '#1a1a2a' : '#2a2a4a', { transparent: true })); this.S.add(s2);
+      this.t.tween(520, t => { const d = t * len; s2.position.set(from.x + ux * d + Math.sin(t * 9 + k) * 0.5 * (1 - t), 1 + Math.sin(t * 6 + k * 0.6) * 0.5, from.z + uz * d + Math.cos(t * 9 + k) * 0.5 * (1 - t)); s2.material.opacity = 1 - t * 0.6; }, k * 30, t => t, () => { this.S.remove(s2); });
+    }
+    setTimeout(() => this.inkSplash({ x: from.x + ux * len, z: from.z + uz * len }, 2.5), 560);
+  }
+  // 技能光環：跟著角色、時間到消失（strong：金鐘罩那種很亮的）
+  aura(root, color, ms, strong) {
+    const s2 = zglow(color, strong ? 3.6 : 2.6); s2.position.y = 1; s2.material.opacity = strong ? 0.75 : 0.5; root.add(s2);
+    const t0 = performance.now(), tick = () => { const k = (performance.now() - t0) / ms; if (k >= 1 || !s2.parent) { root.remove(s2); return; } s2.material.opacity = (strong ? 0.75 : 0.5) * (k > 0.8 ? (1 - k) * 5 : 1) * (0.85 + Math.sin(performance.now() / 120) * 0.15); requestAnimationFrame(tick); }; tick();
+  }
+  // 目前要打的目標腳下有紅圈（鎖定時是金色）
+  setTargetRing(pos, locked, r = 0.9) {
+    if (!this.tring) { this.tring = new THREE.Mesh(new THREE.RingGeometry(0.82, 1, 36), basic('#ff4a3a', { transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false })); this.tring.rotation.x = -Math.PI / 2; this.S.add(this.tring); }
+    const t = this.tring; t.visible = !!pos; if (!pos) return;
+    t.position.set(pos.x, 0.08, pos.z); t.scale.setScalar(r * (1 + Math.sin(performance.now() / 160) * 0.06)); t.material.color.set(locked ? '#ffd23a' : '#ff4a3a');
   }
   refreshTags(lv) { this.playerLv = lv; this.monsters.forEach(m => m.alive && this.setTag(m)); }
   nearestMonster(x, z, max = 99) {
@@ -418,12 +462,12 @@ export class Outside {
     m.mats.forEach(mt => mt.emissive.set('#ffffff')); clearTimeout(m.flashT); m.flashT = setTimeout(() => m.mats.forEach(mt => mt.emissive.copy(mt.userData.e0)), crit ? 140 : 90);
     const b = m.body, s0 = m.size, k0 = crit ? 0.42 : 0.28; this.t.tween(crit ? 320 : 240, k => { const q = Math.sin(k * Math.PI) * (1 - k * 0.3); b.scale.set(s0 * (1 + q * k0), s0 * (1 - q * k0), s0 * (1 + q * k0)); }, 0, t => t, () => b.scale.setScalar(s0));
     const p = m.g.position;
-    if (from) { const dx = p.x - from.x, dz = p.z - from.z, d = Math.hypot(dx, dz) || 1, push = crit ? 1.1 : 0.6, sx = p.x, sz = p.z; this.t.tween(160, k => { const nx = sx + dx / d * push * k, nz = sz + dz / d * push * k; if (inZone(nx, nz, m.zi) || m.zi === 0) { p.x = nx; p.z = nz; } }, 0, t => 1 - (1 - t) * (1 - t)); }
-    m.stun = crit ? 0.5 : 0.28; m.wind = 0; m.angry = 8;
+    if (from) { const dx = p.x - from.x, dz = p.z - from.z, d = Math.hypot(dx, dz) || 1, push = (crit ? 1.1 : 0.6) * (m.isBoss ? 0.25 : 1), sx = p.x, sz = p.z; this.t.tween(160, k => { const nx = sx + dx / d * push * k, nz = sz + dz / d * push * k; if (inZone(nx, nz, m.zi) || m.zi === 0) { p.x = nx; p.z = nz; } }, 0, t => 1 - (1 - t) * (1 - t)); }
+    m.stun = (crit ? 0.5 : 0.28) * (m.isBoss ? 0.4 : 1); if (!m.isBoss) m.wind = 0; m.angry = 8;
     this.hitBurst(new THREE.Vector3(p.x, m.top * 0.5, p.z), m.el, crit);
     if (m.hp > 0) {
       if (Math.random() < 0.45) this.say(m, m.sp.hit[(m.max - m.hp) % m.sp.hit.length], m.top + 0.75);
-      if (!m.zi) { m.tx = p.x + (Math.random() - 0.5) * 6; m.tz = p.z + (Math.random() - 0.5) * 6; } // 草原的怪被打會逃跑
+      if (!m.zi && !m.isBoss) { m.tx = p.x + (Math.random() - 0.5) * 6; m.tz = p.z + (Math.random() - 0.5) * 6; } // 草原的怪被打會逃跑（頭目不會）
       return false;
     }
     return true;
@@ -450,7 +494,8 @@ export class Outside {
       const p = g.position.clone(); p.y = 0.5;
       this.S.remove(g); this.monsters = this.monsters.filter(x => x !== m); this.t.tapTargets = this.t.tapTargets.filter(tt => tt[0] !== g);
       this.poof(p, K.color); this.absorb(p, toward);
-      if (!m.summoned) setTimeout(() => this.spawnMonster(m.zi), 6000 + Math.random() * 6000);
+      if (!m.summoned && !m.isBoss) setTimeout(() => this.spawnMonster(m.zi), 6000 + Math.random() * 6000);
+      if (m.slamRing) { this.S.remove(m.slamRing); m.slamRing = null; }
     });
   }
   poof(p, color) {
@@ -646,22 +691,24 @@ export class Outside {
       const vis = dpl < 62; if (m.g.visible !== vis) m.g.visible = vis; if (!vis) continue;
       m.t += dt; m.angry = Math.max(0, m.angry - dt);
       if (m.stun > 0) { m.stun -= dt; continue; }
-      const home = Math.hypot(p.x - m.home.x, p.z - m.home.z), hostile = (m.zi > 0 || m.summoned) && !safe;
-      if (hostile && pl && (dpl < (m.chase ? 11 : 6.5) || (m.angry > 0 && dpl < 14)) && home < 20) m.chase = true; else if (m.chase && (dpl > 13 || home > 22 || safe)) { m.chase = false; m.tx = m.home.x; m.tz = m.home.z; m.wind = 0; }
+      const home = Math.hypot(p.x - m.home.x, p.z - m.home.z), hostile = (m.zi > 0 || m.summoned || (m.isBoss && m.angry > 0)) && !safe, leash = m.isBoss ? 28 : 20;
+      if (hostile && pl && (dpl < (m.chase ? 11 : 6.5) || (m.angry > 0 && dpl < 14)) && home < leash) m.chase = true; else if (m.chase && (dpl > (m.isBoss ? 16 : 13) || home > leash + 2 || safe || !hostile)) { m.chase = false; m.tx = m.home.x; m.tz = m.home.z; m.wind = 0; }
       let speed = 0.8, face = null;
       if (m.chase) {
         face = Math.atan2(pl.x - p.x, pl.z - p.z);
         if (m.wind > 0) {           // 蓄力：身體往下壓、發紅光，0.5 秒後撲上來
-          m.wind -= dt; const k = 1 - m.wind / 0.5; m.body.scale.set(m.size * (1 + k * 0.18), m.size * (1 - k * 0.22), m.size * (1 + k * 0.18));
+          const W = m.isBoss ? 0.95 : 0.5; m.wind -= dt; const k = Math.min(1, 1 - m.wind / W); m.body.scale.set(m.size * (1 + k * 0.18), m.size * (1 - k * 0.22), m.size * (1 + k * 0.18));
+          if (m.isBoss) { if (!m.slamRing) { m.slamRing = new THREE.Mesh(new THREE.RingGeometry(0.2, 3.1, 40), basic('#e8402a', { transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false })); m.slamRing.rotation.x = -Math.PI / 2; this.S.add(m.slamRing); } m.slamRing.position.set(p.x, 0.07, p.z); m.slamRing.material.opacity = 0.18 + k * 0.32; }
           m.mats.forEach(mt => mt.emissive.setRGB(0.25 + k * 0.45, 0.02, 0)); speed = 0;
           if (m.wind <= 0) {
             m.mats.forEach(mt => mt.emissive.copy(mt.userData.e0)); m.body.scale.setScalar(m.size);
             const sx = p.x, sz = p.z, ux = Math.sin(face), uz = Math.cos(face); this.t.tween(180, k => { const q = Math.sin(k * Math.PI); p.x = sx + ux * q * 0.7; p.z = sz + uz * q * 0.7; p.y = q * 0.35; });
-            setTimeout(() => { if (m.alive && pl && Math.hypot(pl.x - p.x, pl.z - p.z) < 2.1) this.onMonsterHit?.(m); }, 90);
-            m.cd = 1.5 + Math.random() * 0.8;
+            if (m.isBoss) { if (m.slamRing) { this.S.remove(m.slamRing); m.slamRing = null; } this.shockRing(p, 3.2, EL_COLOR[m.el]); this.t.shake?.(0.18, 0.3); }
+            setTimeout(() => { if (m.alive && pl && Math.hypot(pl.x - p.x, pl.z - p.z) < (m.isBoss ? 3.3 : 2.1)) this.onMonsterHit?.(m, m.isBoss ? 1.5 : 1); }, 90);
+            m.cd = m.isBoss ? 2.2 + Math.random() : 1.5 + Math.random() * 0.8;
           }
-        } else if (dpl > 1.35) { m.tx = pl.x; m.tz = pl.z; speed = 1.7 + m.zi * 0.12; }
-        else { speed = 0; m.cd -= dt; if (m.cd <= 0) m.wind = 0.5; }
+        } else if (dpl > (m.isBoss ? 2.2 : 1.35)) { m.tx = pl.x; m.tz = pl.z; speed = (1.7 + m.zi * 0.12) * (m.isBoss ? 0.85 : 1); m.cd -= dt * 0.5; }
+        else { speed = 0; m.cd -= dt; if (m.cd <= 0) m.wind = m.isBoss ? 0.95 : 0.5; }
       } else if (Math.hypot(m.tx - p.x, m.tz - p.z) < 0.2 || m.t > 6) { m.t = 0; for (let k = 0; k < 10; k++) { const a = Math.random() * 6.28, r = 2 + Math.random() * 4, nx = p.x + Math.cos(a) * r, nz = p.z + Math.sin(a) * r; if (inZone(nx, nz, m.zi) && Math.hypot(nx - m.home.x, nz - m.home.z) < 12) { m.tx = nx; m.tz = nz; break; } } }
       const dx = m.tx - p.x, dz = m.tz - p.z, d = Math.hypot(dx, dz);
       if (speed && d > 0.05) { const st = Math.min(d, dt * speed); p.x += dx / d * st; p.z += dz / d * st; face = face ?? Math.atan2(dx, dz); }

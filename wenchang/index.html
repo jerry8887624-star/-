@@ -116,7 +116,8 @@ addEventListener('load', function () {
   <div id="combat" hidden>
     <div class="lv-info"><b id="lv-badge">Lv.1</b><span class="lv-track"><i id="lv-bar"></i></span><small id="atk-power">攻擊 1</small></div>
     <div id="skill-btns"></div>
-    <button type="button" id="atk-btn" aria-label="攻擊（丟毛筆）"><i aria-hidden="true">✒️</i><span>攻擊</span></button>
+    <button type="button" id="atk-btn" aria-label="攻擊（丟毛筆，按住可以連打）"><i aria-hidden="true">✒️</i><span>攻擊</span></button>
+    <button type="button" id="tgt-btn" aria-label="切換目標">🎯<small>換目標</small></button>
   </div>
   <button type="button" id="near-btn" hidden></button>
   <div id="toast" role="status" aria-live="polite"></div>
@@ -478,6 +479,14 @@ addEventListener('load', function () {
 <div id="flash" hidden></div>
 <div id="hit-flash" aria-hidden="true"></div>
 <div id="hurt-flash" aria-hidden="true"></div>
+<div id="lowhp" aria-hidden="true"></div>
+<!-- 技能樹、練功任務、稱號 -->
+<dialog id="skill-dlg" class="skill-dlg">
+  <h2>✦ 技能與修練</h2>
+  <div class="seg" id="sk-tabs" role="tablist"><button type="button" role="tab" data-tab="tree" aria-selected="true">技能樹</button><button type="button" role="tab" data-tab="train" aria-selected="false">練功任務</button><button type="button" role="tab" data-tab="rank" aria-selected="false">稱號</button></div>
+  <div id="sk-body"></div>
+  <div class="row"><button type="button" data-close>關閉</button></div>
+</dialog>
 <!-- 隨時拍照：拍照模式的工具列 -->
 <div id="cam-ui" hidden>
   <div class="cam-top"><button type="button" id="cam-exit">✕ 離開拍照</button><span>拖曳畫面轉角度・兩指或滾輪拉近拉遠</span></div>
@@ -491,7 +500,7 @@ addEventListener('load', function () {
   <button type="button" id="cam-shot" aria-label="按快門"><i></i></button>
 </div>
 <!-- 0.26 練功區：體力、連擊、區域提示 -->
-<div id="hp-hud" hidden><b aria-hidden="true">❤️</b><span class="hp-track" role="img" aria-label="體力"><i id="hp-bar"></i></span><small id="hp-num">60/60</small><button type="button" id="tea-use" aria-label="喝茶包回體力">🍵<em id="tea-n">0</em></button><span id="coin-num">🪙 0</span></div>
+<div id="hp-hud" hidden><b aria-hidden="true">❤️</b><span class="hp-track" role="img" aria-label="體力"><i id="hp-bar"></i></span><small id="hp-num">60/60</small><button type="button" id="tea-use" aria-label="喝茶包回體力">🍵<em id="tea-n">0</em></button><button type="button" id="sk-open" aria-label="技能、練功任務、稱號">✦<span>技能</span><em id="sk-dot" hidden></em></button><span id="coin-num">🪙 0</span></div>
 <div id="combo" hidden aria-hidden="true"></div>
 <div id="zone-banner" hidden aria-live="polite"><b></b><span></span><small></small></div>
 <!-- 文具鋪 -->

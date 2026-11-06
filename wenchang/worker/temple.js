@@ -20,7 +20,8 @@ const LAMP_DAYS = 7;        // 光明燈亮幾天
 const ARENA = { x: 0, z: 51.5, r: 3.4 }; // 跟 js/zones.js 的擂台位置一樣
 const GAP = { spar: 380, cheer: 700, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500, offer: 10000, sow: 5000, water: 2500, sky: 8000, hit: 450 };
 const PLOT_COUNT = 48;   // 金榜樹林的樹位
-const BOSS_HP = 120;     // 考試魔王的血量（每兩小時出現一隻）
+const BOSS_HP = 300;     // 考試魔王的基本血量（每兩小時出現一隻）；每多一位來打的考生再加 BOSS_PER
+const BOSS_PER = 80;
 const BOSS_EVERY = 2 * 3600e3;
 // 台灣時間的日期與週（週一開始），排行榜用
 const twNow = () => new Date(Date.now() + 8 * 3600e3);
@@ -211,7 +212,8 @@ export class Temple {
       // 打考試魔王：大家共用一條血，台灣時間每天復活
       if (!this.allow(p, 'hit')) return;
       const b = this.bossToday(); if (b.hp <= 0) return send(p, { t: 'boss', ...this.bossState() });
-      b.hp -= int(m.d, 1, 30); if (p.uid && !b.hit.includes(p.uid)) b.hit.push(p.uid);
+      if (p.uid && !b.hit.includes(p.uid)) { b.hit.push(p.uid); if (b.hit.length > 1) { b.max = (b.max || BOSS_HP) + BOSS_PER; b.hp += BOSS_PER; } } // 人越多血越厚
+      b.hp -= int(m.d, 1, 30);
       if (b.hp <= 0) {
         const ids = [...this.players.values()].filter(q => q.uid && b.hit.includes(q.uid)).map(q => q.id);
         this.broadcast({ t: 'boss', ...this.bossState(), beat: 1, hitters: ids, by: p.id });
@@ -295,8 +297,8 @@ export class Temple {
   publicTrees(p) { const d = dayKey(); return this.trees.map((t, i) => t && { i, n: t.n, s: t.s, wt: t.d === d ? 1 : 0, mine: p.uid && t.u === p.uid ? 1 : 0 }).filter(Boolean); }
   // 考試魔王每兩小時一隻（台灣時間 0、2、4…點）；被打倒就消失，等下一個時段再出現
   bossSlot() { return Math.floor((Date.now() + 8 * 3600e3) / BOSS_EVERY); }
-  bossToday() { const d = String(this.bossSlot()); if (this.boss.d !== d) this.boss = { d, hp: BOSS_HP, hit: [] }; return this.boss; }
-  bossState() { const b = this.bossToday(); return { hp: Math.max(0, b.hp), max: BOSS_HP, next: (this.bossSlot() + 1) * BOSS_EVERY - 8 * 3600e3 }; }
+  bossToday() { const d = String(this.bossSlot()); if (this.boss.d !== d) this.boss = { d, hp: BOSS_HP, max: BOSS_HP, hit: [] }; return this.boss; }
+  bossState() { const b = this.bossToday(); return { hp: Math.max(0, b.hp), max: b.max || BOSS_HP, next: (this.bossSlot() + 1) * BOSS_EVERY - 8 * 3600e3 }; }
 
   publicOffers(p) { return this.offers.map(e => ({ o: e.o, tk: e.tk, mine: p.uid && e.u === p.uid ? 1 : 0 })); }
 
