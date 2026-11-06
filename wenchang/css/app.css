@@ -738,3 +738,12 @@ body.camera-mode #hp-hud, body.camera-mode #combo, body.camera-mode #zone-banner
   #cam-ui .cam-opts { left: auto; right: calc(110px + env(safe-area-inset-right, 0px)); transform: none; bottom: calc(14px + var(--sab)); max-width: 60vw; justify-content: flex-end; }
   #cam-shot { left: auto; right: calc(16px + env(safe-area-inset-right, 0px)); top: 50%; bottom: auto; transform: translateY(-50%); }
 }
+
+/* ---------- 0.27.2 橫向畫面：地圖鍵不再跟攻擊鍵疊在一起；打怪時收起下方工具列 ---------- */
+@media (orientation: landscape) and (max-height: 560px) {
+  #map-btn { top: calc(64px + var(--sat)); bottom: auto; right: calc(12px + env(safe-area-inset-right, 0px)); }
+  #dock { left: calc(136px + env(safe-area-inset-left, 0px)); transform: none; max-width: calc(100vw - 150px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); overflow-x: auto; }
+  body.fighting #dock, body.fighting #next { display: none; }
+  #combat { bottom: calc(14px + var(--sab)); right: calc(16px + env(safe-area-inset-right, 0px)); }
+  body.fighting #near-btn { bottom: calc(110px + var(--sab)); }
+}
