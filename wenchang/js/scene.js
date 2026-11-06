@@ -13,7 +13,7 @@ const lam = (c, extra = {}) => new THREE.MeshToonMaterial({ color: c, gradientMa
 const basic = (c, extra = {}) => new THREE.MeshBasicMaterial({ color: c, ...extra });
 
 // 廟的尺寸（公尺）：正殿寬 30、深 21、高 8，約是第一版的 5 倍面積
-export const L = { HW: 15, HF: -1, HB: -22, HH: 8, CW: 20, GZ: 20, CZ: 6, FW: 46, FZ: 56 }; // FW、FZ：廟門外樹林的寬度與最遠處
+export const L = { HW: 15, HF: -1, HB: -22, HH: 8, CW: 20, GZ: 20, CZ: 6, FW: 56, FZ: 152 }; // FW、FZ：廟門外樹林的寬度與最遠處
 const ALTAR_Z = -18.3, CUSHION_Z = -15.3, WC_CENSER_Z = -16.85; // 供桌、主拜墊、文昌爐
 const JINLU = { x: 12, z: 13 }; // 金爐
 
@@ -92,7 +92,7 @@ const BOXES = [
 const FRONT_PILLARS = [-14.2, -8.5, -3.4, 3.4, 8.5, 14.2];
 const INNER_PILLARS = [];
 [-11.8, 11.8].forEach(x => [-6, -12, -18].forEach(z => INNER_PILLARS.push([x, z])));
-const CIRCLES = [[-10, 14.4, 1.9], [16, 45, 4.3], [22, 24.5, 0.35], [27, 31, 0.35], [23, 51.5, 0.35], [-2.95, -20.2, 0.3], [2.95, -20.2, 0.3], [0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
+export const CIRCLES = [[-10, 14.4, 1.9], [16, 45, 4.3], [22, 24.5, 0.35], [27, 31, 0.35], [23, 51.5, 0.35], [-2.95, -20.2, 0.3], [2.95, -20.2, 0.3], [0, L.CZ, 1.25], [0, WC_CENSER_Z, 0.62], [JINLU.x, JINLU.z, 1.35], ...FRONT_PILLARS.map(x => [x, L.HF, 0.35]), ...INNER_PILLARS.map(([x, z]) => [x, z, 0.45]), [-2.9, L.GZ, 0.45], [2.9, L.GZ, 0.45]];
 
 function canvasTex(w, h, draw) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
@@ -154,7 +154,7 @@ export class Temple {
     const S = this.scene;
     this.hemi = new THREE.HemisphereLight(0xffffff, 0x8a7a5a, 1.5); S.add(this.hemi);
     this.sun = new THREE.DirectionalLight(0xfff2d8, 1.9); this.sun.position.set(-8, 14, 10); S.add(this.sun);
-    S.fog = new THREE.Fog(0xcfeaff, 60, 230); // 遠一點也看得到山
+    S.fog = new THREE.Fog(0xcfeaff, 70, 260); // 遠一點也看得到山
 
     // 地面：外圍石地＋中庭石板＋殿內紅磚
     const outer = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), lam('#8aaa6a')); outer.rotation.x = -Math.PI / 2; outer.position.y = -0.02; S.add(outer);
@@ -1107,6 +1107,7 @@ export class Temple {
     return { x: (p.x + 1) / 2 * innerWidth, y: (1 - p.y) / 2 * innerHeight, vis: p.z < 1 && p.z > -1 };
   }
 
+  hitStop(ms = 50) { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; this.stopUntil = Math.max(this.stopUntil || 0, performance.now() + ms); }
   shake(amt = 0.15, sec = 0.25) { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; this.shakeAmt = amt; this.shakeT = this.shakeDur = sec; }
   footprint(p, f, side) {
     if (this.feet.length > 80) return;
@@ -1128,7 +1129,9 @@ export class Temple {
   }
 
   update() {
-    const dt = Math.min(0.05, this.clock.getDelta());
+    let dt = Math.min(0.05, this.clock.getDelta());
+    // 頓幀：打中的瞬間畫面幾乎停住一下，打擊感比較紮實
+    if (performance.now() < (this.stopUntil || 0)) dt *= 0.04;
     // 鍵盤走動
     const k = this.keys, P = this.player;
     // 鍵盤或方向搖桿：以鏡頭方向為「前」
