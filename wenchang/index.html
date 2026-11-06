@@ -474,6 +474,19 @@ addEventListener('load', function () {
 <div id="photo-count" hidden aria-live="assertive"></div>
 <div id="flash" hidden></div>
 <div id="hit-flash" aria-hidden="true"></div>
+<div id="hurt-flash" aria-hidden="true"></div>
+<!-- 0.26 練功區：體力、連擊、區域提示 -->
+<div id="hp-hud" hidden><b aria-hidden="true">❤️</b><span class="hp-track" role="img" aria-label="體力"><i id="hp-bar"></i></span><small id="hp-num">60/60</small><button type="button" id="tea-use" aria-label="喝茶包回體力">🍵<em id="tea-n">0</em></button><span id="coin-num">🪙 0</span></div>
+<div id="combo" hidden aria-hidden="true"></div>
+<div id="zone-banner" hidden aria-live="polite"><b></b><span></span><small></small></div>
+<!-- 文具鋪 -->
+<dialog id="shop-dlg" class="shop-dlg">
+  <h2>✒️ 文具鋪</h2>
+  <p class="say">打怪拿到的金幣，可以換更好的筆（打怪攻擊力變高），也可以買茶包在外面補體力。</p>
+  <p id="shop-coins" class="shop-coins"></p>
+  <div id="shop-list" class="shop-list"></div>
+  <div class="row"><button type="button" data-close>關閉</button></div>
+</dialog>
 
 <!-- 讀書角專注計時 -->
 <section id="study-ui" class="card-pop" hidden aria-label="專注計時">

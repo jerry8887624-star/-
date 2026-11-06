@@ -17,7 +17,8 @@ const MAX_CARDS = 60;
 const MAX_BANG = 60;        // 還願紅榜最多保留幾筆
 const MAX_LAMPS = 200;      // 光明燈最多幾盞
 const LAMP_DAYS = 7;        // 光明燈亮幾天
-const GAP = { cheer: 700, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500, offer: 10000, sow: 5000, water: 2500, sky: 8000, hit: 450 };
+const ARENA = { x: 0, z: 51.5, r: 3.4 }; // 跟 js/zones.js 的擂台位置一樣
+const GAP = { spar: 380, cheer: 700, emote: 1000, card: 30000, msg: 1000, bless: 1200, bang: 60000, lamp: 20000, wish: 4000, study: 2000, board: 1500, offer: 10000, sow: 5000, water: 2500, sky: 8000, hit: 450 };
 const PLOT_COUNT = 48;   // 金榜樹林的樹位
 const BOSS_HP = 120;     // 考試魔王的血量（每兩小時出現一隻）
 const BOSS_EVERY = 2 * 3600e3;
@@ -118,7 +119,8 @@ export class Temple {
     } else if (m.t === 'name') {
       const n = checkName(m.name); if (n.ok) p.name = n.text; this.syncRec(p);
     } else if (m.t === 'pos') {
-      p.x = num(m.x, -60, 60); p.z = num(m.z, -30, 70); // 廟外樹林與摩天輪都在這個範圍內 p.f = num(m.f, -10, 10); p.h = m.h ? 1 : 0; p.b = m.b ? 1 : 0; p.k = m.k ? 1 : 0;
+      // 廟外五個練功區一路延伸到雷雲山頂（z 約 152）
+      p.x = num(m.x, -60, 60); p.z = num(m.z, -30, 160); p.f = num(m.f, -10, 10); p.h = m.h ? 1 : 0; p.b = m.b ? 1 : 0; p.k = m.k ? 1 : 0;
     } else if (m.t === 'step') {
       const s = int(m.s, 0, STEP_COUNT);
       if (s >= STEP_COUNT && p.s < STEP_COUNT) this.broadcast({ t: 'feed', from: p.id, k: 'done' });
@@ -198,6 +200,13 @@ export class Temple {
       // 放天燈：大家都看得到一盞燈從他身邊飛上天（心願不傳）
       if (!this.allow(p, 'sky')) return;
       this.broadcast({ t: 'sky', from: p.id, x: p.x, z: p.z });
+    } else if (m.t === 'spar') {
+      // 擂台切磋：兩個人都要站在擂台裡；只轉送「打了誰、多少」，不影響真正的等級
+      if (!this.allow(p, 'spar')) return;
+      const to = int(m.to, 0, 1e9), q = this.byId.get(to);
+      const inRing = o => o && Math.hypot((o.x || 0) - ARENA.x, (o.z || 0) - ARENA.z) < ARENA.r + 0.8;
+      if (!inRing(p) || !inRing(q)) return;
+      this.broadcast({ t: 'spar', from: p.id, to, d: int(m.d, 0, 40), c: m.c ? 1 : 0, ko: m.ko ? 1 : 0 });
     } else if (m.t === 'hit') {
       // 打考試魔王：大家共用一條血，台灣時間每天復活
       if (!this.allow(p, 'hit')) return;

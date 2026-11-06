@@ -1,6 +1,8 @@
 // 廟門外的樹林：金榜樹林、天燈廣場、錦鯉池、每日尋寶、拖延怪與考試魔王
 import * as THREE from '../vendor/three.module.min.js';
-import { L } from './scene.js';
+import { L, CIRCLES } from './scene.js';
+import { ZONES, WORLD, zoneAt, buildZones, tickZones, buildMonster, SPECIES, EL_COLOR, monStats, ZONE_COLLIDERS, CAM_POSTS, BOSS_HOME, TEAS, STELES, SHOP, DUMMY, ARENA, glow as zglow } from './zones.js';
+export { ZONES, zoneAt, STELES, TEAS, SHOP, DUMMY, ARENA, SPECIES };
 
 // 卡通（賽璐璐）明暗：三段色階，整個場景跟人物同一種畫風
 let _grad;
@@ -47,7 +49,7 @@ const glowSprite = (color = '#ffd76a', size = 1) => { const s = new THREE.Sprite
 
 // 位置
 export const KOI = { x: 16, z: 45, r: 4 };
-export const BOSS_AT = { x: 0, z: 47.5 };
+export const BOSS_AT = BOSS_HOME; // 0.26 起：考試魔王住在最深處的雷雲山頂
 // 摩天輪：中心在 (x, z)，輪軸高 hub、半徑 r、12 個車廂、轉一圈 period 秒
 export const WHEEL = { x: 37, z: 41, hub: 13.5, r: 11, n: 12, period: 120 };
 // 車廂半徑（可以在裡面走動）、車廂中心離輪子的距離
@@ -59,14 +61,17 @@ export const OUT_SPOTS = {
   sky: { x: 14, z: 30, f: Math.PI }, // 面向廟放燈：鏡頭在廣場這一側，不會卡在樹後面
   koi: { x: 16, z: 39.6, f: 0 },
   wheel: { x: 37, z: 36.5, f: 0 },
-  boss: { x: 0, z: 42.5, f: 0 },
+  boss: { x: 0, z: BOSS_HOME.z - 7, f: 0 },
   forest: { x: 0, z: 34, f: 0 },
 };
 export const OUT_MARKS = [
   { id: 'grove', name: '金榜樹林', pos: [-17, 3.4, 23.2] },
   { id: 'sky', name: '天燈廣場', pos: [14, 3.2, 27] },
   { id: 'koi', name: '錦鯉池', pos: [16, 2.6, 45] },
-  { id: 'boss', name: '考試魔王', pos: [0, 4.8, 47.5] },
+  { id: 'boss', name: '考試魔王', pos: [0, 4.8, BOSS_HOME.z] },
+  { id: 'shop', name: '文具鋪', pos: [SHOP.x, 4.4, SHOP.z] },
+  { id: 'dummy', name: '木人樁', pos: [DUMMY.x, 3.4, DUMMY.z] },
+  { id: 'arena', name: '擂台', pos: [ARENA.x, 3, ARENA.z] },
   { id: 'wheel', name: '摩天輪', pos: [37, 27, 41] },
 ];
 export const TREASURE_KINDS = [{ k: 'brush', name: '毛筆' }, { k: 'ink', name: '墨條' }, { k: 'paper', name: '宣紙' }, { k: 'stone', name: '硯台' }, { k: 'scroll', name: '書卷' }];
@@ -80,25 +85,32 @@ export const MONSTER_KINDS = [
   { name: '瞌睡蟲', color: '#7ac86a', hp: 2, say: '好睏喔…', hit: ['呼…嗯？', '再睡五分鐘…'], bye: '醒了醒了！' },
 ];
 export const BOSS_LINES = ['這題你不會吧？', '時間只剩五分鐘！', '選擇題全部選 C？', '我還有附加題！', '哼，有兩下子', '畫卡畫歪了吧？'];
-const inArea = (x, z) => x > -28 && x < 28 && z > L.GZ + 2.5 && z < L.FZ - 1 && Math.hypot(x - KOI.x, z - KOI.z) > KOI.r + 1.2 && Math.hypot(x - BOSS_AT.x, z - BOSS_AT.z) > 3;
+// 怪物能走動的範圍：自己那一區裡面，避開錦鯉池、摩天輪、文具鋪、擂台、茶亭和區域入口（牌樓前後）
+const AVOID = [[KOI.x, KOI.z, KOI.r + 1.2], [37, 41, 8], [14, 30, 4.5], [SHOP.x, SHOP.z, 3.5], [ARENA.x, ARENA.z, ARENA.r + 1], [DUMMY.x, DUMMY.z, 1.5], ...TEAS.map(t => [t.x, t.z, 4.5]), ...STELES.map(s => [s.x, s.z, 2])];
+const inZone = (x, z, zi) => { const Z = ZONES[zi], lim = zi ? WORLD.FW - 3 : 30; return x > -lim && x < lim && z > Z.z0 + (zi ? 3 : 2.5) && z < Z.z1 - 2 && !AVOID.some(([ax, az, r]) => Math.hypot(x - ax, z - az) < r) && Math.hypot(x - BOSS_HOME.x, z - BOSS_HOME.z) > 6; };
+const inArea = (x, z) => inZone(x, z, Math.max(0, zoneAt(z)));
+// 每區怪物數量
+const ZONE_COUNT = [7, 5, 5, 5, 5];
 
 export class Outside {
   constructor(t) {
     this.t = t; this.S = t.scene; this.time = 0;
     this.trees = []; this.lanterns = []; this.fish = []; this.food = null; this.monsters = []; this.treasures = []; this.fx = [];
-    this.buildLand(); this.buildGrove(); this.buildSky(); this.buildKoi(); this.buildBoss(); this.buildWheel(); this.buildFar();
-    for (let i = 0; i < 6; i++) this.spawnMonster();
+    this.playerLv = 1; this.steleOn = new Set();
+    this.buildLand(); buildZones(this); this.buildGrove(); this.buildSky(); this.buildKoi(); this.buildBoss(); this.buildWheel(); this.buildFar();
+    CIRCLES.push(...ZONE_COLLIDERS); // 區域裡的石頭、竹子、柱子不能穿過去
+    ZONES.forEach((Z, zi) => { for (let i = 0; i < ZONE_COUNT[zi]; i++) this.spawnMonster(zi); });
     t.updaters.push(dt => this.update(dt));
     // 鏡頭不要鑽進樹冠裡
     // 鏡頭到角色之間（不只鏡頭那一點）碰到樹冠就拉近，才不會整個畫面被一棵樹擋住
-    const hitAt = (x0, y0, z0) => z0 > L.GZ && y0 < 6.5 && this.treeSpots.some(([x, z, r]) => Math.hypot(x0 - x, z0 - z) < r + 0.4);
+    const hitAt = (x0, y0, z0) => z0 > L.GZ && ((y0 < 6.5 && this.treeSpots.some(([x, z, r]) => Math.hypot(x0 - x, z0 - z) < r + 0.4)) || (y0 < 8 && CAM_POSTS.some(([x, z, r]) => Math.hypot(x0 - x, z0 - z) < r + 0.35)));
     t.camHit = (v, pp) => { if (!pp) return hitAt(v.x, v.y, v.z); for (let k = 0.35; k <= 1.001; k += 0.13) if (hitAt(pp.x + (v.x - pp.x) * k, pp.y + 1.2 + (v.y - pp.y - 1.2) * k, pp.z + (v.z - pp.z) * k)) return true; return false; };
   }
 
   // ---------- 地面、步道、四周的樹 ----------
   buildLand() {
-    const S = this.S, z0 = L.GZ + 0.5, depth = L.FZ - z0 + 2;
-    const grass = new THREE.Mesh(new THREE.PlaneGeometry(L.FW * 2 + 4, depth), lam('#7cc456')); grass.rotation.x = -Math.PI / 2; grass.position.set(0, 0.004, z0 + depth / 2); S.add(grass);
+    const S = this.S, z0 = L.GZ + 0.5, depth = L.FZ - z0 + 2, gd = ZONES[0].z1 - z0;
+    const grass = new THREE.Mesh(new THREE.PlaneGeometry(L.FW * 2 + 4, gd), lam('#7cc456')); grass.rotation.x = -Math.PI / 2; grass.position.set(0, 0.004, z0 + gd / 2); S.add(grass);
     this.t.ground.push(grass);
     // 路面分層：草地 → 橫向路 → 直向步道，各自有高度差＋polygonOffset，路口才不會互相搶畫（出現馬賽克閃爍）
     const road = (c, k) => lam(c, { polygonOffset: true, polygonOffsetFactor: -k, polygonOffsetUnits: -k * 2 });
@@ -114,8 +126,7 @@ export class Outside {
       [[0, 2.8, 0, 1.4], [0.7, 2.4, 0.3, 1], [-0.6, 2.5, -0.2, 1.05], [0, 3.6, 0, 0.9]].forEach(([a, b, c, r], i) => { const l = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), leafM[i % 3]); l.position.set(a, b, c); g.add(l); });
       S.add(g);
     };
-    for (let z = 24; z <= L.FZ + 2; z += 4.2) { tree(-L.FW - 1.5, z, 1.1); tree(L.FW + 1.5, z + 2, 1.15); }
-    for (let x = -L.FW; x <= L.FW; x += 4.5) tree(x + (Math.abs(x) < 3 ? 4 : 0), L.FZ + 2, 1.2);
+    for (let z = 24; z <= ZONES[2].z0 - 2; z += 4.2) { tree(-L.FW - 1.5, z, 1.1); tree(L.FW + 1.5, z + 2, 1.15); }
     [[22, 24.5], [27, 31], [23, 51.5]].forEach(([x, z]) => tree(x, z, 0.9));
     // 指示牌
     const sign = (x, z, text, ry = 0) => {
@@ -124,7 +135,7 @@ export class Outside {
       const tex = canvasTex(256, 80, (c, W, H) => { c.fillStyle = '#6a3a22'; c.fillRect(0, 0, W, H); c.strokeStyle = '#e8c15a'; c.lineWidth = 4; c.strokeRect(4, 4, W - 8, H - 8); c.fillStyle = '#f6dc94'; c.font = '700 36px "Noto Serif TC",serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, W / 2, H / 2 + 2); });
       [0, Math.PI].forEach(r => { const b = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.44), basic('#fff', { map: tex })); b.position.y = 1.55; b.rotation.y = r; b.position.z = r ? -0.03 : 0.03; g.add(b); });
     };
-    sign(-4, 22.6, '← 金榜樹林'); sign(4, 22.6, '天燈廣場 →'); sign(24, 36.4, '摩天輪 →'); sign(4.5, 38.4, '錦鯉池 →'); sign(-2.2, 42, '↓ 考試魔王');
+    sign(-4, 22.6, '← 金榜樹林'); sign(4, 22.6, '天燈廣場 →'); sign(24, 36.4, '摩天輪 →'); sign(4.5, 38.4, '錦鯉池 →'); sign(-2.2, 42, '↓ 練功場・竹林');
   }
 
   // ---------- 摩天輪：12 個車廂、兩人一格；轉動角度用時間算，所有人看到的一樣 ----------
@@ -184,16 +195,16 @@ export class Outside {
     const S = this.S;
     const mtn = (x, z, r, h, col) => { const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), lam(col)); m.position.set(x, h / 2 - 1, z); m.rotation.y = Math.random() * 6; S.add(m); return m; };
     // 近一點的綠色山丘
-    for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, R = 95 + (i % 3) * 12; mtn(Math.cos(a) * R, 15 + Math.sin(a) * R, 18 + (i % 4) * 5, 14 + (i % 5) * 5, ['#6cba5a', '#5aa850', '#7cc466'][i % 3]); }
+    for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, R = 128 + (i % 3) * 12; mtn(Math.cos(a) * R, 80 + Math.sin(a) * R, 18 + (i % 4) * 5, 14 + (i % 5) * 5, ['#6cba5a', '#5aa850', '#7cc466'][i % 3]); }
     // 遠方的高山（藍綠色，有雪頂）
     for (let i = 0; i < 14; i++) {
-      const a = i / 14 * Math.PI * 2 + 0.2, R = 160 + (i % 2) * 20, h = 45 + (i % 4) * 14, x = Math.cos(a) * R, z = 15 + Math.sin(a) * R;
+      const a = i / 14 * Math.PI * 2 + 0.2, R = 205 + (i % 2) * 20, h = 55 + (i % 4) * 16, x = Math.cos(a) * R, z = 80 + Math.sin(a) * R;
       mtn(x, z, 34 + (i % 3) * 8, h, ['#6a9ab8', '#7aa8c4', '#5a8aa8'][i % 3]);
       const cap = new THREE.Mesh(new THREE.ConeGeometry((34 + (i % 3) * 8) * 0.28, h * 0.28, 7), lam('#f4f8ff')); cap.position.set(x, h - 1 - h * 0.14, z); S.add(cap);
     }
     // 雲
     for (let i = 0; i < 10; i++) {
-      const c = new THREE.Group(), a = i * 0.63, R = 70 + (i % 3) * 25; c.position.set(Math.cos(a) * R, 38 + (i % 4) * 6, 15 + Math.sin(a) * R);
+      const c = new THREE.Group(), a = i * 0.63, R = 90 + (i % 3) * 30; c.position.set(Math.cos(a) * R, 42 + (i % 4) * 6, 80 + Math.sin(a) * R);
       [[0, 0, 0, 5], [5, -1, 0, 3.5], [-5, -1, 1, 3.8], [2, 2, -1, 3.2]].forEach(([x, y, z, r]) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), lam('#ffffff')); b.position.set(x, y, z); b.scale.y = 0.6; c.add(b); });
       S.add(c); (this.clouds ||= []).push(c);
     }
@@ -339,33 +350,35 @@ export class Outside {
     this.t.tween(500, k => { o.g.position.y = 0.5 + k * 1.2; o.g.scale.setScalar(1 - k * 0.8); }, 0, t => t, () => { o.g.visible = false; o.g.scale.setScalar(1); o.g.position.y = 0.5; });
   }
 
-  // ---------- 拖延怪 ----------
-  spawnMonster() {
-    let x, z, tries = 0; do { x = (Math.random() - 0.5) * (L.FW * 2 - 6); z = L.GZ + 4 + Math.random() * (L.FZ - L.GZ - 6); } while (!inArea(x, z) && ++tries < 30);
-    const kind = Math.floor(Math.random() * MONSTER_KINDS.length), K = MONSTER_KINDS[kind];
+  // ---------- 各區的怪物：等級依區域、一般型／進化型 ----------
+  // zi：第幾區；at：指定位置（魔王叫小怪時）
+  spawnMonster(zi = 0, at = null) {
+    const Z = ZONES[zi];
+    let x, z, tries = 0;
+    if (at) { x = at.x; z = at.z; }
+    else do { x = (Math.random() - 0.5) * (zi ? WORLD.FW * 2 - 8 : 58); z = Z.z0 + 3 + Math.random() * (Z.z1 - Z.z0 - 5); } while (!inZone(x, z, zi) && ++tries < 40);
+    const lv = Z.lv[0] + Math.floor(Math.random() * (Z.lv[1] - Z.lv[0] + 1)), evo = lv >= Z.lv[0] + Math.ceil((Z.lv[1] - Z.lv[0]) * 0.6);
+    const sp = SPECIES[Z.el][evo ? 1 : 0], st = monStats(lv), size = (evo ? 1.35 : 1) * (0.92 + (lv - Z.lv[0]) / Math.max(1, Z.lv[1] - Z.lv[0]) * 0.16);
     const g = new THREE.Group(); g.position.set(x, 0, z); this.S.add(g);
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 12), lam(K.color)); body.scale.set(1, kind === 0 ? 0.75 : 0.9, 1); body.position.y = 0.42; g.add(body);
-    [-1, 1].forEach(s => {
-      const w = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), lam('#ffffff')); w.position.set(0.15 * s, 0.55, 0.38); g.add(w);
-      const pu = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), lam('#1a1412')); pu.position.set(0.15 * s, kind === 3 ? 0.52 : 0.55, 0.47); if (kind === 3) pu.scale.y = 0.3; g.add(pu);
-      const ft = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), lam(K.color)); ft.scale.set(1, 0.5, 1.3); ft.position.set(0.2 * s, 0.05, 0.1); g.add(ft);
-    });
-    const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.015, 4, 10, Math.PI), lam('#3a1a14')); mouth.position.set(0, 0.36, 0.43); if (kind !== 2) mouth.rotation.z = Math.PI; g.add(mouth);
-    if (kind === 1) { const ph = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.26, 0.03), lam('#202428')); ph.position.set(0.35, 0.4, 0.3); ph.rotation.x = -0.4; g.add(ph); const sc = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.21), basic('#7ad0ff')); sc.position.set(0.35, 0.41, 0.317); sc.rotation.x = -0.4; g.add(sc); }
-    if (kind === 2) { const sw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), lam('#8ad0ff')); sw.scale.y = 1.5; sw.position.set(0.32, 0.72, 0.25); g.add(sw); }
-    if (kind === 3) { const cap = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.45, 10), lam('#3a5a9a')); cap.position.set(0, 0.92, -0.05); cap.rotation.z = 0.5; g.add(cap); const pom = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), lam('#ffffff')); pom.position.set(0.2, 1.07, -0.05); g.add(pom); }
-    if (kind === 0) [-1, 1].forEach(s => { const h = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 6), lam('#5a4a8a')); h.position.set(0.2 * s, 0.78, 0); g.add(h); });
-    const tag = textSprite(K.name, { sx: 1.1, bg: 'rgba(60,30,80,.8)' }); tag.position.y = 1.42; g.add(tag);
-    // 頭上的小血條
+    const model = buildMonster(Z.el, evo); model.g.scale.setScalar(size); g.add(model.g);
+    const top = (Z.el === 'grass' ? 1.45 : 1.25) * size;
     const hc = document.createElement('canvas'); hc.width = 128; hc.height = 20; const ht = new THREE.CanvasTexture(hc); ht.colorSpace = THREE.SRGBColorSpace;
-    const hpBar = new THREE.Sprite(new THREE.SpriteMaterial({ map: ht, depthWrite: false })); hpBar.scale.set(0.9, 0.14, 1); hpBar.position.y = 1.17; g.add(hpBar);
-    const mats = []; g.traverse(o => { if (o.isMesh && o.material?.emissive) mats.push(o.material); });
-    const m = { g, kind, name: K.name, say: K.say, x, z, tx: x, tz: z, t: Math.random() * 5, alive: true, hp: K.hp, max: K.hp, hc, ht, mats };
-    this.drawHp(m);
+    const hpBar = new THREE.Sprite(new THREE.SpriteMaterial({ map: ht, depthWrite: false })); hpBar.scale.set(0.9, 0.14, 1); hpBar.position.y = top + 0.12; g.add(hpBar);
+    const mats = []; model.g.traverse(o => { if (o.isMesh && o.material?.emissive && !mats.includes(o.material)) { o.material = o.material.clone(); o.material.userData.e0 = o.material.emissive.clone(); mats.push(o.material); } });
+    const m = { g, body: model.g, P: model.P, fxs: model.fxs, sp, el: Z.el, evo, zi, lv, name: sp.name, say: sp.say, x, z, home: { x, z }, tx: x, tz: z, t: Math.random() * 5, ph: Math.random() * 6,
+      alive: true, hp: st.hp, max: st.hp, atk: st.atk, xp: st.xp, coin: st.coin, cd: 1 + Math.random(), wind: 0, stun: 0, angry: 0, chase: false, size, top, hc, ht, mats };
+    this.drawHp(m); this.setTag(m);
     this.monsters.push(m); this.t.tapTargets.push([g, () => this.t.emit('tapMonster', m)]);
     g.scale.setScalar(0.01); this.t.tween(500, k => g.scale.setScalar(0.01 + k * 0.99));
     return m;
   }
+  // 名牌：「Lv12 岩鎧穿山甲」；顏色看跟你的等級差多少（灰＝太弱、白＝剛好、橘＝有點強、紅＝很危險）
+  setTag(m) {
+    if (m.tag) m.g.remove(m.tag);
+    const d = m.lv - this.playerLv, bg = d <= -6 ? 'rgba(90,90,90,.8)' : d <= 2 ? 'rgba(36,20,14,.82)' : d <= 5 ? 'rgba(190,100,20,.92)' : 'rgba(170,30,30,.94)';
+    m.tag = textSprite(`${d >= 6 ? '☠ ' : ''}Lv${m.lv} ${m.name}`, { w: 320, h: 64, font: 30, sx: 1.5, bg }); m.tag.position.y = m.top + 0.42; m.g.add(m.tag);
+  }
+  refreshTags(lv) { this.playerLv = lv; this.monsters.forEach(m => m.alive && this.setTag(m)); }
   nearestMonster(x, z, max = 99) {
     let best = null, bd = max;
     for (const m of this.monsters) { if (!m.alive) continue; const d = Math.hypot(m.g.position.x - x, m.g.position.z - z); if (d < bd) { bd = d; best = m; } }
@@ -388,7 +401,7 @@ export class Outside {
     const g = m.hc.getContext('2d'), W = 128, H = 20, k = Math.max(0, m.hp / m.max);
     g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(20,10,20,.85)'; g.beginPath(); g.roundRect(0, 0, W, H, 6); g.fill();
     g.fillStyle = k > 0.5 ? '#5ad06a' : k > 0.25 ? '#f0c040' : '#e8402a'; g.beginPath(); g.roundRect(3, 3, (W - 6) * k, H - 6, 4); g.fill();
-    g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 2; for (let i = 1; i < m.max; i++) { const x = 3 + (W - 6) * i / m.max; g.beginPath(); g.moveTo(x, 3); g.lineTo(x, H - 3); g.stroke(); }
+    g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 2; if (m.max <= 12) for (let i = 1; i < m.max; i++) { const x = 3 + (W - 6) * i / m.max; g.beginPath(); g.moveTo(x, 3); g.lineTo(x, H - 3); g.stroke(); }
     m.ht.needsUpdate = true;
   }
   // 怪物頭上冒出一句話（對話泡泡）
@@ -397,25 +410,47 @@ export class Outside {
     const b = textSprite(text, { w: 320, h: 64, font: 30, bg: 'rgba(255,250,240,.95)', fg: '#3a2410', sx: 1.6 }); b.position.y = y; obj.g.add(b); obj.bubble = b;
     clearTimeout(obj.bubbleT); obj.bubbleT = setTimeout(() => { if (obj.bubble === b) { obj.g.remove(b); obj.bubble = null; } }, ms);
   }
-  // 打中：閃白、被打得一縮、扣一格血；回傳是不是打倒了
-  damage(m, amount = 1) {
+  // 打中：閃白、壓扁回彈、往後退一點、冒出屬性粒子；回傳是不是打倒了
+  // from：打的人站的位置（決定往哪邊退）
+  damage(m, amount = 1, crit = false, from = null) {
     if (!m.alive) return false;
     m.hp -= amount; this.drawHp(m);
-    m.mats.forEach(mt => mt.emissive.set('#ffffff')); setTimeout(() => m.mats.forEach(mt => mt.emissive.set('#000000')), 110);
-    const g = m.g; this.t.tween(260, k => { const s = Math.sin(k * Math.PI); g.scale.set(1 + s * 0.25, 1 - s * 0.25, 1 + s * 0.25); });
-    if (m.hp > 0) { const K = MONSTER_KINDS[m.kind]; this.say(m, K.hit[(m.max - m.hp - 1) % K.hit.length]); m.tx = g.position.x + (Math.random() - 0.5) * 6; m.tz = g.position.z + (Math.random() - 0.5) * 6; return false; }
+    m.mats.forEach(mt => mt.emissive.set('#ffffff')); clearTimeout(m.flashT); m.flashT = setTimeout(() => m.mats.forEach(mt => mt.emissive.copy(mt.userData.e0)), crit ? 140 : 90);
+    const b = m.body, s0 = m.size, k0 = crit ? 0.42 : 0.28; this.t.tween(crit ? 320 : 240, k => { const q = Math.sin(k * Math.PI) * (1 - k * 0.3); b.scale.set(s0 * (1 + q * k0), s0 * (1 - q * k0), s0 * (1 + q * k0)); }, 0, t => t, () => b.scale.setScalar(s0));
+    const p = m.g.position;
+    if (from) { const dx = p.x - from.x, dz = p.z - from.z, d = Math.hypot(dx, dz) || 1, push = crit ? 1.1 : 0.6, sx = p.x, sz = p.z; this.t.tween(160, k => { const nx = sx + dx / d * push * k, nz = sz + dz / d * push * k; if (inZone(nx, nz, m.zi) || m.zi === 0) { p.x = nx; p.z = nz; } }, 0, t => 1 - (1 - t) * (1 - t)); }
+    m.stun = crit ? 0.5 : 0.28; m.wind = 0; m.angry = 8;
+    this.hitBurst(new THREE.Vector3(p.x, m.top * 0.5, p.z), m.el, crit);
+    if (m.hp > 0) {
+      if (Math.random() < 0.45) this.say(m, m.sp.hit[(m.max - m.hp) % m.sp.hit.length], m.top + 0.75);
+      if (!m.zi) { m.tx = p.x + (Math.random() - 0.5) * 6; m.tz = p.z + (Math.random() - 0.5) * 6; } // 草原的怪被打會逃跑
+      return false;
+    }
     return true;
+  }
+  // 打中的特效：白色衝擊星芒＋屬性粒子（草＝葉子、水＝水花、岩＝碎石、火＝火花、雷＝電光）
+  hitBurst(at, el, crit) {
+    const star = zglow('#ffffff', crit ? 2.6 : 1.6); star.position.copy(at); star.material.depthTest = false; star.renderOrder = 9; this.S.add(star);
+    this.t.tween(crit ? 260 : 180, k => { star.scale.setScalar((crit ? 2.6 : 1.6) * (1 + k * 0.8)); star.material.opacity = 1 - k; }, 0, t => t, () => this.S.remove(star));
+    if (crit) { const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.45, 28), basic('#ffe24a', { transparent: true, side: THREE.DoubleSide, depthWrite: false })); ring.position.copy(at); ring.lookAt(this.t.camera.position); this.S.add(ring); this.t.tween(300, k => { ring.scale.setScalar(1 + k * 4); ring.material.opacity = 1 - k; }, 0, t => t, () => this.S.remove(ring)); }
+    const col = EL_COLOR[el] || '#ffffff', n = crit ? 16 : 9;
+    for (let k = 0; k < n; k++) {
+      const geo = el === 'rock' ? new THREE.DodecahedronGeometry(0.06 + Math.random() * 0.05, 0) : el === 'grass' ? new THREE.CircleGeometry(0.07, 5) : el === 'thunder' ? new THREE.BoxGeometry(0.03, 0.22, 0.03) : new THREE.SphereGeometry(0.05 + Math.random() * 0.04, 6, 4);
+      const mat = el === 'rock' ? lam(col) : basic(k % 3 ? col : '#ffffff', { transparent: true, side: THREE.DoubleSide, blending: el === 'fire' || el === 'thunder' ? THREE.AdditiveBlending : THREE.NormalBlending });
+      const d = new THREE.Mesh(geo, mat); d.position.copy(at); this.S.add(d); const a = Math.random() * 6.28, v = 1.5 + Math.random() * (crit ? 4 : 2.5);
+      this.fx.push({ m: d, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: (el === 'fire' ? 3 : 2) + Math.random() * 2.5, life: 0.5 + Math.random() * 0.4, g: el === 'fire' ? -2 : -9, spin: el === 'grass' || el === 'rock' || el === 'thunder' });
+    }
   }
   // 打倒：說最後一句話 → 鼓起來 → 「啵！」煙霧和紙花 → 化成金光飛進玩家身體
   defeatMonster(m, toward) {
-    m.alive = false; const g = m.g, K = MONSTER_KINDS[m.kind];
-    this.say(m, K.bye, 1.75, 900);
+    m.alive = false; const g = m.g, K = { color: EL_COLOR[m.el] };
+    this.say(m, m.sp.bye, m.top + 0.75, 900);
     m.mats.forEach(mt => mt.emissive.set('#ffffff'));
     this.t.tween(380, k => g.scale.setScalar(1 + k * 0.5), 0, t => t, () => {
       const p = g.position.clone(); p.y = 0.5;
       this.S.remove(g); this.monsters = this.monsters.filter(x => x !== m); this.t.tapTargets = this.t.tapTargets.filter(tt => tt[0] !== g);
       this.poof(p, K.color); this.absorb(p, toward);
-      setTimeout(() => this.spawnMonster(), 6000 + Math.random() * 6000);
+      if (!m.summoned) setTimeout(() => this.spawnMonster(m.zi), 6000 + Math.random() * 6000);
     });
   }
   poof(p, color) {
@@ -545,10 +580,10 @@ export class Outside {
     });
   }
   // 在某個位置叫出一隻拖延怪（魔王召喚用）
-  spawnMonsterAt(x, z) { const m = this.spawnMonster(); m.g.position.set(x, 0, z); m.tx = x; m.tz = z; this.poof(new THREE.Vector3(x, 0.4, z), '#8a6ac8'); return m; }
+  spawnMonsterAt(x, z) { const m = this.spawnMonster(Math.max(0, zoneAt(z)), { x, z }); m.summoned = true; m.angry = 30; this.poof(new THREE.Vector3(x, 0.4, z), '#8a6ac8'); return m; }
   // 傷害數字：從目標頭上飄起來，爆擊用金色大字
-  dmgText(pos, text, crit) {
-    const s = textSprite(text, { w: 256, h: 80, font: crit ? 44 : 38, bg: 'rgba(0,0,0,0)', fg: crit ? '#ffd23a' : '#ffffff', sx: crit ? 1.9 : 1.3 });
+  dmgText(pos, text, crit, color) {
+    const s = textSprite(text, { w: 256, h: 80, font: crit ? 44 : 38, bg: 'rgba(0,0,0,0)', fg: color || (crit ? '#ffd23a' : '#ffffff'), sx: crit ? 1.9 : 1.3 });
     s.material.depthTest = false; s.renderOrder = 10; s.position.set(pos.x + (Math.random() - 0.5) * 0.6, (pos.y ?? 1.4), pos.z); this.S.add(s);
     const y0 = s.position.y;
     this.t.tween(900, k => { s.position.y = y0 + k * 1.3; s.material.opacity = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4; s.scale.multiplyScalar(k < 0.15 ? 1.04 : 1); }, 0, t => t, () => this.S.remove(s));
@@ -603,13 +638,47 @@ export class Outside {
       if (d > 0.01) { f.x += dx / d * sp; f.z += dz / d * sp; f.m.rotation.y = Math.atan2(dx, dz); }
       f.m.position.set(f.x, 0.05, f.z); if (f.m.userData.tail) f.m.userData.tail.rotation.y = Math.sin(t * 8 + f.a) * 0.5;
     }
-    // 拖延怪：慢慢晃來晃去，上下彈
+    // 怪物：草原的會晃來晃去；其他區看到玩家會衝過來、蓄力、撲上來咬一口（交給 main.js 扣體力）
+    tickZones(this, dt, t, this.player ? this.player.z : 0);
+    const pl = this.player, safe = this.playerSafe?.() ?? false;
     for (const m of this.monsters) {
-      if (!m.alive) continue; m.t += dt; const p = m.g.position;
-      if (Math.hypot(m.tx - p.x, m.tz - p.z) < 0.2 || m.t > 6) { m.t = 0; for (let k = 0; k < 10; k++) { const a = Math.random() * 6.28, r = 2 + Math.random() * 4, nx = p.x + Math.cos(a) * r, nz = p.z + Math.sin(a) * r; if (inArea(nx, nz)) { m.tx = nx; m.tz = nz; break; } } }
+      if (!m.alive) continue; const p = m.g.position, dpl = pl ? Math.hypot(pl.x - p.x, pl.z - p.z) : 999;
+      const vis = dpl < 62; if (m.g.visible !== vis) m.g.visible = vis; if (!vis) continue;
+      m.t += dt; m.angry = Math.max(0, m.angry - dt);
+      if (m.stun > 0) { m.stun -= dt; continue; }
+      const home = Math.hypot(p.x - m.home.x, p.z - m.home.z), hostile = (m.zi > 0 || m.summoned) && !safe;
+      if (hostile && pl && (dpl < (m.chase ? 11 : 6.5) || (m.angry > 0 && dpl < 14)) && home < 20) m.chase = true; else if (m.chase && (dpl > 13 || home > 22 || safe)) { m.chase = false; m.tx = m.home.x; m.tz = m.home.z; m.wind = 0; }
+      let speed = 0.8, face = null;
+      if (m.chase) {
+        face = Math.atan2(pl.x - p.x, pl.z - p.z);
+        if (m.wind > 0) {           // 蓄力：身體往下壓、發紅光，0.5 秒後撲上來
+          m.wind -= dt; const k = 1 - m.wind / 0.5; m.body.scale.set(m.size * (1 + k * 0.18), m.size * (1 - k * 0.22), m.size * (1 + k * 0.18));
+          m.mats.forEach(mt => mt.emissive.setRGB(0.25 + k * 0.45, 0.02, 0)); speed = 0;
+          if (m.wind <= 0) {
+            m.mats.forEach(mt => mt.emissive.copy(mt.userData.e0)); m.body.scale.setScalar(m.size);
+            const sx = p.x, sz = p.z, ux = Math.sin(face), uz = Math.cos(face); this.t.tween(180, k => { const q = Math.sin(k * Math.PI); p.x = sx + ux * q * 0.7; p.z = sz + uz * q * 0.7; p.y = q * 0.35; });
+            setTimeout(() => { if (m.alive && pl && Math.hypot(pl.x - p.x, pl.z - p.z) < 2.1) this.onMonsterHit?.(m); }, 90);
+            m.cd = 1.5 + Math.random() * 0.8;
+          }
+        } else if (dpl > 1.35) { m.tx = pl.x; m.tz = pl.z; speed = 1.7 + m.zi * 0.12; }
+        else { speed = 0; m.cd -= dt; if (m.cd <= 0) m.wind = 0.5; }
+      } else if (Math.hypot(m.tx - p.x, m.tz - p.z) < 0.2 || m.t > 6) { m.t = 0; for (let k = 0; k < 10; k++) { const a = Math.random() * 6.28, r = 2 + Math.random() * 4, nx = p.x + Math.cos(a) * r, nz = p.z + Math.sin(a) * r; if (inZone(nx, nz, m.zi) && Math.hypot(nx - m.home.x, nz - m.home.z) < 12) { m.tx = nx; m.tz = nz; break; } } }
       const dx = m.tx - p.x, dz = m.tz - p.z, d = Math.hypot(dx, dz);
-      if (d > 0.05) { p.x += dx / d * dt * 0.8; p.z += dz / d * dt * 0.8; m.g.rotation.y = Math.atan2(dx, dz); }
-      p.y = Math.abs(Math.sin(t * 4 + m.kind)) * 0.12; if (m.kind === 2) p.x += Math.sin(t * 40) * 0.01;
+      if (speed && d > 0.05) { const st = Math.min(d, dt * speed); p.x += dx / d * st; p.z += dz / d * st; face = face ?? Math.atan2(dx, dz); }
+      if (face != null) { let df = face - m.g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); m.g.rotation.y += df * Math.min(1, dt * 8); }
+      // 走路一跳一跳；部位擺動
+      if (m.wind <= 0) { const hop = m.chase ? 7 : 4; p.y = Math.abs(Math.sin(t * hop + m.ph)) * (m.chase ? 0.16 : 0.1); m.body.rotation.z = Math.sin(t * hop + m.ph) * 0.06; }
+      const P = m.P, s1 = Math.sin(t * 3 + m.ph);
+      P.ears?.forEach((e, i) => { e.rotation.x = s1 * 0.15 * (i ? 1 : -1); });
+      if (P.tail) P.tail.rotation.y = Math.sin(t * 5 + m.ph) * 0.3;
+      P.tails?.forEach((tl, i) => { tl.rotation.z = Math.sin(t * 4 + i) * 0.25; tl.children[1] && (tl.children[1].scale.y = 1 + Math.sin(t * 14 + i * 2) * 0.15); });
+      P.wings?.forEach((w, i) => { w.rotation.x = Math.sin(t * (m.chase ? 14 : 6) + m.ph) * 0.35 * (i ? 1 : -1); });
+      P.bubbles?.forEach((b, i) => { b.position.set(Math.cos(t * 1.4 + i * 2.1) * (i ? 0.4 : 0.3), 1.05 + Math.sin(t * 2 + i) * 0.08 + i * 0.12, Math.sin(t * 1.4 + i * 2.1) * (i ? 0.4 : 0.1)); });
+      P.sparks?.forEach((sp, i) => { const a = t * 5 + i * 2.1; sp.position.set(Math.cos(a) * 0.55, 0.7 + Math.sin(a * 1.7) * 0.25, Math.sin(a) * 0.55); sp.material.opacity = Math.random() < 0.15 ? 0.2 : 1; });
+      if (P.mane) P.mane.rotation.y += dt * 1.5;
+      if (P.aura) { const k = 0.3 + Math.sin(t * 3 + m.ph) * 0.1; P.aura.material.opacity = k; }
+      if (P.cape) P.cape.forEach((c2, i) => { c2.rotation.x = Math.sin(t * 3 + i) * 0.15; });
+      m.fxs.forEach(f => { if (f.parent?.parent === m.body && !P.sparks?.includes(f)) f.material.opacity = 0.7 + Math.random() * 0.3; });
     }
     // 寶物：轉圈、上下浮動
     for (const o of this.treasures) if (o.g.visible) { o.m.rotation.y += dt * 1.5; o.g.position.y = 0.5 + Math.sin(t * 2 + o.x) * 0.1; }
