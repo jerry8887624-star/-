@@ -1541,6 +1541,15 @@ async function wishAct() {
   task('wish');
 }
 
+// 拍照用：平常為了順暢會降低畫面解析度，按快門時暫時用高解析度畫一張（短邊至少 1080 像素）
+function snapshot() {
+  const r = temple.renderer, c = r.domElement, pr = r.getPixelRatio(), w = c.clientWidth || innerWidth, h = c.clientHeight || innerHeight;
+  const want = Math.min(3, Math.max(pr, 1080 / Math.min(w, h)));
+  r.setPixelRatio(want); r.setSize(w, h, false); r.render(temple.scene, temple.camera);
+  const url = c.toDataURL('image/jpeg', 0.92);
+  r.setPixelRatio(pr); r.setSize(w, h, false); r.render(temple.scene, temple.camera);
+  return url;
+}
 // 合照打卡：鏡頭轉到正面、倒數三秒、拍下來加上相框
 let photoBlob = null;
 async function photoAct() {
@@ -1552,22 +1561,31 @@ async function photoAct() {
   const cnt = $('#photo-count'); cnt.hidden = false;
   for (const n of [3, 2, 1]) { cnt.textContent = n; sound.sample('ting', 0.3); if (n === 1) me.emote('thumb'); await wait(850); }
   cnt.hidden = true;
-  t.renderer.render(t.scene, t.camera); const shot = t.renderer.domElement.toDataURL('image/jpeg', 0.92);
+  const shot = snapshot();
   $('#flash').hidden = false; setTimeout(() => { $('#flash').hidden = true; }, 500); sound.clack(1);
   document.body.classList.remove('photo-mode'); t.focus = null; t.camDist = saved.d; t.camPitch = saved.p;
   const names = [nick || '我', ...[...remotes].filter(([, av]) => av.root.visible && Math.hypot(av.root.position.x - P.x, av.root.position.z - P.z) < 4).map(([id]) => who(id))].slice(0, 6);
   photoBlob = await photoCard(shot, names);
+  $('#photo-title').textContent = '合照打卡'; $('#photo-again').textContent = '關閉';
   $('#photo-img').src = URL.createObjectURL(photoBlob); $('#photo-dlg').showModal();
   task('photo');
 }
-async function photoCard(src, names) {
-  const img = new Image(); img.src = src; await img.decode();
+async function photoCard(src, names, title = '文昌祠・合照打卡', filter = 'none', framed = true) {
+  let img = new Image(); img.src = src; await img.decode();
+  if (filter !== 'none') img = filtered(img, filter);
+  if (!framed) {
+    // 原圖：保留畫面比例，只在右下角放小小的地點和日期
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    const fs = Math.max(18, Math.round(img.width / 34)); g.font = `700 ${fs}px "Noto Serif TC",serif`; g.textAlign = 'right'; g.textBaseline = 'bottom';
+    g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = fs / 3; g.fillStyle = '#fff4d6'; g.fillText(`${title.replace('文昌祠・', '文昌祠 ')}　${today().replace(/-/g, '/')}`, img.width - fs * 0.8, img.height - fs * 0.6);
+    return new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+  }
   const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
   g.fillStyle = '#7a1a12'; g.fillRect(0, 0, W, H);
   const bx = 40, by = 40, bw = 1000, bh = 1090, k = Math.max(bw / img.width, bh / img.height), w = img.width * k, h = img.height * k;
   g.save(); g.beginPath(); g.rect(bx, by, bw, bh); g.clip(); g.drawImage(img, bx + (bw - w) / 2, by + (bh - h) / 2, w, h); g.restore();
   g.strokeStyle = '#e8c15a'; g.lineWidth = 8; g.strokeRect(bx, by, bw, bh);
-  g.fillStyle = '#f6dc94'; g.textAlign = 'center'; g.font = '900 64px "Noto Serif TC",serif'; g.fillText('文昌祠・合照打卡', W / 2, 1212);
+  g.fillStyle = '#f6dc94'; g.textAlign = 'center'; g.font = '900 64px "Noto Serif TC",serif'; g.fillText(title, W / 2, 1212);
   g.font = '500 34px "Noto Serif TC",serif'; g.fillStyle = '#fff4d6'; g.fillText(`${names.join('、')}　${today().replace(/-/g, '/')}`.slice(0, 42), W / 2, 1278);
   return new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
 }
@@ -1578,7 +1596,98 @@ async function shareBlob(blob, name, msg) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   toast('圖片已存到手機。');
 }
-$('#photo-share').onclick = () => { if (photoBlob) shareBlob(photoBlob, '文昌祠合照.jpg', '在線上文昌祠合照打卡！'); };
+$('#photo-share').onclick = () => { if (photoBlob) shareBlob(photoBlob, cam.on ? `文昌祠_${Date.now() % 1e6}.jpg` : '文昌祠合照.jpg', cam.on ? '在線上文昌祠拍的照片！' : '在線上文昌祠合照打卡！'); };
+
+// ---------- 📷 隨時拍照：到哪裡都能拍，自拍／背面／第一人稱、擺姿勢、濾鏡、倒數、相框 ----------
+const CAM_VIEWS = [{ k: 'selfie', t: '🤳 自拍' }, { k: 'back', t: '🧍 背面' }, { k: 'eye', t: '👀 第一人稱' }];
+const CAM_POSES = [{ k: '', t: '🙂 不擺' }, { k: 'thumb', t: '👍 比讚' }, { k: 'wave', t: '👋 揮手' }, { k: 'jump', t: '🎉 開心跳' }, { k: 'bow', t: '🙏 拜一拜' }];
+// 濾鏡：預覽用 CSS，存檔時用像素運算做一樣的效果（舊版 iPhone 的畫布不支援 filter）
+const CAM_FILTERS = [
+  { k: 'none', t: '🎨 原色', css: 'none' },
+  { k: 'warm', t: '🌅 暖陽', css: 'sepia(.22) saturate(1.25) brightness(1.04)' },
+  { k: 'fresh', t: '🌿 清新', css: 'saturate(1.2) brightness(1.08) contrast(.94) hue-rotate(-6deg)' },
+  { k: 'bw', t: '🖤 黑白', css: 'grayscale(1) contrast(1.12)' },
+  { k: 'old', t: '📜 懷舊', css: 'sepia(.65) contrast(.9) brightness(1.06)' },
+];
+const CAM_TIMERS = [{ s: 0, t: '⏱ 立即' }, { s: 3, t: '⏱ 3 秒' }, { s: 10, t: '⏱ 10 秒' }];
+const cam = { on: false, view: store.get('camView', 0), pose: store.get('camPose', 1), filter: store.get('camFilter', 0), timer: store.get('camTimer', 1), frame: store.get('camFrame', true), saved: null, busy: false };
+function filtered(img, k) {
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+  for (let i = 0; i < a.length; i += 4) {
+    let r = a[i], gg = a[i + 1], b = a[i + 2];
+    if (k === 'warm') { r = r * 1.08 + 8; gg = gg * 1.02 + 2; b = b * 0.88; }
+    else if (k === 'fresh') { r = r * 0.96 + 10; gg = gg * 1.05 + 10; b = b * 1.06 + 12; }
+    else if (k === 'bw') { const l = 0.299 * r + 0.587 * gg + 0.114 * b, v = (l - 128) * 1.12 + 128; r = gg = b = v; }
+    else if (k === 'old') { const sr = 0.393 * r + 0.769 * gg + 0.189 * b, sg = 0.349 * r + 0.686 * gg + 0.168 * b, sb = 0.272 * r + 0.534 * gg + 0.131 * b; r = (r * 0.35 + sr * 0.65) * 0.92 + 14; gg = (gg * 0.35 + sg * 0.65) * 0.92 + 12; b = (b * 0.35 + sb * 0.65) * 0.92 + 10; }
+    a[i] = r; a[i + 1] = gg; a[i + 2] = b;
+  }
+  g.putImageData(d, 0, 0); return c;
+}
+function camRender() {
+  const set = (k, t) => { const b = document.querySelector(`[data-cam="${k}"]`); b.textContent = t; };
+  set('view', CAM_VIEWS[cam.view].t); set('pose', CAM_POSES[cam.pose].t); set('filter', CAM_FILTERS[cam.filter].t); set('timer', CAM_TIMERS[cam.timer].t); set('frame', cam.frame ? '🖼 有相框' : '🖼 原圖');
+  temple.renderer.domElement.style.filter = cam.on ? CAM_FILTERS[cam.filter].css : '';
+}
+function camView() {
+  const t = temple, k = CAM_VIEWS[cam.view].k, f = me.root.rotation.y;
+  t.focus = null;
+  if (k === 'eye') { t.fpv = true; me.root.visible = false; t.camYaw = t.camYawTarget = f + Math.PI; t.camPitch = 0.05; }
+  else {
+    t.fpv = !!(ride && ride.fpv); me.root.visible = !t.fpv;
+    if (k === 'selfie') { t.camYawTarget = f; t.camPitch = 0.14; t.camDist = 4.2; }
+    else { t.camYawTarget = f + Math.PI; t.camPitch = 0.22; t.camDist = Math.max(5.5, cam.saved?.d || 6); }
+  }
+}
+function camOpen() {
+  if (cam.on) return;
+  if (studyAt != null) { toast('讀書專注中，先離開座位再拍照。'); return; }
+  if ($('#lingxi-ui') && !$('#lingxi-ui').hidden) return;
+  hideCheer(); hideSocial(); hideMusic(); document.querySelectorAll('dialog[open]').forEach(d => d.close());
+  const t = temple; cam.saved = { d: t.camDist, p: t.camPitch, fpv: t.fpv, vis: me.root.visible };
+  cam.on = true; document.body.classList.add('photo-mode', 'camera-mode'); $('#cam-ui').hidden = false;
+  me.path = null; me.target = null; me.faceTo = null;
+  camView(); camRender(); sound.sample('ting', 0.3);
+}
+function camClose() {
+  if (!cam.on) return;
+  cam.on = false; document.body.classList.remove('photo-mode', 'camera-mode'); $('#cam-ui').hidden = true; $('#photo-count').hidden = true;
+  const t = temple, s = cam.saved; t.focus = null;
+  if (s) { t.camDist = s.d; t.camPitch = s.p; t.fpv = s.fpv; me.root.visible = s.vis; }
+  camRender();
+}
+async function camShoot() {
+  if (cam.busy) return; cam.busy = true;
+  try {
+    const sec = CAM_TIMERS[cam.timer].s, pose = CAM_POSES[cam.pose].k, cnt = $('#photo-count');
+    $('#cam-ui').classList.add('shooting');
+    for (let n = sec; n > 0; n--) { if (!cam.on) return; cnt.hidden = false; cnt.textContent = n; sound.sample('ting', 0.3); if (n === 1 && pose) me.emote(pose); await wait(n === 1 ? 850 : 1000); }
+    cnt.hidden = true;
+    if (!sec && pose) { me.emote(pose); await wait(pose === 'bow' ? 700 : 450); }
+    if (!cam.on) return;
+    const shot = snapshot();
+    $('#flash').hidden = false; setTimeout(() => { $('#flash').hidden = true; }, 500); sound.clack(1); buzz(15);
+    const P = me.root.position, zi = P.z > L.GZ ? zoneAt(P.z) : -1, place = zi >= 0 ? ZONES[zi].name : P.z < L.HF ? '正殿' : '中庭';
+    const names = [nick || '我', ...[...remotes].filter(([, av]) => av.root.visible && Math.hypot(av.root.position.x - P.x, av.root.position.z - P.z) < 6).map(([id]) => who(id))].slice(0, 6);
+    photoBlob = await photoCard(shot, names, `文昌祠・${ride ? '摩天輪上' : place}`, CAM_FILTERS[cam.filter].k, cam.frame);
+    $('#photo-title').textContent = '📷 拍好了'; $('#photo-again').textContent = '再拍一張';
+    $('#photo-img').src = URL.createObjectURL(photoBlob); $('#photo-dlg').showModal();
+    addStat('photo'); task('photo');
+  } finally { cam.busy = false; $('#cam-ui').classList.remove('shooting'); }
+}
+$('#cam-btn').onclick = camOpen;
+$('#cam-exit').onclick = camClose;
+$('#cam-shot').onclick = camShoot;
+document.querySelector('#cam-ui .cam-opts').onclick = e => {
+  const b = e.target.closest('[data-cam]'); if (!b || cam.busy) return; const k = b.dataset.cam;
+  if (k === 'view') { cam.view = (cam.view + 1) % CAM_VIEWS.length; store.set('camView', cam.view); camView(); }
+  if (k === 'pose') { cam.pose = (cam.pose + 1) % CAM_POSES.length; store.set('camPose', cam.pose); if (CAM_POSES[cam.pose].k) me.emote(CAM_POSES[cam.pose].k); }
+  if (k === 'filter') { cam.filter = (cam.filter + 1) % CAM_FILTERS.length; store.set('camFilter', cam.filter); }
+  if (k === 'timer') { cam.timer = (cam.timer + 1) % CAM_TIMERS.length; store.set('camTimer', cam.timer); }
+  if (k === 'frame') { cam.frame = !cam.frame; store.set('camFrame', cam.frame); }
+  camRender();
+};
+document.addEventListener('keydown', e => { if (cam.on && e.key === 'Escape' && !document.querySelector('dialog[open]')) camClose(); });
 
 // ---------- 排行榜：專注時間、在廟裡的時間（今日／本週／總榜） ----------
 let rankOn = store.get('rankOn', true), board = null, rankKind = 'focus', rankPer = 'd';
@@ -1798,7 +1907,7 @@ function faint(by) {
 }
 // 怪物撲上來咬到你（outside.js 呼叫）
 out.player = me.root.position;
-out.playerSafe = () => fainted || riding || studyAt != null || state.busy || TEAS.some(t => Math.hypot(me.root.position.x - t.x, me.root.position.z - t.z) < 4);
+out.playerSafe = () => fainted || cam.on || riding || studyAt != null || state.busy || TEAS.some(t => Math.hypot(me.root.position.x - t.x, me.root.position.z - t.z) < 4);
 out.onMonsterHit = m => {
   if (out.playerSafe()) return;
   const d = Math.max(1, Math.round(m.atk * (0.85 + Math.random() * 0.3)));

@@ -287,7 +287,7 @@ function buildFacilities(out) {
     const rune = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 1.3), basic('#fff', { map: canvasTex(128, 300, (c, W, H) => { c.fillStyle = '#3a3a48'; c.fillRect(0, 0, W, H); c.fillStyle = '#9ae8ff'; c.font = '900 64px "Noto Serif TC",serif'; c.textAlign = 'center'; c.fillText('傳', W / 2, 90); c.fillText('送', W / 2, 170); c.font = '700 30px sans-serif'; c.fillText('✦', W / 2, 240); }), transparent: true }));
     rune.position.set(0, 1.25, 0.15); g.add(rune);
     const gl = glow('#7ad8ff', 2.4); gl.position.y = 1.4; gl.material.opacity = 0.35; g.add(gl);
-    ZONE_COLLIDERS.push([s.x, s.z, 0.75]);
+    ZONE_COLLIDERS.push([s.x, s.z, 0.75]); CAM_POSTS.push([s.x, s.z, 0.9]);
     t.tapTargets.push([g, () => t.emit('tapStele', s.i)]);
     return { g, gl, rune };
   });
@@ -306,7 +306,7 @@ function buildFacilities(out) {
     sign.position.set(0, 2.35, -1.45); g.add(sign);
     for (let k = 0; k < 4; k++) { const st = new THREE.Mesh(S(0.06, 6, 5), basic('#ffffff', { transparent: true, opacity: 0.5 })); st.position.set(0, 1, 0); g.add(st); out.teaSteam.push({ m: st, t: k / 4 }); }
     [[-1.4, -1.4], [1.4, -1.4], [-1.4, 1.4], [1.4, 1.4]].forEach(([x, z]) => ZONE_COLLIDERS.push([s.x + x, s.z + z, 0.15]));
-    ZONE_COLLIDERS.push([s.x, s.z, 0.6]);
+    ZONE_COLLIDERS.push([s.x, s.z, 0.6]); CAM_POSTS.push([s.x, s.z, 2]);
     t.tapTargets.push([g, () => t.emit('tapTea', s.i)]);
   });
   // 文具鋪：小木屋＋招牌，賣毛筆（攻擊力）和茶包（補體力）
@@ -319,7 +319,7 @@ function buildFacilities(out) {
     for (let k = 0; k < 5; k++) part(g, new THREE.CylinderGeometry(0.03, 0.03, 0.55), lam(['#c8352b', '#3a6ab8', '#2a8a4a', '#e8c15a', '#1a1412'][k]), { x: -1.2 + k * 0.3, y: 1.15, z: 1.6, rz: 0.15 - k * 0.07 });
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.62), basic('#fff', { map: canvasTex(420, 120, (c, W, H) => { c.fillStyle = '#5a2a1a'; c.fillRect(0, 0, W, H); c.strokeStyle = '#e8c15a'; c.lineWidth = 6; c.strokeRect(5, 5, W - 10, H - 10); c.fillStyle = '#f6dc94'; c.font = '900 64px "Noto Serif TC",serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('文具鋪', W / 2, H / 2 + 3); }) }));
     sign.position.set(0, 2.2, 1.32); g.add(sign);
-    ZONE_COLLIDERS.push([SHOP.x + 0.3, SHOP.z - 1, 1.5], [SHOP.x + 0.3, SHOP.z + 1, 1.5]);
+    ZONE_COLLIDERS.push([SHOP.x + 0.3, SHOP.z - 1, 1.5], [SHOP.x + 0.3, SHOP.z + 1, 1.5]); CAM_POSTS.push([SHOP.x, SHOP.z - 1, 1.8], [SHOP.x, SHOP.z + 1, 1.8]);
     t.tapTargets.push([g, () => t.emit('tapShop')]);
   }
   // 木人樁：打不倒，會顯示傷害和每秒輸出
@@ -331,7 +331,7 @@ function buildFacilities(out) {
     [-1, 1].forEach(s => part(g, new THREE.CylinderGeometry(0.07, 0.07, 0.8, 8), wood, { x: 0.4 * s, y: 1.35, rz: Math.PI / 2 }));
     part(g, new THREE.TorusGeometry(0.34, 0.05, 6, 18), lam('#c8352b'), { y: 1.55, rx: Math.PI / 2 });
     const tag = textSprite('木人樁・打不倒', { sx: 1.4 }); tag.position.y = 2.75; g.add(tag);
-    ZONE_COLLIDERS.push([DUMMY.x, DUMMY.z, 0.45]);
+    ZONE_COLLIDERS.push([DUMMY.x, DUMMY.z, 0.45]); CAM_POSTS.push([DUMMY.x, DUMMY.z, 0.5]);
     t.tapTargets.push([g, () => t.emit('tapDummy')]);
   }
   // 擂台：地上一圈紅框、四角旗子（站進來可以跟其他考生切磋）

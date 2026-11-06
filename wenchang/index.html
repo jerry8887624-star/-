@@ -75,6 +75,9 @@ addEventListener('load', function () {
     <button type="button" id="update-chip" hidden>有新版本</button>
     <div class="tools">
       <button type="button" id="presence" hidden aria-label="在廟裡的香客"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" /><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><circle cx="17" cy="9" r="2.4" /><path d="M16 13.6c2.9.1 5 2 5 4.9" /></svg><b class="online"></b></button>
+      <button type="button" id="cam-btn" class="icon" aria-label="拍照（隨時隨地都能拍）">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.6-2.2h6.8L17 8h3v11H4z" /><circle cx="12" cy="13.2" r="3.6" /></svg>
+      </button>
       <button type="button" id="time-btn" class="icon" aria-label="切換白天／夜晚" aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></svg>
       </button>
@@ -467,14 +470,26 @@ addEventListener('load', function () {
 
 <!-- 合照打卡 -->
 <dialog id="photo-dlg">
-  <h2>合照打卡</h2>
+  <h2 id="photo-title">合照打卡</h2>
   <img id="photo-img" alt="合照" class="photo-img">
-  <div class="row"><button type="button" class="ghost" data-close>關閉</button><button type="button" id="photo-share">存圖／分享</button></div>
+  <div class="row"><button type="button" class="ghost" data-close id="photo-again">再拍一張</button><button type="button" id="photo-share">存圖／分享</button></div>
 </dialog>
 <div id="photo-count" hidden aria-live="assertive"></div>
 <div id="flash" hidden></div>
 <div id="hit-flash" aria-hidden="true"></div>
 <div id="hurt-flash" aria-hidden="true"></div>
+<!-- 隨時拍照：拍照模式的工具列 -->
+<div id="cam-ui" hidden>
+  <div class="cam-top"><button type="button" id="cam-exit">✕ 離開拍照</button><span>拖曳畫面轉角度・兩指或滾輪拉近拉遠</span></div>
+  <div class="cam-opts">
+    <button type="button" data-cam="view"></button>
+    <button type="button" data-cam="pose"></button>
+    <button type="button" data-cam="filter"></button>
+    <button type="button" data-cam="timer"></button>
+    <button type="button" data-cam="frame"></button>
+  </div>
+  <button type="button" id="cam-shot" aria-label="按快門"><i></i></button>
+</div>
 <!-- 0.26 練功區：體力、連擊、區域提示 -->
 <div id="hp-hud" hidden><b aria-hidden="true">❤️</b><span class="hp-track" role="img" aria-label="體力"><i id="hp-bar"></i></span><small id="hp-num">60/60</small><button type="button" id="tea-use" aria-label="喝茶包回體力">🍵<em id="tea-n">0</em></button><span id="coin-num">🪙 0</span></div>
 <div id="combo" hidden aria-hidden="true"></div>
