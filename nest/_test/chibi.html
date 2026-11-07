@@ -1,0 +1,21 @@
+<!doctype html><html><body style="margin:0;background:#eef"><canvas id=c></canvas><script type=module>
+import * as THREE from '../vendor/three.module.min.js';
+import { GLTFLoader } from '../vendor/GLTFLoader.js';
+import { animate } from './clips.mjs';
+const ids = new URLSearchParams(location.search).get('m').split(','), clip = new URLSearchParams(location.search).get('clip') || 'Idle';
+const R = new THREE.WebGLRenderer({canvas:c,antialias:true}); R.setSize(innerWidth,innerHeight);
+const S = new THREE.Scene(); S.background=new THREE.Color('#f4eee6');
+S.add(new THREE.HemisphereLight('#fff','#998',2.2)); const d=new THREE.DirectionalLight('#fff',1.6); d.position.set(3,5,4); S.add(d);
+const g=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshLambertMaterial({color:'#bfe0a0'})); g.rotation.x=-Math.PI/2; S.add(g);
+const cam=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,0.1,100); cam.position.set(0,1.3,5.6); cam.lookAt(0,0.7,0);
+const L=new GLTFLoader(); const anims=[];
+let i=0;
+for (const id of ids) for (const chibi of [false,true]) {
+  const gl=await L.loadAsync('chars/'+id+'.glb'); const o=gl.scene; S.add(o);
+  o.position.set((i-(ids.length*2-1)/2)*0.95,0,0); i++;
+  const a=await animate(o,{clips:[clip]}); a.play(clip); anims.push(a);
+  if (chibi) { let head; o.traverse(b=>{ if(b.isBone&&b.name==='Head') head=b; }); head.scale.setScalar(+(new URLSearchParams(location.search).get('h')||2)); o.scale.setScalar(0.8); o.userData.chibi=1; }
+}
+const ck=new THREE.Clock(); for(let k=0;k<40;k++) anims.forEach(a=>a.update(0.05));
+R.render(S,cam); window.done=1;
+</script></body></html>

@@ -139,7 +139,7 @@ const midPos = (up = 1.6) => headPos(chars[0], up).add(headPos(chars[1], up)).mu
 const fireworks = [];
 function launchFirework(heart) {
   const g = new THREE.BufferGeometry(), n = 140, pos = new Float32Array(n * 3), vel = [];
-  const ox = rand(-8, 8), oz = 40 + rand(-4, 6), oy = 16 + rand(0, 7);
+  const ox = SPOTS.beach.x + rand(-9, 9), oz = 42 + rand(-3, 5), oy = 8 + rand(0, 4);
   for (let i = 0; i < n; i++) {
     pos.set([ox, oy, oz], i * 3);
     if (heart) { const t = i / n * Math.PI * 2, x = 16 * Math.sin(t) ** 3, y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t); vel.push(new THREE.Vector3(x * 0.42, y * 0.42, rand(-0.5, 0.5))); }
@@ -147,9 +147,9 @@ function launchFirework(heart) {
   }
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   const col = heart ? '#ff5a8a' : pick(['#ffd25a', '#7ad8ff', '#ff8ad8', '#9aff8a', '#ffffff', '#ff9a5a']);
-  const m = new THREE.Points(g, new THREE.PointsMaterial({ color: col, size: 0.55, map: glowTex(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  const m = new THREE.Points(g, new THREE.PointsMaterial({ color: col, size: 1.8, map: glowTex(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
   // 先升空的火花
-  const trail = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: '#ffe0a0', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); trail.scale.set(0.6, 0.6, 0.6); trail.position.set(ox * 0.3, 1, 28); OUT.add(trail);
+  const trail = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: '#ffe0a0', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); trail.scale.set(0.6, 0.6, 0.6); trail.position.set(ox, 1, 30); OUT.add(trail);
   fireworks.push({ m, vel, t: -1.1, trail, from: trail.position.clone(), to: new THREE.Vector3(ox, oy, oz) });
   sfx('launch');
 }
@@ -160,7 +160,7 @@ function tickFireworks(dt) {
     if (f.trail) { OUT.remove(f.trail); f.trail = null; OUT.add(f.m); sfx('boom'); }
     const p = f.m.geometry.attributes.position, drag = Math.exp(-dt * 1.6);
     for (let j = 0; j < f.vel.length; j++) { const v = f.vel[j]; v.multiplyScalar(drag); v.y -= dt * 2.2; p.setXYZ(j, p.getX(j) + v.x * dt, p.getY(j) + v.y * dt, p.getZ(j) + v.z * dt); }
-    p.needsUpdate = true; f.m.material.opacity = Math.max(0, 1 - f.t / 2.6); f.m.material.size = 0.55 + f.t * 0.15;
+    p.needsUpdate = true; f.m.material.opacity = Math.max(0, 1 - f.t / 2.6); f.m.material.size = 1.8 + f.t * 0.4;
     if (f.t > 2.6) { OUT.remove(f.m); f.m.geometry.dispose(); fireworks.splice(i, 1); }
   }
 }
@@ -588,7 +588,7 @@ function actBeach() {
     fadeDo(() => { const y = standH(x, z) + 0.02 - HIP; seat(me(), x - 0.4, y, z + 0.8, 0.15); seat(you(), x + 0.4, y, z + 0.8, -0.15); }, 250);
     let n = 0;
     beginAct('fireworks', '🎆 放煙火', '坐在沙灘上看煙火在海上綻放。', {
-      focus: () => new THREE.Vector3(x, 3.2, z + 5), back: [x, z - 1], camYaw: Math.PI, camPitch: 0.16,
+      focus: () => new THREE.Vector3(x, 4.2, z + 4), back: [x, z - 1], camYaw: Math.PI, camPitch: 0.14,
       btns: [{ t: '點煙火！', main: true, fn: () => { launchFirework(levelOf(st.love).lv >= 3 && Math.random() < 0.35); n++; st.fireworks++; if (n % 3 === 0) { addLove(2, '好漂亮！', 'fw'); you().av.lean(-1); me().av.lean(1); } } }, { t: '連發 ×5', fn: () => { for (let i = 0; i < 5; i++) setTimeout(() => launchFirework(levelOf(st.love).lv >= 3 && i === 4), i * 420); n += 5; st.fireworks += 5; addLove(3, '煙火大會', 'fw5'); } }],
       end() { if (n) addMemo('🎆', `在海邊放了 ${n} 發煙火`); },
     });
@@ -703,11 +703,11 @@ function turnTo(o, want, dt) { let d = want - o.rotation.y; d = Math.atan2(Math.
 
 // ---------- 燈塔長椅：看夕陽、看星星、流星許願 ----------
 function actSunset() {
-  const { x, z } = SPOTS.sunset, ry = -Math.PI / 2 + 0.35, y = standH(x + 0.3, z) + 0.46 - HIP;
+  const { x, z } = SPOTS.sunset, ry = -Math.PI / 2 - 0.35, y = standH(x + 0.3, z) + 0.46 - HIP;
   fadeDo(() => { sitPair(x + 0.3, y, z, ry, 0.62); me().av.lean(1); }, 250);
   let warp = 0, mt = rand(3, 8), wished = false;
   const btns = () => setBtns([
-    { t: isNight() ? '等流星…' : '等夕陽', main: true, id: 'ss-main', fn: () => { if (!isNight()) { warp = 18.4; msg('時間慢慢流過去…'); } } },
+    { t: isNight() ? '等流星…' : '等夕陽', main: true, id: 'ss-main', fn: () => { if (!isNight()) { warp = 17.9; msg('時間慢慢流過去…'); } } },
     { t: '🌠 許願', id: 'ss-wish', dis: !meteor, fn: wish },
   ]);
   const wish = () => {
@@ -716,7 +716,7 @@ function actSunset() {
     $('#wish-ok').onclick = () => { const w = $('#wish-in').value.trim(); $('#dlg').close(); st.wishes++; addMemo('🌠', w ? `對流星許願：「${w}」` : '一起對流星許了願'); addLove(5, '願望一定會實現'); burst('star', midPos(), 10); wished = true; };
   };
   beginAct('sunset', isNight() ? '🌠 看星星' : '🌅 看夕陽', isNight() ? '滿天星星，等等看會不會有流星。' : '燈塔旁的長椅，最適合看夕陽。', {
-    focus: () => new THREE.Vector3(x - 1.5, 2.2, z - 0.6), back: [x + 1.6, z + 0.6], camYaw: ry + Math.PI, camPitch: 0.18,
+    focus: () => new THREE.Vector3(x - 1.5, 2.2, z - 0.6), back: [x + 1.6, z + 0.6], camYaw: ry + Math.PI, camPitch: 0.1,
     update(dt) {
       if (warp) { st.tod += dt * 1.6; if (st.tod >= warp) { warp = 0; msg('夕陽好美。' + (Math.random() < 0.5 ? `${nameOf(you().i)} 偷偷看了你一眼。` : '天空變成粉紅色了。')); addLove(4, '一起看夕陽'); addMemo('🌅', '在燈塔旁一起看夕陽'); btns(); } }
       if (isNight()) { mt -= dt; if (mt <= 0 && !meteor) { spawnMeteor(); mt = rand(5, 11); act.metT = 3; msg('流星！快許願！'); sfx('chime'); } }
