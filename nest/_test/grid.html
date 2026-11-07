@@ -1,0 +1,17 @@
+<!doctype html><html><body style="margin:0"><canvas id=c></canvas><script type=module>
+import * as THREE from '../vendor/three.module.min.js';
+import { GLTFLoader } from '../vendor/GLTFLoader.js';
+const names = new URLSearchParams(location.search).get('m').split(',');
+const R = new THREE.WebGLRenderer({canvas:c,antialias:true,preserveDrawingBuffer:true}); R.setSize(innerWidth,innerHeight);
+const S = new THREE.Scene(); S.background=new THREE.Color('#dfe8ee');
+S.add(new THREE.HemisphereLight('#fff','#888',2)); const d=new THREE.DirectionalLight('#fff',2); d.position.set(3,5,4); S.add(d);
+const cols=Math.ceil(Math.sqrt(names.length)), gap=1;
+const L=new GLTFLoader(); const cam=new THREE.OrthographicCamera(-cols/2*gap,cols/2*gap,cols/2*gap*innerHeight/innerWidth,-cols/2*gap*innerHeight/innerWidth,0.1,100);
+cam.position.set(0,8,10); cam.lookAt(0,0,0);
+await Promise.all(names.map(async(n,i)=>{const g=await L.loadAsync('../models/'+n+'.glb'); const o=g.scene; const b=new THREE.Box3().setFromObject(o); const s=b.getSize(new THREE.Vector3()); const k=0.8/Math.max(s.x,s.y,s.z); o.scale.setScalar(k);
+ const x=(i%cols-(cols-1)/2)*gap, z=(Math.floor(i/cols)-(cols-1)/2)*gap; o.position.set(x,0,z); S.add(o);
+ const ar=new THREE.ArrowHelper(new THREE.Vector3(0,0,1),new THREE.Vector3(x,0.02,z),0.45,0xff0000); S.add(ar);
+ const dv=document.createElement('div'); dv.textContent=i+':'+n.slice(0,16); dv.style.cssText='position:absolute;font:10px sans-serif;color:#000'; document.body.appendChild(dv);
+ const p=new THREE.Vector3(x,0,z+0.42).project(cam); dv.style.left=((p.x+1)/2*innerWidth-30)+'px'; dv.style.top=((1-p.y)/2*innerHeight)+'px';}));
+R.render(S,cam); window.done=1;
+</script></body></html>

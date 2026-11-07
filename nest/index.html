@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7c9d4">
+<meta name="description" content="兩個人的 3D 小島：小木屋、沙灘、碼頭、燈塔。一起盪鞦韆、釣魚、烤棉花糖、看夕陽、划船、放煙火，記下每一天的回憶。">
+<meta property="og:title" content="我們的小島｜情侶小窩">
+<meta property="og:description" content="兩個人的 3D 小島：一起盪鞦韆、釣魚、烤棉花糖、看夕陽、划船、放煙火。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<title>我們的小島</title>
+</head>
+<body>
+<canvas id="stage" aria-hidden="true"></canvas>
+<div id="labels" aria-hidden="true"></div>
+<div id="fade" aria-hidden="true"></div>
+
+<!-- 開場：兩個人的名字、樣子、在一起的日子 -->
+<section id="splash">
+  <div class="splash-card">
+    <p class="eyebrow">情侶小窩 · 3D 小島</p>
+    <h1>我們的小島</h1>
+    <p class="sub">一間小木屋、一片沙灘、一座碼頭，<br>只屬於你們兩個人。</p>
+    <div class="pair">
+      <div class="who" data-i="0">
+        <label><span>我的名字</span><input id="name0" maxlength="8" autocomplete="off" placeholder="例如：小安"></label>
+        <div class="seg"><button type="button" data-g="f">女生</button><button type="button" data-g="m">男生</button><button type="button" class="shuffle" aria-label="換個樣子">🎲 換樣子</button></div>
+      </div>
+      <div class="heart-mid" aria-hidden="true">♥</div>
+      <div class="who" data-i="1">
+        <label><span>另一半的名字</span><input id="name1" maxlength="8" autocomplete="off" placeholder="例如：阿哲"></label>
+        <div class="seg"><button type="button" data-g="f">女生</button><button type="button" data-g="m">男生</button><button type="button" class="shuffle" aria-label="換個樣子">🎲 換樣子</button></div>
+      </div>
+    </div>
+    <label class="anniv"><span>在一起的日子</span><input id="anniv" type="date"></label>
+    <button type="button" id="start-btn" class="primary">登島 ♥</button>
+    <p id="load-msg" class="load-msg" role="status">小島載入中…</p>
+  </div>
+</section>
+
+<!-- 遊戲畫面上的介面 -->
+<div id="hud" hidden>
+  <header class="top">
+    <button type="button" id="couple-card" class="card" aria-label="我們的資料">
+      <span class="names" id="hud-names">小安 ♥ 阿哲</span>
+      <span class="days" id="hud-days">在一起第 1 天</span>
+      <span class="clock" id="clock">☀ 09:00</span>
+      <span class="love"><i id="love-bar"></i></span>
+      <span class="lv" id="hud-lv">Lv1 曖昧期</span>
+    </button>
+    <span class="spacer"></span>
+    <button type="button" id="update-chip" class="chip pulse" hidden>有新版本</button>
+    <button type="button" class="icon" id="btn-map" aria-label="小島地圖">🗺️</button>
+    <button type="button" class="icon" id="btn-book" aria-label="回憶本">📔</button>
+    <button type="button" class="icon" id="btn-photo" aria-label="拍照">📷</button>
+    <button type="button" class="icon" id="btn-music" aria-label="音樂">🎵</button>
+  </header>
+  <div id="joy" aria-label="移動"><div id="joy-knob"></div></div>
+  <div class="right">
+    <button type="button" id="btn-swap" class="round small" aria-label="換人操作"><span>🔄</span><small id="swap-name">換人</small></button>
+    <button type="button" id="btn-love" class="round small" aria-label="情侶互動"><span>💕</span><small>互動</small></button>
+    <button type="button" id="btn-act" class="round big" hidden><span id="act-icon">🎣</span><small id="act-name">釣魚</small></button>
+  </div>
+  <div id="love-menu" class="pop" hidden>
+    <button type="button" data-l="hand">🤝 牽手</button>
+    <button type="button" data-l="hug">🤗 抱抱</button>
+    <button type="button" data-l="kiss">😘 親親</button>
+    <button type="button" data-l="pat">🫳 摸摸頭</button>
+    <button type="button" data-l="spin">💃 轉圈圈</button>
+    <button type="button" data-l="jump">🎉 一起跳</button>
+  </div>
+  <div id="toast" role="status"></div>
+</div>
+
+<!-- 活動進行中的控制面板 -->
+<div id="act-panel" hidden>
+  <div class="ap-head"><b id="ap-title">活動</b><button type="button" id="ap-close" class="ghost">離開</button></div>
+  <p id="ap-msg"></p>
+  <div id="ap-meter" hidden><i></i><em></em></div>
+  <div id="ap-btns"></div>
+</div>
+
+<!-- 拍照模式 -->
+<div id="photo-ui" hidden>
+  <div class="ph-top"><button type="button" id="ph-close" class="ghost">返回</button><span>拖曳轉角度、雙指縮放</span></div>
+  <div class="ph-poses">
+    <button type="button" data-p="hug">🤗 抱抱</button><button type="button" data-p="kiss">😘 親親</button><button type="button" data-p="wave">👋 揮手</button><button type="button" data-p="cheer">🙌 歡呼</button><button type="button" data-p="heart">💗 比心</button>
+  </div>
+  <button type="button" id="ph-shot" aria-label="拍照"></button>
+</div>
+
+<!-- 對話框 -->
+<dialog id="dlg">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><b id="dlg-title"></b><button class="ghost" value="close" aria-label="關閉">✕</button></div>
+    <div id="dlg-body"></div>
+  </form>
+</dialog>
+<dialog id="update-dlg">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><b id="update-title"></b></div>
+    <ul id="update-list" class="update-list"></ul>
+    <div class="row"><button type="button" id="update-later" class="ghost">稍後再說</button><button type="button" id="update-go" class="primary">立即更新</button><button id="update-ok" class="primary" value="ok">好</button></div>
+  </form>
+</dialog>
+<span id="app-ver" hidden></span>
+<script type="module" src="js/main.js"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', function () { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {}); });
+</script>
+</body>
+</html>
