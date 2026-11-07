@@ -3,6 +3,7 @@ import { L, Temple, SPOTS, MARKS, FOCUS, CUSHIONS, TIANGONG_SLOTS, TIANGONG_SEAT
 import { Avatar, randomLook, HAIRS, HAIR_COLORS, SKINS, OUTFITS, GLASSES, ACCS, HEADS, EYES, MOUTHS, CHEEKS } from './avatar.js';
 import { STEPS, EXTRAS, OFFERINGS, TABOO, EXAMS, CARD_COLORS, CHEERS, EMOTES, CHAT_PHRASES, RANK_TIP, RITUAL_NOTE, FACTS, SOURCES, JINZHI, TASK_POOL, DAILY_COUNT, WEEK_GOAL, TITLES, FXS, REWARDS, FOCUS_MIN, FOCUS_SOUNDS, FOCUS_CHEERS, FEAST_DATES, FEAST_DAYS_BEFORE } from './data.js';
 import { Net } from './net.js';
+import { initModels } from './models.js';
 import { Outside, PLOTS, OUT_SPOTS, OUT_MARKS, TREASURE_KINDS, TREASURE_SPOTS, BOSS_AT, KOI, WHEEL, CABIN_R, ZONES, zoneAt, STELES, TEAS, SHOP, DUMMY, ARENA } from './outside.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 import { WS_URL } from './config.js';
@@ -1951,6 +1952,7 @@ function faint(by) {
 }
 // 怪物撲上來咬到你（outside.js 呼叫）
 out.player = me.root.position;
+initModels(out, me.root.position); // 0.29：Polyfork 3D 模型（走近那一區才載入）
 out.playerSafe = () => fainted || cam.on || riding || studyAt != null || state.busy || TEAS.some(t => Math.hypot(me.root.position.x - t.x, me.root.position.z - t.z) < 4);
 out.onMonsterHit = (m, mult) => {
   if (out.playerSafe()) return;
@@ -2594,6 +2596,12 @@ function openMap() {
   $('#map-dlg').showModal(); requestAnimationFrame(drawMap);
 }
 $('#map-btn').onclick = openMap;
+// 「關於」頁：3D 模型出處（CC BY 4.0 要列出每一個模型）
+$('#credit-more').onclick = async () => {
+  const ul = $('#credit-list');
+  if (ul.hidden && !ul.children.length) { try { const c = await (await fetch('models/credits.json')).json(); ul.innerHTML = Object.values(c).map(a => `<li>${esc(a.credit || a.title)}</li>`).join(''); } catch (e) { ul.innerHTML = '<li>清單暫時讀不到，請稍後再試。</li>'; } }
+  ul.hidden = !ul.hidden; $('#credit-more').textContent = ul.hidden ? '看完整清單' : '收起清單';
+};
 $('#map-list').onclick = e => { const b = e.target.closest('[data-k]'); if (b) teleport(MAP_SPOTS.find(s => s.k === b.dataset.k)); };
 $('#map-canvas').onclick = e => {
   const r = e.currentTarget.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;

@@ -206,9 +206,10 @@ export function buildZones(out) {
       M.compose(new THREE.Vector3(x, 3.5 * h, z), q, new THREE.Vector3(1, h, 1)); im.setMatrixAt(k, M);
       M.compose(new THREE.Vector3(x, 7 * h + 0.6, z), q, new THREE.Vector3(1, 1, 1)); leafIm.setMatrixAt(k, M);
       if (k % 3 === 0) ZONE_COLLIDERS.push([x, z, 0.25]);
+      (out.bambooSpots ||= []).push([x, z, h]);
       k++;
     }
-    Sc.add(im); Sc.add(leafIm);
+    Sc.add(im); Sc.add(leafIm); out.bambooOld = [im, leafIm];
     const sz = 70, water = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.FW * 2 + 4, 3.2), lam('#4aa0c8', { emissive: '#0a2a3a', polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 })); water.rotation.x = -Math.PI / 2; water.position.set(0, 0.03, sz); Sc.add(water); out.stream = water;
     const bridge = new THREE.Group(); bridge.position.set(0, 0, sz); Sc.add(bridge);
     part(bridge, new THREE.BoxGeometry(3.4, 0.16, 4.2), lam('#9a6a3a'), { y: 0.1 });
@@ -220,7 +221,7 @@ export function buildZones(out) {
     for (let k = 0; k < 46; k++) {
       const x = (rnd() - 0.5) * (WORLD.FW * 2 - 6), z = Z.z0 + 2 + rnd() * (Z.z1 - Z.z0 - 4); if (Math.abs(x) < 5) continue;
       const r = 0.6 + rnd() * 1.6, m = part(Sc, new THREE.DodecahedronGeometry(r, 0), k % 2 ? rock : rock2, { x, y: r * 0.55, z, sy: 0.75, ry: rnd() * 6 });
-      ZONE_COLLIDERS.push([x, z, r * 0.9]); void m;
+      ZONE_COLLIDERS.push([x, z, r * 0.9]); (out.rockOld ||= []).push({ m, x, z, r });
     }
     for (let k = 0; k < 8; k++) { const x = (k % 2 ? 1 : -1) * (12 + rnd() * 30), z = Z.z0 + 4 + k * 2.6, h = 4 + rnd() * 5; part(Sc, new THREE.CylinderGeometry(0.9, 1.3, h, 6), rock2, { x, y: h / 2, z }); ZONE_COLLIDERS.push([x, z, 1.3]); CAM_POSTS.push([x, z, 1.3]); }
   }
@@ -242,14 +243,14 @@ export function buildZones(out) {
     ZONE_COLLIDERS.push([42, 117, 11]);
     out.smoke = []; for (let k = 0; k < 14; k++) { const s = new THREE.Mesh(S(1.2, 8, 6), lam('#6a6060', { transparent: true, opacity: 0.6 })); s.position.set(42, 17 + k, 117); Sc.add(s); out.smoke.push({ m: s, t: k / 14 }); }
     const burnt = lam('#2a2220');
-    for (let k = 0; k < 16; k++) { const x = (k % 2 ? 1 : -1) * (6 + rnd() * 44), z = Z.z0 + 2 + rnd() * (Z.z1 - Z.z0 - 4); const tr = new THREE.Group(); tr.position.set(x, 0, z); Sc.add(tr); part(tr, new THREE.CylinderGeometry(0.12, 0.2, 2.6, 6), burnt, { y: 1.3 }); part(tr, new THREE.CylinderGeometry(0.06, 0.08, 1, 5), burnt, { x: 0.3, y: 2, rz: -0.8 }); ZONE_COLLIDERS.push([x, z, 0.3]); }
+    for (let k = 0; k < 16; k++) { const x = (k % 2 ? 1 : -1) * (6 + rnd() * 44), z = Z.z0 + 2 + rnd() * (Z.z1 - Z.z0 - 4); const tr = new THREE.Group(); tr.position.set(x, 0, z); Sc.add(tr); (out.burntOld ||= []).push({ g: tr, x, z }); part(tr, new THREE.CylinderGeometry(0.12, 0.2, 2.6, 6), burnt, { y: 1.3 }); part(tr, new THREE.CylinderGeometry(0.06, 0.08, 1, 5), burnt, { x: 0.3, y: 2, rz: -0.8 }); ZONE_COLLIDERS.push([x, z, 0.3]); }
   }
   // 雷雲山頂：發光的水晶、低低的烏雲、魔王的石柱圈
   {
     const Z = ZONES[4], rnd = seeded(51), cry = lam('#8ae0ff', { emissive: '#1a5a8a' }), cry2 = lam('#c8a8ff', { emissive: '#4a2a8a' });
     for (let k = 0; k < 24; k++) {
       const x = (rnd() - 0.5) * (WORLD.FW * 2 - 8), z = Z.z0 + 2 + rnd() * (Z.z1 - Z.z0 - 4); if (Math.abs(x) < 5 || Math.hypot(x - BOSS_HOME.x, z - BOSS_HOME.z) < 12) continue;
-      const h = 1.5 + rnd() * 3; part(Sc, new THREE.OctahedronGeometry(0.6, 0), k % 2 ? cry : cry2, { x, y: h / 2, z, sy: h, ry: rnd() * 3 }); ZONE_COLLIDERS.push([x, z, 0.6]);
+      const h = 1.5 + rnd() * 3, cm = part(Sc, new THREE.OctahedronGeometry(0.6, 0), k % 2 ? cry : cry2, { x, y: h / 2, z, sy: h, ry: rnd() * 3 }); (out.crystalOld ||= []).push({ m: cm, x, z, h }); ZONE_COLLIDERS.push([x, z, 0.6]);
     }
     out.stormClouds = [];
     for (let k = 0; k < 12; k++) { const c = new THREE.Group(); c.position.set((rnd() - 0.5) * 100, 20 + rnd() * 6, Z.z0 + rnd() * (Z.z1 - Z.z0)); [[0, 0, 0, 5], [5, -1, 0, 3.8], [-5, -1, 1, 4]].forEach(([x, y, z, r]) => { const b = new THREE.Mesh(S(r, 10, 8), lam('#5a5a72')); b.position.set(x, y, z); b.scale.y = 0.5; c.add(b); }); Sc.add(c); out.stormClouds.push(c); }
