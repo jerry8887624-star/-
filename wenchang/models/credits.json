@@ -1,0 +1,660 @@
+{
+ "guardian-lion-statue-5bde18": {
+  "code": "A1",
+  "title": "Guardian Lion Statue",
+  "size": {
+   "x": 0.62,
+   "y": 1.2,
+   "z": 0.72
+  },
+  "tris": 864,
+  "credit": "Guardian Lion Statue by Polyfork (https://polyfork.dev/asset/guardian-lion-statue-5bde18), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/guardian-lion-statue-5bde18",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "temple-bell-tower-745387": {
+  "code": "A2",
+  "title": "Temple Bell Tower",
+  "size": {
+   "x": 4,
+   "y": 6.8,
+   "z": 4
+  },
+  "tris": 1782,
+  "credit": "Temple Bell Tower by Polyfork (https://polyfork.dev/asset/temple-bell-tower-745387), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/temple-bell-tower-745387",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "war-drum-on-stand-cbb91a": {
+  "code": "A3",
+  "title": "War Drum On Stand",
+  "size": {
+   "x": 1,
+   "y": 1.35,
+   "z": 1
+  },
+  "tris": 636,
+  "credit": "War Drum On Stand by Polyfork (https://polyfork.dev/asset/war-drum-on-stand-cbb91a), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/war-drum-on-stand-cbb91a",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "ginkgo-tree-baa895": {
+  "code": "A4",
+  "title": "Ginkgo Tree",
+  "size": {
+   "x": 5.85,
+   "y": 11.74,
+   "z": 6.14
+  },
+  "tris": 1080,
+  "credit": "Ginkgo Tree by Polyfork (https://polyfork.dev/asset/ginkgo-tree-baa895), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/ginkgo-tree-baa895",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "cherry-blossom-tree-3f7ab7": {
+  "code": "A5",
+  "title": "Cherry Blossom Tree",
+  "size": {
+   "x": 3.53,
+   "y": 4.5,
+   "z": 3.31
+  },
+  "tris": 619,
+  "credit": "Cherry Blossom Tree by Polyfork (https://polyfork.dev/asset/cherry-blossom-tree-3f7ab7), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/cherry-blossom-tree-3f7ab7",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "japanese-maple-d2fb29": {
+  "code": "A6",
+  "title": "Japanese Maple",
+  "size": {
+   "x": 4.47,
+   "y": 2.99,
+   "z": 3.99
+  },
+  "tris": 1167,
+  "credit": "Japanese Maple by Polyfork (https://polyfork.dev/asset/japanese-maple-d2fb29), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/japanese-maple-d2fb29",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "round-bush-cd2ac0": {
+  "code": "A7",
+  "title": "Round Bush",
+  "size": {
+   "x": 1.27,
+   "y": 0.63,
+   "z": 0.87
+  },
+  "tris": 573,
+  "credit": "Round Bush by Polyfork (https://polyfork.dev/asset/round-bush-cd2ac0), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/round-bush-cd2ac0",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "azalea-bush-7bb14d": {
+  "code": "A8",
+  "title": "Azalea Bush",
+  "size": {
+   "x": 1,
+   "y": 0.95,
+   "z": 1
+  },
+  "tris": 1011,
+  "credit": "Azalea Bush by Polyfork (https://polyfork.dev/asset/azalea-bush-7bb14d), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/azalea-bush-7bb14d",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "flower-bed-708e73": {
+  "code": "A9",
+  "title": "Flower Bed",
+  "size": {
+   "x": 1,
+   "y": 0.4,
+   "z": 1
+  },
+  "tris": 752,
+  "credit": "Flower Bed by Polyfork (https://polyfork.dev/asset/flower-bed-708e73), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/flower-bed-708e73",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "stone-well-b2dfcd": {
+  "code": "A10",
+  "title": "Stone Well",
+  "size": {
+   "x": 0.97,
+   "y": 1.75,
+   "z": 0.88
+  },
+  "tris": 600,
+  "credit": "Stone Well by Polyfork (https://polyfork.dev/asset/stone-well-b2dfcd), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/stone-well-b2dfcd",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "market-stall-94937d": {
+  "code": "A12",
+  "title": "Market Stall",
+  "size": {
+   "x": 1.96,
+   "y": 2.02,
+   "z": 1.13
+  },
+  "tris": 592,
+  "credit": "Market Stall by Polyfork (https://polyfork.dev/asset/market-stall-94937d), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/market-stall-94937d",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "bamboo-stalk-e4d362": {
+  "code": "B1",
+  "title": "Bamboo Stalk",
+  "size": {
+   "x": 1.09,
+   "y": 3.01,
+   "z": 1.28
+  },
+  "tris": 434,
+  "credit": "Bamboo Stalk by Polyfork (https://polyfork.dev/asset/bamboo-stalk-e4d362), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/bamboo-stalk-e4d362",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "arched-foot-bridge-0da34f": {
+  "code": "B2",
+  "title": "Arched Foot Bridge",
+  "size": {
+   "x": 3.5,
+   "y": 1.45,
+   "z": 1.4
+  },
+  "tris": 648,
+  "credit": "Arched Foot Bridge by Polyfork (https://polyfork.dev/asset/arched-foot-bridge-0da34f), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/arched-foot-bridge-0da34f",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "sculpted-pine-e45d4f": {
+  "code": "B4",
+  "title": "Sculpted Pine",
+  "size": {
+   "x": 3.34,
+   "y": 3.17,
+   "z": 2.93
+  },
+  "tris": 510,
+  "credit": "Sculpted Pine by Polyfork (https://polyfork.dev/asset/sculpted-pine-e45d4f), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/sculpted-pine-e45d4f",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "moss-covered-stump-7253ab": {
+  "code": "B5",
+  "title": "Moss-Covered Stump",
+  "size": {
+   "x": 1,
+   "y": 1.2,
+   "z": 1
+  },
+  "tris": 815,
+  "credit": "Moss-Covered Stump by Polyfork (https://polyfork.dev/asset/moss-covered-stump-7253ab), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/moss-covered-stump-7253ab",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "fern-covered-boulder-2e0375": {
+  "code": "B6",
+  "title": "Fern-Covered Boulder",
+  "size": {
+   "x": 2,
+   "y": 1.27,
+   "z": 1.5
+  },
+  "tris": 807,
+  "credit": "Fern-Covered Boulder by Polyfork (https://polyfork.dev/asset/fern-covered-boulder-2e0375), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/fern-covered-boulder-2e0375",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "lotus-flower-cluster-bc129a": {
+  "code": "B8",
+  "title": "Lotus Flower Cluster",
+  "size": {
+   "x": 1.5,
+   "y": 1.39,
+   "z": 1.5
+  },
+  "tris": 774,
+  "credit": "Lotus Flower Cluster by Polyfork (https://polyfork.dev/asset/lotus-flower-cluster-bc129a), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/lotus-flower-cluster-bc129a",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "scroll-rack-f465dd": {
+  "code": "B9",
+  "title": "Scroll Rack",
+  "size": {
+   "x": 1.5,
+   "y": 1.8,
+   "z": 0.5
+  },
+  "tris": 774,
+  "credit": "Scroll Rack by Polyfork (https://polyfork.dev/asset/scroll-rack-f465dd), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/scroll-rack-f465dd",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "boulder-field-cluster-08e364": {
+  "code": "C2",
+  "title": "Boulder Field Cluster",
+  "size": {
+   "x": 2.5,
+   "y": 1.45,
+   "z": 2
+  },
+  "tris": 734,
+  "credit": "Boulder Field Cluster by Polyfork (https://polyfork.dev/asset/boulder-field-cluster-08e364), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/boulder-field-cluster-08e364",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "sandstone-outcrop-75800b": {
+  "code": "C3",
+  "title": "Sandstone Outcrop",
+  "size": {
+   "x": 4.1,
+   "y": 2.5,
+   "z": 2.15
+  },
+  "tris": 786,
+  "credit": "Sandstone Outcrop by Polyfork (https://polyfork.dev/asset/sandstone-outcrop-75800b), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/sandstone-outcrop-75800b",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "basalt-column-outcrop-f1339d": {
+  "code": "C4",
+  "title": "Basalt Column Outcrop",
+  "size": {
+   "x": 1.5,
+   "y": 3.01,
+   "z": 2
+  },
+  "tris": 408,
+  "credit": "Basalt Column Outcrop by Polyfork (https://polyfork.dev/asset/basalt-column-outcrop-f1339d), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/basalt-column-outcrop-f1339d",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "cliff-perch-ledge-afb065": {
+  "code": "C5",
+  "title": "Cliff Perch Ledge",
+  "size": {
+   "x": 6.82,
+   "y": 5.63,
+   "z": 7.01
+  },
+  "tris": 613,
+  "credit": "Cliff Perch Ledge by Polyfork (https://polyfork.dev/asset/cliff-perch-ledge-afb065), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/cliff-perch-ledge-afb065",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "dwarf-pine-mat-faee77": {
+  "code": "C6",
+  "title": "Dwarf Pine Mat",
+  "size": {
+   "x": 2.5,
+   "y": 1.29,
+   "z": 2.5
+  },
+  "tris": 798,
+  "credit": "Dwarf Pine Mat by Polyfork (https://polyfork.dev/asset/dwarf-pine-mat-faee77), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/dwarf-pine-mat-faee77",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "windblown-larch-abb99c": {
+  "code": "C7",
+  "title": "Windblown Larch",
+  "size": {
+   "x": 7.95,
+   "y": 7,
+   "z": 3.58
+  },
+  "tris": 874,
+  "credit": "Windblown Larch by Polyfork (https://polyfork.dev/asset/windblown-larch-abb99c), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/windblown-larch-abb99c",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "crystal-cluster-78f2d7": {
+  "code": "C8",
+  "title": "Crystal Cluster",
+  "size": {
+   "x": 0.35,
+   "y": 0.42,
+   "z": 0.31
+  },
+  "tris": 390,
+  "credit": "Crystal Cluster by Polyfork (https://polyfork.dev/asset/crystal-cluster-78f2d7), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/crystal-cluster-78f2d7",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "scorched-tree-e927a3": {
+  "code": "D1",
+  "title": "Scorched Tree",
+  "size": {
+   "x": 7.06,
+   "y": 9.03,
+   "z": 5.27
+  },
+  "tris": 1810,
+  "credit": "Scorched Tree by Polyfork (https://polyfork.dev/asset/scorched-tree-e927a3), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/scorched-tree-e927a3",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "dead-tree-6795fa": {
+  "code": "D2",
+  "title": "Dead Tree",
+  "size": {
+   "x": 3.19,
+   "y": 5,
+   "z": 1.87
+  },
+  "tris": 536,
+  "credit": "Dead Tree by Polyfork (https://polyfork.dev/asset/dead-tree-6795fa), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/dead-tree-6795fa",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "twisted-dead-oak-49457b": {
+  "code": "D3",
+  "title": "Twisted Dead Oak",
+  "size": {
+   "x": 8.04,
+   "y": 6.97,
+   "z": 4.53
+  },
+  "tris": 861,
+  "credit": "Twisted Dead Oak by Polyfork (https://polyfork.dev/asset/twisted-dead-oak-49457b), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/twisted-dead-oak-49457b",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "volcanic-boulder-cluster-7e29ea": {
+  "code": "D4",
+  "title": "Volcanic Boulder Cluster",
+  "size": {
+   "x": 1.5,
+   "y": 1.15,
+   "z": 1.5
+  },
+  "tris": 648,
+  "credit": "Volcanic Boulder Cluster by Polyfork (https://polyfork.dev/asset/volcanic-boulder-cluster-7e29ea), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/volcanic-boulder-cluster-7e29ea",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "red-scoria-rock-35bb9c": {
+  "code": "D5",
+  "title": "Red Scoria Rock",
+  "size": {
+   "x": 0.6,
+   "y": 0.4,
+   "z": 0.48
+  },
+  "tris": 688,
+  "credit": "Red Scoria Rock by Polyfork (https://polyfork.dev/asset/red-scoria-rock-35bb9c), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/red-scoria-rock-35bb9c",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "obsidian-fang-rock-67e326": {
+  "code": "D6",
+  "title": "Obsidian Fang Rock",
+  "size": {
+   "x": 1.23,
+   "y": 2.9,
+   "z": 0.95
+  },
+  "tris": 320,
+  "credit": "Obsidian Fang Rock by Polyfork (https://polyfork.dev/asset/obsidian-fang-rock-67e326), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/obsidian-fang-rock-67e326",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "stone-ring-campfire-8a0c6f": {
+  "code": "D9",
+  "title": "Stone-Ring Campfire",
+  "size": {
+   "x": 1.5,
+   "y": 0.89,
+   "z": 1.48
+  },
+  "tris": 741,
+  "credit": "Stone-Ring Campfire by Polyfork (https://polyfork.dev/asset/stone-ring-campfire-8a0c6f), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/stone-ring-campfire-8a0c6f",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "reed-fire-torch-f7453e": {
+  "code": "D10",
+  "title": "Reed Fire Torch",
+  "size": {
+   "x": 0.64,
+   "y": 2.9,
+   "z": 0.63
+  },
+  "tris": 844,
+  "credit": "Reed Fire Torch by Polyfork (https://polyfork.dev/asset/reed-fire-torch-f7453e), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/reed-fire-torch-f7453e",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "tiered-pagoda-f4ade0": {
+  "code": "E1",
+  "title": "Tiered Pagoda",
+  "size": {
+   "x": 6,
+   "y": 14.02,
+   "z": 6
+  },
+  "tris": 1424,
+  "credit": "Tiered Pagoda by Polyfork (https://polyfork.dev/asset/tiered-pagoda-f4ade0), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/tiered-pagoda-f4ade0",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "crystal-cluster-624138": {
+  "code": "E2",
+  "title": "Crystal Cluster",
+  "size": {
+   "x": 0.92,
+   "y": 0.8,
+   "z": 0.81
+  },
+  "tris": 472,
+  "credit": "Crystal Cluster by Polyfork (https://polyfork.dev/asset/crystal-cluster-624138), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/crystal-cluster-624138",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "lair-crystal-column-877d1a": {
+  "code": "E3",
+  "title": "Glowing Crystal Cluster",
+  "size": {
+   "x": 1.51,
+   "y": 1.64,
+   "z": 1.13
+  },
+  "tris": 512,
+  "credit": "Glowing Crystal Cluster by Polyfork (https://polyfork.dev/asset/lair-crystal-column-877d1a), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/lair-crystal-column-877d1a",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "glowing-rune-stone-5a5558": {
+  "code": "E4",
+  "title": "Glowing Rune Stone",
+  "size": {
+   "x": 0.6,
+   "y": 0.5,
+   "z": 0.55
+  },
+  "tris": 476,
+  "credit": "Glowing Rune Stone by Polyfork (https://polyfork.dev/asset/glowing-rune-stone-5a5558), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/glowing-rune-stone-5a5558",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "broken-stone-column-c91287": {
+  "code": "E5",
+  "title": "Broken Stone Column",
+  "size": {
+   "x": 2.17,
+   "y": 2.51,
+   "z": 1.65
+  },
+  "tris": 700,
+  "credit": "Broken Stone Column by Polyfork (https://polyfork.dev/asset/broken-stone-column-c91287), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/broken-stone-column-c91287",
+  "origin": "spans y=-0.012 to y=2.498 m: y=0 is this model's reference level, not its underside, so 0.012 m of it sits below the ground plane by design. Place it at y=0 as-is",
+  "origin_y": -0.012
+ },
+ "terrace-stone-stair-494ef8": {
+  "code": "E6",
+  "title": "Terrace Stone Stair",
+  "size": {
+   "x": 4,
+   "y": 3.2,
+   "z": 6
+  },
+  "tris": 1550,
+  "credit": "Terrace Stone Stair by Polyfork (https://polyfork.dev/asset/terrace-stone-stair-494ef8), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/terrace-stone-stair-494ef8",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "bare-mountain-rowan-10e72e": {
+  "code": "E8",
+  "title": "Bare Mountain Rowan",
+  "size": {
+   "x": 4.37,
+   "y": 5.03,
+   "z": 4.3
+  },
+  "tris": 990,
+  "credit": "Bare Mountain Rowan by Polyfork (https://polyfork.dev/asset/bare-mountain-rowan-10e72e), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/bare-mountain-rowan-10e72e",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "forest-deer-fe648d": {
+  "code": "F1",
+  "title": "Forest Deer",
+  "size": {
+   "x": 0.84,
+   "y": 2.12,
+   "z": 1.44
+  },
+  "tris": 2230,
+  "credit": "Forest Deer by Polyfork (https://polyfork.dev/asset/forest-deer-fe648d), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/forest-deer-fe648d",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "crow-base": {
+  "code": "F2",
+  "title": "Crow",
+  "size": {
+   "x": 0.17,
+   "y": 0.32,
+   "z": 0.46
+  },
+  "tris": 2996,
+  "credit": "Crow by Polyfork (https://polyfork.dev/asset/crow-base), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/crow-base",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "village-chicken-9ba715": {
+  "code": "F3",
+  "title": "Village Chicken",
+  "size": {
+   "x": 0.14,
+   "y": 0.35,
+   "z": 0.39
+  },
+  "tris": 1190,
+  "credit": "Village Chicken by Polyfork (https://polyfork.dev/asset/village-chicken-9ba715), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/village-chicken-9ba715",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "duck-base": {
+  "code": "F4",
+  "title": "Duck",
+  "size": {
+   "x": 0.37,
+   "y": 0.61,
+   "z": 0.56
+  },
+  "tris": 2958,
+  "credit": "Duck by Polyfork (https://polyfork.dev/asset/duck-base), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/duck-base",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "cat-base": {
+  "code": "F5",
+  "title": "Cat",
+  "size": {
+   "x": 0.14,
+   "y": 0.36,
+   "z": 0.51
+  },
+  "tris": 1902,
+  "credit": "Cat by Polyfork (https://polyfork.dev/asset/cat-base), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/cat-base",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ },
+ "koi-base": {
+  "code": "F6",
+  "title": "Koi",
+  "size": {
+   "x": 0.31,
+   "y": 0.34,
+   "z": 0.74
+  },
+  "tris": 3508,
+  "credit": "Koi by Polyfork (https://polyfork.dev/asset/koi-base), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/koi-base",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0.002
+ },
+ "pigeon-base": {
+  "code": "F8",
+  "title": "Pigeon",
+  "size": {
+   "x": 0.15,
+   "y": 0.29,
+   "z": 0.3
+  },
+  "tris": 2328,
+  "credit": "Pigeon by Polyfork (https://polyfork.dev/asset/pigeon-base), CC BY 4.0",
+  "page": "https://polyfork.dev/asset/pigeon-base",
+  "origin": "ground level (minY = 0): the model sits on y=0 as-is",
+  "origin_y": 0
+ }
+}
