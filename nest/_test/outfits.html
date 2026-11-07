@@ -1,0 +1,35 @@
+<!doctype html><html><head><base href="../"></head><body style="margin:0"><canvas id=c></canvas><script type=module>
+import * as THREE from './vendor/three.module.min.js';
+import { Avatar, OUTFITS } from './js/char.js';
+const q=new URLSearchParams(location.search), mode=q.get('mode')||'outfits';
+const R=new THREE.WebGLRenderer({canvas:c,antialias:true}); R.setSize(innerWidth,innerHeight); R.outputColorSpace=THREE.SRGBColorSpace;
+const S=new THREE.Scene(); S.background=new THREE.Color('#f4eee6');
+S.add(new THREE.HemisphereLight('#fff','#998',2.0)); const d=new THREE.DirectionalLight('#fff',1.6); d.position.set(3,5,4); S.add(d);
+const g=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshLambertMaterial({color:'#bfe0a0'})); g.rotation.x=-Math.PI/2; S.add(g);
+const cam=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,0.1,100);
+const avs=[];
+const mk=(look,x,z=0,ry=0)=>{const a=new Avatar(look); a.root.position.set(x,0,z); a.root.rotation.y=ry; S.add(a.root); avs.push(a); return a;};
+if(mode==='outfits'){
+  OUTFITS.forEach((o,i)=>mk({gender:i%2?'m':'f',hair:i%2?0:3,hairColor:i%4,skin:i%3,outfit:i,eye:i%5,mouth:i%5,cheek:0},(i-6)*0.95));
+  cam.position.set(0,1.0,8.6); cam.lookAt(0,0.7,0);
+} else {
+  const F={gender:'f',hair:3,hairColor:1,skin:0,outfit:11,eye:2,mouth:0,cheek:0}, M={gender:'m',hair:0,hairColor:0,skin:1,outfit:11,eye:0,mouth:1,cheek:0};
+  const poses=[['hand',0],['hug',0],['kiss',0],['wave',0],['sit',0],['lie',0],['shy',0],['dance',0],['reach',0]];
+  poses.forEach(([p],i)=>{ const x=(i-4)*1.9;
+    let a,b;
+    if(p==='hug'||p==='kiss'){a=mk(F,x-0.25,0,Math.PI/2);b=mk(M,x+0.25,0,-Math.PI/2);}
+    else {a=mk(F,x-0.32,0,0);b=mk(M,x+0.32,0,0);}
+    window.setTimeout(()=>{},0);
+    a.P=p;b.P=p;
+  });
+  const cx=+(q.get('cx')||0); cam.position.set(cx,1.4,7); cam.lookAt(cx,0.65,0);
+}
+await new Promise(r=>{const t=setInterval(()=>{if(avs.every(a=>a.ready)){clearInterval(t);r();}},100);});
+avs.forEach((a,i)=>{const p=a.P; if(!p) return;
+  if(p==='hand') a.holdHand(i%2?1:-1);
+  if(p==='hug'||p==='kiss'||p==='wave'||p==='shy'||p==='dance') a.emote(p==='kiss'&&i%2?'shy':p,99);
+  if(p==='sit') a.setPose('sit'); if(p==='lie') a.setPose('lie'); if(p==='reach') a.reach(true);
+});
+for(let k=0;k<50;k++){ avs.forEach(a=>a.update(0.04,false)); }
+R.render(S,cam); window.done=1;
+</script></body></html>

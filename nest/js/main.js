@@ -1,6 +1,6 @@
 // 我們的小島：情侶小窩 3D 遊戲
 import * as THREE from '../vendor/three.module.min.js';
-import { Avatar, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS } from './avatar.js';
+import { Avatar, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR } from './terrain.js';
 import { buildIsland, buildInterior, setTimeOfDay, SPOTS, INSPOTS, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, toon, tickAnimals, playA, progress, mixers } from './models.js';
@@ -12,7 +12,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rand = (a, b) => a + Math.random() * (b - a), pick = a => a[Math.floor(Math.random() * a.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const AS = 0.85, HIP = 0.36 * AS; // 角色大小、坐下時屁股離腳底的高度
+const AS = 1, HIP = 0.306; // 角色大小、坐下時屁股離腳底的高度
 
 // ---------- 存檔 ----------
 const KEY = 'nest.save';
@@ -307,6 +307,7 @@ function loveAction(kind) {
     burst('heart', midPos(), kind === 'kiss' ? 9 : 5); sfx('pop'); addLove(kind === 'kiss' ? 3 : 2, null, kind);
     return;
   }
+  if (kind === 'dance') { me().av.emote('dance', 6); you().av.emote('dance', 6); burst('note', midPos(), 6); addLove(2, '一起跳舞～', 'dance'); sfx('pop'); return; }
   if (kind === 'spin') { me().spinT = 1.1; you().av.emote('clap', 1.4); burst('star', headPos(me(), 1.2), 6); addLove(1, '轉圈圈～', 'spin'); sfx('pop'); return; }
   lovePending = { kind, t: 0 }; me().path = null;
 }
@@ -758,9 +759,9 @@ function actGarden() {
   };
   const choose = i => {
     openDlg('🌱 要種什麼？', `<div class="opts">${FLOWERS.map((f, t) => `<button type="button" data-t="${t}">${f[1]} ${f[0]}</button>`).join('')}</div>`);
-    $('#dlg-body').querySelectorAll('[data-t]').forEach(b => b.onclick = () => { st.garden[i] = { t: +b.dataset.t, w: [] }; save(); drawPlant(i); me().av.reach(true); setTimeout(() => me().av.reach(false), 600); sfx('sand'); toast(`種下了${FLOWERS[+b.dataset.t][0]}的種子`); render(); });
+    $('#dlg-body').querySelectorAll('[data-t]').forEach(b => b.onclick = () => { st.garden[i] = { t: +b.dataset.t, w: [] }; save(); drawPlant(i); me().av.emote('plant', 2.2); sfx('sand'); toast(`種下了${FLOWERS[+b.dataset.t][0]}的種子`); render(); });
   };
-  const water = i => { const s = st.garden[i]; if (s.w.includes(st.day)) return; s.w.push(st.day); save(); drawPlant(i); const p = SPOTS.garden.plots[i]; burst('drop', new THREE.Vector3(p[0], LAND_Y + 1, p[1]), 5, 0.4); sfx('water'); addLove(1, null, 'water'); if (s.w.length >= 3) { toast(`${FLOWERS[s.t][1]} 開花了！`); addMemo(FLOWERS[s.t][1], `菜園的${FLOWERS[s.t][0]}開花了`); } render(); };
+  const water = i => { const s = st.garden[i]; if (s.w.includes(st.day)) return; s.w.push(st.day); me().av.emote('water', 2.4); save(); drawPlant(i); const p = SPOTS.garden.plots[i]; burst('drop', new THREE.Vector3(p[0], LAND_Y + 1, p[1]), 5, 0.4); sfx('water'); addLove(1, null, 'water'); if (s.w.length >= 3) { toast(`${FLOWERS[s.t][1]} 開花了！`); addMemo(FLOWERS[s.t][1], `菜園的${FLOWERS[s.t][0]}開花了`); } render(); };
   const pickF = i => {
     const s = st.garden[i], f = FLOWERS[s.t]; st.garden[i] = null; st.flowersGiven++; save(); drawPlant(i); $('#dlg').close();
     const bq = new THREE.Group(); [0, 1, 2].forEach(k => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 5), toon(s.t === 2 ? '#d8243a' : s.t === 0 ? '#f2c030' : '#ffffff')); b.position.set((k - 1) * 0.07, 0.12, 0); bq.add(b); }); const wr = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.22, 8), toon('#ffd0dc')); wr.rotation.x = Math.PI; bq.add(wr);
@@ -795,10 +796,14 @@ function actDog() {
 // ---------- 室內：床、沙發、做飯、吃飯 ----------
 function actBed() {
   const y = 0.52;
-  fadeDo(() => { seat(me(), -3.75, y, -1.75, 0, 'lie'); seat(you(), -3.05, y, -1.75, 0, 'lie'); }, 250);
-  beginAct('bed', '🛏️ 床', '軟綿綿的床，可以一起睡到明天早上。', {
+  // 上床前換上睡衣，起床（離開）時換回原本的衣服
+  const prev = [st.looks[0].outfit, st.looks[1].outfit];
+  const pj = j => OUTFITS[st.looks[j].outfit]?.kind === 'pj' ? st.looks[j].outfit : OUTFITS.findIndex(o => o.kind === 'pj' && o.name === (st.looks[j].gender === 'f' ? '粉紅睡衣' : '天藍睡衣'));
+  fadeDo(() => { [0, 1].forEach(j => { const o = pj(j); if (o !== st.looks[j].outfit) chars[j].av.setLook({ ...st.looks[j], outfit: o }); }); seat(me(), -3.75, y, -1.75, 0, 'lie'); seat(you(), -3.05, y, -1.75, 0, 'lie'); }, 250);
+  beginAct('bed', '🛏️ 床', '換上睡衣，軟綿綿的床，可以一起睡到明天早上。', {
     focus: () => new THREE.Vector3(-3.4, 0.8, -2.5), back: [INSPOTS.bed.x, INSPOTS.bed.z + 0.6],
     btns: [{ t: '晚安，睡到明天', main: true, fn: sleep }, { t: '枕頭大戰', fn: () => { me().av.emote('cheer', 1); you().av.emote('jump', 1); burst('star', midPos(0.6), 6); addLove(2, '哈哈哈', 'pillow'); } }],
+    end() { [0, 1].forEach(j => { st.looks[j].outfit = prev[j]; chars[j].av.setLook(st.looks[j]); }); },
   });
   function sleep() {
     msg('晚安 ♥'); setBtns([]); let n = 0; const zz = setInterval(() => { burst('z', midPos(0.6), 1, 0.2); if (++n > 4) clearInterval(zz); }, 350);
@@ -889,14 +894,21 @@ function openBook(tab = 'memo') {
 function openLooks(i = me().i) {
   const L = st.looks[i], lvl = levelOf(st.love).lv;
   const accOK = a => a === 0 || (a === 2 && lvl >= 2) || (a === 1 && lvl >= 4);
-  const rows = [['髮型', 'hair', HAIRS], ['髮色', 'hairColor', HAIR_COLORS.map((c, k) => `色 ${k + 1}`)], ['膚色', 'skin', SKINS.map((c, k) => `膚 ${k + 1}`)], ['衣服', 'outfit', OUTFITS.map(o => o.name)], ['頭型', 'head', HEADS], ['眼睛', 'eye', EYES], ['嘴巴', 'mouth', MOUTHS], ['配件', 'acc', ACCS]];
+  const rows = [['髮型', 'hair', HAIRS], ['髮色', 'hairColor', HAIR_COLORS.map((c, k) => `色 ${k + 1}`)], ['膚色', 'skin', SKINS.map((c, k) => `膚 ${k + 1}`)], ['衣服', 'outfit', OUTFITS.map(o => `${KIND_NAMES[o.kind]}｜${o.name}`)], ['頭型', 'head', HEADS], ['眼睛', 'eye', EYES], ['嘴巴', 'mouth', MOUTHS], ['配件', 'acc', ACCS]];
   openDlg(`👗 ${nameOf(i)} 的造型`, `<p class="muted">改了馬上就看得到。${lvl < 4 ? '配件「小花」Lv2、「愛心光環」Lv4 解鎖。' : ''}</p>${rows.map(([n, k, arr]) => `<div class="look-row" data-k="${k}" data-n="${arr.length}"><span>${n}</span><span id="lv-${k}">${esc(arr[(L[k] | 0) % arr.length])}</span><button type="button" data-d="-1" aria-label="上一個">‹</button><button type="button" data-d="1" aria-label="下一個">›</button></div>`).join('')}
+    <button type="button" class="ghost" id="lk-couple">👫 兩個人一起換情侶裝</button>
     <div class="row"><button type="button" class="ghost" id="lk-rand">🎲 隨機</button><button type="button" class="ghost" id="lk-g">${L.gender === 'f' ? '換成男生' : '換成女生'}</button></div>`);
   $('#dlg-body').querySelectorAll('.look-row').forEach(r => r.querySelectorAll('button').forEach(b => b.onclick = () => {
     const k = r.dataset.k, n = +r.dataset.n; let v = ((L[k] | 0) + +b.dataset.d + n) % n;
     if (k === 'acc') { let guard = 0; while (!accOK(v) && guard++ < n) v = (v + +b.dataset.d + n) % n; }
     L[k] = v; chars[i].av.setLook(L); save(); const arr = rows.find(x => x[1] === k)[2]; $('#lv-' + k).textContent = arr[v];
   }));
+  $('#lk-couple').onclick = () => {
+    const cp = OUTFITS.map((o, k) => o.kind === 'couple' ? k : -1).filter(k => k >= 0);
+    const now = cp.indexOf(st.looks[0].outfit), next = cp[(now + 1) % cp.length];
+    [0, 1].forEach(j => { st.looks[j].outfit = next; chars[j].av.setLook(st.looks[j]); }); save(); openLooks(i);
+    burst('heart', midPos(), 6); toast(`換上${OUTFITS[next].name} 👫`); if (!st.coupleWorn) { st.coupleWorn = 1; addMemo('👫', `第一次穿${OUTFITS[next].name}`); addLove(3); }
+  };
   $('#lk-rand').onclick = () => { st.looks[i] = randomLook(L.gender); st.looks[i].acc = accOK(L.acc | 0) ? L.acc : 0; makeAv(i); save(); openLooks(i); };
   $('#lk-g').onclick = () => { st.looks[i] = randomLook(L.gender === 'f' ? 'm' : 'f'); makeAv(i); save(); openLooks(i); };
 }
