@@ -159,3 +159,12 @@ dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
 .anniv input[type="date"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; max-width: 100%; min-height: 46px; text-align: left; }
 .anniv input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .splash-card { padding: 18px 18px 14px; }
+
+/* 釣到魚的特寫卡片 */
+#fish-card { position: fixed; left: 50%; top: calc(96px + var(--safe-t)); z-index: 13; transform: translate(-50%, -12px) scale(.9); opacity: 0; pointer-events: none; display: grid; justify-items: center; gap: 2px; min-width: 180px; padding: 12px 22px 14px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); text-align: center; transition: opacity .3s, transform .35s cubic-bezier(.2, 1.4, .4, 1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#fish-card.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+#fish-card em { font-style: normal; font-size: 12.5px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #ff7a9c, #ff9a6a); padding: 2px 10px; border-radius: 999px; }
+#fish-card .fc-e { font-size: 34px; line-height: 1.1; }
+#fish-card b { font-size: 19px; }
+#fish-card .fc-s { font-size: 24px; font-weight: 900; color: var(--rose); }
+#fish-card small { color: var(--muted); font-size: 12.5px; }
