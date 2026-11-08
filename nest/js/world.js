@@ -300,32 +300,56 @@ export function setTimeOfDay(W, S, t, camPos) {
 }
 
 // ---------- 小屋室內（另一個場景） ----------
+// 室內配色（60-30-10）：60% 蜂蜜色原木與深橡木地板、30% 亞麻米白與鼠尾草綠、10% 赤陶橘與芥末黃點綴
+export const COZY = {
+  logA: '#946746', logB: '#a2734f', logDark: '#5e3c26', floorA: '#6a4630', floorB: '#755037', trim: '#4e3322',
+  linen: '#ece0cb', sage: '#8aa38c', terracotta: '#b9694a', mustard: '#cf9c45', rose: '#c48c7c', walnut: '#7c553a', honey: '#a97c55', cream: '#e4d7c2', teal: '#7a978f',
+};
+// 家具重新上色：淺色的部分換成指定的顏色（保留明暗），深色部分稍微偏暖
+function paint(obj, tint, glow) {
+  if (!obj) return; const T = new THREE.Color(tint || '#ffffff'), warm = new THREE.Color('#7a4a2a'), hsl = {};
+  obj.traverse(m => {
+    if (!m.isMesh) return; m.material = m.material.clone(); const c = m.material.color; c.getHSL(hsl);
+    if (tint && hsl.l > 0.62) c.copy(T).multiplyScalar(0.75 + hsl.l * 0.3); else c.lerp(warm, 0.12);
+    if (glow && hsl.l > 0.7) { m.material.emissive = new THREE.Color('#ffc27a'); m.material.emissiveIntensity = 0.55; }
+  });
+}
 export async function buildInterior() {
-  const S = new THREE.Scene(); S.background = new THREE.Color('#2a1e1a');
-  const { w, d, h } = ROOM;
-  // 地板：木紋條
+  const S = new THREE.Scene(); S.background = new THREE.Color('#1c130f');
+  const { w, d, h } = ROOM, C = COZY;
+  // 地板：深橡木地板，兩種木色交錯
   const fl = new THREE.Group(); S.add(fl);
-  for (let i = 0; i < w / 0.5; i++) box(0.48, 0.1, d, toon(i % 2 ? '#c8935e' : '#bb8752'), -w / 2 + 0.25 + i * 0.5, -0.05, 0, fl);
-  // 牆：後、左、右（前面開放，像娃娃屋）
-  const wall = toon('#f3e6d2'), wallB = toon('#e8d3b6');
-  box(w, h, 0.2, wall, 0, h / 2, -d / 2, S); box(0.2, h, d, wallB, -w / 2, h / 2, 0, S); box(0.2, h, d, wallB, w / 2, h / 2, 0, S);
-  box(w, 0.18, 0.24, toon('#a8774a'), 0, 0.09, -d / 2 + 0.05, S);
-  // 窗戶（看得到外面的天色）
-  const winMat = new THREE.MeshBasicMaterial({ color: '#9fd6ff' });
-  [[-1.4, '#9fd6ff'], [3.0, '#9fd6ff']].forEach(([x]) => { box(1.3, 1.1, 0.05, winMat, x, 1.8, -d / 2 + 0.12, S); box(1.45, 0.08, 0.12, toon('#ffffff'), x, 1.22, -d / 2 + 0.14, S); box(0.06, 1.1, 0.08, toon('#ffffff'), x, 1.8, -d / 2 + 0.15, S); });
-  S.add(new THREE.HemisphereLight('#fff2e0', '#6a4a3a', 1.2));
-  const key = new THREE.PointLight('#ffd8a8', 18, 16, 1.4); key.position.set(0, 2.7, 0.5); S.add(key);
-  const dl = new THREE.DirectionalLight('#ffffff', 0.7); dl.position.set(2, 6, 6); S.add(dl);
+  for (let i = 0; i < w / 0.5; i++) box(0.48, 0.1, d, toon(i % 3 === 0 ? C.floorB : C.floorA), -w / 2 + 0.25 + i * 0.5, -0.05, 0, fl);
+  // 牆：一根一根疊起來的原木（跟外面的小木屋一樣），前面開放像娃娃屋
+  const logM = [toon(C.logA), toon(C.logB)], R = 0.15, n = Math.ceil(h / (R * 2));
+  for (let i = 0; i < n; i++) {
+    const y = R + i * R * 2, m = logM[i % 2];
+    const back = new THREE.Mesh(new THREE.CylinderGeometry(R, R, w + 0.3, 10), m); back.rotation.z = Math.PI / 2; back.position.set(0, y, -d / 2 - 0.02); S.add(back);
+    [-1, 1].forEach(sx => { const side = new THREE.Mesh(new THREE.CylinderGeometry(R, R, d + 0.3, 10), m); side.rotation.x = Math.PI / 2; side.position.set(sx * (w / 2 + 0.02), y, 0); S.add(side); });
+  }
+  // 屋頂的橫樑與牆角柱子（深胡桃木）
+  const beamM = toon(C.logDark);
+  box(w + 0.4, 0.22, 0.24, beamM, 0, h + 0.05, -d / 2 + 0.2, S);
+  [-1, 1].forEach(sx => box(0.3, h + 0.2, 0.3, beamM, sx * (w / 2), h / 2, -d / 2, S));
+  box(w, 0.16, 0.2, toon(C.trim), 0, 0.08, -d / 2 + 0.12, S);
+  // 窗戶：深木窗框，看得到外面的天色
+  const winMat = new THREE.MeshBasicMaterial({ color: '#9fd6ff' }), frame = toon(C.trim);
+  [-1.4, 3.0].forEach(x => { box(1.3, 1.1, 0.05, winMat, x, 1.8, -d / 2 + 0.16, S); box(1.5, 0.1, 0.16, frame, x, 1.22, -d / 2 + 0.18, S); box(1.5, 0.1, 0.12, frame, x, 2.38, -d / 2 + 0.18, S); [-0.7, 0, 0.7].forEach(dx => box(0.08, 1.2, 0.1, frame, x + dx, 1.8, -d / 2 + 0.19, S)); box(1.3, 0.06, 0.1, frame, x, 1.8, -d / 2 + 0.19, S); });
+  // 燈光：黃昏般的暖光（約 2700K），燈旁邊再多一點暖暖的光
+  S.add(new THREE.HemisphereLight('#f5d7b8', '#33221a', 0.62));
+  const key = new THREE.PointLight('#ffc48a', 11, 18, 1.3); key.position.set(0, 2.8, 0.6); S.add(key);
+  const dl = new THREE.DirectionalLight('#ffd6a8', 0.3); dl.position.set(2, 6, 6); S.add(dl);
+  [[-3.4, 1.1, -3.3, 3.2, 4.5], [4.8, 1.7, 1.5, 2.6, 4.5], [-2.8, 2.0, 2.4, 3, 5]].forEach(([x, y, z, i, r]) => { const l = new THREE.PointLight('#ffae5c', i, r, 2); l.position.set(x, y, z); S.add(l); });
   const I = { S, winMat, key };
-  const o = (k, x, z, ry = 0, s = 1, y = 0) => one(S, k, x, z, ry, s, { y });
+  const o = (k, x, z, ry = 0, s = 1, y = 0, tint, glow) => one(S, k, x, z, ry, s, { y }).then(m => { paint(m, tint, glow); return m; });
   await Promise.all([
-    o('bed', -3.4, -2.75), o('bedside', -4.6, -3.55), o('bedside', -2.2, -3.55), o('tableLamp', -4.6, -3.55, 0, 1, 0.6), o('tableLamp', -2.2, -3.55, 0, 1, 0.6),
-    o('rug', 1.6, -0.6, Math.PI / 2), o('sofa', 1.6, 0.9, Math.PI), o('coffeeTable', 1.6, -0.9), o('media', 1.6, -3.6), o('tv', 1.6, -3.65, 0, 1, 0.5),
-    o('cushion', 1.0, 1.0, Math.PI, 1, 0.45), o('blanket', 2.3, 1.0, Math.PI, 1, 0.5),
-    o('fridge', 5.0, -3.45, 0), o('worktop', 4.0, -3.6), o('worktop', 3.0, -3.6), o('hob', 4.0, -3.6, 0, 1, 0.9), o('island', 3.9, -1.2, 0),
-    o('diningTable', -2.8, 2.4), o('diningChair', -3.4, 1.6, 0), o('diningChair', -2.2, 1.6, 0), o('diningChair', -3.4, 3.2, Math.PI), o('diningChair', -2.2, 3.2, Math.PI),
-    o('bookcase', -5.15, 0.2, Math.PI / 2), o('plant', -5.0, 3.4), o('plant', 5.0, 3.2), o('art', -0.3, -3.88, 0, 1.2, 1.4), o('wardrobe', -0.6, -3.6, 0),
-    o('floorLamp', 4.9, 1.6, -Math.PI / 2), o('pendant', -2.8, 2.4, 0, 1, 2.4), o('pendant', 3.9, -1.2, 0, 1, 2.4),
+    o('bed', -3.4, -2.75, 0, 1, 0, C.linen), o('bedside', -4.6, -3.55, 0, 1, 0, C.honey), o('bedside', -2.2, -3.55, 0, 1, 0, C.honey), o('tableLamp', -4.6, -3.55, 0, 1, 0.6, null, true), o('tableLamp', -2.2, -3.55, 0, 1, 0.6, null, true),
+    o('rug', 1.6, -0.6, Math.PI / 2, 1, 0, C.terracotta), o('sofa', 1.6, 0.9, Math.PI, 1, 0, C.sage), o('coffeeTable', 1.6, -0.9, 0, 1, 0, C.walnut), o('media', 1.6, -3.6, 0, 1, 0, C.walnut), o('tv', 1.6, -3.65, 0, 1, 0.5),
+    o('cushion', 1.0, 1.0, Math.PI, 1, 0.45, C.mustard), o('blanket', 2.3, 1.0, Math.PI, 1, 0.5, C.rose),
+    o('fridge', 5.0, -3.45, 0, 1, 0, C.cream), o('worktop', 4.0, -3.6, 0, 1, 0, C.honey), o('worktop', 3.0, -3.6, 0, 1, 0, C.honey), o('hob', 4.0, -3.6, 0, 1, 0.9), o('island', 3.9, -1.2, 0, 1, 0, C.teal),
+    o('diningTable', -2.8, 2.4, 0, 1, 0, C.walnut), ...[[-3.4, 1.6, 0], [-2.2, 1.6, 0], [-3.4, 3.2, Math.PI], [-2.2, 3.2, Math.PI]].map(([x, z, r]) => o('diningChair', x, z, r, 1, 0, C.honey)),
+    o('bookcase', -5.15, 0.2, Math.PI / 2, 1, 0, C.walnut), o('plant', -5.0, 3.4, 0, 1, 0, C.terracotta), o('plant', 5.0, 3.2, 0, 1, 0, C.terracotta), o('art', -0.3, -3.82, 0, 1.2, 1.4), o('wardrobe', -0.6, -3.6, 0, 1, 0, C.honey),
+    o('floorLamp', 4.9, 1.6, -Math.PI / 2, 1, 0, null, true), o('pendant', -2.8, 2.4, 0, 1, 2.4, null, true), o('pendant', 3.9, -1.2, 0, 1, 2.4, null, true),
     o('guitar', -1.5, -3.75, 0, 1, 0),
   ]);
   // 室內碰撞（相對房間中心）
