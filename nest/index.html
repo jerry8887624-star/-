@@ -99,6 +99,16 @@
   <form id="ch-form" autocomplete="off"><button type="button" id="ch-stk" class="ch-ib" aria-label="貼圖" aria-pressed="false"><span data-ico="smile"></span></button><textarea id="ch-in" rows="1" maxlength="200" placeholder="說點什麼…" enterkeyhint="send"></textarea><button type="submit" id="ch-send" class="ch-ib send" aria-label="送出"><span data-ico="send"></span></button></form>
 </section>
 
+<!-- 快速輸入：打字直接冒在頭上（說出來／悄悄話） -->
+<form id="qchat" hidden autocomplete="off">
+  <button type="button" id="qc-ch" class="qc-ch" aria-label="切換說話方式"></button>
+  <input id="qc-in" maxlength="60" enterkeyhint="send" placeholder="說點什麼…" aria-label="要說的話">
+  <button type="submit" id="qc-send" class="ch-ib send" aria-label="送出"><span data-ico="send"></span></button>
+  <button type="button" id="qc-room" class="ch-ib" aria-label="打開聊天室"><span data-ico="chat"></span></button>
+</form>
+<!-- 表情輪盤：長按聊天按鈕 -->
+<div id="wheel" hidden aria-hidden="true"></div>
+
 <!-- 活動進行中的控制面板 -->
 <div id="act-panel" hidden>
   <div class="ap-head"><b id="ap-title">活動</b><button type="button" id="ap-close" class="ghost">離開</button></div>

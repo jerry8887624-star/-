@@ -412,3 +412,37 @@ html[data-ui="editorial"] .me .ch-bubble, html[data-ui="editorial"] .ch-ib.send 
 /* 右下：聊天在上、互動在下，活動大按鈕在右邊 */
 .right > #btn-chat { grid-column: 1; grid-row: 1; } .right > #btn-love { grid-column: 1; grid-row: 2; } .right > #btn-act { grid-column: 2; grid-row: 1 / span 2; align-self: end; }
 body.calm .right .round.small#btn-chat.unread { opacity: 1; } /* 有新訊息時不淡出 */
+/* 頭上的對話泡泡（會往上疊）；畫面外時貼在邊緣、箭頭指向那個人 */
+.say-stack { position: absolute; transform: translate(-50%, -100%) scale(var(--k, 1)); transform-origin: 50% 100%; pointer-events: none; display: grid; justify-items: center; z-index: 3; }
+.say-list { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.say-b { width: max-content; max-width: min(60vw, 240px); padding: 7px 12px; border-radius: 16px; background: #fff; color: #3e2a33; font: 400 var(--fs-s)/1.4 var(--font-round); box-shadow: 0 4px 14px rgba(60, 20, 40, .18); text-align: center; word-break: break-word; animation: sayIn .25s cubic-bezier(.2, 1.4, .4, 1) both; transition: opacity .35s, transform .35s; }
+.say-b:last-child { position: relative; }
+.say-b:last-child::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 12px; height: 12px; margin-left: -6px; background: inherit; transform: rotate(45deg); border-radius: 0 0 3px 0; }
+.say-b:not(:last-child) { opacity: .78; transform: scale(.94); }
+.say-b.w { background: linear-gradient(135deg, #ffe1ea, #fff0f4); color: #b23c62; box-shadow: 0 4px 14px rgba(232, 90, 128, .25), inset 0 0 0 1.5px rgba(232, 90, 128, .35); }
+.say-b.w::before { content: '💗 '; }
+.say-b.mute { background: rgba(255, 255, 255, .85); color: #8a7480; letter-spacing: .2em; }
+.say-b.out { opacity: 0; transform: translateY(-6px) scale(.96); }
+@keyframes sayIn { from { opacity: 0; transform: translateY(6px) scale(.9); } to { opacity: 1; transform: none; } }
+.say-arrow { display: none; }
+.say-stack.edge { transform: translate(-50%, -50%) scale(var(--k, 1)); }
+.say-stack.edge::before { content: attr(data-who); font: 400 11px var(--font-round); color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .5); margin-bottom: 2px; }
+.say-stack.edge .say-arrow { display: block; position: absolute; left: 50%; top: 50%; width: 0; height: 0; border: 8px solid transparent; border-left: 12px solid rgba(255, 255, 255, .95); transform: translate(-50%, -50%) rotate(var(--ang)) translateX(78px); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .25)); }
+.say-stack.edge .say-b:last-child::after { display: none; }
+@media (prefers-reduced-motion: reduce) { .say-b { animation: none; } }
+/* 快速輸入列：貼在鍵盤上方 */
+#qchat { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--kb, 0px) + 10px + var(--safe-b)); z-index: 21; width: min(520px, calc(100vw - 16px)); display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: var(--glass); box-shadow: 0 8px 30px rgba(60, 20, 40, .22); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4); }
+#qchat[hidden] { display: none; }
+.qc-ch { flex: none; padding: 8px 12px; border-radius: 999px; border: 0; background: rgba(255, 255, 255, .8); font: 400 var(--fs-s) var(--font-round); white-space: nowrap; }
+.qc-ch.w { background: linear-gradient(135deg, #ffd3df, #ffe8ee); color: #b23c62; }
+#qc-in { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .7); color: var(--ink); font: inherit; font-size: 16px; }
+@media (prefers-color-scheme: dark) { .qc-ch, #qc-in { background: rgba(255, 255, 255, .12); } }
+/* 表情輪盤 */
+#wheel { position: fixed; inset: 0; z-index: 30; background: radial-gradient(circle at 50% calc(100% - 250px), rgba(40, 20, 30, .35), rgba(40, 20, 30, .12) 60%); pointer-events: none; }
+.wh-i { position: absolute; transform: translate(-50%, -50%); width: 70px; height: 70px; border-radius: 50%; display: grid; place-items: center; align-content: center; background: var(--glass); box-shadow: var(--shadow); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: transform .12s, background .12s; }
+.wh-i span { font-size: 28px; line-height: 1; } .wh-i b { font: 400 11px var(--font-round); margin-top: 2px; }
+.wh-i.on { transform: translate(-50%, -50%) scale(1.18); background: linear-gradient(135deg, #ff7a9c, #ff9a6a); color: #fff; }
+.wh-c { position: absolute; transform: translate(-50%, -50%); padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, .8); font: 400 12px var(--font-round); color: var(--muted); white-space: nowrap; }
+/* 聊天室裡「說出來」的話：外框泡泡 */
+.ch-msg.said .ch-bubble { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.ch-said { font-size: 10.5px; color: var(--muted); margin-bottom: 2px; }

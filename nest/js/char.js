@@ -297,6 +297,8 @@ export class Avatar {
     if ((w = s('throw', e === 'throw', 14))) { if (et < 0.35) { this.aim(R, RF, V(-0.3, 0.85, -0.45), w); this.aim(RF, RH, V(-0.1, 1, -0.3), w); } else { this.aim(R, RF, V(-0.2, 0.4, 1), w); this.aim(RF, RH, V(-0.1, 0.25, 1), w); } }
     // 坐著吃東西：手拿到嘴邊
     if ((w = s('eatseat', e === 'eatseat'))) { const k = (Math.sin(et * 3.5) + 1) / 2; this.aim(R, RF, V(-0.15, -0.35, 0.9), w); this.aim(RF, RH, V(0.25, 0.3 + k * 0.65, 0.6 - k * 0.3), w); }
+    // 咬耳朵：身體往前傾、右手半遮在嘴邊
+    if ((w = s('whisper', e === 'whisper'))) { this.twist('Spine', V(1, 0, 0), 0.22 * w); this.twist('Spine1', V(0, 1, 0), 0.25 * w); this.aim(R, RF, V(-0.3, -0.15, 0.85), w); this.aim(RF, RH, V(0.55, 0.8, 0.25), w); }
     // 彈吉他：左手扶琴頸、右手撥弦
     if ((w = s('strum', e === 'strum'))) {
       // 吉他橫抱在腿上：左手握琴頸（往左伸）、右手在音孔上撥弦，身體微微前傾跟著打拍子
