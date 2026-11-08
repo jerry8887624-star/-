@@ -279,6 +279,9 @@ export class Avatar {
     if ((w = s('legChair', pose === 'sit' || pose === 'swing'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.08 * sx, -0.05, 1), w); this.aim(l, f, V(0.03 * sx, -1, 0.12), w); });
     if ((w = s('legFloor', pose === 'floor'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.12 * sx, 0.02, 1), w); this.aim(l, f, V(0.08 * sx, -0.1, 1), w); });
     if ((w = s('legRecl', pose === 'recline'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.06 * sx, 0.18, 1), w); this.aim(l, f, V(0.04 * sx, -0.35, 1), w); });
+    /* 躺平：兩腳伸直、兩手自然放在身體兩側（才不會從被子裡戳出來） */
+    if ((w = s('legLie', pose === 'lie'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.06 * sx, -1, 0), w); this.aim(l, f, V(0.04 * sx, -1, 0), w); });
+    if ((w = s('armLie', pose === 'lie' && !this.emoteKind))) { this.aim(R, RF, V(-0.3, -1, 0.06), w); this.aim(RF, RH, V(-0.12, -1, 0.15), w); this.aim(L, LF, V(0.3, -1, 0.06), w); this.aim(LF, LH, V(0.12, -1, 0.15), w); }
     if ((w = s('swing', pose === 'swing'))) { this.aim(R, RF, V(-0.22, 1, 0.12), w); this.aim(RF, RH, V(-0.15, 1, 0.1), w); this.aim(L, LF, V(0.22, 1, 0.12), w); this.aim(LF, LH, V(0.15, 1, 0.1), w); }
     if ((w = s('recline', pose === 'recline'))) this.twist('Spine', V(1, 0, 0), -(this.reclineAng ?? 0.45) * w); // 往後靠的角度（海灘椅比沙發躺得更斜）
     if ((w = s('reach', this.reaching && pose !== 'lie'))) { this.aim(R, RF, V(-0.18, -0.15, 1), w); this.aim(RF, RH, V(-0.05, 0.1, 1), w); this.aim(L, LF, V(0.18, -0.2, 1), w * 0.8); this.aim(LF, LH, V(0.05, 0.05, 1), w * 0.8); }

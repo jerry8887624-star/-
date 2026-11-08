@@ -1159,21 +1159,25 @@ function actDog() {
 // ---------- 室內：床、沙發、做飯、吃飯 ----------
 // 床上的被子：從腳蓋到胸口，兩個人的身體把被子撐起一點
 function makeQuilt(spread) {
-  const g = new THREE.PlaneGeometry(1.95, 1.45, 24, 14); g.rotateX(-Math.PI / 2); const P = g.attributes.position;
-  for (let i = 0; i < P.count; i++) { const x = P.getX(i), z = P.getZ(i), bump = [-spread, spread].reduce((t, cx) => t + Math.exp(-((x - cx) ** 2) / 0.05), 0); P.setY(i, 0.04 + Math.min(1, bump) * 0.14 * (1 - Math.abs(z) / 0.9) - Math.max(0, Math.abs(x) - 0.85) * 0.6); }
+  /* 被子：從胸口蓋到床尾，在兩個人身上隆起（卡通角色身體比較厚，所以隆起要夠高才蓋得住） */
+  const L = 1.78, g = new THREE.PlaneGeometry(2.02, L, 28, 18); g.rotateX(-Math.PI / 2); const P = g.attributes.position;
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), z = P.getZ(i), t = (z + L / 2) / L, bump = Math.min(1, [-spread, spread].reduce((s_, cx) => s_ + Math.exp(-((x - cx) ** 2) / 0.07), 0));
+    P.setY(i, 0.03 + bump * (0.34 - 0.16 * t) * Math.min(1, (1 - t) * 6 + 0.2) - Math.max(0, Math.abs(x) - 0.9) * 1.6);
+  }
   g.computeVertexNormals();
-  const q = new THREE.Group(); q.add(new THREE.Mesh(g, toon('#f2d4dc', { side: THREE.DoubleSide })));
-  const fold = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.06, 0.22), toon('#fffaf6')); fold.position.set(0, 0.17, -0.66); q.add(fold); // 被子上緣翻出來的白色被套
+  const q = new THREE.Group(); q.add(new THREE.Mesh(g, toon('#f7c9d4', { side: THREE.DoubleSide })));
+  const fold = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 1.86, 4, 10), toon('#fffaf6')); fold.rotation.z = Math.PI / 2; fold.position.set(0, 0.2, -L / 2 + 0.05); q.add(fold); /* 被子上緣翻出來的白色被套 */
   return q;
 }
 function actBed() {
-  const y = 0.52, B = FURN.bed, footZ = B.z + 1.08;
+  const y = 0.52, B = FURN.bed, footZ = B.z + 0.45; /* 頭剛好枕在枕頭上 */
   // 上床前換上睡衣，起床（離開）時換回原本的衣服
   const prev = [st.looks[0].outfit, st.looks[1].outfit];
   const pj = j => OUTFITS[st.looks[j].outfit]?.kind === 'pj' ? st.looks[j].outfit : OUTFITS.findIndex(o => o.kind === 'pj' && o.name === (st.looks[j].gender === 'f' ? '粉紅睡衣' : '天藍睡衣'));
   let quilt = null, close = false;
   const lay = gap => { seat(me(), B.x - gap, y, footZ, 0, 'lie'); seat(you(), B.x + gap, y, footZ, 0, 'lie'); };
-  const cover = gap => { if (quilt) IN.S.remove(quilt); quilt = makeQuilt(gap); quilt.position.set(B.x, y + 0.02, footZ - 0.62); IN.S.add(quilt); };
+  const cover = gap => { if (quilt) IN.S.remove(quilt); quilt = makeQuilt(gap); quilt.position.set(B.x, y, footZ + 0.12); IN.S.add(quilt); };
   fadeDo(() => { [0, 1].forEach(j => { const o = pj(j); if (o !== st.looks[j].outfit) chars[j].av.setLook({ ...st.looks[j], outfit: o }); }); lay(0.42); cover(0.42); }, 250);
   const snuggle = on => { close = on; lay(on ? 0.24 : 0.42); cover(on ? 0.24 : 0.42); };
   const btns = () => setBtns([{ t: '晚安', s: '睡到明天早上', main: true, fn: sleep },
@@ -1182,7 +1186,7 @@ function actBed() {
     duo() && { t: '甜蜜時光', s: '關燈・拉起被子', fn: () => { sweetNight(true); } },
     duo() && { t: '枕頭大戰', fn: () => { me().av.emote('cheer', 1); you().av.emote('jump', 1); burst('star', midPos(0.6), 6); addLove(2, '哈哈哈', 'pillow'); } }]);
   beginAct('bed', '🛏️ 床', '換上睡衣、蓋好被子，軟綿綿的床，可以一起睡到明天早上。', {
-    focus: () => new THREE.Vector3(B.x, 0.8, B.z + 0.4), back: [INSPOTS.bed.x, INSPOTS.bed.z + 0.6],
+    focus: () => new THREE.Vector3(B.x, 0.8, B.z - 0.2), back: [INSPOTS.bed.x, INSPOTS.bed.z + 0.6],
     end() { if (quilt) IN.S.remove(quilt); [0, 1].forEach(j => { st.looks[j].outfit = prev[j]; chars[j].av.setLook(st.looks[j]); }); },
   });
   btns();
