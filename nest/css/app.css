@@ -1,7 +1,6 @@
-/* 字級：五級固定階層（--ts 是「文字大小」設定：標準 1、大 1.15）；最小 12px，輸入框固定 16px 避免 iPhone 放大畫面 */
+/* 字級：五級固定階層；最小 12px，輸入框固定 16px 避免 iPhone 放大畫面 */
 :root { --ts: 1; --fs-xs: calc(12px * var(--ts)); --fs-s: calc(13.5px * var(--ts)); --fs-m: calc(15px * var(--ts)); --fs-l: calc(18px * var(--ts)); --fs-xl: calc(22px * var(--ts));
   --font-round: 'Huninn', 'Noto Sans TC', system-ui, -apple-system, 'PingFang TC', sans-serif; }
-html.big-text { --ts: 1.15; }
 :root {
   --bg: #fff8f2; --card: rgba(255, 250, 246, .9); --ink: #4a3440; --muted: #8a7480; --pink: #ff8fab; --rose: #e85a80; --rose-2: #ff7a9c;
   --line: rgba(232, 90, 128, .18); --shadow: 0 6px 20px rgba(120, 40, 70, .18); --glass: rgba(255, 255, 255, .78);
@@ -303,3 +302,5 @@ body.calm #joy { opacity: .55; transition: opacity 1.2s ease; }
 /* 信紙：保留信裡的換行，字落在橫線上 */
 .letter { white-space: pre-line; }
 #dlg[data-kind="letter"] .letter { border: 0; box-shadow: none; border-radius: 0; padding: 0 4px; line-height: 32px; background-color: transparent; background-image: repeating-linear-gradient(180deg, transparent 0 31px, rgba(200, 160, 140, .35) 31px 32px); }
+
+#ui-pick .ghost[aria-pressed="true"] { background: var(--rose); color: #fff; border-color: var(--rose); }
