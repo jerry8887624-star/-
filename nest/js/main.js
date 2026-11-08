@@ -9,7 +9,7 @@ import { levelOf, LEVELS, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTL
 import { Amb } from './amb.js';
 import { weatherAt, seasonOf, createWeatherFX, umbrellaItem, snowmanMesh, SEASON_DAYS } from './weather.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
-import { Music, sfx, TRACKS } from './audio.js';
+import { Music, sfx, TRACKS, setBackgroundPlay } from './audio.js';
 import { icon, skyIcon } from './icons.js';
 import { Net, auth as savedAuth, saveAuth, serverAvailable, createIsland, pairIsland, peekIsland, peekPair } from './net.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
@@ -572,7 +572,7 @@ function tagPos(c, out) {
 function tickSpots() {
   const p = me(); let best = null, bd = 1e9;
   for (const s of SP) {
-    const pp = s.pos?.() || s; const show = s.sc === scene && started() && !photo.on && !spotHidden(s);
+    const pp = s.pos?.() || s; const show = s.sc === scene && started() && !photo.on && !lookCam && !spotHidden(s);
     const d = Math.hypot(pp.x - p.x, pp.z - p.z);
     if (s.dyn) { const [ic, nm] = s.dyn(); if (s.icon !== ic) { s.icon = ic; s.name = nm; s.el.textContent = `${ic} ${nm}`; } }
     if (show && !act && d < s.r && d < bd) { bd = d; best = s; }
@@ -1348,11 +1348,17 @@ function openBook(tab = 'memo') {
 }
 function openLooks(i = me().i) {
   const L = st.looks[i], lvl = levelOf(st.love).lv;
+  // 換裝：面板從下面升起來，上半部看得到自己（可以轉身看背面）
+  const c = chars[i]; if (!lookCam) { c.path = null; const ry0 = c.ry; lookCam = { c, back: false, a: scene === 'in' ? Math.atan2(-c.x, -c.z) : c.ry }; $('#dlg').addEventListener('close', () => { c.ry = ry0; lookCam = null; delete $('#dlg').dataset.sheet; }, { once: true }); } // 屋內：鏡頭從房間中央那一側看（不會被家具擋住）
   const accOK = a => a === 0 || (a === 2 && lvl >= 2) || (a === 1 && lvl >= 4);
-  const rows = [['髮型', 'hair', HAIRS], ['髮色', 'hairColor', HAIR_COLORS.map((c, k) => `色 ${k + 1}`)], ['膚色', 'skin', SKINS.map((c, k) => `膚 ${k + 1}`)], ['衣服', 'outfit', OUTFITS.map(o => `${KIND_NAMES[o.kind]}｜${o.name}`)], ['頭型', 'head', HEADS], ['眼睛', 'eye', EYES], ['嘴巴', 'mouth', MOUTHS], ['配件', 'acc', ACCS]];
+  const rows = [['髮型', 'hair', HAIRS], ['髮色', 'hairColor', HAIR_COLORS.map((c, k) => `色 ${k + 1}`)], ['膚色', 'skin', SKINS.map((c, k) => `膚 ${k + 1}`)], ['衣服', 'outfit', OUTFITS.map(o => o.name)], ['頭型', 'head', HEADS], ['眼睛', 'eye', EYES], ['嘴巴', 'mouth', MOUTHS], ['配件', 'acc', ACCS]];
   openDlg(`👗 ${nameOf(i)} 的造型`, `<p class="muted">改了馬上就看得到。${lvl < 4 ? '配件「小花」Lv2、「愛心光環」Lv4 解鎖。' : ''}</p>${rows.map(([n, k, arr]) => `<div class="look-row" data-k="${k}" data-n="${arr.length}"><span>${n}</span><span id="lv-${k}">${esc(arr[(L[k] | 0) % arr.length])}</span><button type="button" data-d="-1" aria-label="上一個">‹</button><button type="button" data-d="1" aria-label="下一個">›</button></div>`).join('')}
     <button type="button" class="ghost" id="lk-couple">👫 兩個人一起換情侶裝</button>
     <div class="row"><button type="button" class="ghost" id="lk-rand">🎲 隨機</button><button type="button" class="ghost" id="lk-g">${L.gender === 'f' ? '換成男生' : '換成女生'}</button></div>`);
+  $('#dlg').dataset.sheet = '1';
+  const turn = document.createElement('button'); turn.type = 'button'; turn.className = 'ghost lk-turn'; turn.textContent = lookCam.back ? '看正面' : '看背面';
+  turn.onclick = () => { lookCam.back = !lookCam.back; turn.textContent = lookCam.back ? '看正面' : '看背面'; sfx('click'); };
+  $('#dlg-body').prepend(turn);
   $('#dlg-body').querySelectorAll('.look-row').forEach(r => r.querySelectorAll('button').forEach(b => b.onclick = () => {
     const k = r.dataset.k, n = +r.dataset.n; let v = ((L[k] | 0) + +b.dataset.d + n) % n;
     if (k === 'acc') { let guard = 0; while (!accOK(v) && guard++ < n) v = (v + +b.dataset.d + n) % n; }
@@ -1441,7 +1447,8 @@ $('#btn-music').onclick = () => {
   sfx('click'); const cur = st.music ? (st.track ?? -1) : null;
   const row = (v, t, sub) => `<button type="button" data-m="${v}" aria-pressed="${cur === v}">${t}<small>${sub}</small></button>`;
   openDlg('🎵 背景音樂', `<div class="opts music">${row(-1, '🔀 自動輪播', '四首輪流播放')}${TRACKS.map((t, i) => row(i, `🎶 ${t[1]}`, t[0])).join('')}${row('off', '🔇 關閉音樂', '音效還是會有')}</div>${st.music && Music.playing ? `<p class="muted">正在播放：${esc(Music.playing)}</p>` : ''}
-    <div class="toggle-row"><span>🌿 環境音<br><small class="muted">海浪、鳥叫、蟲鳴、營火、雨聲、腳步聲</small></span><button type="button" id="amb-tg" aria-pressed="${st.amb !== false}">${st.amb !== false ? '開' : '關'}</button></div>`);
+    <div class="toggle-row"><span>🌿 環境音<br><small class="muted">海浪、鳥叫、蟲鳴、營火、雨聲、腳步聲</small></span><button type="button" id="amb-tg" aria-pressed="${st.amb !== false}">${st.amb !== false ? '開' : '關'}</button></div><div class="toggle-row"><span>📱 背景繼續播音樂<br><small class="muted">切到別的 App 或鎖定畫面時，音樂繼續播（環境音會停）</small></span><button type="button" id="bg-tg" aria-pressed="${st.bgMusic !== false}">${st.bgMusic !== false ? '開' : '關'}</button></div>`);
+  $('#bg-tg').onclick = () => { st.bgMusic = st.bgMusic === false; setBackgroundPlay(st.bgMusic); save(); $('#bg-tg').setAttribute('aria-pressed', String(st.bgMusic)); $('#bg-tg').textContent = st.bgMusic ? '開' : '關'; };
   $('#amb-tg').onclick = () => { st.amb = st.amb === false; Amb.setOn(st.amb); save(); $('#amb-tg').setAttribute('aria-pressed', String(st.amb)); $('#amb-tg').textContent = st.amb ? '開' : '關'; };
   $('#dlg-body').querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
     const v = b.dataset.m;
@@ -1457,8 +1464,18 @@ function camBlocked(x, y, z) {
   for (const [x0, z0, x1, z1] of BOXES) if (y < 6.5 && x > x0 - 0.4 && x < x1 + 0.4 && z > z0 - 0.4 && z < z1 + 0.4) return true;
   return false;
 }
+// 換裝時的鏡頭：在角色正前方、稍微往下看，角色在畫面上半部（下半部是換裝面板）
+let lookCam = null;
 function updateCam(dt, snap) {
   const p = me();
+  if (lookCam) {
+    const c = lookCam.c, r = c.av.root.position, a = lookCam.a, d = scene === 'in' ? 4.4 : innerWidth > innerHeight ? 4.2 : 6.2;
+    c.ry = a + (lookCam.back ? Math.PI : 0); // 看背面＝角色轉過去
+    // 看的點在角色腳下，角色就會出現在畫面上半部（下半部被換裝面板蓋住）
+    tmpT.set(r.x, r.y - 0.2, r.z); camP.set(r.x + Math.sin(a) * d, r.y + 0.45, r.z + Math.cos(a) * d);
+    if (scene === 'in') cutaway(IN, camP.x, camP.z);
+    const k = snap ? 1 : 1 - Math.exp(-dt * 5); camT.lerp(tmpT, k); cam.position.lerp(camP, k); cam.lookAt(camT); return;
+  }
   if (scene === 'in') {
     tmpT.set(clamp(p.x, -5, 5) * 0.65, 0.9, clamp(p.z, -3.5, 3.5) * 0.55);
     if (act?.focus) tmpT.lerp(act.focus(), 0.7);
@@ -1527,7 +1544,7 @@ function shareSave() {
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
-const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui'];
+const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic'];
 function applySave(keys, first) {
   for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; st[k] = v; }
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
@@ -2518,7 +2535,7 @@ function applyUI(k) {
   if (!UI_STYLES[k]) k = 'cozy'; document.documentElement.dataset.ui = k;
   const id = 'font-' + k; if (!document.getElementById(id)) { const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = `https://fonts.googleapis.com/css2?${UI_STYLES[k][1]}&display=swap`; document.head.appendChild(l); }
 }
-applyUI(st.ui);
+applyUI(st.ui); setBackgroundPlay(st.bgMusic !== false);
 // 介面圖示
 [['#btn-map', 'map'], ['#btn-book', 'book'], ['#btn-photo', 'camera'], ['#btn-music', 'music']].forEach(([q, n]) => { $(q).innerHTML = icon(n); });
 document.querySelectorAll('[data-ico]').forEach(e => { e.innerHTML = icon(e.dataset.ico); });

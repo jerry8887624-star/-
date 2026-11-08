@@ -108,8 +108,24 @@ export const Music = {
     else { gFadeTo(0, 800, () => gel.pause()); if (bgWas && on) { el.play().then(() => fadeTo(VOL, 1200)).catch(() => {}); } bgWas = false; }
   },
 };
+// 切到背景：環境音、音效（Web Audio）暫停省電；背景音樂可以選擇繼續播（預設繼續）
+let bgPlay = true;
+export function setBackgroundPlay(v) { bgPlay = !!v; }
 document.addEventListener('visibilitychange', () => {
   if (ctx) document.hidden ? ctx.suspend() : ctx.resume();
-  if (gel && gOn) { if (document.hidden) gel.pause(); else gel.play().catch(() => {}); return; }
-  if (!el || !on) return; if (document.hidden) el.pause(); else el.play().catch(() => {});
+  const a = gel && gOn ? gel : el && on ? el : null; if (!a) return;
+  if (document.hidden) { if (!bgPlay) a.pause(); } else if (a.paused) a.play().catch(() => {});
 });
+// 鎖定畫面／控制中心：顯示正在播的歌，可以暫停、下一首
+function mediaInfo() {
+  const ms = navigator.mediaSession; if (!ms || typeof MediaMetadata === 'undefined') return;
+  const title = gOn && gI >= 0 ? GUITAR_SONGS[gI][0] : on ? TRACKS[idx][1] : ''; if (!title) return;
+  try { ms.metadata = new MediaMetadata({ title, artist: '我們的小島', artwork: [{ src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }] }); } catch (e) {}
+}
+if (typeof navigator !== 'undefined' && navigator.mediaSession) {
+  const ms = navigator.mediaSession, act = (k, f) => { try { ms.setActionHandler(k, f); } catch (e) {} };
+  act('play', () => { (gOn ? gel : el)?.play().catch(() => {}); });
+  act('pause', () => { (gOn ? gel : el)?.pause(); });
+  act('nexttrack', () => { if (gOn) gNext(); else if (on) { load(nextIdx()); el.play().catch(() => {}); } mediaInfo(); });
+}
+if (el) el.addEventListener('play', mediaInfo); if (gel) gel.addEventListener('play', mediaInfo);
