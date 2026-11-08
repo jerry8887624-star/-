@@ -67,7 +67,7 @@ export default {
       const stub = env.ISLAND.get(env.ISLAND.idFromName(r.island));
       const j = await (await call(stub, '/pair', { code })).json();
       if (j.error) return json(j, 400);
-      return json({ island: r.island, key: j.key, role: j.role });
+      return json({ island: r.island, key: j.key, role: j.role, relogin: j.relogin ? 1 : 0 });
     }
     if (path === '/api/vapid') { const v = await (await call(reg, '/vapid', {})).json(); return json({ key: v.pub }); }
     if (path === '/api/peekpair') { // 看情侶碼是誰的小島（不會用掉情侶碼）
@@ -145,12 +145,18 @@ export class Island {
     if (url.pathname === '/setpair') { this.meta.pair = { code: b.code, exp: b.exp }; await this.persist('meta'); return json({ ok: 1 }); }
     if (url.pathname === '/pair') {
       if (this.meta.pair?.code !== b.code) return json({ error: '情侶碼不對或已經過期了' });
-      const role = this.meta.keys[0] ? 1 : 0; if (this.meta.keys[role]) return json({ error: '這座小島已經有兩位島主了' });
+      // 已經有兩位島主：這是「重新登入碼」，讓那位島主在新的手機（或主畫面的小島）登入，原本的身分、名字、回憶都不變
+      if (this.meta.keys[0] && this.meta.keys[1]) {
+        const role = this.meta.pair.role; if (role !== 0 && role !== 1) return json({ error: '這座小島已經有兩位島主了' });
+        const key = rnd(32), more = this.meta.more || { 0: [], 1: [] }; more[role] = [await hash(key), ...(more[role] || [])].slice(0, 5); this.meta.more = more; this.meta.pair = null; await this.persist('meta');
+        this.ownersSend({ t: 'owner', owner: this.ownerView() }); return json({ key, role, relogin: 1 });
+      }
+      const role = this.meta.keys[0] ? 1 : 0;
       const key = rnd(32); this.meta.keys[role] = await hash(key); this.meta.pair = null; await this.persist('meta');
       this.bcast({ t: 'paired' });
       return json({ key, role });
     }
-    if (url.pathname === '/owner') { const n = this.save.names || ['', '']; return json({ names: n, paired: !!(this.meta.keys[0] && this.meta.keys[1]) }); }
+    if (url.pathname === '/owner') { const n = this.save.names || ['', '']; const re = this.meta.pair?.role; return json({ names: n, paired: !!(this.meta.keys[0] && this.meta.keys[1]), relogin: re === 0 || re === 1 ? re : null }); }
     if (url.pathname === '/peek') {
       if (b.guest !== this.meta.guest) return json({ error: '這個訪客連結已經失效了，請島主重新分享' });
       const guests = [...this.sessions.values()].filter(s => s.role === 'g').length;
@@ -166,7 +172,7 @@ export class Island {
     const fail = (code, why) => { server.close(code, why); return new Response(null, { status: 101, webSocket: client }); };
     if (!this.meta) return fail(4004, '找不到這座小島');
     let role = null; const key = url.searchParams.get('key'), guest = url.searchParams.get('guest');
-    if (key) { const h = await hash(key); role = this.meta.keys.indexOf(h); if (role < 0) return fail(4004, '鑰匙不對'); }
+    if (key) { const h = await hash(key); role = this.meta.keys.indexOf(h); if (role < 0) role = [0, 1].find(r => (this.meta.more?.[r] || []).includes(h)) ?? -1; if (role < 0) return fail(4004, '鑰匙不對'); }
     else if (guest) {
       if (guest !== this.meta.guest) return fail(4004, '訪客連結已經失效了');
       if (this.meta.locked) return fail(4003, '小島目前鎖起來了');
@@ -282,10 +288,10 @@ export class Island {
       case 'lock': if (!owner) return; this.meta.locked = !!m.on; await this.persist('meta'); this.ownersSend({ t: 'owner', owner: this.ownerView() }); break;
       case 'newguest': if (!owner) return; this.meta.guest = rnd(6); await this.persist('meta'); this.ownersSend({ t: 'owner', owner: this.ownerView() }); break;
       case 'newpair': {
-        if (!owner || (this.meta.keys[0] && this.meta.keys[1])) return;
+        if (!owner) return; const paired = !!(this.meta.keys[0] && this.meta.keys[1]);
         const reg = this.env.REGISTRY.get(this.env.REGISTRY.idFromName('registry'));
         const p = await (await reg.fetch('https://x/new', { method: 'POST', body: JSON.stringify({ island: this.meta.island }) })).json();
-        this.meta.pair = { code: p.code, exp: p.exp }; await this.persist('meta'); this.ownersSend({ t: 'owner', owner: this.ownerView() }); break;
+        this.meta.pair = { code: p.code, exp: p.exp, role: paired ? 1 - s.role : null }; // 已配對：給另一半重新登入用 await this.persist('meta'); this.ownersSend({ t: 'owner', owner: this.ownerView() }); break;
       }
     }
   }
