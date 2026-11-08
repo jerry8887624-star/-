@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8"><base href="/nest/"><body style="margin:0;background:#0000">
+<script type="module">
+import * as THREE from '/nest/vendor/three.module.min.js';
+import { load, cloneModel } from '/nest/js/models.js';
+import { DECOR } from '/nest/js/data.js';
+const R = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); R.setSize(256, 256); R.setClearColor(0x000000, 0); R.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(R.domElement);
+const S = new THREE.Scene(); S.add(new THREE.HemisphereLight('#fff7ee', '#8a7a70', 2.2)); const d = new THREE.DirectionalLight('#ffffff', 1.6); d.position.set(3, 5, 4); S.add(d);
+const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+window.shots = {};
+for (const def of DECOR) {
+  const g = await load(def[0]); if (!g) continue; const o = cloneModel(g); o.scale.setScalar(def[4]); o.rotation.y = -0.6; S.add(o);
+  const box = new THREE.Box3().setFromObject(o), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()), r = Math.max(sz.x, sz.y, sz.z) * 0.62 + 0.001;
+  const dist = r / Math.sin(THREE.MathUtils.degToRad(15)); cam.position.set(c.x + dist * 0.55, c.y + dist * 0.42, c.z + dist * 0.72); cam.lookAt(c); cam.near = dist / 50; cam.far = dist * 4; cam.updateProjectionMatrix();
+  R.render(S, cam); window.shots[def[0]] = R.domElement.toDataURL('image/png'); S.remove(o);
+}
+window.done = true;
+</script>

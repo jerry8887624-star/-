@@ -100,7 +100,8 @@ export const Music = {
   },
   stop() { if (!el) return; on = false; fadeTo(0, 600, () => el.pause()); },
   // i = -1 自動輪播
-  pick(i) { pickI = i; order = []; if (!el) return; if (!on || el.paused) { load(i >= 0 ? i : nextIdx()); return; } fadeTo(0, 400, () => { load(i >= 0 ? i : nextIdx()); if (on) el.play().then(() => fadeTo(VOL, 900)).catch(() => {}); }); },
+  // 換歌：馬上換成新的那首再淡入（以前是先淡出、淡出完才換，但緊接著的 play() 會把淡出中斷，歌就一直沒換）
+  pick(i) { pickI = i; order = []; if (!el) return; const playing = on && !el.paused; clearInterval(fadeT); load(i >= 0 ? i : nextIdx()); if (playing) { el.volume = 0; el.play().then(() => fadeTo(VOL, 900)).catch(() => {}); } mediaInfo(); },
   get guitarSong() { return gOn && gI >= 0 ? GUITAR_SONGS[gI][0] : ''; },
   duet(v) {
     if (!gel || !!v === gOn) return; gOn = !!v;

@@ -41,11 +41,13 @@ export function load(key) {
 
 // 碰撞：圓形 [x, z, r]、方形 [x0, z0, x1, z1]
 export const CIRCLES = [], BOXES = [];
+// 所有用 one() 擺出來的模型（裝潢時找桌面、沙發、床的表面）
+export const props = [];
 
 // 單一個模型；y 不給就站在地面上
 export async function one(parent, key, x, z, ry = 0, s = 1, { col = 0, y = null, box = null } = {}) {
   const g = await load(key); if (!g) return null;
-  const o = cloneModel(g); o.position.set(x, y ?? standH(x, z), z); o.rotation.y = ry; o.scale.setScalar(s); parent.add(o);
+  const o = cloneModel(g); o.position.set(x, y ?? standH(x, z), z); o.rotation.y = ry; o.scale.setScalar(s); parent.add(o); props.push(o);
   if (g.animations?.length) { const mixer = new THREE.AnimationMixer(o); g.animations.forEach(c => mixer.clipAction(c).play()); mixers.push(mixer); }
   if (col) CIRCLES.push([x, z, col * s]);
   if (box) BOXES.push(box);

@@ -70,14 +70,26 @@ export const QUEST_COIN = 20, QUEST_BONUS = 30;
 // 裝潢：[代號, 名字, 價錢, 放哪裡（out 屋外／in 屋內／any）, 大小, 碰撞半徑]
 export const DECOR = [
   ['flowerBed', '小花圃', 60, 'out', 1, 0.5], ['sunflower', '向日葵', 30, 'out', 0.6, 0.2], ['common-daisy-6b2004', '小雛菊', 25, 'out', 0.06, 0.15],
-  ['potted-autumn-mums-08db8c', '秋菊盆栽', 40, 'any', 0.9, 0.35], ['potted-shrub-43bd21', '小盆栽', 40, 'any', 0.7, 0.35], ['potted-cactus-855c1d', '仙人掌', 20, 'any', 2.2, 0.2],
+  ['potted-autumn-mums-08db8c', '秋菊盆栽', 40, 'any', 0.9, 0.35], ['potted-shrub-43bd21', '小盆栽', 40, 'any', 0.7, 0.35], ['potted-cactus-855c1d', '仙人掌', 20, 'any', 2.2, 0.2, 's'],
   ['plant', '大盆栽', 60, 'any', 1, 0.4], ['cherry', '櫻花樹', 150, 'out', 0.8, 0.4], ['sapling', '小椰子樹', 60, 'out', 1, 0.3], ['bush', '圓灌木', 30, 'out', 1, 0.5],
   ['birdhouse-post-66d6c1', '鳥屋', 80, 'out', 1, 0.25], ['frontyard-gnome-997876', '花園小矮人', 50, 'any', 1.4, 0.25], ['garden-birdbath-9671de', '鳥浴盆', 90, 'out', 1, 0.35],
   ['rocker', '搖椅', 80, 'any', 1, 0.4], ['deckChair', '海灘椅', 50, 'out', 1, 0.4], ['parasol', '陽傘', 70, 'out', 1, 0.15], ['picnicTable', '野餐桌', 90, 'out', 0.8, 0.8],
-  ['dockLamp', '路燈', 60, 'out', 1, 0.2], ['andon-floor-lantern-b1b7ea', '紙燈籠', 50, 'any', 1, 0.25], ['camping-lantern-21d14b', '露營燈', 30, 'any', 1.6, 0.15],
+  ['dockLamp', '路燈', 60, 'out', 1, 0.2], ['andon-floor-lantern-b1b7ea', '紙燈籠', 50, 'any', 1, 0.25], ['camping-lantern-21d14b', '露營燈', 30, 'any', 1.6, 0.15, 's'],
   ['windsock-d5df79', '風向袋', 70, 'out', 0.35, 0.2], ['bike', '腳踏車', 120, 'out', 1, 0.5], ['guitar', '吉他', 60, 'any', 1, 0.2],
-  ['rug', '地毯', 80, 'in', 0.8, 0], ['cushion', '抱枕', 20, 'in', 1, 0.15], ['tableLamp', '檯燈', 30, 'in', 1, 0.15], ['floorLamp', '立燈', 60, 'in', 1, 0.25],
+  ['rug', '地毯', 80, 'in', 0.8, 0], ['cushion', '抱枕', 20, 'in', 1, 0.15, 's'], ['tableLamp', '檯燈', 30, 'in', 1, 0.15, 's'], ['floorLamp', '立燈', 60, 'in', 1, 0.25],
   ['bookcase', '書櫃', 100, 'in', 1, 0.5],
+  // 0.10 新增：家具
+  ['office-desk-021eb3', '書桌', 120, 'in', 1, 0.6], ['dorm-desk-chair-9b4076', '書桌椅', 50, 'in', 1, 0.3], ['armchair-980c7c', '單人沙發', 90, 'in', 1, 0.45],
+  ['lounge-armchair-5a72ca', '休閒椅', 80, 'any', 1, 0.4], ['side-table-2ea5c0', '小邊桌', 45, 'any', 1, 0.28], ['bookshelf-5e881a', '小書架', 40, 'in', 1, 0.2, 's'],
+  ['woven-storage-basket-983d80', '編織收納籃', 35, 'in', 1, 0.22, 's'],
+  // 小物（可以放在桌上、櫃子上、沙發和床上）
+  ['exercise-book-stack-266d9d', '一疊書', 15, 'in', 1, 0.1, 's'], ['table-candle-lantern-a7b5af', '燭台燈', 25, 'any', 1, 0.08, 's'], ['coffee-cup-90be67', '咖啡杯', 10, 'in', 1, 0.07, 's'],
+  ['classroom-globe-16a96e', '地球儀', 35, 'in', 1, 0.11, 's'], ['table-herb-pot-3c0cf4', '香草小盆栽', 20, 'any', 1, 0.1, 's'], ['basil-pot-125949', '羅勒盆栽', 25, 'any', 1, 0.16, 's'],
+  // 盆栽
+  ['fern-plant-1559b8', '蕨類盆栽', 45, 'any', 0.9, 0.35], ['ti-plant-a7ad06', '朱蕉盆栽', 70, 'any', 0.55, 0.4], ['taro-plant-8c0493', '姑婆芋', 60, 'any', 0.85, 0.45],
+  // 戶外
+  ['split-rail-fence-run-87da39', '木柵欄', 40, 'out', 1, 0], ['round-path-stone-4130f3', '圓踏腳石', 10, 'out', 1, 0], ['slab-path-stone-e526f7', '石板步道', 15, 'out', 1, 0],
+  ['paper-bag-luminaria-0e8a1a', '紙袋燈', 15, 'out', 1, 0.1, 's'], ['globe-lamp-346cb6', '庭院球燈', 70, 'out', 0.5, 0.25],
 ];
 // 收藏獎勵：[代號, 說明, 條件, 送的小島幣, 送的擺設]
 export const MILESTONES = [

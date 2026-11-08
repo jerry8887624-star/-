@@ -364,3 +364,13 @@ body.calm #joy { opacity: .55; transition: opacity 1.2s ease; }
 #bu-cancel > span { color: #d0566f; }
 @media (prefers-color-scheme: dark) { .bu-btn > span { background: rgba(255, 255, 255, .1); } }
 html[data-ui="editorial"] .bu-btn.ok > span { background: #3a2a28; box-shadow: 0 8px 22px rgba(58, 42, 40, .3); }
+
+/* 商店：實物縮圖卡片（三欄） */
+.shop.items { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.shop button.item { display: grid; justify-items: center; gap: 2px; padding: 8px 6px 10px; text-align: center; }
+.shop button.item .th { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 10px; background: radial-gradient(circle at 50% 40%, #fff, rgba(255, 232, 238, .55)); }
+.shop button.item b { font-weight: 400; font-size: var(--fs-s); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.shop button.item small { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+@media (prefers-color-scheme: dark) { .shop button.item .th { background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04)); } }
+.shop button.item { position: relative; }
+.shop button.item .tag { position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 999px; background: rgba(255, 255, 255, .9); color: var(--rose); font-style: normal; font-size: 10.5px; box-shadow: 0 1px 4px rgba(120, 40, 70, .12); }

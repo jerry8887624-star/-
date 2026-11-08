@@ -36,7 +36,7 @@ export const INSPOTS = {
 // 家具位置（main.js 的活動也用）
 export const FURN = {
   bed: { x: -4.6, z: -3.75 }, sofa: { x: 0, z: -0.9 }, tv: { x: 0, z: -4.6 }, cook: { x: 4.5, z: -4.55 },
-  table: { x: 4.3, z: 1.6 }, nook: { x: -4.7, z: 2.9 }, beans: [[-5.55, 2.05, Math.PI / 2 + 0.35], [-5.55, 3.75, Math.PI / 2 - 0.35]],
+  table: { x: 4.3, z: 1.6 }, desk: { x: 6.52, z: -1.6, top: 0.75 }, nook: { x: -4.7, z: 2.9 }, beans: [[-5.55, 2.05, Math.PI / 2 + 0.35], [-5.55, 3.75, Math.PI / 2 - 0.35]],
 };
 
 function seeded(s) { return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
@@ -446,6 +446,12 @@ export async function buildInterior(themeKey = 'muji') {
     // 閱讀角：書櫃靠左牆、地毯、兩顆懶人沙發、閱讀立燈
     o('bookcase', -6.6, 1.7, P / 2, 1, 0, 'table'), o('bookcase', -6.6, 2.75, P / 2, 1, 0, 'table'), o('rug', F.nook.x, F.nook.z, 0, 0.9, 0, 'rug'),
     o('floorLamp', -6.45, 4.5, P / 4, 1, 0, null, true), o('cushion', -3.5, 4.4, -0.6, 1, 0, 'cushion'),
+    // 書桌角：靠右牆、在廚房和餐桌中間，面向房間；檯燈、一疊書、地球儀
+    o('office-desk-021eb3', F.desk.x, F.desk.z, -P / 2, 1, 0, 'table'), o('dorm-desk-chair-9b4076', F.desk.x - 0.85, F.desk.z + 0.1, P / 2, 1, 0, 'wood'),
+    o('tableLamp', F.desk.x + 0.12, F.desk.z - 0.5, -P / 2, 0.9, F.desk.top, null, true), o('exercise-book-stack-266d9d', F.desk.x + 0.05, F.desk.z + 0.45, 0.3, 1, F.desk.top), o('classroom-globe-16a96e', F.desk.x + 0.12, F.desk.z + 0.1, 0, 0.9, F.desk.top),
+    // 更多盆栽：衣櫃和書櫃中間、電視櫃旁邊、門口、流理台、餐桌
+    o('fern-plant-1559b8', -6.35, 0.25, 0.4, 0.75, 0, 'pot'), o('ti-plant-a7ad06', 2.45, -4.4, 0.6, 0.55, 0, 'pot'), o('taro-plant-8c0493', 2.4, 4.3, 2.2, 0.8, 0, 'pot'),
+    o('table-herb-pot-3c0cf4', 5.85, F.cook.z, 0.4, 1, 1.0), o('basil-pot-125949', F.table.x + 0.62, F.table.z - 0.1, 0, 0.8, 0.75),
   ]);
   // 流理台下面的櫃子、水槽、水龍頭、牆上的開放層板（放罐子）
   const cab = mat('cabinet'), steel = mat('steel'), K = F.cook;
@@ -465,6 +471,7 @@ export async function buildInterior(themeKey = 'muji') {
     [-1.0, -4.9, 1.0, -4.3], [-1.0, -1.4, 1.0, -0.4], [-0.6, -2.8, 0.6, -2.2], [1.3, -0.6, 1.7, -0.2], [-1.9, -4.9, -1.3, -4.2], [1.3, -4.9, 1.7, -4.4], // 客廳
     [3.0, -4.9, 6.9, -4.2], // 廚房
     [3.3, 0.45, 5.3, 2.75], [6.0, 3.9, 6.9, 4.9], // 餐廳
+    [6.15, -2.35, 6.9, -0.85], [5.4, -1.8, 5.95, -1.2], [-6.8, -0.2, -5.9, 0.7], [2.05, -4.9, 2.85, -4.0], [2.0, 3.9, 2.8, 4.7], // 書桌角、盆栽
     [-6.9, 1.1, -6.35, 3.3], [-6.15, 1.5, -4.95, 2.6], [-6.15, 3.2, -4.95, 4.3], [-6.75, 4.2, -6.15, 4.9], // 閱讀角
   ];
   // 電視螢幕（看電影時會變色）
