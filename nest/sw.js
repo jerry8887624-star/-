@@ -1,5 +1,5 @@
 /* 離線快取：網頁先試網路（不讀 HTTP 快取，4 秒逾時才用手機裡的版本），其他資源先用快取並在背景更新 */
-const V='nest-ba8578d603';
+const V='nest-4ae51f5ae4';
 const CORE=['./','index.html','manifest.webmanifest','css/app.css','js/main.js','js/world.js','js/models.js','js/terrain.js','js/avatar.js','js/char.js','js/net.js','js/chatfilter.js','js/data.js','js/audio.js','js/changes.js','js/update.js','vendor/three.module.min.js','vendor/GLTFLoader.js','vendor/BufferGeometryUtils.js','vendor/SkeletonUtils.js','icons/icon.svg','icons/icon-192.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CORE.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('nest-')&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
@@ -21,3 +21,8 @@ self.addEventListener('fetch',e=>{
   if(u.origin===location.origin&&/\.(js|css)$/.test(u.pathname)){e.respondWith(fetch(r,{cache:'no-store'}).then(x=>x.ok?put(r,x):caches.match(r).then(m=>m||x)).catch(()=>caches.match(r).then(m=>m||fetch(r))));return}
   e.respondWith(caches.match(r).then(m=>{const n=fetch(r).then(x=>put(r,x)).catch(()=>m||Response.error());return m||n}));
 });
+/* 手機推播：另一半想你、留便利貼 */
+self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(_){d={body:e.data&&e.data.text()}}
+  e.waitUntil(self.registration.showNotification(d.title||'我們的小島',{body:d.body||'',tag:d.tag||'island',renotify:true,icon:'icons/icon-192.png',badge:'icons/icon-192.png',data:{url:'./'}}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();
+  e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{for(const c of cs){if('focus' in c)return c.focus()}return self.clients.openWindow('./')}))});

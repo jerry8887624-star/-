@@ -21,3 +21,8 @@ self.addEventListener('fetch',e=>{
   if(u.origin===location.origin&&/\.(js|css)$/.test(u.pathname)){e.respondWith(fetch(r,{cache:'no-store'}).then(x=>x.ok?put(r,x):caches.match(r).then(m=>m||x)).catch(()=>caches.match(r).then(m=>m||fetch(r))));return}
   e.respondWith(caches.match(r).then(m=>{const n=fetch(r).then(x=>put(r,x)).catch(()=>m||Response.error());return m||n}));
 });
+/* 手機推播：另一半想你、留便利貼 */
+self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(_){d={body:e.data&&e.data.text()}}
+  e.waitUntil(self.registration.showNotification(d.title||'我們的小島',{body:d.body||'',tag:d.tag||'island',renotify:true,icon:'icons/icon-192.png',badge:'icons/icon-192.png',data:{url:'./'}}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();
+  e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{for(const c of cs){if('focus' in c)return c.focus()}return self.clients.openWindow('./')}))});
