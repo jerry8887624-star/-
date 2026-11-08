@@ -680,12 +680,12 @@ async function actSand() {
   const g = await load('sandcastle'); const castle = g ? g.scene.clone(true) : new THREE.Group(); castle.position.set(cx, standH(cx, cz), cz); castle.scale.setScalar(0.05); OUT.add(castle);
   if (idx < castleObjs.length) castleObjs[idx].visible = false;
   const y = standH(cx, cz) + 0.02 - HIP;
-  fadeDo(() => { seat(me(), cx - 0.7, null, cz, Math.PI / 2, 'stand'); seat(you(), cx + 0.7, null, cz, -Math.PI / 2, 'stand'); }, 250);
+  fadeDo(() => { seat(me(), cx - 0.62, null, cz, Math.PI / 2, 'crouch'); seat(you(), cx + 0.62, null, cz, -Math.PI / 2, 'crouch'); }, 250);
   let n = 0; const N = 8;
   beginAct('sand', '🏰 堆沙堡', `一起堆一座沙堡！點「堆沙」${N} 次。`, {
     focus: () => new THREE.Vector3(cx, 0.8, cz), back: [cx, cz - 1.6],
     btns: [{ t: '堆沙！', main: true, id: 'sand-go', fn: () => {
-      if (n >= N) return; n++; castle.scale.setScalar(0.05 + 0.95 * (n / N)); me().av.emote('plant', 1.3); you().av.emote('plant', 1.3); sfx('sand'); burst('star', new THREE.Vector3(cx, standH(cx, cz) + 0.5, cz), 1, 0.3);
+      if (n >= N) return; n++; castle.scale.setScalar(0.05 + 0.95 * (n / N)); me().av.dig(); you().av.dig?.(); sfx('sand'); burst('star', new THREE.Vector3(cx, standH(cx, cz) + 0.5, cz), 1, 0.3);
       msg(n < N ? `堆了 ${n}/${N}` : `完成了！這是你們的第 ${st.castles + 1} 座沙堡 🏰`);
       if (n === N) { st.castles++; addLove(4, '沙堡完成'); addMemo('🏰', `堆好第 ${st.castles} 座沙堡`); me().av.emote('cheer', 1.5); you().av.emote('clap', 1.5); burst('heart', midPos(1.2), 8); $('#sand-go').disabled = true; }
     } }],
@@ -776,7 +776,7 @@ function actFish() {
   const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85 }));
   bob.visible = ln.visible = false; OUT.add(bob); OUT.add(ln);
   // 站在碼頭盡頭、面向大海；另一半（在線上的話）坐在旁邊
-  fadeDo(() => { seat(me(), fx + 0.8, null, -0.3, Math.PI / 2, 'stand'); seat(you(), fx + 0.9, DOCK.y + 0.04 - HIP, 0.55, Math.PI / 2); me().av.setItem(rod); me().av.reach(true); }, 250);
+  fadeDo(() => { seat(me(), fx + 0.8, null, -0.3, Math.PI / 2, 'hold'); seat(you(), fx + 0.9, DOCK.y + 0.04 - HIP, 0.55, Math.PI / 2); me().av.setItem(rod); me().av.reach(true); }, 250);
   let state = 'idle', t = 0, wait = 0, flyT = 0, fish = null, catchO = null, tension = 0, prog = 0, holding = false, pull = 0, landT = 0;
   const target = new THREE.Vector3(), start = new THREE.Vector3();
   const setState = s => { state = s; t = 0; };
@@ -834,7 +834,7 @@ function actFish() {
     burst(rare ? 'heart' : 'star', headPos(me(), 2), rare ? 16 : 6, 0.5); sfx('chime');
   };
   beginAct('fish', '🎣 釣魚', '按「拋竿」，浮標往下沉的時候馬上按「收竿」！', {
-    focus: () => state === 'close' ? closeAt.clone() : state === 'show' ? headPos(me(), 1.2) : new THREE.Vector3(fx + 2, DOCK.y + 0.6, 0), near: () => state === 'close' ? 0.16 : state === 'show' ? 0.45 : 0, back: [fx - 0.5, 0], camYaw: -Math.PI / 2 - 0.55, camPitch: 0.3,
+    focus: () => state === 'close' ? closeAt.clone() : state === 'show' ? headPos(me(), 0.85) : new THREE.Vector3(fx + 2, DOCK.y + 0.6, 0), near: () => state === 'close' ? 0.17 : state === 'show' ? 0.72 : 0, camSpeed: () => state === 'close' || state === 'show' ? 2.2 : 0, back: [fx - 0.5, 0], camYaw: -Math.PI / 2 - 0.55, camPitch: 0.3,
     update(dt) {
       t += dt; rod.userData.tip.getWorldPosition(v3);
       if (catchO?.mixer) catchO.mixer.update(dt);
@@ -1239,7 +1239,7 @@ function updateCam(dt, snap) {
     for (let k = 0; k < 12; k++) { camP.set(tmpT.x + Math.sin(yaw) * Math.cos(pit) * d, tmpT.y + Math.sin(pit) * d, tmpT.z + Math.cos(yaw) * Math.cos(pit) * d); if (!camBlocked(camP.x, camP.y, camP.z)) break; if (d < 2.5) { camP.y = Math.max(camP.y, 7.2); break; } d *= 0.8; }
     camP.y = Math.max(camP.y, standH(camP.x, camP.z) + 0.6);
   }
-  const k = snap ? 1 : 1 - Math.exp(-dt * 6);
+  const k = snap ? 1 : 1 - Math.exp(-dt * (act?.camSpeed?.() || 6));
   camT.lerp(tmpT, k); cam.position.lerp(camP, k); cam.lookAt(camT);
 }
 
@@ -1598,5 +1598,5 @@ async function setupVisit() {
   updateCam(0, true);
   buildInterior().then(I => { IN = I; });
   if (visitParam.length) setupVisit();
-  window.__nest = { get st() { return st; }, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  window.__nest = { get st() { return st; }, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();
