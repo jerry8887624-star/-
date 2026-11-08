@@ -5,7 +5,7 @@ import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from '.
 import { buildIsland, buildInterior, applyTheme, THEMES, setTimeOfDay, SPOTS, INSPOTS, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
-import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES } from './data.js';
+import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES } from './data.js';
 import { Amb } from './amb.js';
 import { weatherAt, seasonOf, createWeatherFX, umbrellaItem, snowmanMesh, SEASON_DAYS } from './weather.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
@@ -455,6 +455,7 @@ function meter(on, v = 0, zone) { const m = $('#ap-meter'); m.hidden = !on; if (
 function beginAct(id, title, text, o = {}) {
   act = { id, t: 0, ...o }; $('#act-panel').hidden = false; $('#ap-title').textContent = title; msg(text); meter(false); setBtns(o.btns || []);
   toggleLoveMenu(false); $('#btn-act').hidden = true; if (!o.move) $('#joy').style.visibility = 'hidden';
+  $('#act-panel').classList.toggle('top', !!o.move); // 可以走動的活動：面板放上面，不擋搖桿
   // 有些活動要看向特定方向（海、夕陽、煙火）
   act.camBack = { yaw: view.yaw, pitch: view.pitch };
   if (o.camYaw != null) { view.yaw = o.camYaw; if (o.camPitch != null) view.pitch = o.camPitch; }
@@ -491,6 +492,8 @@ const SP = [
   { id: 'boat', sc: 'out', x: SPOTS.boat.x, z: 0.2, r: 2, icon: '🚣', name: '划船', run: actBoat },
   { id: 'sunset', sc: 'out', x: SPOTS.sunset.x + 1.4, z: SPOTS.sunset.z + 0.4, icon: '🌅', name: '看夕陽', run: actSunset, dyn: () => isNight() ? ['🌠', '看星星'] : ['🌅', '看夕陽'] },
   { id: 'dog', sc: 'out', x: 0, z: 0, r: 1.8, icon: '🐶', name: '狗狗', run: actDog, pos: () => W.dog?.o.position },
+  { id: 'coop', sc: 'out', x: SPOTS.coop.x, z: SPOTS.coop.z + 1.9, icon: '🐔', name: '雞舍', run: () => actCoop() },
+  { id: 'bike', sc: 'out', x: 0, z: 0, r: 1.8, icon: '🚲', name: '腳踏車', run: () => actBike(), pos: () => W.bike?.position, hide: () => act?.id === 'bike' },
   { id: 'snowman', sc: 'out', x: 3.5, z: 12.4, icon: '⛄', name: '堆雪人', run: () => actSnowman(), hide: () => seasonOf(st.day).k !== 'winter' },
   { id: 'exit', sc: 'in', ...INSPOTS.exit, r: 1.6, icon: '🚪', name: '出門', run: exitHouse },
   { id: 'bed', sc: 'in', ...INSPOTS.bed, icon: '🛏️', name: '床', run: actBed },
@@ -790,6 +793,7 @@ function actFish() {
   const setState = s => { state = s; t = 0; };
   const btns = () => {
     if (state === 'fight') setBtns([{ t: '按住收線', main: true, hold: on => { holding = on; } }]);
+    else if (state === 'show' && EDIBLE.includes(fish.f[0])) setBtns([{ t: '🧊 帶回家', main: true, fn: takeHome }, { t: '放回海裡', fn: press }]);
     else setBtns([{ t: state === 'idle' ? '拋竿' : state === 'bite' ? '收竿！' : state === 'wait' ? '等魚上鉤…' : state === 'show' ? '放回海裡' : '…', main: true, dis: state === 'fly' || state === 'land', fn: press }]);
   };
   const press = () => {
@@ -799,6 +803,12 @@ function actFish() {
     else if (state === 'show') { me().ry = Math.PI / 2; me().av.setItem(rod); me().av.reach(true); if (catchO) { catchO.g.parent?.remove(catchO.g); catchO = null; } msg('撲通～放回海裡了。再釣一次吧！'); sfx('plop'); reset(); }
   };
   const reset = () => { setState('idle'); bob.visible = ln.visible = false; meter(false); btns(); };
+  // 帶回家：放進冰箱，回小木屋可以煮
+  const takeHome = () => {
+    const name = fish.f[0]; st.pantry = st.pantry || {}; st.pantry[name] = (st.pantry[name] || 0) + 1; save(); quest('takefish');
+    me().ry = Math.PI / 2; me().av.setItem(rod); me().av.reach(true); if (catchO) { catchO.g.parent?.remove(catchO.g); catchO = null; }
+    msg(`${fish.f[1]} ${name}放進冰箱了（冰箱裡有 ${st.pantry[name]} 條）。回小木屋可以煮！`); sfx('pop'); reset(); $('#ap-msg').textContent = `🧊 ${name}放進冰箱了，回小木屋可以煮！`;
+  };
   const startFight = async () => {
     const f = pickFish(), size = f[3] ? Math.round(rand(f[3], f[4])) : 0;
     fish = { f, size, power: f[0] === '鮪魚' ? 1.6 : f[0] === '愛心魚' ? 1.4 : f[0] === '舊靴子' || f[0] === '瓶中信' ? 0.5 : 0.8 + size / 60 };
@@ -1056,23 +1066,34 @@ function actSofa() {
     end() { IN.screen.material.color.set('#111'); },
   });
 }
+// 冰箱：食材數量；「魚」= 任何一條可以吃的魚
+function pantryCount(k) { const P = st.pantry || {}; return k === '魚' ? EDIBLE.filter(n => n !== '愛心魚').reduce((t, n) => t + (P[n] || 0), 0) : P[k] || 0; }
+function canCook(r) { return Object.entries(r[3]).every(([k, n]) => pantryCount(k) >= n); }
+function useIngredients(r) { const P = st.pantry; for (const [k, n] of Object.entries(r[3])) { let left = n; if (k === '魚') { for (const f of ['小丑魚', '藍色倒吊', '黃金鯛', '小章魚', '鮪魚']) while (left > 0 && P[f] > 0) { P[f]--; left--; } } else P[k] -= n; } save(); }
+const FOOD_ICON = { 雞蛋: '🥚', 魚: '🐟', 鮪魚: '🐟', 小章魚: '🐙', 愛心魚: '💗', 小丑魚: '🐠', 藍色倒吊: '🐟', 黃金鯛: '🐡' };
+function pantryText() { const P = st.pantry || {}, list = Object.entries(P).filter(([, n]) => n > 0); return list.length ? list.map(([k, n]) => `${FOOD_ICON[k] || '🍽️'}${k}×${n}`).join('　') : '空空的（釣魚帶回家、去雞舍撿雞蛋）'; }
 function actCook() {
   const p = me(), q = you(); seat(p, 3.6, 0, -0.45, Math.PI, 'stand'); p.y = null; seat(q, 4.4, 0, -0.45, Math.PI, 'stand'); q.y = null;
   let dish = null, prog = 0, cooking = false;
-  beginAct('cook', '🍳 一起做飯', '想吃什麼？', {
+  const pickRecipe = () => {
+    openDlg('🍳 食譜', `<p class="muted">🧊 冰箱：${esc(pantryText())}</p><div class="shop">${RECIPES.map((r, i) => { const need = Object.entries(r[3]).map(([k, n]) => `${FOOD_ICON[k] || ''}${k}×${n}`).join(' ') || '不用食材'; return `<button type="button" data-r="${i}" ${canCook(r) ? '' : 'disabled'}>${r[1]} ${esc(r[0])}<small>${esc(need)}・+${r[4]} 🪙</small></button>`; }).join('')}</div>`);
+    $('#dlg-body').querySelectorAll('[data-r]').forEach(b => b.onclick = () => { $('#dlg').close(); start(RECIPES[+b.dataset.r]); });
+  };
+  beginAct('cook', '🍳 做飯', `冰箱：${pantryText()}`, {
     focus: () => new THREE.Vector3(3.9, 1, -1.2), back: [INSPOTS.kitchen.x, INSPOTS.kitchen.z + 1],
-    btns: DISHES.map((d, i) => ({ t: `${d[1]} ${d[0]}`, fn: () => start(i) })),
+    btns: [{ t: '📖 看食譜', main: true, fn: pickRecipe }],
     update(dt) {
       if (!cooking) return; prog += dt / 4; meter(true, Math.min(1, prog) * 0.6); p.av.reach(Math.sin(prog * 30) > 0); q.av.reach(true);
       if (Math.random() < dt * 3) burst('star', new THREE.Vector3(3.9, 1.2, -1.2), 1, 0.3);
       if (prog >= 1) { cooking = false; meter(false); p.av.reach(false); q.av.reach(false); serve(); }
     },
   });
-  function start(i) { dish = DISHES[i]; cooking = true; prog = 0; me().av.emote('interact', 4.2); you().av.emote('interact', 4.2); msg(duo() ? `${nameOf(me().i)} 切菜、${nameOf(you().i)} 掌廚，做${dish[0]}中…` : `做${dish[0]}中…`); setBtns([]); sfx('sizzle'); }
+  setTimeout(pickRecipe, 450);
+  function start(r) { if (!canCook(r)) return; useIngredients(r); dish = r; cooking = true; prog = 0; me().av.emote('interact', 4.2); you().av.emote('interact', 4.2); msg(duo() ? `${nameOf(me().i)} 切菜、${nameOf(you().i)} 掌廚，做${dish[0]}中…` : `做${dish[0]}中…`); setBtns([]); sfx('sizzle'); }
   function serve() {
     IN.dish.clear(); [-0.35, 0.35].forEach(dx => { const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.03, 16), toon('#ffffff')); pl.position.set(0, 0, dx); IN.dish.add(pl); const f = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), toon(dish[2])); f.scale.y = 0.45; f.position.set(0, 0.05, dx); IN.dish.add(f); });
-    IN.dish.visible = true; st.dishes++; quest('cook'); addCoins(8); addLove(3, `${dish[1]} ${dish[0]}完成`); addMemo(dish[1], `一起做了${dish[0]}`);
-    msg(`${dish[0]}做好了，放在餐桌上！到餐桌一起吃吧。`); setBtns([{ t: '去餐桌吃飯', main: true, fn: () => { endAct(); actEat(); } }]);
+    IN.dish.visible = true; st.dishes++; quest('cook'); addCoins(dish[4]); addLove(dish[5], `${dish[1]} ${dish[0]}完成`); addMemo(dish[1], `${duo() ? '一起' : ''}做了${dish[0]}`);
+    msg(`${dish[0]}做好了，放在餐桌上！到餐桌${duo() ? '一起' : ''}吃吧。`); setBtns([{ t: '去餐桌吃飯', main: true, fn: () => { endAct(); actEat(); } }, { t: '再做一道', fn: pickRecipe }]);
   }
 }
 function actEat() {
@@ -1183,7 +1204,7 @@ function tickShells(t) {
 
 // ---------- 新的一天 ----------
 function newDay() {
-  st.day++; spawnShells(); save(); updateHud(); updateChips(); drawSnowman();
+  st.day++; spawnShells(); save(); updateHud(); updateChips(); drawSnowman(); drawEggs();
   const s0 = seasonOf(st.day - 1), s1 = seasonOf(st.day); if (s0 !== s1) setTimeout(() => toast(`${s1.icon} ${s1.name}來了！`, 3500), 1200);
 }
 
@@ -1262,7 +1283,7 @@ function updateCam(dt, snap) {
 }
 
 // ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
-const SHARED = ['names', 'looks', 'anniv', 'day', 'theme', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
+const SHARED = ['names', 'looks', 'anniv', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
 const LOVE_WORD = { hand: '牽你的手', hug: '抱抱你', kiss: '親親你', pat: '摸摸你的頭' };
 function newChar(look) { const c = { i: 'g', av: new Avatar(look), x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }; OUT.add(c.av.root); hookEmote(c); return c; }
 function hookEmote(c) { const orig = c.av.emote.bind(c.av); c.av.emote = (k, d) => { orig(k, d); if (MP.on && c === me()) MP.net.send({ t: 'emo', k, d }); }; }
@@ -1316,7 +1337,7 @@ function applySave(keys, first) {
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
   if ('castles' in keys) showCastles();
   if (keys.garden) st.garden.forEach((_, i) => drawPlant(i));
-  if (keys.decor) drawDecor(); if (keys.theme && IN) applyTheme(IN, keys.theme); if ('snowman' in keys) drawSnowman(); updateChips?.();
+  if (keys.eggs) drawEggs(); if (keys.decor) drawDecor(); if (keys.theme && IN) applyTheme(IN, keys.theme); if ('snowman' in keys) drawSnowman(); updateChips?.();
   snapSent(); if (MP.role !== 'g') try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
   updateHud();
 }
@@ -1514,7 +1535,7 @@ function tickWeather(dt, k) {
   // 下雨：在屋外走動的人自己撐傘
   const raining = WX.st.rain > 0.5 && scene === 'out';
   for (const c of allChars()) {
-    const want = raining && !c.locked && !c.act && (c.av.pose || 'stand') === 'stand' && (c.sc || 'out') === 'out';
+    const want = raining && !c.locked && !(c === me() ? act : c.act) && (c.av.pose || 'stand') === 'stand' && (c.sc || 'out') === 'out';
     const has = !!c.av.item?.userData?.umbrella;
     if (want && !has && !c.av.item) { c.av.setItem(umbrellaItem(c === me() ? '#ff8fab' : '#8ec8f0')); c.av.holdUmbrella(true); }
     else if (!want && has) { c.av.setItem(null); c.av.holdUmbrella(false); }
@@ -1700,6 +1721,74 @@ function tickFps(dt) {
   if (fpsT > 10) { const fps = fpsN / fpsT; fpsT = 0; fpsN = 0; if (fps < 24) { lowAsked = true; openDlg('🔋 手機有點吃力', `<p>畫面每秒只有 ${Math.round(fps)} 張，要不要打開<b>省電模式</b>？畫面會稍微不那麼細，但比較順、比較不燙。</p><div class="row"><button type="button" class="ghost" value="close">先不用</button><button type="button" class="primary" id="low-on">打開省電模式</button></div>`); $('#low-on').onclick = () => { st.low = true; save(); applyLow(); $('#dlg').close(); toast('🔋 已打開省電模式（📔 → 關於 可以關掉）'); }; } }
 }
 
+
+// ---------- 雞舍：撿雞蛋、餵雞（前一天有餵，隔天多下一顆蛋） ----------
+let eggObjs = [];
+function eggsToday() { if (!st.eggs || st.eggs.day !== st.day) { st.eggs = { day: st.day, n: 2 + (st.fedDay === st.day - 1 ? 1 : 0) }; } return st.eggs.n; }
+function drawEggs() {
+  eggObjs.forEach(o => o.parent?.remove(o)); eggObjs = []; if (!W) return;
+  const n = eggsToday(), m = toon('#fbf3e4'), straw = toon('#d8b45a');
+  for (let i = 0; i < n; i++) {
+    const g = new THREE.Group(); const nest = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.05, 6, 12), straw); nest.rotation.x = Math.PI / 2; g.add(nest);
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), m); e.scale.y = 1.3; e.position.y = 0.06; g.add(e);
+    const x = SPOTS.coop.x - 0.8 + i * 0.8, z = SPOTS.coop.z + 1.1; g.position.set(x, standH(x, z) + 0.03, z); OUT.add(g); eggObjs.push(g);
+  }
+}
+function actCoop() {
+  const c = SPOTS.coop;
+  fadeDo(() => { const p = me(); p.x = c.x; p.z = c.z + 1.9; p.ry = Math.PI; }, 200);
+  const btns = () => setBtns([
+    { t: `🥚 撿雞蛋（還有 ${eggsToday()} 顆）`, main: true, dis: !eggsToday(), fn: () => {
+      if (!eggsToday()) return; st.eggs.n--; st.pantry = st.pantry || {}; st.pantry['雞蛋'] = (st.pantry['雞蛋'] || 0) + 1; save(); drawEggs();
+      me().av.emote('pickup', 1.1); sfx('pop'); quest('egg'); burst('star', headPos(me(), 0.4), 2, 0.2);
+      msg(`撿到一顆雞蛋！冰箱裡有 ${st.pantry['雞蛋']} 顆。`); btns();
+    } },
+    { t: st.fedDay === st.day ? '今天餵過了' : '🌾 餵雞', dis: st.fedDay === st.day, fn: () => {
+      st.fedDay = st.day; save(); me().av.emote('throw', 0.8); sfx('sand'); quest('feed'); addLove(1, '雞雞們好開心');
+      const p = me(); (W.chickens || []).forEach((a, i) => { a.tx = p.x + Math.sin(i * 2.1) * 1.1; a.tz = p.z - 1.0 + Math.cos(i * 2.1) * 0.5; a.t = 6; });
+      for (let i = 0; i < 6; i++) burst('star', new THREE.Vector3(p.x + rand(-0.8, 0.8), standH(p.x, p.z) + 0.2, p.z - 1 + rand(-0.4, 0.4)), 1, 0.1);
+      msg('撒了一把飼料，雞雞們都跑過來了！明天會多下一顆蛋。'); btns();
+    } },
+  ]);
+  beginAct('coop', '🐔 雞舍', `今天下了 ${eggsToday()} 顆蛋。撿回家可以做蛋料理；每天餵雞，隔天會多一顆蛋。`, {
+    focus: () => new THREE.Vector3(c.x, LAND_Y + 0.8, c.z + 0.6), back: [c.x, c.z + 2.2], camYaw: 0.2, camPitch: 0.45,
+  });
+  btns();
+}
+
+// ---------- 騎腳踏車（用搖桿騎，速度比跑步快；在哪裡下車，車就停在哪裡） ----------
+const SEAT_H = 0.82;
+function actBike() {
+  const bike = W.bike; if (!bike) return;
+  if (bike.userData.rider) return toast('腳踏車有人在騎喔');
+  const p = me(); p.x = bike.position.x; p.z = bike.position.z; p.ry = bike.rotation.y;
+  p.av.setPose('ride'); p.av.reach(true); quest('bike'); sfx('click');
+  let ringT = 0;
+  beginAct('bike', '🚲 騎腳踏車', '推搖桿騎車，速度比跑步快。想停的時候按「下車」。', {
+    move: true,
+    btns: [{ t: '下車', main: true, fn: () => endAct() }, { t: '🔔 按鈴', fn: () => { if (ringT > 0) return; ringT = 0.6; sfx('chime'); you().av.emote('wave', 1); } }],
+    update(dt) {
+      ringT -= dt; const c = me();
+      c.y = standH(c.x, c.z) + SEAT_H - HIP;
+      bike.position.set(c.x, standH(c.x, c.z), c.z); bike.rotation.y = c.ry;
+      // 輪子轉（整台車輕輕晃）
+      bike.rotation.z = c.moving ? Math.sin(performance.now() / 120) * 0.02 : 0;
+    },
+    end() { const c = me(); c.y = null; c.av.setPose('stand'); c.av.reach(false); bike.rotation.z = 0; const s = Math.sin(c.ry + Math.PI / 2), co = Math.cos(c.ry + Math.PI / 2); const [x, z] = freeSpot(c.x + s * 0.7, c.z + co * 0.7); c.x = x; c.z = z; addMemo('🚲', '騎腳踏車繞了小島'); },
+  });
+}
+// 別人在騎車：在他腳下也放一台腳踏車
+const remoteBikes = new Map();
+function tickRemoteBikes() {
+  for (const c of allChars()) {
+    if (c === me() || !c.remote) continue; const riding = c.act === 'bike' && c.av.root.visible;
+    let b = remoteBikes.get(c);
+    if (riding && !b) { b = { o: null }; remoteBikes.set(c, b); load('bike').then(g => { if (g) { b.o = cloneModel(g); OUT.add(b.o); } }); }
+    if (b?.o) { b.o.visible = riding; if (riding) { b.o.position.set(c.x, standH(c.x, c.z), c.z); b.o.rotation.y = c.ry; } }
+  }
+  if (W?.bike) W.bike.visible = ![...allChars()].some(c => c.remote && c.act === 'bike') || act?.id === 'bike';
+}
+
 // ---------- 主迴圈 ----------
 const clock = new THREE.Clock(); let T = 0, saveT = 0;
 let lowSkip = false;
@@ -1712,7 +1801,7 @@ function frame() {
   if (started() && !document.hidden) { st.tod += dt / 36; if (st.tod >= 24) { st.tod -= 24; newDay(); toast(`第 ${st.day} 天了`); } }
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : st.tod, cam.position);
   W.water.material.uniforms.uTime.value = T;
-  if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); }
+  if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickRemoteBikes(); }
   if (IN) { IN.winMat.color.copy(k.hor).lerp(new THREE.Color('#ffd9a8'), 0.25); }
   W.sky.clouds.rotation.y += dt * 0.004;
   W.fireL.intensity = (6 + Math.sin(T * 13) * 1.2 + Math.sin(T * 7.3) * 1.0) * (0.5 + k.night * 0.8);
@@ -1741,7 +1830,7 @@ function frame() {
       p.path = null; lovePending = null;
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = -fz, rz = fx;
       const dx = fx * -iy + rx * ix, dz = fz * -iy + rz * ix;
-      stepChar(p, dx, dz, dt, (st.run ? 7 : 4.2) * mag);
+      stepChar(p, dx, dz, dt, (act?.id === 'bike' ? 8.5 : st.run ? 7 : 4.2) * mag);
     } else if (p.path) {
       const P = p.path, last = P.i >= P.pts.length - 1, [wx, wz] = P.pts[Math.min(P.i, P.pts.length - 1)];
       const dx = wx - p.x, dz = wz - p.z, d = Math.hypot(dx, dz);
@@ -1812,9 +1901,9 @@ async function setupVisit() {
   try { W = await buildIsland(OUT); } catch (e) { console.error(e); msgEl.textContent = '載入失敗，請重新整理'; clearInterval(tick); return; }
   clearInterval(tick); msgEl.textContent = st.started ? '歡迎回來 ♥' : '準備好了！';
   btn.disabled = false;
-  spawnShells(); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); WX = createWeatherFX(OUT);
+  spawnShells(); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); WX = createWeatherFX(OUT); drawEggs();
   updateCam(0, true);
   buildInterior(st.theme || 'muji').then(I => { IN = I; drawDecor(); });
   if (visitParam.length) setupVisit();
-  window.__nest = { get st() { return st; }, OUT, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  window.__nest = { get st() { return st; }, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();

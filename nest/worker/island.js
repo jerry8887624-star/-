@@ -10,7 +10,7 @@ const MAX_GUESTS = 4;
 const PAIR_DAYS = 7;
 const HOUR_MS = 36000; // 遊戲裡一小時 = 36 秒（跟前端一樣）
 // 兩位島主共用的存檔欄位
-const SHARED = ['names', 'looks', 'anniv', 'love', 'day', 'theme', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
+const SHARED = ['names', 'looks', 'anniv', 'love', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
 const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(x => ABC[x % ABC.length]).join(''); };
 const hash = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -184,7 +184,7 @@ export class Island {
     switch (m.t) {
       case 'pos': {
         const p = { x: num(m.x, -60, 60), z: num(m.z, -60, 60), ry: num(m.ry, -100, 100), y: m.y == null ? null : num(m.y, -5, 10), sc: m.sc === 'in' ? 'in' : 'out',
-          pose: ['stand', 'sit', 'lie', 'swing', 'recline'].includes(m.pose) ? m.pose : 'stand', mv: m.mv ? 1 : 0, act: String(m.act || '').slice(0, 16), hand: String(m.hand || '').slice(0, 8), tilt: num(m.tilt, -1, 1) };
+          pose: ['stand', 'sit', 'lie', 'swing', 'recline', 'floor', 'crouch', 'hold', 'ride'].includes(m.pose) ? m.pose : 'stand', mv: m.mv ? 1 : 0, act: String(m.act || '').slice(0, 16), hand: String(m.hand || '').slice(0, 8), tilt: num(m.tilt, -1, 1) };
         s.pos = p; this.bcast({ t: 'pos', id: s.id, ...p }, s); break;
       }
       case 'emo': if (this.gap(s, 'emo', 300)) return; this.bcast({ t: 'emo', id: s.id, k: String(m.k || '').slice(0, 12), d: num(m.d, 0.3, 8) }, s); break;
