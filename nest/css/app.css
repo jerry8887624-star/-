@@ -201,3 +201,5 @@ dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
 .toggle-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--card); }
 .toggle-row button { min-width: 64px; padding: 6px 12px; border-radius: 999px; border: 0; font-weight: 900; background: rgba(0, 0, 0, .08); }
 .toggle-row button[aria-pressed="true"] { background: var(--rose); color: #fff; }
+
+.shop button[aria-pressed="true"] { outline: 2px solid var(--rose); }
