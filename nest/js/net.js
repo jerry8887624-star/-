@@ -21,6 +21,8 @@ async function post(path, body) {
 export const createIsland = (save, role) => post('create', { save, role });
 // 用情侶碼加入，回傳 { island, key, role }
 export const pairIsland = code => post('pair', { code });
+// 看情侶碼是誰的小島（開場顯示「誰邀請你」）
+export const peekPair = code => post('peekpair', { code });
 // 看訪客連結對應的小島（顯示名字用）
 export const peekIsland = (island, guest) => post('peek', { island, guest });
 

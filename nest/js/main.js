@@ -10,7 +10,7 @@ import { Amb } from './amb.js';
 import { weatherAt, seasonOf, createWeatherFX, umbrellaItem, snowmanMesh, SEASON_DAYS } from './weather.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
 import { Music, sfx, TRACKS } from './audio.js';
-import { Net, auth as savedAuth, saveAuth, serverAvailable, createIsland, pairIsland, peekIsland } from './net.js';
+import { Net, auth as savedAuth, saveAuth, serverAvailable, createIsland, pairIsland, peekIsland, peekPair } from './net.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 
 const $ = s => document.querySelector(s);
@@ -23,9 +23,9 @@ const AS = 1, HIP = 0.306; // 角色大小、坐下時屁股離腳底的高度
 const KEY = 'nest.save';
 const DEF = { v: 1, names: ['', ''], looks: [null, null], anniv: '', love: 0, day: 1, tod: 9, diary: [], fish: {}, shells: {}, garden: [null, null, null], castles: 0, letterDay: 0, ctrl: 0, music: true, started: false, hand: false, flowersGiven: 0, dishes: 0, wishes: 0, fireworks: 0, laps: 0 };
 let st = (() => { try { return { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { return { ...DEF }; } })();
-const save = () => { if (MP.role === 'g') return; if (st.myLook) { st.myLook = st.looks[myIdx()]; st.myName = st.names[myIdx()]; } try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} shareSave(); };
+const save = () => { if (MP.role === 'g') return; if (st.myLook && (MP.id || (!MP.on && MP.role == null))) { /* 連上島、拿到身分後才同步「我是誰」 */ st.myLook = st.looks[myIdx()]; st.myName = st.names[myIdx()]; } try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} shareSave(); };
 setInterval(save, 5000); addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-const myIdx = () => MP.on && MP.role !== 'g' ? MP.role : st.ctrl;
+const myIdx = () => MP.role === 0 || MP.role === 1 ? MP.role : st.ctrl; // 連線拿到身分前，用原本的
 const nameOf = i => st.names[i] || (i === myIdx() ? '我' : '另一半');
 
 // ---------- 畫面 ----------
@@ -70,7 +70,7 @@ function syncSplash() {
   document.querySelectorAll('.me-row [data-g]').forEach(b => b.setAttribute('aria-pressed', String(st.myLook.gender === b.dataset.g)));
 }
 function setMyLook(L) { st.myLook = L; st.looks[myIdx()] = L; chars[myIdx()].av.setLook(L); }
-document.querySelectorAll('.me-row [data-g]').forEach(b => b.onclick = () => { setMyLook(randomLook(b.dataset.g)); syncSplash(); sfx('click'); });
+document.querySelectorAll('.me-row [data-g]').forEach(b => b.onclick = () => { setMyLook(randomLook(b.dataset.g)); document.querySelectorAll('.me-row [data-g]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); sfx('click'); }); // 只換樣子，不要清掉已經打好的名字
 document.querySelector('.me-row .shuffle').onclick = () => { setMyLook(randomLook(st.myLook.gender)); chars[myIdx()].av.emote('jump', 1); sfx('click'); };
 $('#start-btn').onclick = () => {
   st.myName = $('#name0').value.trim().slice(0, 8); st.names[myIdx()] = st.myName;
@@ -83,9 +83,9 @@ $('#start-btn').onclick = () => {
   placeStart();
   updateHud();
   Amb.start(); Amb.setOn(st.amb !== false); updateChips(); drawDecor(); drawSnowman(); if (st.low) applyLow(); setRun(!!st.run); setFlash(!!st.flash);
-  if (!st.tut) setTimeout(tutorialStart, 1500);
+  if (!st.tut && !pairParam) setTimeout(tutorialStart, 1500);
   if (savedAuth?.key) serverAvailable().then(ok => { if (ok) { MP.role = savedAuth.role; MP.on = true; snapSent(); connectNet(savedAuth); } });
-  if (pairParam) setTimeout(() => { openNet().then(() => { $('#net-pair')?.click(); const i = $('#pair-in'); if (i) i.value = pairParam; }); }, 800);
+  if (pairParam && !savedAuth?.key) { history.replaceState(null, '', location.pathname); setTimeout(() => joinByCode(pairParam).catch(e => { toast(e.message, 4000); openNet().then(() => { $('#net-pair')?.click(); const i = $('#pair-in'); if (i) i.value = pairParam; }); }), 600); }
   if (first) { addMemo('🏝️', `${nameOf(myIdx())} 搬到了小島上`); setTimeout(() => toast('歡迎回家！靠近有標籤的地方就能做事；🌐 可以邀請另一半 ♥', 4500), 900); }
   else { toast(pick(TIPS), 4000); showNewsOnce(); }
 };
@@ -1332,14 +1332,16 @@ function shareSave() {
   if (any) MP.net.send({ t: 'save', keys });
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
+// 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
+const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash'];
 function applySave(keys, first) {
-  for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; st[k] = v; }
+  for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; st[k] = v; }
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
   if ('castles' in keys) showCastles();
   if (keys.garden) st.garden.forEach((_, i) => drawPlant(i));
   if (keys.eggs) drawEggs(); if (keys.decor) drawDecor(); if (keys.theme && IN) applyTheme(IN, keys.theme); if ('snowman' in keys) drawSnowman(); updateChips?.();
   snapSent(); if (MP.role !== 'g') try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
-  updateHud();
+  updateHud(); if (keys.names && !first && $('#dlg').open && $('#dlg').dataset.net) openNet();
 }
 function onNet(m) {
   if (m.t === 'welcome') {
@@ -1360,12 +1362,12 @@ function onNet(m) {
     updateNetChip(); if ($('#dlg').open && $('#dlg').dataset.net) openNet();
     return;
   }
-  if (m.t === 'join') { addPeer(m.p); toast(`${m.p.role === 'g' ? '🎈 ' + m.p.name : nameOf(m.p.role)} 來到小島了`); sfx('chime'); return; }
+  if (m.t === 'join') { addPeer(m.p); if ($('#dlg').open && $('#dlg').dataset.net) openNet(); toast(`${m.p.role === 'g' ? '🎈 ' + m.p.name : nameOf(m.p.role)} 來到小島了`); sfx('chime'); return; }
   if (m.t === 'leave') {
     const p = MP.peers.get(m.id); if (!p) return; MP.peers.delete(m.id);
     if (p.role === 'g') { p.c.av.root.parent?.remove(p.c.av.root); toast(`${p.name} 離開小島了`); }
     else { const c = chars[p.role]; c.remote = false; c.net = null; c.locked = false; c.y = null; c.av.setPose('stand'); c.av.holdHand(0); c.sc = scene; c.x = me().x + 1; c.z = me().z + 1; toast(`${nameOf(p.role)} 離線了`); if (MP.led || MP.lead) { MP.led = null; MP.lead = false; } }
-    updateNetChip(); return;
+    updateNetChip(); if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return;
   }
   if (m.t === 'pos') { const c = peerChar(m.id); if (!c) return; c.net = m; if (!c.seen) { c.seen = 1; c.x = m.x; c.z = m.z; c.ry = m.ry; } return; }
   if (m.t === 'emo') { const c = peerChar(m.id); if (!c) return; c.av.emote(m.k, m.d); if (m.k === 'kiss' || m.k === 'hug') burst('heart', headPos(c, 1.6), 5, 0.3); return; }
@@ -1375,7 +1377,7 @@ function onNet(m) {
   if (m.t === 'memo') { st.diary.unshift(m.m); if (st.diary.length > 300) st.diary.length = 300; save(); return; }
   if (m.t === 'clock') { st.tod = m.clock.tod; st.day = m.clock.day; MP.expTod = st.tod; updateHud(); return; }
   if (m.t === 'owner') { MP.owner = m.owner; if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
-  if (m.t === 'paired') { if (MP.owner) MP.owner.paired = true; toast('另一半加入小島了 ❤'); if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
+  if (m.t === 'paired') { if (MP.owner) MP.owner.paired = true; toast('另一半加入小島了 ❤', 3500); burst('heart', headPos(me(), 1.6), 10); if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
   if (m.t === 'book') { if (MP.owner) MP.owner.book = [m.e, ...(MP.owner.book || [])]; if (MP.role !== 'g') toast(`📝 ${m.e.n}：${m.e.text}`, 4000); return; }
   if (m.t === 'say') { const c = peerChar(m.id) || (m.id === MP.id ? me() : null); if (c) showSay(c, m.text); return; }
   if (m.t === 'err') { toast(m.why === 'slow' ? '留言太快了，等一下再寫' : CHAT_WHY[m.why] || '沒有送出'); return; }
@@ -1471,7 +1473,7 @@ function connectNet(a) {
   MP.net.connect(a); updateNetChip();
 }
 function leaveNet() {
-  MP.net?.close(); MP.on = false; MP.role = null; MP.led = null; MP.lead = false;
+  MP.net?.close(); MP.on = false; MP.role = null; MP.id = null; MP.led = null; MP.lead = false;
   for (const p of MP.peers.values()) if (p.role === 'g') p.c.av.root.parent?.remove(p.c.av.root);
   MP.peers.clear(); chars.forEach(c => { c.remote = false; c.net = null; c.sc = scene; }); updateNetChip(); updateHud();
 }
@@ -1490,7 +1492,7 @@ async function openNet() {
   else {
     const o = MP.owner || {}, link = `${location.origin}${location.pathname}?visit=${savedAuthNow().island}.${o.guest || ''}`;
     html = `${peopleHtml(true)}
-      ${o.paired ? '' : `<div class="memo"><span class="ic">💌</span><b>情侶碼：<span style="font-size:22px;letter-spacing:.15em">${esc(o.pair || '（已過期）')}</span></b><small>給另一半在自己手機的「🌐 → 我有情侶碼」輸入（7 天內有效）</small></div><button type="button" class="ghost" id="net-newpair">重新產生情侶碼</button>`}
+      ${o.paired ? '' : `<div class="memo"><span class="ic">💌</span><b>情侶碼：<span style="font-size:22px;letter-spacing:.15em">${esc(o.pair || '（已過期）')}</span></b><small>給另一半在自己手機的「🌐 → 我有情侶碼」輸入（7 天內有效）</small></div><button type="button" class="primary" id="net-invite">💌 傳給另一半</button><button type="button" class="ghost" id="net-newpair">重新產生情侶碼</button>`}
       <div class="memo"><span class="ic">🎈</span><b>訪客連結</b><small style="word-break:break-all">${esc(link)}</small></div>
       <div class="row"><button type="button" class="ghost" id="net-share">分享給朋友</button><button type="button" class="ghost" id="net-newguest">重設連結</button></div>
       <button type="button" class="ghost" id="net-lock">${o.locked ? '🔓 打開小島（朋友可以進來）' : '🔒 鎖起來（朋友暫時不能進來）'}</button>
@@ -1501,14 +1503,19 @@ async function openNet() {
   openDlg('🌐 連線', html); $('#dlg').dataset.net = '1'; $('#dlg').addEventListener('close', () => { delete $('#dlg').dataset.net; }, { once: true });
   const on = (id, fn) => { const e = $('#' + id); if (e) e.onclick = fn; };
   on('net-create', async () => {
-    try { const r = await createIsland(st, st.ctrl); saveAuth({ island: r.island, key: r.key, role: r.role }); toast('小島建立好了！把情侶碼給另一半'); connectNet({ island: r.island, key: r.key }); setTimeout(openNet, 1200); }
+    try { const r = await createIsland(st, st.ctrl); saveAuth({ island: r.island, key: r.key, role: r.role }); MP.role = r.role; toast('小島建立好了！把情侶碼給另一半'); connectNet({ island: r.island, key: r.key }); setTimeout(openNet, 1200); }
     catch (e) { toast(e.message); }
   });
   on('net-pair', () => {
     openDlg('💌 輸入情侶碼', `<label class="anniv"><span>情侶碼（6 碼）</span><input id="pair-in" maxlength="8" autocomplete="off" style="text-transform:uppercase;letter-spacing:.15em"></label><button type="button" class="primary" id="pair-go">加入小島</button>`);
-    $('#pair-go').onclick = async () => { try { const r = await pairIsland($('#pair-in').value); saveAuth({ island: r.island, key: r.key, role: r.role }); $('#dlg').close(); toast('加入小島了 ❤'); connectNet({ island: r.island, key: r.key }); } catch (e) { toast(e.message); } };
+    $('#pair-go').onclick = async () => { try { await joinByCode($('#pair-in').value); $('#dlg').close(); } catch (e) { toast(e.message); } };
   });
   on('net-newpair', () => MP.net.send({ t: 'newpair' }));
+  on('net-invite', async () => {
+    const code = MP.owner?.pair; if (!code) return toast('情侶碼過期了，先按「重新產生情侶碼」');
+    const link = `${location.origin}${location.pathname}?pair=${code}`, text = `💌 ${nameOf(myIdx())} 邀請你一起住在「我們的小島」！點連結、填名字就能加入（情侶碼 ${code}）`;
+    try { if (navigator.share) await navigator.share({ title: '我們的小島', text, url: link }); else { await navigator.clipboard.writeText(text + '\n' + link); toast('邀請連結已複製，貼給另一半吧'); } } catch (e) {}
+  });
   on('net-newguest', () => { if (confirm('重設之後，舊的訪客連結就不能用了。確定嗎？')) MP.net.send({ t: 'newguest' }); });
   on('net-lock', () => MP.net.send({ t: 'lock', on: !MP.owner?.locked }));
   on('net-share', async () => { const o = MP.owner || {}, link = `${location.origin}${location.pathname}?visit=${savedAuthNow().island}.${o.guest}`; const text = `來 ${nameOf(0)} ♥ ${nameOf(1)} 的小島玩吧！`; try { if (navigator.share) await navigator.share({ title: '我們的小島', text, url: link }); else { await navigator.clipboard.writeText(link); toast('連結已複製'); } } catch (e) {} });
@@ -1902,10 +1909,21 @@ function frame() {
   R.render(curS(), cam);
 }
 
+// 用情侶碼加入另一半的小島
+async function joinByCode(code) {
+  const r = await pairIsland(code); saveAuth({ island: r.island, key: r.key, role: r.role }); MP.role = r.role; MP.id = null;
+  toast('加入小島了 ❤', 3000); connectNet({ island: r.island, key: r.key });
+  if (tutorial.step >= 0) tutorialEnd();
+}
 // ---------- 訪客連結、情侶碼連結 ----------
 const qs = new URLSearchParams(location.search);
 const visitParam = (qs.get('visit') || '').toUpperCase().split('.'), pairParam = (qs.get('pair') || '').toUpperCase();
 if (!visitParam[0] || !visitParam[1]) visitParam.length = 0;
+async function setupPairSplash() {
+  const card = $('.splash-card'), ban = document.createElement('p'); ban.className = 'invite'; ban.textContent = '💌 你收到一個小島邀請'; card.insertBefore(ban, card.firstChild);
+  $('#start-btn').textContent = '加入小島 ♥'; $('.splash-card .sub').innerHTML = '填好名字、選好樣子，<br>按下面的按鈕就會搬進另一半的小島。';
+  try { const r = await peekPair(pairParam); const n = r.names?.find(Boolean); if (n) ban.textContent = `💌 ${n} 邀請你一起住在小島上`; if (r.paired) ban.textContent = '這座小島已經有兩位島主了'; } catch (e) { ban.textContent = '💌 邀請碼可能過期了，請另一半重新傳一次'; }
+}
 async function setupVisit() {
   const [island, code] = visitParam, card = $('.splash-card');
   const look = randomLook(Math.random() < 0.5 ? 'f' : 'm');
@@ -1947,5 +1965,6 @@ async function setupVisit() {
   updateCam(0, true);
   buildInterior(st.theme || 'muji').then(I => { IN = I; drawDecor(); });
   if (visitParam.length) setupVisit();
+  else if (pairParam) setupPairSplash();
   window.__nest = { get st() { return st; }, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();
