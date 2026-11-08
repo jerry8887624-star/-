@@ -142,7 +142,10 @@ export class Avatar {
     // 縮放：脖子高度一樣
     model.updateMatrixWorld(true); const hp = bones.Head.getWorldPosition(new THREE.Vector3());
     const sc = NECK_Y / hp.y; model.scale.setScalar(sc); this.modelScale = sc;
-    this.body.add(model); model.updateMatrixWorld(true);
+    this.body.add(model);
+    // 裝頭、愛心之前先把身體擺正（躺著、坐著、盪鞦韆時換衣服，頭才不會歪掉）
+    const keep = { rr: this.root.rotation.clone(), br: this.body.rotation.clone(), bp: this.body.position.clone() };
+    this.root.rotation.set(0, 0, 0); this.body.rotation.set(0, 0, 0); this.body.position.set(0, 0, 0); this.root.updateMatrixWorld(true);
     // 換上 Q 版頭：原本的頭縮到看不見，我們的頭掛在頭骨上
     const hb = bones.Head; hb.scale.setScalar(0.01); model.updateMatrixWorld(true);
     const maker = new HeadMaker({ ...look, outfit: 0, acc: look.acc | 0 }), head = maker.head; head.parent.remove(head); head.position.set(0, 0, 0);
@@ -156,6 +159,7 @@ export class Avatar {
     // 睡帽、情侶裝的愛心
     if (out.cap) { const capG = new THREE.Group(), cm = new THREE.MeshToonMaterial({ color: out.cap, gradientMap: toonGrad() }); const cone = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.62, 16, 1, true), cm); cone.position.y = 0.5; cone.rotation.z = -0.35; capG.add(cone); const rim = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 8, 20), new THREE.MeshToonMaterial({ color: '#ffffff', gradientMap: toonGrad() })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.22; capG.add(rim); const pom = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), rim.material); pom.position.set(0.32, 0.74, 0); capG.add(pom); capG.position.y = 0.12; head.add(capG); }
     if (out.heart) { const h = heartMesh(0.1, new THREE.MeshToonMaterial({ color: '#ff5a8a', gradientMap: toonGrad() })); h.position.set(0, -0.02, 0.17); const sp = bones.Spine2; const holderH = new THREE.Group(); holderH.add(h); sp.add(holderH); sp.getWorldQuaternion(_q); this.root.getWorldQuaternion(_q2); holderH.quaternion.copy(_q.invert().multiply(_q2)); const s2 = sp.getWorldScale(new THREE.Vector3()); holderH.scale.setScalar(1 / s2.x); }
+    this.root.rotation.copy(keep.rr); this.body.rotation.copy(keep.br); this.body.position.copy(keep.bp); this.root.updateMatrixWorld(true);
     // 手上的東西
     bones.RightHand.add(this.handSlot); const hs = bones.RightHand.getWorldScale(new THREE.Vector3()); this.handSlot.scale.setScalar(1 / hs.x);
     // 動作
