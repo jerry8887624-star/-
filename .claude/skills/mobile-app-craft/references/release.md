@@ -10,3 +10,8 @@
 8. **回報**：先結論，附 App 與預覽連結；說明手機如何拿到新版（關閉 App 重開、按「立即更新」）；列出未真機驗證項目與尚未做的建議。
 
 Service worker 要點：網頁用 `cache:'no-store'` 優先網路（4 秒逾時才用快取），註冊時 `updateViaCache:'none'`，否則使用者會一直看到舊版。
+
+## 使用者偏好：每次都附網址
+- 使用者要求：**每次改完、優化完，回報最後都要附上可以直接點的網址**。
+- 「我們的小島」（nest/）：連線版 https://our-island.geso1214.workers.dev （Cloudflare Worker，Root directory `nest/worker`，合併到 main 會自動部署）；單機版 https://jerry8887624-star.github.io/-/nest/ 。
+- 這個雲端環境連不到 github.io 與 workers.dev，無法自己打開確認；部署後查 GitHub Actions／請使用者回報。

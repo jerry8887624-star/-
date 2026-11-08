@@ -1,0 +1,13 @@
+<!doctype html><html><head><base href="../"></head><body><script type=module>
+import * as THREE from './vendor/three.module.min.js';
+import { Avatar } from './js/char.js';
+const S=new THREE.Scene(); const out={};
+const mk=()=>{const a=new Avatar({gender:'f',hair:3,hairColor:1,skin:0,outfit:1,eye:0,mouth:0,cheek:0}); S.add(a.root); return a;};
+const A=[mk(),mk(),mk(),mk()];
+await new Promise(r=>{const t=setInterval(()=>{if(A.every(a=>a.ready)){clearInterval(t);r();}},100);});
+A[1].holdHand(-1); A[2].emote('wave',99); A[3].setPose('sit');
+for(let k=0;k<40;k++) A.forEach(a=>a.update(0.04,false));
+const loc=(a,n)=>{const v=a.bones[n].getWorldPosition(new THREE.Vector3()); a.root.worldToLocal(v); return v.toArray().map(x=>+x.toFixed(2));};
+A.forEach((a,i)=>{ out[i]={RA:loc(a,'RightArm'),RH:loc(a,'RightHand'),LA:loc(a,'LeftArm'),LH:loc(a,'LeftHand'),hips:loc(a,'Hips'),LUL:loc(a,'LeftUpLeg'),LL:loc(a,'LeftLeg'),LF:loc(a,'LeftFoot'),head:loc(a,'Head')}; });
+window.out=out; window.done=1;
+</script></body></html>

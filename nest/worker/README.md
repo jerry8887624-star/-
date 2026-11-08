@@ -1,6 +1,6 @@
 # 我們的小島：連線版（部署到 Cloudflare）
 
-部署後，這個 Worker 會同時提供**網站**和**連線伺服器**，網址像 `https://our-island.<你的帳號>.workers.dev`。
+部署後，這個 Worker 會同時提供**網站**和**連線伺服器**。目前的網址：**https://our-island.geso1214.workers.dev**
 用這個網址玩，就能兩個人用自己的手機在同一座小島，也能邀請朋友來玩。
 GitHub Pages 上的網址（`…github.io/-/nest/`）還是單機版。
 

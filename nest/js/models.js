@@ -84,6 +84,7 @@ export function tickAnimals(dt, P, walkOK) {
     if (far) continue;
     a.mixer.update(dt);
     if (a.idleOnly) continue;
+    if (a.hold > 0) { a.hold -= dt; playA(a, a.idle); continue; } // 被摸的時候乖乖站好
     a.t -= dt;
     // 跟著主人（狗）：保持 2 公尺左右
     if (a.follow && !a.fetch) {
