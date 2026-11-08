@@ -184,7 +184,7 @@ export class Island {
     switch (m.t) {
       case 'pos': {
         const p = { x: num(m.x, -60, 60), z: num(m.z, -60, 60), ry: num(m.ry, -100, 100), y: m.y == null ? null : num(m.y, -5, 10), sc: m.sc === 'in' ? 'in' : 'out',
-          pose: ['stand', 'sit', 'lie', 'swing', 'recline', 'floor', 'crouch', 'hold', 'ride'].includes(m.pose) ? m.pose : 'stand', mv: m.mv ? 1 : 0, act: String(m.act || '').slice(0, 16), hand: String(m.hand || '').slice(0, 8), tilt: num(m.tilt, -1, 1) };
+          pose: ['stand', 'sit', 'lie', 'swing', 'recline', 'floor', 'crouch', 'hold', 'ride'].includes(m.pose) ? m.pose : 'stand', mv: m.mv ? 1 : 0, act: String(m.act || '').slice(0, 16), hand: String(m.hand || '').slice(0, 8), fl: m.fl ? 1 : 0, tilt: num(m.tilt, -1, 1) };
         s.pos = p; this.bcast({ t: 'pos', id: s.id, ...p }, s); break;
       }
       case 'emo': if (this.gap(s, 'emo', 300)) return; this.bcast({ t: 'emo', id: s.id, k: String(m.k || '').slice(0, 12), d: num(m.d, 0.3, 8) }, s); break;
