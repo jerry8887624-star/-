@@ -31,6 +31,8 @@ function toonify(root) {
 }
 const loader = new GLTFLoader(), cache = new Map();
 let pending = 0, done = 0; export const progress = { get pending() { return pending; }, get done() { return done; } };
+// 複製模型：有骨架（會動）的模型要連骨架一起複製，不然會畫在原點（陽傘的布曾經跑到地圖中間）
+export function cloneModel(g) { let skinned = false; g.scene.traverse(o => { if (o.isSkinnedMesh) skinned = true; }); return skinned ? SkeletonUtils.clone(g.scene) : g.scene.clone(true); }
 export function load(key) {
   const id = M[key] || key;
   if (!cache.has(id)) { pending++; cache.set(id, loader.loadAsync(`models/${id}.glb`).then(g => { toonify(g.scene); g.scene.updateMatrixWorld(true); done++; return g; }).catch(e => { done++; console.warn('模型載入失敗', id, e); return null; })); }
@@ -43,7 +45,7 @@ export const CIRCLES = [], BOXES = [];
 // 單一個模型；y 不給就站在地面上
 export async function one(parent, key, x, z, ry = 0, s = 1, { col = 0, y = null, box = null } = {}) {
   const g = await load(key); if (!g) return null;
-  const o = g.scene.clone(true); o.position.set(x, y ?? standH(x, z), z); o.rotation.y = ry; o.scale.setScalar(s); parent.add(o);
+  const o = cloneModel(g); o.position.set(x, y ?? standH(x, z), z); o.rotation.y = ry; o.scale.setScalar(s); parent.add(o);
   if (g.animations?.length) { const mixer = new THREE.AnimationMixer(o); g.animations.forEach(c => mixer.clipAction(c).play()); mixers.push(mixer); }
   if (col) CIRCLES.push([x, z, col * s]);
   if (box) BOXES.push(box);
