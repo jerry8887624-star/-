@@ -96,6 +96,18 @@
   <div id="ap-btns"></div>
 </div>
 
+<!-- 裝潢模式：拖曳家具、旋轉、放下 -->
+<div id="build-ui" hidden>
+  <div class="bu-top"><b id="bu-name"></b><span id="bu-tip">拖曳移動・點地板直接放過去</span></div>
+  <div class="bu-bar">
+    <button type="button" class="bu-btn" id="bu-cancel"><span data-ico="x"></span><small>取消</small></button>
+    <button type="button" class="bu-btn" id="bu-rl"><span data-ico="rotl"></span><small>左轉</small></button>
+    <button type="button" class="bu-btn ok" id="bu-ok"><span data-ico="check"></span><small>放這裡</small></button>
+    <button type="button" class="bu-btn" id="bu-rr"><span data-ico="rotr"></span><small>右轉</small></button>
+    <button type="button" class="bu-btn" id="bu-store" hidden><span data-ico="box"></span><small>收起來</small></button>
+  </div>
+</div>
+
 <!-- 拍照模式 -->
 <div id="photo-ui" hidden>
   <div class="ph-top"><button type="button" id="ph-close" class="ghost">返回</button><span>拖曳轉角度、雙指縮放</span></div>
