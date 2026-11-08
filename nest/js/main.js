@@ -3,7 +3,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from './terrain.js';
 import { buildIsland, buildInterior, applyTheme, cutaway, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
-import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals } from './models.js';
+import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES } from './data.js';
 import { Amb } from './amb.js';
@@ -1471,7 +1471,7 @@ function updateCam(dt, snap) {
   const p = me();
   if (build) { // 裝潢：斜上方俯視，跟著家具
     const B = build, yaw = scene === 'in' ? view.inYaw : view.yaw, pit = 1.0, d = B.dist;
-    tmpT.set(B.mode === 'pick' ? B.x : gsnap(B.x), (scene === 'in' ? 0 : standH(B.x, B.z)) + 0.3, B.mode === 'pick' ? B.z : gsnap(B.z));
+    tmpT.set(B.mode === 'pick' ? B.x : B.sx ?? B.x, (scene === 'in' ? 0 : standH(B.x, B.z)) + 0.3, B.mode === 'pick' ? B.z : B.sz ?? B.z);
     camP.set(tmpT.x + Math.sin(yaw) * Math.cos(pit) * d, tmpT.y + Math.sin(pit) * d, tmpT.z + Math.cos(yaw) * Math.cos(pit) * d);
     if (scene === 'in') cutaway(IN, camP.x, camP.z);
     const kk = snap ? 1 : 1 - Math.exp(-dt * 6); camT.lerp(tmpT, kk); cam.position.lerp(camP, kk); cam.lookAt(camT); return;
@@ -1853,20 +1853,21 @@ async function drawDecor() {
     const def = DECOR.find(x => x[0] === d.id); if (!def) continue;
     const S = d.sc === 'in' ? IN?.S : OUT; if (!S) continue;
     const g = await load(def[0]); if (!g) continue;
-    const o = cloneModel(g); o.scale.setScalar(def[4]); o.position.set(d.x, d.sc === 'in' ? 0 : standH(d.x, d.z), d.z); o.rotation.y = d.ry || 0; o.userData.di = (st.decor || []).indexOf(d); S.add(o); decorObjs.push(o);
-    if (def[5]) DCIRC[d.sc].push([d.x, d.z, def[5]]);
+    const o = cloneModel(g); o.scale.setScalar(def[4]); o.position.set(d.x, d.y ?? (d.sc === 'in' ? 0 : standH(d.x, d.z)), d.z); o.rotation.y = d.ry || 0; o.userData.di = (st.decor || []).indexOf(d); S.add(o); decorObjs.push(o);
+    if (def[5] && d.y == null) DCIRC[d.sc].push([d.x, d.z, def[5]]); // 放在家具上的不擋路
   }
   delete grids.out; delete grids.in;
 }
 function openShop() {
   if (MP.role === 'g') return; sfx('click'); st.inv = st.inv || {}; st.decor = st.decor || [];
   const here = scene, can = d => d[3] === 'any' || d[3] === here;
-  const items = DECOR.filter(can).map(d => `<button type="button" data-buy="${d[0]}" ${(st.coins || 0) < d[2] ? 'disabled' : ''}>${esc(d[1])}<small>🪙 ${d[2]}${st.inv[d[0]] ? ` · 有 ${st.inv[d[0]]} 個` : ''}</small></button>`).join('');
-  const inv = Object.entries(st.inv).filter(([k, n]) => n > 0 && can(DECOR.find(d => d[0] === k) || [0, 0, 0, 'none'])).map(([k, n]) => `<button type="button" data-place="${k}">${esc(DECOR.find(d => d[0] === k)[1])}<small>×${n}・點一下擺放</small></button>`).join('');
+  const thumb = k => `<img class="th" src="models/thumbs/${k}.webp" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+  const items = DECOR.filter(can).map(d => `<button type="button" class="item" data-buy="${d[0]}" ${(st.coins || 0) < d[2] ? 'disabled' : ''}>${thumb(d[0])}${d[6] === 's' ? '<i class="tag">可放桌上</i>' : ''}<b>${esc(d[1])}</b><small>🪙 ${d[2]}${st.inv[d[0]] ? ` · 有 ${st.inv[d[0]]}` : ''}</small></button>`).join('');
+  const inv = Object.entries(st.inv).filter(([k, n]) => n > 0 && can(DECOR.find(d => d[0] === k) || [0, 0, 0, 'none'])).map(([k, n]) => `<button type="button" class="item" data-place="${k}">${thumb(k)}<b>${esc(DECOR.find(d => d[0] === k)[1])}</b><small>×${n}・點一下擺放</small></button>`).join('');
   const placed = (st.decor || []).map((d, i) => d.sc === here ? `<button type="button" data-take="${i}">${esc(DECOR.find(x => x[0] === d.id)?.[1] || '')}<small>收起來（放回包包）</small></button>` : '').join('');
   openDlg(`🛠️ 裝潢${here === 'in' ? '小木屋' : '小島'}`, `<p class="muted">🪙 ${st.coins || 0} 小島幣（做每日任務、釣魚、撿貝殼、堆沙堡可以賺）${here === 'in' ? '' : '　想裝潢小木屋就進屋再打開'}</p>
     ${here === 'in' ? `<b>🏠 屋內風格</b><div class="shop">${Object.entries(THEMES).map(([k, t]) => `<button type="button" data-theme="${k}" aria-pressed="${(st.theme || 'muji') === k}">${k === 'muji' ? '🤍' : '🪵'} ${esc(t.name)}<small>${k === 'muji' ? '淺色原木、米白、亞麻灰' : '原木牆、深木地板、暖黃光'}</small></button>`).join('')}</div>` : ''}
-    ${inv ? `<b>🎒 包包裡</b><div class="shop">${inv}</div>` : ''}<b>🛒 商店</b><div class="shop">${items}</div>${placed ? `<b>📍 已經擺好的</b><button type="button" class="ghost" id="arrange-go">移動、轉向或收起已經擺好的擺設</button><div class="shop">${placed}</div>` : ''}`);
+    ${inv ? `<b>🎒 包包裡</b><div class="shop items">${inv}</div>` : ''}<b>🛒 商店</b><div class="shop items">${items}</div>${placed ? `<b>📍 已經擺好的</b><button type="button" class="ghost" id="arrange-go">移動、轉向或收起已經擺好的擺設</button><div class="shop">${placed}</div>` : ''}`);
   $('#arrange-go')?.addEventListener('click', startArrange);
   $('#dlg-body').querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const d = DECOR.find(x => x[0] === b.dataset.buy); if ((st.coins || 0) < d[2]) return; st.coins -= d[2]; st.inv[d[0]] = (st.inv[d[0]] || 0) + 1; save(); updateChips(); sfx('chime'); toast(`買了「${d[1]}」`); startPlace(d[0]); });
   $('#dlg-body').querySelectorAll('[data-place]').forEach(b => b.onclick = () => startPlace(b.dataset.place));
@@ -1885,15 +1886,29 @@ function buildUI(on) {
   $('#build-ui').hidden = !on; $('#hud').hidden = on; if (on) toggleLoveMenu(false);
 }
 function buildGround(x, z) { return scene === 'in' ? 0 : standH(x, z); }
+// 小東西：找正下方最上面的平面（桌面、沙發坐墊、床、櫃子），1.35 公尺以內
+const sceneOf = o => { while (o.parent) o = o.parent; return o; };
+const _down = new THREE.Raycaster(), _nrm = new THREE.Vector3();
+function surfaceAt(x, z) {
+  const base = buildGround(x, z), S = curS(), list = (build.surf ||= [...props, ...decorObjs].filter(o => sceneOf(o) === S));
+  _down.set(new THREE.Vector3(x, base + 2, z), new THREE.Vector3(0, -1, 0)); _down.far = 2;
+  for (const h of _down.intersectObjects(list, true)) {
+    if (!h.face || h.point.y < base + 0.12 || h.point.y > base + 1.35) continue;
+    _nrm.copy(h.face.normal).transformDirection(h.object.matrixWorld); if (_nrm.y > 0.6) return h.point.y;
+  }
+  return null;
+}
 function buildCheck() {
-  const B = build, x = gsnap(B.x), z = gsnap(B.z), r = Math.max(0.3, B.def[5] || 0.3);
-  B.ok = B.def[5] === 0 ? (scene === 'in' ? Math.abs(x) < ROOM.w / 2 - 0.3 && Math.abs(z) < ROOM.d / 2 - 0.3 : walkable(x, z)) : canStand(x, z);
-  const y = buildGround(x, z);
+  const B = build, small = B.def[6] === 's', step = small ? 0.05 : SNAP, x = Math.round(B.x / step) * step, z = Math.round(B.z / step) * step, r = Math.max(small ? 0.14 : 0.3, B.def[5] || 0.3);
+  const top = small ? surfaceAt(x, z) : null; B.top = top; // 小東西會放在家具上面，位置也可以更細（5 公分）
+  B.ok = top != null || (B.def[5] === 0 ? (scene === 'in' ? Math.abs(x) < ROOM.w / 2 - 0.3 && Math.abs(z) < ROOM.d / 2 - 0.3 : walkable(x, z)) : canStand(x, z));
+  B.sx = x; B.sz = z;
+  const y = top ?? buildGround(x, z);
   B.ghost.position.set(x, y, z); B.ghost.rotation.y = B.ry;
   B.fp.position.set(x, y + 0.02, z); B.fp.scale.setScalar(r + 0.12); B.fp.material.color.set(B.ok ? '#5fd38d' : '#ff6a6a');
-  B.grid.position.set(x, y + 0.015, z);
+  B.grid.position.set(x, y + 0.015, z); B.grid.visible = top == null;
   B.ghost.traverse(o => { if (o.isMesh) { o.material.color?.copy(o.userData.c0 || o.material.color); if (!B.ok) o.material.color?.lerp(new THREE.Color('#ff6a6a'), 0.55); } });
-  $('#bu-ok').disabled = !B.ok; $('#bu-tip').textContent = B.ok ? '拖曳移動・點地板直接放過去' : '這裡放不下，換個地方';
+  $('#bu-ok').disabled = !B.ok; $('#bu-tip').textContent = !B.ok ? '這裡放不下，換個地方' : top != null ? '放在家具上面' : small ? '小東西可以拖到桌子、沙發、床上' : '拖曳移動・點地板直接放過去';
 }
 async function startPlace(id, edit = null) {
   $('#dlg').close(); if (act) endAct(); const def = DECOR.find(x => x[0] === id); const g = await load(def[0]); if (!g) return;
@@ -1917,9 +1932,9 @@ $('#bu-rl').onclick = () => { if (!build) return; build.ry += ROT; buildCheck();
 $('#bu-rr').onclick = () => { if (!build) return; build.ry -= ROT; buildCheck(); sfx('click'); };
 $('#bu-ok').onclick = () => {
   const B = build; if (!B || !B.ok) return toast('這裡放不下，換個地方');
-  st.decor = st.decor || []; const d = { id: B.id, sc: scene, x: +gsnap(B.x).toFixed(2), z: +gsnap(B.z).toFixed(2), ry: +B.ry.toFixed(3) };
+  st.decor = st.decor || []; const d = { id: B.id, sc: scene, x: +B.sx.toFixed(2), z: +B.sz.toFixed(2), ry: +B.ry.toFixed(3) }; if (B.top != null) d.y = +B.top.toFixed(3);
   if (B.edit) st.decor.splice(B.edit.i, 0, d); else { st.decor.push(d); st.inv[B.id]--; quest('decor'); addLove(1, `擺好了「${B.def[1]}」`); }
-  save(); endBuild(true); drawDecor(); sfx('pop'); burst('star', new THREE.Vector3(d.x, buildGround(d.x, d.z) + 0.8, d.z), 8);
+  save(); endBuild(true); drawDecor(); sfx('pop'); burst('star', new THREE.Vector3(d.x, (d.y ?? buildGround(d.x, d.z)) + 0.8, d.z), 8);
 };
 $('#bu-store').onclick = () => { const B = build; if (!B?.edit) return; st.inv[B.id] = (st.inv[B.id] || 0) + 1; save(); endBuild(true); drawDecor(); toast(`「${B.def[1]}」收回去了`); sfx('pop'); };
 // 調整已經擺好的：點一下要動的那一個
@@ -2631,5 +2646,5 @@ $('#btn-net').innerHTML = icon('users'); $('#clock').innerHTML = clockHtml();
   if (visitParam.length) setupVisit();
   else if (pairParam) setupPairSplash();
   window.__booted = true;
-  window.__nest = { build: () => build, canStand: (x, z) => canStand(x, z), bond: { setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  window.__nest = { build: () => build, buildSet: (x, z) => { build.x = x; build.z = z; buildCheck(); return [build.top, build.ok]; }, canStand: (x, z) => canStand(x, z), bond: { setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();
