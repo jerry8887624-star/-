@@ -336,3 +336,12 @@ body.calm #joy { opacity: .55; transition: opacity 1.2s ease; }
 .dlg .row > button, #dlg-body .row > button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 /* 段落：避免最後一行只剩一兩個字 */
 #ap-msg, #dlg-body p, .memo small, .quest small, #toast { text-wrap: pretty; }
+
+/* 換裝：面板貼在下面（下半部），上半部看得到角色；背景不變暗 */
+#dlg[data-sheet] { margin: auto auto 0; width: min(520px, 100vw); max-height: min(54vh, 520px); border-radius: 26px 26px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+#dlg[data-sheet]::backdrop { background: transparent; backdrop-filter: none; }
+#dlg[data-sheet] .lk-turn { justify-self: end; padding: 6px 14px; font-size: var(--fs-s); }
+@media (orientation: landscape) { #dlg[data-sheet] { margin: auto 0 auto auto; max-height: 100vh; height: 100vh; border-radius: 26px 0 0 26px; width: min(420px, 50vw); } }
+
+/* 換裝的選項名稱一行就好 */
+.look-row span:nth-child(2) { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
