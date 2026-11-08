@@ -189,6 +189,7 @@ export class Avatar {
   holdHand(side) { this.handSide = side | 0; }
   setItem(obj) { if (this.item) this.handSlot.remove(this.item); this.item = obj || null; if (obj) this.handSlot.add(obj); }
   reach(on) { this.reaching = !!on; }
+  dig() { this.digT = 0.5; this.emoteT = 0; }
   lean(side) { this.leanSide = side | 0; }
   kneel() {} hold() {}
 
@@ -223,6 +224,8 @@ export class Avatar {
     if (this.emoteKind || this.clipEmote) { this.emoteT += dt; if (this.emoteT > this.emoteDur) { this.emoteKind = null; this.clipEmote = null; } }
     if (seated) this.play('Sitting', 0.3);
     else if (pose === 'lie') this.play('Arms folded', 0.3);
+    else if (pose === 'crouch') this.play('Crouch', 0.35, 0.25);
+    else if (pose === 'hold' && !this.clipEmote) this.play('Idle', 0.35, 0.35);
     else if (this.clipEmote && this.actions[this.clipEmote]) this.play(this.clipEmote, 0.3);
     else if (moving && this.speed > 0.2) { if (this.speed > 3.6 && this.actions.Run) this.play('Run', 0.2, Math.min(1.5, this.speed / 4.6)); else this.play('Walk', 0.2, Math.max(0.6, Math.min(1.8, this.speed / 1.3))); }
     else this.play(this.reaching ? 'Arms folded' : 'Idle', 0.3);
@@ -262,6 +265,8 @@ export class Avatar {
     if ((w = s('pat', e === 'pat'))) { this.aim(R, RF, V(-0.15, 0.65, 0.8), w); this.aim(RF, RH, V(0.15, 0.1 + Math.sin(et * 12) * 0.25, 1), w); }
     if ((w = s('shy', e === 'shy'))) { this.aim(R, RF, V(-0.3, -0.55, 0.75), w); this.aim(RF, RH, V(0.35, 0.92, 0.2), w); this.aim(L, LF, V(0.3, -0.55, 0.75), w); this.aim(LF, LH, V(-0.35, 0.92, 0.2), w); this.twist('Spine1', V(0, 0, 1), Math.sin(et * 3) * 0.12 * w); }
     // 蹲下摸狗：右手往前下方輕輕摸
+    // 蹲著挖沙：雙手輪流往前下方挖
+    if ((w = s('dig', pose === 'crouch'))) { const k = this.digT || 0; this.digT = Math.max(0, k - dt); const f = k > 0 ? Math.sin(et * 14) : 0; this.aim(R, RF, V(-0.2, -0.7, 0.7), w); this.aim(RF, RH, V(-0.05, -0.75 + f * 0.25, 0.6), w); this.aim(L, LF, V(0.2, -0.7, 0.7), w); this.aim(LF, LH, V(0.05, -0.75 - f * 0.25, 0.6), w); }
     // 彎腰摸狗：上半身往前彎、右手往前下方輕輕摸
     if ((w = s('petdog', e === 'petdog'))) { this.twist('Spine', V(1, 0, 0), 0.5 * w); this.twist('Spine1', V(1, 0, 0), 0.35 * w); this.aim(R, RF, V(-0.12, -0.75, 0.65), w); this.aim(RF, RH, V(0, -0.8 + Math.sin(et * 9) * 0.2, 0.6), w); this.aim(L, LF, V(0.25, -0.9, 0.2), w); }
     // 丟球：手往後舉 → 往前甩
