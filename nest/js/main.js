@@ -525,6 +525,15 @@ const nameEls = new Map();
 const OWNER_ONLY = ['mailbox', 'garden', 'bed', 'wardrobe'];
 const spotHidden = s => s.hide?.() || (MP.role === 'g' && OWNER_ONLY.includes(s.id));
 let nearSpot = null;
+// 名字標籤跟著頭走：站著時跟以前一樣高（1.95），坐下、躺下、陷進沙發時一起往下，不會飄在半空中
+const _tagV = new THREE.Vector3(); let TAG_UP = null;
+function tagPos(c, out) {
+  const r = c.av.root.position, h = c.av.head;
+  if (!h) return out.copy(r).setY(r.y + (c.av.pose === 'lie' ? 0.8 : 1.95));
+  h.getWorldPosition(_tagV);
+  if (TAG_UP == null && c.av.pose === 'stand' && !c.moving) TAG_UP = Math.max(0.3, 1.95 - (_tagV.y - r.y)); // 第一次站著時量一次頭到標籤的距離
+  return out.copy(_tagV).setY(_tagV.y + (c.av.pose === 'lie' ? 0.45 : TAG_UP ?? 0.75));
+}
 function tickSpots() {
   const p = me(); let best = null, bd = 1e9;
   for (const s of SP) {
@@ -547,7 +556,7 @@ function tickSpots() {
     let e = nameEls.get(c); if (!e) { e = document.createElement('div'); e.className = 'lbl name'; $('#labels').appendChild(e); nameEls.set(c, e); }
     seen.add(c);
     if (!started() || photo.on || !c.av.root.visible) { e.style.display = 'none'; continue; }
-    v3.copy(c.av.root.position); v3.y += c.av.pose === 'lie' ? 0.8 : 1.95; v3.project(cam);
+    tagPos(c, v3); v3.project(cam);
     if (v3.z > 1) { e.style.display = 'none'; continue; }
     const tag = c.i === 'g' ? '🎈 ' : c.remote ? '💗 ' : '';
     e.style.display = ''; e.textContent = (c === me() ? '▼ ' : tag) + charName(c); e.style.left = ((v3.x + 1) / 2 * innerWidth) + 'px'; e.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px';
@@ -1113,18 +1122,61 @@ function actSofa() {
 }
 // 閱讀角：窩在懶人沙發，或一起躺在地毯上看書
 const BOOKS = ['《小王子》：「你在你的玫瑰花身上花的時間，使你的玫瑰花變得如此重要。」', '一本旅行繪本，說好以後要一起去看極光', '食譜書：決定下次要做舒芙蕾', '一本推理小說，猜兇手猜錯了 😂', '詩集：「我想和你一起生活，在某個小鎮。」', '一本貓咪寫真，看得好療癒'];
-function bookItem() { const g = new THREE.Group(); const c = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.3), toon(pick(['#c97b63', '#7c9a8a', '#e0c27a', '#8a9ec9']))); g.add(c); const pg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.032, 0.28), toon('#fbf6ec')); pg.position.y = 0.004; g.add(pg); g.rotation.set(-1.0, 0, 0); g.position.set(0, 0.06, 0.12); return g; }
+// 書：攤開的封面＋內頁，中間有一張可以翻的紙（pivot 在書脊）
+function bookItem() {
+  const g = new THREE.Group(); const c = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.3), toon(pick(['#c97b63', '#7c9a8a', '#e0c27a', '#8a9ec9']))); g.add(c);
+  const pg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.032, 0.28), toon('#fbf6ec')); pg.position.y = 0.004; g.add(pg);
+  const hinge = new THREE.Group(); hinge.position.y = 0.022; g.add(hinge);
+  const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.27), toon('#fffaf0', { side: THREE.DoubleSide })); leaf.rotation.x = -Math.PI / 2; leaf.position.x = 0.05; hinge.add(leaf); hinge.visible = false;
+  g.userData.flip = 0; g.userData.hinge = hinge;
+  g.rotation.set(-1.0, 0, 0); g.position.set(0, 0.06, 0.12); return g;
+}
+function mugItem() { const g = new THREE.Group(); const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.1, 10), toon('#f4efe6')); g.add(m); const h = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.01, 6, 10), toon('#f4efe6')); h.position.x = 0.055; g.add(h); const k = new THREE.Mesh(new THREE.CircleGeometry(0.043, 10), toon('#7a4a32')); k.rotation.x = -Math.PI / 2; k.position.y = 0.045; g.add(k); g.position.set(0, 0.05, 0.1); return g; }
+const BEAN_HIP = 0.40; // 懶人沙發：屁股離地 40 公分（坐墊被壓下去之後的高度），身體和書都看得到
 function actRead() {
-  const [b0, b1] = FURN.beans, N = FURN.nook; let lying = false, pages = 0;
-  const sitBeans = () => { seat(me(), b0[0] + 0.1, 0.24 - HIP, b0[1], b0[2], 'recline'); seat(you(), b1[0] + 0.1, 0.24 - HIP, b1[1], b1[2], 'recline'); /* 陷進懶人沙發裡 */ };
+  const [b0, b1] = FURN.beans, N = FURN.nook; let lying = false, pages = 0, sips = 0, sipT = 0, cat = null, catOn = false;
+  // 沿著沙發面向的方向往前坐一點，背剛好靠在靠背上
+  const onBean = (c, b) => seat(c, b[0] + Math.sin(b[2]) * 0.14, BEAN_HIP - HIP, b[1] + Math.cos(b[2]) * 0.14, b[2], 'recline');
+  const sitBeans = () => { onBean(me(), b0); onBean(you(), b1); };
   const lieRug = () => { seat(me(), N.x + 0.2, 0.04, N.z, 0, 'lie'); seat(you(), N.x + 0.85, 0.04, N.z, 0, 'lie'); };
-  const books = on => [me(), you()].forEach(c => { c.av.setItem(on ? bookItem() : null); c.av.reach(on); });
-  fadeDo(() => { sitBeans(); books(true); }, 250);
-  const btns = () => setBtns([{ t: '📖 翻一頁', main: true, fn: () => { pages++; sfx('book'); msg(pick(BOOKS)); burst('heart', headPos(me(), 1.2), 1, 0.3); addLove(1, pages === 1 ? '安靜看書的午後' : null, 'read'); if (pages === 3) addMemo('📚', duo() ? '窩在閱讀角一起看書' : '在閱讀角看了一下午的書'); if (duo() && pages % 3 === 0) setTimeout(() => { you().av.emote('shy', 1.2); msg(`${nameOf(you().i)} 把頭靠過來一起看`); }, 900); } },
-    { t: lying ? '🛋️ 回懶人沙發' : '🧸 躺在地毯上', fn: () => { lying = !lying; fadeDo(() => { (lying ? lieRug : sitBeans)(); books(true); }, 200); btns(); } }]);
-  beginAct('read', '📚 閱讀角', '窩在無印的懶人沙發上，旁邊有一疊書和一杯熱可可。', {
+  const books = on => [me(), you()].forEach(c => { if (c.ghost || c.remote) return; c.av.setItem(on ? bookItem() : null); c.av.reach(on); });
+  // 坐下去懶人沙發會被壓扁、往旁邊鼓起來
+  const squish = () => (IN.beans || []).forEach((g, i) => { const w = lying ? 0 : i === 0 ? 1 : duo() ? 1 : catOn ? 0.3 : 0; g.userData.sq = w; });
+  // 一個人的時候，貓咪跳上旁邊那顆懶人沙發窩著
+  if (!duo() && IN.beans?.[1]) load('cat').then(g => {
+    if (!g || act?.id !== 'read') return;
+    const o = cloneModel(g), bg = IN.beans[1]; o.scale.setScalar(1.5); o.position.set(b1[0] + Math.sin(b1[2]) * 0.08, 0.56, b1[1] + Math.cos(b1[2]) * 0.05); o.rotation.y = b1[2] + 2.4; IN.S.add(o);
+    const mixer = new THREE.AnimationMixer(o), idle = g.animations.find(a => a.name === 'Idle'); if (idle) mixer.clipAction(idle).play();
+    cat = { o, mixer }; catOn = !lying; o.visible = catOn; squish(); if (catOn) setTimeout(() => act?.id === 'read' && msg('貓咪跳上旁邊的懶人沙發，窩成一團 🐱'), 600);
+    bg.updateMatrixWorld();
+  });
+  fadeDo(() => { sitBeans(); books(true); squish(); }, 250);
+  const cold = () => seasonOf(st.day).k === 'winter' || st.tod >= 18 || st.tod < 6;
+  const btns = () => setBtns([{ t: '📖 翻一頁', main: true, fn: () => {
+      pages++; sfx('book'); msg(pick(BOOKS)); burst('heart', headPos(me(), lying ? 0.6 : 1.2), 1, 0.3);
+      const it = me().av.item; if (it?.userData.hinge) { it.userData.flip = 0.001; it.userData.hinge.visible = true; }
+      addLove(1, pages === 1 ? '安靜看書的午後' : null, 'read'); if (pages === 3) addMemo('📚', duo() ? '窩在閱讀角一起看書' : '在閱讀角看了一下午的書');
+      if (duo() && pages % 3 === 0) setTimeout(() => { you().av.emote('shy', 1.2); msg(`${nameOf(you().i)} 把頭靠過來一起看`); }, 900);
+    } },
+    { t: '☕ 喝熱可可', fn: () => {
+      if (sipT > 0) return;
+      if (sips >= 3) { sips = 0; msg('再泡了一杯熱可可，香香甜甜的 ☕'); sfx('pop'); return; }
+      sips++; sipT = 1.6; me().av.setItem(mugItem()); me().av.reach(true);
+      if (cold()) { msg(pick(['外面好冷，熱可可暖到心裡 ☕', '捧著熱可可，手都暖起來了', '熱可可上的棉花糖化掉了，好甜'])); addLove(2, null, 'cocoa'); }
+      else { msg(pick(['喝一口熱可可，好香', '熱可可配書，剛剛好', '甜甜的，再翻一頁吧'])); addLove(1, null, 'cocoa'); }
+      if (sips === 3) setTimeout(() => act?.id === 'read' && msg('杯子空了，再按一次就再泡一杯'), 1700);
+      burst('heart', headPos(me(), lying ? 0.6 : 1.2), 1, 0.3);
+    } },
+    { t: lying ? '🛋️ 回懶人沙發' : '🧸 躺在地毯上', fn: () => { lying = !lying; fadeDo(() => { (lying ? lieRug : sitBeans)(); books(true); if (cat) { catOn = !lying; cat.o.visible = catOn; } squish(); }, 200); btns(); } }]);
+  beginAct('read', '📚 閱讀角', '窩在軟綿綿的懶人沙發上，旁邊有一疊書和一杯熱可可。', {
     focus: () => new THREE.Vector3(N.x, 0.7, N.z - 0.3), back: [INSPOTS.read.x, INSPOTS.read.z],
-    end() { books(false); },
+    update(dt) {
+      if (sipT > 0) { sipT -= dt; if (sipT <= 0) { me().av.setItem(bookItem()); me().av.reach(true); } }
+      [me(), you()].forEach(c => { const it = c.av?.item, u = it?.userData; if (!u?.hinge || !u.flip) return; u.flip += dt / 0.5; u.hinge.rotation.z = Math.min(1, u.flip) * Math.PI; if (u.flip >= 1) { u.flip = 0; u.hinge.visible = false; u.hinge.rotation.z = 0; } });
+      (IN.beans || []).forEach(g => { const w = g.userData.sq || 0, k = Math.min(1, dt * 8), sy = 1 - 0.15 * w, sx = 1 + 0.08 * w; g.scale.x += (sx - g.scale.x) * k; g.scale.z += (sx - g.scale.z) * k; g.scale.y += (sy - g.scale.y) * k; });
+      cat?.mixer.update(dt);
+    },
+    end() { books(false); (IN.beans || []).forEach(g => { g.userData.sq = 0; g.scale.set(1, 1, 1); }); if (cat) { IN.S.remove(cat.o); cat = null; } },
   });
   btns();
 }
