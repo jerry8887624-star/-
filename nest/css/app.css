@@ -111,7 +111,7 @@ dialog { border: 0; padding: 0; border-radius: 24px; background: var(--bg); colo
 dialog::backdrop { background: rgba(40, 20, 30, .35); backdrop-filter: blur(2px); }
 dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
 .dlg { padding: 16px 16px 18px; display: grid; gap: 10px; }
-.dlg-head { display: flex; justify-content: space-between; align-items: center; position: sticky; top: -16px; z-index: 2; margin: -16px -16px 0; padding: 16px 16px 8px; background: var(--bg); border-radius: 24px 24px 0 0; }
+.dlg-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .dlg-head b { font-size: 18px; }
 .dlg .row { display: flex; gap: 8px; }
 .dlg .row > * { flex: 1; margin-top: 0; }
@@ -219,3 +219,20 @@ dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
 .clock-chip { font-size: 12.5px; padding: 6px 10px; }
 
 .invite { margin: 0 0 8px; padding: 8px 12px; border-radius: 14px; background: linear-gradient(135deg, #ffe1ea, #ffeedd); color: var(--rose); font-weight: 900; font-size: 15px; text-align: center; }
+
+/* 上方資訊：卡片和小標籤上下排，不會再疊在一起 */
+.hud-top { position: absolute; top: calc(8px + var(--safe-t)); left: calc(8px + var(--safe-l)); right: calc(8px + var(--safe-r)); display: flex; flex-direction: column; align-items: stretch; gap: 8px; pointer-events: none; }
+.hud-top > .top { position: static; }
+.hud-top > .chips { position: static; pointer-events: auto; align-self: flex-start; max-width: 100%; flex-wrap: wrap; }
+.card .names { font-size: 15px; line-height: 1.25; }
+.card .lv { line-height: 1.3; }
+.chips .chip { display: inline-flex; align-items: center; gap: 4px; line-height: 1.2; }
+
+/* 對話框：標題列固定在上面，只有內容在捲動，字不會重疊 */
+dialog[open] { display: flex; flex-direction: column; overflow: hidden; }
+dialog > .dlg { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+dialog > .dlg > .dlg-head { flex: none; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+#dlg-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin: 0 -16px -18px; padding: 4px 16px 18px; }
+.dlg-head button.ghost { flex: none; width: 36px; height: 36px; padding: 0; border-radius: 12px; display: grid; place-items: center; }
+dialog button:focus:not(:focus-visible) { outline: none; }
+#toast { top: calc(140px + var(--safe-t)); max-width: calc(100vw - 32px); text-align: center; z-index: 30; } /* 放在任務標籤下面，不蓋到上方資訊 */
