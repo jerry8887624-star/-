@@ -168,3 +168,6 @@ dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
 #fish-card b { font-size: 19px; }
 #fish-card .fc-s { font-size: 24px; font-weight: 900; color: var(--rose); }
 #fish-card small { color: var(--muted); font-size: 12.5px; }
+
+.opts.music button[aria-pressed="true"] { background: var(--rose); color: #fff; }
+.opts.music button[aria-pressed="true"] small { color: rgba(255,255,255,.85); }
