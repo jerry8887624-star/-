@@ -1,0 +1,30 @@
+<!doctype html><html><body style="margin:0"><canvas id=c></canvas><script type=module>
+import * as THREE from '../vendor/three.module.min.js';
+import { GLTFLoader } from '../vendor/GLTFLoader.js';
+import { animate } from './clips.mjs';
+import { Avatar } from '../js/avatar.js';
+const q=new URLSearchParams(location.search), ids=q.get('m').split(','), clip=q.get('clip')||'Idle';
+const R=new THREE.WebGLRenderer({canvas:c,antialias:true}); R.setSize(innerWidth,innerHeight);
+const S=new THREE.Scene(); S.background=new THREE.Color('#f4eee6');
+S.add(new THREE.HemisphereLight('#fff','#998',2.2)); const d=new THREE.DirectionalLight('#fff',1.6); d.position.set(3,5,4); S.add(d);
+const g=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshLambertMaterial({color:'#bfe0a0'})); g.rotation.x=-Math.PI/2; S.add(g);
+const cam=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,0.1,100); cam.position.set(0,1.2,5.2); cam.lookAt(0,0.62,0);
+const L=new GLTFLoader(), anims=[]; const looks=[{gender:'f',hair:3,hairColor:1,skin:0,outfit:3,eye:2,mouth:0,cheek:0},{gender:'m',hair:0,hairColor:0,skin:1,outfit:2,eye:0,mouth:1,cheek:0},{gender:'f',hair:9,hairColor:3,skin:0,outfit:1,eye:4,mouth:3,cheek:0},{gender:'m',hair:5,hairColor:2,skin:1,outfit:4,eye:1,mouth:0,cheek:2}];
+let i=0;
+for (const id of ids) {
+  const gl=await L.loadAsync('chars/'+id+'.glb'); const o=gl.scene; S.add(o); o.scale.setScalar(0.8);
+  o.position.set((i-(ids.length-1)/2)*1.0,0,0);
+  const a=await animate(o,{clips:[clip]}); a.play(clip); anims.push(a);
+  let head; o.traverse(b=>{ if(b.isBone&&b.name==='Head') head=b; });
+  head.scale.setScalar(0.01);
+  for(let k=0;k<1;k++) a.update(0); o.updateMatrixWorld(true);
+  const av=new Avatar(looks[i%4]); const h=av.head; h.parent.remove(h); h.position.set(0,0,0); const holder=new THREE.Group(); holder.add(h); head.add(holder);
+  o.updateMatrixWorld(true); const ws=new THREE.Vector3(); head.getWorldScale(ws);
+  const hp=new THREE.Vector3(); head.getWorldPosition(hp); const tgt=hp.clone().add(new THREE.Vector3(0,0.2,0.0));
+  holder.position.copy(head.worldToLocal(tgt)); const hq=new THREE.Quaternion(); head.getWorldQuaternion(hq); const oq=new THREE.Quaternion(); o.getWorldQuaternion(oq); holder.quaternion.copy(hq.invert().multiply(oq));
+  holder.scale.setScalar(0.62/ws.x);
+  i++;
+}
+for(let k=0;k<40;k++) anims.forEach(a=>a.update(0.05));
+R.render(S,cam); window.done=1;
+</script></body></html>
