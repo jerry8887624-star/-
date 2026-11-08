@@ -45,9 +45,12 @@ addEventListener('resize', resize); resize();
 const OUT = new THREE.Scene();
 let W = null, IN = null, scene = 'out';
 const TREE = { x: -4.6, z: 4.8 }; // 兩個人一起種的愛情樹
+<<<<<<< HEAD
 const PZ_AT = { x: 0, z: -2.5, y: 0.405 }; // 客廳茶几上
 // 升級解鎖的新地方：Lv3 海邊小屋、Lv5 花園溫室
 const PLACES = { hut: { x: -15, z: 19.3, lv: 3, key: 'beach-hut-fc7649', s: 0.8, ry: 0 }, gh: { x: -18.5, z: 3, lv: 5, key: 'greenhouse-53ab6d', s: 0.75, ry: Math.PI / 2 } };
+=======
+>>>>>>> origin/main
 const curS = () => scene === 'in' ? IN.S : OUT;
 
 // ---------- 角色 ----------
@@ -96,7 +99,11 @@ $('#start-btn').onclick = () => {
   if (!st.tut && !pairParam) setTimeout(tutorialStart, 1500);
   if (savedAuth?.key) serverAvailable().then(ok => { if (ok) { MP.role = savedAuth.role; MP.on = true; snapSent(); connectNet(savedAuth); } });
   if (pairParam && !savedAuth?.key) { history.replaceState(null, '', location.pathname); setTimeout(() => joinByCode(pairParam).catch(e => { toast(e.message, 4000); openNet().then(() => { $('#net-pair')?.click(); const i = $('#pair-in'); if (i) i.value = pairParam; }); }), 600); }
+<<<<<<< HEAD
   setTimeout(dailyCheck, first ? 6000 : 2500); if (!first) setTimeout(dogWelcome, 1800); else { st.lastDayHere = st.day; st.visitDays = 1; }
+=======
+  setTimeout(dailyCheck, first ? 6000 : 2500);
+>>>>>>> origin/main
   if (first) { addMemo('🏝️', `${nameOf(myIdx())} 搬到了小島上`); setTimeout(() => toast('歡迎回家！靠近有標籤的地方就能做事；🌐 可以邀請另一半 ♥', 4500), 900); }
   else { toast(pick(TIPS), 4000); showNewsOnce(); }
 };
@@ -127,7 +134,11 @@ function addLove(n, why, key) {
   updateHud();
   if (after.lv > before) {
     sfx('chime'); setTimeout(() => toast(`💗 升到 Lv${after.lv}「${after.title}」！${UNLOCKS[after.lv] ? '解鎖：' + UNLOCKS[after.lv] : ''}`, 4500), 400);
+<<<<<<< HEAD
     addMemo('💗', `我們的關係升級成「${after.title}」`); if (after.lv >= 6) drawTree(); drawPlaces(); const np = Object.entries(PLACES).find(([, P]) => P.lv === after.lv); if (np) setTimeout(() => toast(`🗺️ 新地點開放了：${np[0] === 'hut' ? '🏖️ 海邊小屋（沙灘西邊）' : '🌷 花園溫室（菜園西邊）'}`, 4500), 5200);
+=======
+    addMemo('💗', `我們的關係升級成「${after.title}」`); if (after.lv >= 6) drawTree();
+>>>>>>> origin/main
     burst('heart', me().av.root.position.clone().add(new THREE.Vector3(0, 1.8, 0)), 14);
     if (after.lv === 2 && !st.looks.some(l => l.acc)) { /* 只解鎖，不自動戴 */ }
   } else if (why) toast(`${why}　+${n} 甜蜜`);
@@ -517,9 +528,12 @@ const SP = [
   { id: 'tree', sc: 'out', x: TREE.x, z: TREE.z + 1.3, icon: '🌳', name: '愛情樹', run: actTree, badge: () => !treeCaredByMe(), dyn: () => treeLonely() ? ['🥺', '小樹想你們了'] : ['🌳', '愛情樹'] },
   { id: 'treebench', sc: 'out', x: TREE.x + 1.7, z: TREE.z + 1.3, r: 1.4, icon: '🪵', name: '樹下長椅', run: actTreeBench, hide: () => levelOf(st.love).lv < 6 },
   { id: 'surprise', sc: 'out', x: 0, z: 0, r: 1.8, icon: '🎁', name: '驚喜', run: actSurprise, pos: () => SUR.obj?.position || { x: 999, z: 999 }, hide: () => !SUR.obj || surpriseDone(), dyn: () => [surpriseToday().icon, surpriseToday().name] },
+<<<<<<< HEAD
   { id: 'hut', sc: 'out', x: PLACES.hut.x, z: PLACES.hut.z + 3.0, icon: '🏖️', name: '海邊小屋', run: actHut, dyn: () => placeOpen('hut') ? ['🏖️', '海邊小屋'] : ['🔒', '海邊小屋（Lv3 解鎖）'] },
   { id: 'gh', sc: 'out', x: PLACES.gh.x + 3.2, z: PLACES.gh.z, icon: '🌷', name: '花園溫室', run: actGreenhouse, dyn: () => placeOpen('gh') ? ['🌷', '花園溫室'] : ['🔒', '花園溫室（Lv5 解鎖）'] },
   { id: 'puzzle', sc: 'in', x: PZ_AT.x + 1.25, z: PZ_AT.z + 0.4, r: 1.3, icon: '🧩', name: '拼圖', run: actPuzzle },
+=======
+>>>>>>> origin/main
   { id: 'fridge', sc: 'in', x: 6.2, z: -3.3, r: 1.2, icon: '📝', name: '冰箱便利貼', run: openNotes },
   { id: 'exit', sc: 'in', ...INSPOTS.exit, r: 1.6, icon: '🚪', name: '出門', run: exitHouse },
   { id: 'bed', sc: 'in', ...INSPOTS.bed, icon: '🛏️', name: '床', run: actBed },
@@ -537,7 +551,11 @@ SP.forEach(s => {
 });
 const nameEls = new Map();
 // 朋友不能用的地點（島主專屬）
+<<<<<<< HEAD
 const OWNER_ONLY = ['mailbox', 'garden', 'bed', 'wardrobe', 'tree', 'treebench', 'surprise', 'fridge', 'puzzle', 'gh'];
+=======
+const OWNER_ONLY = ['mailbox', 'garden', 'bed', 'wardrobe', 'tree', 'treebench', 'surprise', 'fridge'];
+>>>>>>> origin/main
 const spotHidden = s => s.hide?.() || (MP.role === 'g' && OWNER_ONLY.includes(s.id));
 let nearSpot = null;
 // 名字標籤跟著頭走：站著時跟以前一樣高（1.95），坐下、躺下、陷進沙發時一起往下，不會飄在半空中
@@ -1416,7 +1434,11 @@ function updateCam(dt, snap) {
 }
 
 // ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
+<<<<<<< HEAD
 const SHARED = ['names', 'looks', 'anniv', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
+=======
+const SHARED = ['names', 'looks', 'anniv', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos'];
+>>>>>>> origin/main
 const LOVE_WORD = { hand: '牽你的手', hug: '抱抱你', kiss: '親親你', pat: '摸摸你的頭' };
 function newChar(look) { const c = { i: 'g', av: new Avatar(look), x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }; OUT.add(c.av.root); hookEmote(c); return c; }
 function hookEmote(c) { const orig = c.av.emote.bind(c.av); c.av.emote = (k, d) => { orig(k, d); if (MP.on && c === me()) MP.net.send({ t: 'emo', k, d }); }; }
@@ -1466,13 +1488,21 @@ function shareSave() {
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
+<<<<<<< HEAD
 const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere'];
+=======
+const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn'];
+>>>>>>> origin/main
 function applySave(keys, first) {
   for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; st[k] = v; }
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
   if ('castles' in keys) showCastles();
   if (keys.garden) st.garden.forEach((_, i) => drawPlant(i));
+<<<<<<< HEAD
   if (keys.eggs) drawEggs(); if (keys.decor) drawDecor(); if (keys.theme && IN) applyTheme(IN, keys.theme); if ('snowman' in keys) drawSnowman(); if (keys.notes) drawNotes(); if (keys.photos) drawPhotos(); if (keys.tree) drawTree(); if (keys.surprise) setupSurprise(); if (keys.puzzle) drawPuzzle(); updateChips?.();
+=======
+  if (keys.eggs) drawEggs(); if (keys.decor) drawDecor(); if (keys.theme && IN) applyTheme(IN, keys.theme); if ('snowman' in keys) drawSnowman(); if (keys.notes) drawNotes(); if (keys.photos) drawPhotos(); if (keys.tree) drawTree(); if (keys.surprise) setupSurprise(); updateChips?.();
+>>>>>>> origin/main
   snapSent(); if (MP.role !== 'g') try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
   updateHud(); if (keys.names && !first && $('#dlg').open && $('#dlg').dataset.net) openNet();
 }
@@ -2338,7 +2368,11 @@ function drawPhotos() {
     const pic = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.42), new THREE.MeshBasicMaterial({ map: tex })); pic.position.set(x, y, 0.15); g.add(pic);
   });
 }
+<<<<<<< HEAD
 const UNLOCKS = { 2: '頭上小花（配件）', 3: '🏖️ 海邊小屋、愛心煙火', 4: '愛心光環（配件）', 5: '🌷 花園溫室、燈串會變色', 6: '愛情樹下的長椅', 7: '夜空出現愛心星座', 8: '（秘密）' };
+=======
+const UNLOCKS = { 2: '頭上小花（配件）', 3: '煙火有愛心形狀', 4: '愛心光環（配件）', 5: '小屋外的燈串會變色', 6: '愛情樹下的長椅', 7: '夜空出現愛心星座', 8: '（秘密）' };
+>>>>>>> origin/main
 function unlockHtml() {
   const lv = levelOf(st.love).lv;
   return `<b>💗 成長解鎖</b>${LEVELS.map(([n, title], i) => { const L = i + 1, ok = lv >= L; return `<div class="quest ${ok ? 'ok' : ''}"><span class="q-e">${ok ? '✅' : '🔒'}</span><b>Lv${L} ${esc(title)}</b><span class="q-r">${n}</span><small>${esc(UNLOCKS[L] || '開始一起生活')}</small></div>`; }).join('')}`;
@@ -2346,6 +2380,7 @@ function unlockHtml() {
 // 每天第一次打開：紀念日 → 今日驚喜
 function dailyCheck() { if (MP.role === 'g') return; if (!annivCheck()) announceSurprise(); }
 
+<<<<<<< HEAD
 // ================= 回來時狗狗撲過來（不歸零的「來小島的天數」） =================
 function dogWelcome() {
   if (MP.role === 'g') return; const last = st.lastDayHere, gap = last ? st.day - last : 0;
@@ -2440,6 +2475,8 @@ function actGreenhouse() {
   });
 }
 
+=======
+>>>>>>> origin/main
 // ---------- 開始 ----------
 (async function boot() {
   makeAv(0); makeAv(1); syncSplash(); initUpdates();
@@ -2452,8 +2489,13 @@ function actGreenhouse() {
   btn.disabled = false;
   spawnShells(); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); WX = createWeatherFX(OUT); drawEggs();
   updateCam(0, true);
+<<<<<<< HEAD
   buildInterior(st.theme || 'muji').then(I => { IN = I; drawDecor(); drawNotes(); drawPhotos(); drawPuzzle(); });
   CIRCLES.push([TREE.x, TREE.z, 0.45]); drawTree(); setupSurprise(); drawPlaces();
+=======
+  buildInterior(st.theme || 'muji').then(I => { IN = I; drawDecor(); drawNotes(); drawPhotos(); });
+  CIRCLES.push([TREE.x, TREE.z, 0.45]); drawTree(); setupSurprise();
+>>>>>>> origin/main
   if (visitParam.length) setupVisit();
   else if (pairParam) setupPairSplash();
   window.__nest = { bond: { setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
