@@ -3,7 +3,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from './terrain.js';
 import { buildIsland, buildInterior, setTimeOfDay, SPOTS, INSPOTS, ROOM, blocked, CIRCLES, BOXES } from './world.js';
-import { load, toon, toonGrad, tickAnimals, playA, progress, mixers } from './models.js';
+import { load, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES } from './data.js';
 import { Amb } from './amb.js';
@@ -680,11 +680,11 @@ const CASTLE_SPOTS = [[-6.4, 24.6], [-3.8, 24.9], [-5.3, 25.8], [-7.2, 23.3]];
 async function showCastles() {
   castleObjs.forEach(o => OUT.remove(o)); castleObjs = [];
   const g = await load('sandcastle'); if (!g) return;
-  for (let i = 0; i < Math.min(st.castles, CASTLE_SPOTS.length); i++) { const [x, z] = CASTLE_SPOTS[i]; const o = g.scene.clone(true); o.position.set(x, standH(x, z), z); o.rotation.y = i * 1.3; OUT.add(o); castleObjs.push(o); }
+  for (let i = 0; i < Math.min(st.castles, CASTLE_SPOTS.length); i++) { const [x, z] = CASTLE_SPOTS[i]; const o = cloneModel(g); o.position.set(x, standH(x, z), z); o.rotation.y = i * 1.3; OUT.add(o); castleObjs.push(o); }
 }
 async function actSand() {
   const idx = st.castles % CASTLE_SPOTS.length, [cx, cz] = CASTLE_SPOTS[idx];
-  const g = await load('sandcastle'); const castle = g ? g.scene.clone(true) : new THREE.Group(); castle.position.set(cx, standH(cx, cz), cz); castle.scale.setScalar(0.05); OUT.add(castle);
+  const g = await load('sandcastle'); const castle = g ? cloneModel(g) : new THREE.Group(); castle.position.set(cx, standH(cx, cz), cz); castle.scale.setScalar(0.05); OUT.add(castle);
   if (idx < castleObjs.length) castleObjs[idx].visible = false;
   const y = standH(cx, cz) + 0.02 - HIP;
   fadeDo(() => { seat(me(), cx - 0.62, null, cz, Math.PI / 2, 'crouch'); seat(you(), cx + 0.62, null, cz, -Math.PI / 2, 'crouch'); }, 250);
@@ -761,7 +761,7 @@ async function catchModel(f, size) {
       if (name === '愛心魚') { const h = heartMesh(0.12, toon('#ffffff', { emissive: '#ff3a7a' })); h.position.y = 0.45 * clamp(size / 45, 0.35, 1.7); g.add(h); }
     }
   } else if (name === '寄居蟹' || name === '海星') {
-    const m = await load(name === '寄居蟹' ? 'crab' : 'starfish'); if (m) { const o = name === '寄居蟹' ? SkeletonUtils.clone(m.scene) : m.scene.clone(true); o.scale.setScalar(name === '寄居蟹' ? 0.22 : 0.9); if (name === '海星') o.rotation.x = Math.PI / 2; g.add(o); }
+    const m = await load(name === '寄居蟹' ? 'crab' : 'starfish'); if (m) { const o = name === '寄居蟹' ? SkeletonUtils.clone(m.scene) : cloneModel(m); o.scale.setScalar(name === '寄居蟹' ? 0.22 : 0.9); if (name === '海星') o.rotation.x = Math.PI / 2; g.add(o); }
   } else if (name === '小章魚') {
     const pm = toon('#ff7a8a'); const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), pm); head.scale.y = 1.2; g.add(head);
     for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, t = new THREE.Mesh(new THREE.CapsuleGeometry(0.025, 0.16, 4, 6), pm); t.position.set(Math.cos(a) * 0.08, -0.16, Math.sin(a) * 0.08); t.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); g.add(t); }
@@ -966,7 +966,7 @@ async function drawPlant(i) {
   else {
     const kind = FLOWERS[s.t][2];
     if (kind === 'rose') spots.forEach(([x, z]) => { const st_ = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.5, 5), leaf); st_.position.set(x, 0.25, z); g.add(st_); const r = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), toon('#d8243a')); r.scale.y = 0.8; r.position.set(x, 0.52, z); g.add(r); });
-    else { const m = await load(kind); if (m) spots.forEach(([x, z], k) => { const o = m.scene.clone(true); o.position.set(x, 0, z); o.rotation.y = k * 1.7; o.scale.setScalar(kind === 'sunflower' ? 0.55 : 1.5); g.add(o); }); }
+    else { const m = await load(kind); if (m) spots.forEach(([x, z], k) => { const o = cloneModel(m); o.position.set(x, 0, z); o.rotation.y = k * 1.7; o.scale.setScalar(kind === 'sunflower' ? 0.55 : 1.5); g.add(o); }); }
   }
 }
 function actGarden() {
@@ -1595,7 +1595,7 @@ async function drawDecor() {
     const def = DECOR.find(x => x[0] === d.id); if (!def) continue;
     const S = d.sc === 'in' ? IN?.S : OUT; if (!S) continue;
     const g = await load(def[0]); if (!g) continue;
-    const o = g.scene.clone(true); o.scale.setScalar(def[4]); o.position.set(d.x, d.sc === 'in' ? 0 : standH(d.x, d.z), d.z); o.rotation.y = d.ry || 0; S.add(o); decorObjs.push(o);
+    const o = cloneModel(g); o.scale.setScalar(def[4]); o.position.set(d.x, d.sc === 'in' ? 0 : standH(d.x, d.z), d.z); o.rotation.y = d.ry || 0; S.add(o); decorObjs.push(o);
     if (def[5]) DCIRC[d.sc].push([d.x, d.z, def[5]]);
   }
   delete grids.out; delete grids.in;
@@ -1614,7 +1614,7 @@ function openShop() {
 }
 async function startPlace(id) {
   $('#dlg').close(); const def = DECOR.find(x => x[0] === id); const g = await load(def[0]); if (!g) return;
-  const ghostO = g.scene.clone(true); ghostO.scale.setScalar(def[4]); ghostO.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.6; } }); curS().add(ghostO);
+  const ghostO = cloneModel(g); ghostO.scale.setScalar(def[4]); ghostO.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.6; } }); curS().add(ghostO);
   let ry = me().ry + Math.PI, ok = false;
   const pos = () => { const p = me(), d = 1.5; return [p.x + Math.sin(p.ry) * d, p.z + Math.cos(p.ry) * d]; };
   beginAct('place', `🛠️ 擺放「${def[1]}」`, '走動決定位置，擺好按「放這裡」。', {
@@ -1814,5 +1814,5 @@ async function setupVisit() {
   updateCam(0, true);
   buildInterior().then(I => { IN = I; drawDecor(); });
   if (visitParam.length) setupVisit();
-  window.__nest = { get st() { return st; }, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  window.__nest = { get st() { return st; }, OUT, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();
