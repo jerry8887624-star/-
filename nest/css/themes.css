@@ -75,3 +75,6 @@ html:not([data-ui="editorial"]) #dlg[data-kind="album"] { background: #fbf6f2; }
   html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head .ghost { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .35); }
   html:not([data-ui="editorial"]) #dlg[data-kind="album"] .memo { background: #3a2f37; }
 }
+html[data-ui="editorial"] #ap-btns button { border-radius: 999px; background: transparent; border: 1px solid var(--line); }
+html[data-ui="editorial"] #ap-btns button.main { background: #3a2a28; color: #fbf7f1; border-color: #3a2a28; }
+html[data-ui="editorial"] #ap-btns button:disabled { background: transparent; color: var(--muted); border-style: dashed; }
