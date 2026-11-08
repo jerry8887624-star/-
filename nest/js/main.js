@@ -800,8 +800,24 @@ function actFish() {
   };
   const land = () => {
     setState('land'); meter(false); holding = false; btns();
+    // 特寫的位置：角色和鏡頭之間、比頭高一點
+    const c = me(), yw = view.yaw; closeAt.set(c.x + Math.sin(yw) * 1.1, standH(c.x, c.z) + 1.7, c.z + Math.cos(yw) * 1.1);
     const f = fish.f, size = fish.size; st.fish[f[0]] = (st.fish[f[0]] || 0) + 1; save(); sfx('splash');
     landT = 0;
+  };
+  // 特寫卡片：名字、大小、新發現／新紀錄
+  const closeAt = new THREE.Vector3();
+  const closeUp = () => {
+    setState('close'); btns(); msg('釣起來了！🎉');
+    const f = fish.f, size = fish.size, name = f[0];
+    st.fishMax = st.fishMax || {}; const prev = st.fishMax[name] || 0;
+    fish.first = st.fish[name] === 1; fish.record = !fish.first && size > prev;
+    if (size > prev) st.fishMax = { ...st.fishMax, [name]: size };
+    save();
+    const tag = fish.first ? '<em>新發現！</em>' : fish.record ? '<em>新紀錄！</em>' : '';
+    const best = size ? (fish.record ? `之前最大 ${prev} 公分` : fish.first ? '第一次釣到' : `最大紀錄 ${Math.max(prev, size)} 公分`) : '';
+    showCard(`${tag}<span class="fc-e">${f[1]}</span><b>${esc(name)}</b>${size ? `<span class="fc-s">${size} 公分</span>` : ''}${best ? `<small>${best}</small>` : ''}`);
+    sfx(fish.first || fish.record ? 'chime' : 'pop'); burst('star', closeAt.clone(), fish.first || fish.record ? 10 : 5, 0.4);
   };
   const showCatch = () => {
     setState('show'); btns();
@@ -811,13 +827,14 @@ function actFish() {
     me().av.reach(false); me().av.setItem(catchO.g); catchO.g.position.set(-0.12, 0.22, 0.18); catchO.g.rotation.set(0, 0, 0); catchO.g.scale.multiplyScalar(1.5); me().av.emote('cheer', 2.6);
     you().av.emote('clap', 1.6);
     const label = `${f[1]} ${f[0]}${size ? ` ${size} 公分` : ''}`; showSay(me(), label);
-    msg(`釣到 ${label}！${f[5]}${bottle ? '　' + pick(BOTTLE) : ''}`);
+    msg(`${fish.record ? '新紀錄！' : ''}釣到 ${label}！${f[5]}${bottle ? '　' + pick(BOTTLE) : ''}`);
     addLove(rare ? 20 : bottle ? 5 : 2, rare ? '💗 傳說中的愛心魚！' : null, rare ? null : 'fish');
-    if (rare || st.fish[f[0]] === 1) addMemo(f[1], `${nameOf(me().i)} 第一次釣到${f[0]}${size ? `（${size} 公分）` : ''}`);
+    if (rare || fish.first) addMemo(f[1], `${nameOf(me().i)} 第一次釣到${f[0]}${size ? `（${size} 公分）` : ''}`);
+    else if (fish.record) addMemo(f[1], `${nameOf(me().i)} 釣到最大的${f[0]}：${size} 公分（新紀錄）`);
     burst(rare ? 'heart' : 'star', headPos(me(), 2), rare ? 16 : 6, 0.5); sfx('chime');
   };
   beginAct('fish', '🎣 釣魚', '按「拋竿」，浮標往下沉的時候馬上按「收竿」！', {
-    focus: () => state === 'show' ? headPos(me(), 1.2) : new THREE.Vector3(fx + 2, DOCK.y + 0.6, 0), near: () => state === 'show', back: [fx - 0.5, 0], camYaw: -Math.PI / 2 - 0.55, camPitch: 0.3,
+    focus: () => state === 'close' ? closeAt.clone() : state === 'show' ? headPos(me(), 1.2) : new THREE.Vector3(fx + 2, DOCK.y + 0.6, 0), near: () => state === 'close' ? 0.16 : state === 'show' ? 0.45 : 0, back: [fx - 0.5, 0], camYaw: -Math.PI / 2 - 0.55, camPitch: 0.3,
     update(dt) {
       t += dt; rod.userData.tip.getWorldPosition(v3);
       if (catchO?.mixer) catchO.mixer.update(dt);
@@ -840,19 +857,26 @@ function actFish() {
         if (prog >= 1) land();
       }
       if (state === 'land' && catchO) {
-        // 從水裡拉出來：沿著弧線飛到手上
-        landT += dt / 0.8; const k = Math.min(1, landT), p = catchO.g.position;
-        me().av.handSlot.getWorldPosition(v3); p.lerpVectors(new THREE.Vector3(fx + 1.3, 0, -0.3), v3, k); p.y += Math.sin(k * Math.PI) * 1.4; catchO.g.rotation.z = k * 6;
+        // 從水裡拉出來，飛到角色面前的半空中
+        landT += dt / 0.7; const k = Math.min(1, landT), p = catchO.g.position;
+        p.lerpVectors(new THREE.Vector3(fx + 1.3, 0, -0.3), closeAt, k); p.y += Math.sin(k * Math.PI) * 0.8; catchO.g.rotation.y = k * 5;
         bob.visible = false;
-        if (k >= 1) showCatch();
+        if (k >= 1) closeUp();
+      }
+      if (state === 'close' && catchO) {
+        // 特寫：魚在半空中甩尾、慢慢轉
+        const p = catchO.g.position; p.copy(closeAt); p.y += Math.sin(t * 3) * 0.06; catchO.g.rotation.y = 0.6 + Math.sin(t * 1.2) * 0.9; catchO.g.rotation.z = Math.sin(t * 9) * 0.25;
+        if (t > 2.4) { hideCard(); showCatch(); }
       }
       if (bob.visible) ln.geometry.setFromPoints([v3.clone(), bob.position.clone()]);
       ln.visible = bob.visible;
     },
-    end() { OUT.remove(bob); OUT.remove(ln); if (catchO) catchO.g.parent?.remove(catchO.g); },
+    end() { hideCard(); OUT.remove(bob); OUT.remove(ln); if (catchO) catchO.g.parent?.remove(catchO.g); },
   });
   btns();
 }
+function showCard(html) { let e = $('#fish-card'); if (!e) { e = document.createElement('div'); e.id = 'fish-card'; document.body.appendChild(e); } e.innerHTML = html; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); }
+function hideCard() { $('#fish-card')?.classList.remove('on'); }
 
 // ---------- 划船：繞小島一圈 ----------
 function actBoat() {
@@ -1069,7 +1093,7 @@ function openBook(tab = 'memo') {
   const L = levelOf(st.love), d = daysTogether();
   const body = {
     memo: () => st.diary.length ? st.diary.slice(0, 120).map(m => `<div class="memo"><span class="ic">${m.icon}</span><b>${esc(m.text)}</b><small>${esc(m.d)} · 小島第 ${m.day} 天</small></div>`).join('') : '<p class="muted">還沒有回憶，去小島上走走吧。</p>',
-    col: () => `<b>🎣 釣到的東西</b><div class="grid3">${FISH.map(f => `<div class="cell ${st.fish[f[0]] ? '' : 'no'}"><span class="e">${f[1]}</span>${st.fish[f[0]] ? esc(f[0]) : '？？？'}<small>${st.fish[f[0]] ? '×' + st.fish[f[0]] : '還沒釣到'}</small></div>`).join('')}</div>
+    col: () => `<b>🎣 釣到的東西</b><div class="grid3">${FISH.map(f => `<div class="cell ${st.fish[f[0]] ? '' : 'no'}"><span class="e">${f[1]}</span>${st.fish[f[0]] ? esc(f[0]) : '？？？'}<small>${st.fish[f[0]] ? '×' + st.fish[f[0]] + (st.fishMax?.[f[0]] ? `・最大 ${st.fishMax[f[0]]} 公分` : '') : '還沒釣到'}</small></div>`).join('')}</div>
       <b>🐚 海邊撿到的</b><div class="grid3">${SHELLS.map(s => `<div class="cell ${st.shells[s[0]] ? '' : 'no'}"><span class="e">${s[1]}</span>${esc(s[0])}<small>×${st.shells[s[0]] || 0}</small></div>`).join('')}</div>
       <p class="muted">沙堡 ${st.castles} 座 · 送花 ${st.flowersGiven} 次 · 做飯 ${st.dishes} 次 · 煙火 ${st.fireworks} 發 · 繞島 ${st.laps} 圈 · 許願 ${st.wishes} 次</p>`,
     us: () => `<div class="memo"><span class="ic">💗</span><b>${esc(nameOf(0))} ♥ ${esc(nameOf(1))}</b><small>${d ? `在一起第 ${d} 天 · ` : ''}甜蜜值 ${st.love} · Lv${L.lv} ${L.title}${L.next ? `（再 ${L.next - st.love} 升級）` : ''}</small></div>
@@ -1199,7 +1223,7 @@ function updateCam(dt, snap) {
     camP.set(tmpT.x + Math.sin(yaw) * d * 0.8, tmpT.y + d * 0.62, tmpT.z + Math.cos(yaw) * d * 0.8);
   } else {
     if (act?.focus) tmpT.copy(act.focus()); else tmpT.set(p.av.root.position.x, p.av.root.position.y + 1.2, p.av.root.position.z);
-    let d = view.dist * (act?.bigView ? 1.6 : act?.near?.() ? 0.42 : act ? 1.1 : 1);
+    const nf = act?.near?.(); let d = view.dist * (act?.bigView ? 1.6 : nf ? nf : act ? 1.1 : 1);
     const yaw = view.yaw, pit = view.pitch;
     for (let k = 0; k < 12; k++) { camP.set(tmpT.x + Math.sin(yaw) * Math.cos(pit) * d, tmpT.y + Math.sin(pit) * d, tmpT.z + Math.cos(yaw) * Math.cos(pit) * d); if (!camBlocked(camP.x, camP.y, camP.z)) break; if (d < 2.5) { camP.y = Math.max(camP.y, 7.2); break; } d *= 0.8; }
     camP.y = Math.max(camP.y, standH(camP.x, camP.z) + 0.6);
@@ -1209,7 +1233,7 @@ function updateCam(dt, snap) {
 }
 
 // ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
-const SHARED = ['names', 'looks', 'anniv', 'day', 'fish', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
+const SHARED = ['names', 'looks', 'anniv', 'day', 'fish', 'fishMax', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
 const LOVE_WORD = { hand: '牽你的手', hug: '抱抱你', kiss: '親親你', pat: '摸摸你的頭' };
 function newChar(look) { const c = { i: 'g', av: new Avatar(look), x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }; OUT.add(c.av.root); hookEmote(c); return c; }
 function hookEmote(c) { const orig = c.av.emote.bind(c.av); c.av.emote = (k, d) => { orig(k, d); if (MP.on && c === me()) MP.net.send({ t: 'emo', k, d }); }; }
