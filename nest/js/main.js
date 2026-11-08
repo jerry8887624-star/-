@@ -1238,7 +1238,12 @@ function actEat() {
 // ---------- 對話框：地圖、回憶本、造型 ----------
 // 視窗的樣子跟著內容走：任務＝手帳、信＝信紙、回憶本＝相簿、便利貼＝軟木板
 const dlgKind = t => /^📋/.test(t) ? 'note' : /^📔/.test(t) ? 'album' : /^📝 冰箱|留給你的/.test(t) ? 'cork' : /信|^🎉|^🍾/.test(t) ? 'letter' : '';
-function openDlg(title, html) { $('#dlg-title').textContent = title; $('#dlg-body').innerHTML = html; const d = $('#dlg'); const k = dlgKind(title); if (k) d.dataset.kind = k; else delete d.dataset.kind; d.querySelector('#dlg-body').scrollTop = 0; if (!d.open) d.showModal(); }
+const DLG_EN = { '📋': 'Daily Quest', '📔': 'Memories', '💌': 'Letter', '🌐': 'Connect', '🗺️': 'Island Map', '🎵': 'Music', '📝': 'Notes', '🍾': 'Message in a Bottle', '🎁': 'Gift', '🎉': 'Anniversary', '🛍️': 'Shop', '🪙': 'Shop', '👗': 'Wardrobe', '🍳': 'Recipes', '🌱': 'Garden', '📳': 'Notifications', '🏆': 'Rewards' };
+function setDlgTitle(title) {
+  const m = title.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u), ic = m?.[1] || '', tx = m ? m[2] : title, en = DLG_EN[ic] || '';
+  $('#dlg-title').innerHTML = `${en ? `<small class="t-en">${esc(en)}</small>` : ''}${ic ? `<span class="t-ic">${ic}</span>` : ''}<span class="t-tx">${esc(tx)}</span>`;
+}
+function openDlg(title, html) { setDlgTitle(title); $('#dlg-body').innerHTML = html; const d = $('#dlg'); const k = dlgKind(title); if (k) d.dataset.kind = k; else delete d.dataset.kind; d.querySelector('#dlg-body').scrollTop = 0; if (!d.open) d.showModal(); }
 $('#btn-map').onclick = () => {
   sfx('click');
   const cell = s => `<button type="button" class="cell" data-s="${s.id}" style="border:0"><span class="e">${s.icon}</span>${esc(s.name)}</button>`;
@@ -1270,7 +1275,8 @@ function openBook(tab = 'memo') {
       <p class="muted">資料只存在這支手機（瀏覽器）裡。版本 ${esc(APP_VER)}</p>
       <details><summary>3D 模型出處（Polyfork，CC BY 4.0）</summary><div id="credits" class="muted" style="font-size:var(--fs-xs);line-height:1.5">載入中…</div></details>
       <b>⚙️ 設定</b>
-      <div class="toggle-row"><span>🔠 大字模式<br><small class="muted">所有文字放大一點，比較好讀</small></span><button type="button" id="big-tg" aria-pressed="${!!st.bigText}">${st.bigText ? '開' : '關'}</button></div>
+      <div class="toggle-row"><span>🎨 介面風格<br><small class="muted">字型、顏色、視窗的樣子</small></span></div>
+      <div class="row" id="ui-pick">${Object.entries(UI_STYLES).map(([k, [n]]) => `<button type="button" class="ghost" data-ui="${k}" aria-pressed="${(st.ui || 'cozy') === k}">${n}</button>`).join('')}</div>
       <div class="toggle-row"><span>🔋 省電模式<br><small class="muted">畫面稍微不那麼細，比較順、比較不燙</small></span><button type="button" id="low-tg" aria-pressed="${!!st.low}">${st.low ? '開' : '關'}</button></div>
       <button type="button" class="ghost" id="tut-again">🎓 再看一次新手教學</button>
       <button type="button" class="ghost" id="reset-all" style="margin-top:8px">清除所有資料、重新開始</button>`,
@@ -1283,7 +1289,7 @@ function openBook(tab = 'memo') {
   }
   if (tab === 'about') {
     fetch('models/credits.json').then(r => r.json()).then(c => { $('#credits').innerHTML = Object.values(c).filter(Boolean).map(esc).join('<br>'); }).catch(() => {});
-    $('#big-tg').onclick = () => { st.bigText = !st.bigText; save(); document.documentElement.classList.toggle('big-text', st.bigText); $('#big-tg').setAttribute('aria-pressed', String(st.bigText)); $('#big-tg').textContent = st.bigText ? '開' : '關'; };
+    $('#ui-pick').querySelectorAll('[data-ui]').forEach(b => b.onclick = () => { st.ui = b.dataset.ui; save(); applyUI(st.ui); $('#ui-pick').querySelectorAll('[data-ui]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
     $('#low-tg').onclick = () => { st.low = !st.low; save(); applyLow(); $('#low-tg').setAttribute('aria-pressed', String(st.low)); $('#low-tg').textContent = st.low ? '開' : '關'; };
     $('#tut-again').onclick = () => { $('#dlg').close(); tutorialStart(); };
     $('#reset-all').onclick = () => { if (confirm('確定要清除小島上所有的回憶嗎？這個動作不能復原。')) { localStorage.removeItem(KEY); location.reload(); } };
@@ -1470,7 +1476,7 @@ function shareSave() {
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
-const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'bigText'];
+const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui'];
 function applySave(keys, first) {
   for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; st[k] = v; }
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
@@ -2455,7 +2461,13 @@ setInterval(() => {
   const on = !busy && ((calm.walk && now - calm.walk > 1500) || (!walking && now - calm.input > 8000));
   document.body.classList.toggle('calm', on);
 }, 250);
-if (st.bigText) document.documentElement.classList.add('big-text');
+// 介面風格：療癒精品（預設）／時尚雜誌／現代玻璃；字型用到才下載
+const UI_STYLES = { cozy: ['療癒精品', 'family=Fredoka:wght@500;600'], editorial: ['時尚雜誌', 'family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Noto+Serif+TC:wght@500;600'], glass: ['現代玻璃', 'family=Outfit:wght@400;600;700;800'] };
+function applyUI(k) {
+  if (!UI_STYLES[k]) k = 'cozy'; document.documentElement.dataset.ui = k;
+  const id = 'font-' + k; if (!document.getElementById(id)) { const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = `https://fonts.googleapis.com/css2?${UI_STYLES[k][1]}&display=swap`; document.head.appendChild(l); }
+}
+applyUI(st.ui);
 
 // ---------- 開始 ----------
 (async function boot() {

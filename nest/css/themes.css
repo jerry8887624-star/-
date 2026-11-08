@@ -1,0 +1,95 @@
+/* 介面風格（回憶本 → 關於 → 介面風格）：html[data-ui] = cozy 療癒精品（預設）／editorial 時尚雜誌／glass 現代玻璃
+   每一種風格只換字型、顏色、材質與標題樣式，版面和功能都一樣 */
+
+/* 對話框標題：英文小標＋圖示＋中文 */
+.dlg-head b { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; }
+.t-en { display: none; grid-column: 1 / -1; font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: var(--rose); }
+
+/* ---------- 療癒精品：粉圓＋圓圓的西文數字 ---------- */
+html[data-ui="cozy"] { --font-round: 'Fredoka', 'Huninn', 'Noto Sans TC', system-ui, sans-serif; }
+html[data-ui="cozy"] .t-ic { font-size: 1.05em; }
+html[data-ui="cozy"] .chip, html[data-ui="cozy"] .card .lv, html[data-ui="cozy"] .quest .q-r { font-family: var(--font-round); }
+
+/* ---------- 時尚雜誌：西文襯線＋中文明體標題、細黑體內文、奶油白＋玫瑰金 ---------- */
+html[data-ui="editorial"] {
+  --bg: #fbf7f1; --card: rgba(255, 252, 247, .94); --ink: #3a2a28; --muted: #9a8478; --rose: #b07a68; --rose-2: #c9998a; --pink: #d9b2a4;
+  --line: rgba(176, 122, 104, .28); --glass: rgba(251, 247, 241, .9); --shadow: 0 6px 24px rgba(70, 40, 30, .1);
+  --font-round: 'Playfair Display', 'Noto Serif TC', serif; --font-body: 'Noto Sans TC', system-ui, sans-serif;
+}
+html[data-ui="editorial"] body { font-family: var(--font-body); font-weight: 400; }
+html[data-ui="editorial"] .t-en { display: block; font-family: 'Playfair Display', serif; font-style: italic; letter-spacing: .3em; color: var(--rose); }
+html[data-ui="editorial"] .t-ic { display: none; }
+html[data-ui="editorial"] .dlg-head b, html[data-ui="editorial"] h1 { font-family: 'Playfair Display', 'Noto Serif TC', serif; font-weight: 600; letter-spacing: .06em; font-size: 22px; }
+html[data-ui="editorial"] :is(.chip, .card .names, .lbl, #toast, #ap-title, .round small, .quest b, .memo b, .toggle-row > span, .opts button, .shop button, .cell, .tabs button, .ghost) { font-family: 'Playfair Display', 'Noto Sans TC', sans-serif; font-weight: 500; }
+html[data-ui="editorial"] :is(.card, .chip, .icon, .round, .lbl, #toast, .pop, #act-panel) { border-radius: 10px; box-shadow: 0 4px 18px rgba(70, 40, 30, .08); border: 1px solid rgba(176, 122, 104, .25); }
+html[data-ui="editorial"] .round { border-radius: 50%; }
+html[data-ui="editorial"] .card .names { font-family: 'Playfair Display', 'Noto Serif TC', serif; font-weight: 600; font-size: 16px; }
+html[data-ui="editorial"] .card .days { color: var(--rose); font-family: 'Playfair Display', 'Noto Sans TC', serif; font-style: italic; }
+html[data-ui="editorial"] .card .love i { background: linear-gradient(90deg, #d9b2a4, #b07a68); }
+html[data-ui="editorial"] .icon.net.on, html[data-ui="editorial"] .lbl.near, html[data-ui="editorial"] .tabs button[aria-selected="true"] { background: #3a2a28; color: #fbf7f1; }
+html[data-ui="editorial"] .primary { background: #3a2a28; color: #fbf7f1; border-radius: 999px; font-family: 'Playfair Display', 'Noto Sans TC', serif; font-weight: 500; letter-spacing: .18em; font-size: 15px; box-shadow: none; }
+html[data-ui="editorial"] .ghost { border-radius: 999px; border: 1px solid var(--line); }
+html[data-ui="editorial"] dialog { border-radius: 14px; border: 1px solid rgba(176, 122, 104, .3); }
+html[data-ui="editorial"] .dlg-head { border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+html[data-ui="editorial"] .round.big { background: #3a2a28; }
+/* 任務：雜誌目錄的 01、02 編號 */
+html[data-ui="editorial"] #dlg-body { counter-reset: q; }
+html[data-ui="editorial"] .quest { background: transparent; border-radius: 0; border-bottom: 1px solid var(--line); padding: 12px 2px; }
+html[data-ui="editorial"] .quest .q-e { font-size: 0; }
+html[data-ui="editorial"] .quest .q-e::before { counter-increment: q; content: counter(q, decimal-leading-zero); font: italic 500 20px 'Playfair Display', serif; color: var(--rose); }
+html[data-ui="editorial"] .quest.ok .q-e::before { content: '✓'; font-style: normal; }
+html[data-ui="editorial"] .quest .q-r { color: var(--rose); font: italic 500 15px 'Playfair Display', serif; }
+html[data-ui="editorial"] .bar i { background: #b07a68 !important; }
+html[data-ui="editorial"] .memo { background: #fffdf9; border: 1px solid var(--line); border-radius: 10px; box-shadow: none; }
+html[data-ui="editorial"] .memo .ic { filter: grayscale(.2); }
+html[data-ui="editorial"] .letter { font-family: 'Noto Serif TC', serif; font-weight: 500; letter-spacing: .05em; }
+/* 時尚風把「手帳／信紙／相簿／軟木板」換成同一種乾淨的紙 */
+html[data-ui="editorial"] #dlg[data-kind] { background: var(--bg); }
+html[data-ui="editorial"] #dlg[data-kind] #dlg-body { background: none; }
+html[data-ui="editorial"] #dlg[data-kind] .dlg-head::before, html[data-ui="editorial"] #dlg[data-kind] > .dlg::before { display: none; }
+html[data-ui="editorial"] #dlg[data-kind="album"] .dlg-head { background: none; margin: 0; padding: 0 0 12px; }
+html[data-ui="editorial"] #dlg[data-kind="album"] .dlg-head b { color: var(--ink); }
+html[data-ui="editorial"] #dlg[data-kind="album"] .dlg-head .ghost { color: var(--ink); border-color: var(--line); }
+html[data-ui="editorial"] #dlg[data-kind="letter"] .letter { line-height: 34px; background-image: repeating-linear-gradient(180deg, transparent 0 33px, rgba(176, 122, 104, .22) 33px 34px); }
+
+/* ---------- 現代玻璃：幾何無襯線、毛玻璃、強烈大小對比、全大寫英文小標 ---------- */
+html[data-ui="glass"] {
+  --bg: rgba(255, 255, 255, .62); --card: rgba(255, 255, 255, .5); --ink: #1d2230; --muted: #6b7280; --rose: #ff4f7b; --rose-2: #ff7a9c;
+  --line: rgba(255, 255, 255, .75); --glass: rgba(255, 255, 255, .42); --shadow: 0 8px 30px rgba(20, 30, 60, .14);
+  --font-round: 'Outfit', 'Noto Sans TC', system-ui, sans-serif;
+}
+html[data-ui="glass"] body { font-family: 'Outfit', 'Noto Sans TC', system-ui, sans-serif; }
+html[data-ui="glass"] .t-en { display: block; font-family: 'Outfit', sans-serif; font-weight: 700; letter-spacing: .22em; color: var(--rose); }
+html[data-ui="glass"] .t-ic { display: none; }
+html[data-ui="glass"] :is(.dlg-head b, h1, .chip, .card .names, .lbl, #toast, #ap-title, .round small, .quest b, .memo b, .toggle-row > span, .opts button, .shop button, .cell, .tabs button, .ghost, .primary) { font-family: 'Outfit', 'Noto Sans TC', sans-serif; font-weight: 700; letter-spacing: .01em; }
+html[data-ui="glass"] .dlg-head b { font-size: 24px; font-weight: 800; }
+html[data-ui="glass"] :is(.card, .chip, .icon, .round, .lbl, #toast, .pop, #act-panel) { background: rgba(255, 255, 255, .42); border: 1px solid rgba(255, 255, 255, .8); backdrop-filter: blur(18px) saturate(1.6); -webkit-backdrop-filter: blur(18px) saturate(1.6); box-shadow: 0 8px 28px rgba(20, 30, 60, .12); }
+html[data-ui="glass"] .card .names { font-size: 17px; font-weight: 800; }
+html[data-ui="glass"] .card .days { color: var(--rose); font-weight: 700; }
+html[data-ui="glass"] .card .lv { text-transform: uppercase; letter-spacing: .12em; }
+html[data-ui="glass"] .icon.net.on, html[data-ui="glass"] .lbl.near, html[data-ui="glass"] .tabs button[aria-selected="true"] { background: rgba(255, 79, 123, .88); color: #fff; }
+html[data-ui="glass"] dialog { background: rgba(255, 255, 255, .62); backdrop-filter: blur(26px) saturate(1.7); -webkit-backdrop-filter: blur(26px) saturate(1.7); border: 1px solid rgba(255, 255, 255, .85); border-radius: 28px; }
+html[data-ui="glass"] dialog::backdrop { background: rgba(20, 30, 60, .18); backdrop-filter: blur(6px); }
+html[data-ui="glass"] .primary { background: linear-gradient(135deg, #ff4f7b, #ff8a5c); border-radius: 16px; letter-spacing: .04em; box-shadow: 0 8px 24px rgba(255, 79, 123, .35); }
+html[data-ui="glass"] .ghost { background: rgba(255, 255, 255, .5); border: 1px solid rgba(255, 255, 255, .9); }
+html[data-ui="glass"] .quest, html[data-ui="glass"] .memo { background: rgba(255, 255, 255, .55); border: 1px solid rgba(255, 255, 255, .9); border-radius: 18px; box-shadow: none; }
+html[data-ui="glass"] .quest .q-e { font-size: 0; width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(29, 34, 48, .25); }
+html[data-ui="glass"] .quest.ok .q-e { background: var(--rose); border-color: var(--rose); }
+html[data-ui="glass"] .quest .q-r { color: var(--rose); font-weight: 800; }
+html[data-ui="glass"] .bar { background: rgba(29, 34, 48, .08) !important; }
+html[data-ui="glass"] .bar i { background: linear-gradient(90deg, #ff4f7b, #ff8a5c) !important; }
+html[data-ui="glass"] #dlg[data-kind] { background: rgba(255, 255, 255, .62); }
+html[data-ui="glass"] #dlg[data-kind] #dlg-body { background: none; }
+html[data-ui="glass"] #dlg[data-kind] .dlg-head::before, html[data-ui="glass"] #dlg[data-kind] > .dlg::before { display: none; }
+html[data-ui="glass"] #dlg[data-kind="album"] .dlg-head { background: none; margin: 0; padding: 0 0 8px; }
+html[data-ui="glass"] #dlg[data-kind="album"] .dlg-head b { color: var(--ink); }
+html[data-ui="glass"] #dlg[data-kind="album"] .dlg-head .ghost { color: var(--ink); }
+html[data-ui="glass"] #dlg[data-kind="note"] .quest { background: rgba(255, 255, 255, .55); border: 1px solid rgba(255, 255, 255, .9); border-radius: 18px; }
+html[data-ui="glass"] #dlg[data-kind="letter"] .letter { font-weight: 500; background-image: none; line-height: 1.9; }
+html[data-ui="glass"] .dlg-head { border-bottom: 0; }
+@media (prefers-color-scheme: dark) {
+  html[data-ui="glass"] { --bg: rgba(30, 32, 44, .6); --card: rgba(40, 44, 60, .5); --ink: #f2f4fa; --muted: #a7adbd; --glass: rgba(30, 32, 44, .45); }
+  html[data-ui="glass"] dialog, html[data-ui="glass"] #dlg[data-kind] { background: rgba(30, 32, 44, .62); border-color: rgba(255, 255, 255, .15); }
+  html[data-ui="editorial"] { --bg: #221a18; --card: rgba(40, 30, 28, .94); --ink: #f3e8e2; --muted: #b9a398; --glass: rgba(34, 26, 24, .9); }
+  html[data-ui="editorial"] .primary, html[data-ui="editorial"] .icon.net.on, html[data-ui="editorial"] .lbl.near { background: #f3e8e2; color: #221a18; }
+}
