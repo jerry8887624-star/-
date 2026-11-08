@@ -222,6 +222,13 @@ export class Avatar {
     const e2 = B[lo].getWorldPosition(new THREE.Vector3()); const tt = sh.clone().add(toT.multiplyScalar(d));
     this.aim(lo, hand, tt.sub(e2).applyQuaternion(iq), w);
   }
+  // 另一半身上的某一點（世界座標）：骨頭位置＋往他的前／右／上偏移（公尺）
+  matePt(bone, fwd = 0, right = 0, up = 0) {
+    const M = this.mate, b = M?.bones?.[bone]; if (!b) return null;
+    const p = b.getWorldPosition(new THREE.Vector3()); M.root.getWorldQuaternion(_q);
+    return p.add(V(-right, up, fwd).applyQuaternion(_q)); // 角色空間 +x 是左邊
+  }
+  reachTo(up, lo, hand, world, pole, w) { if (!world) return false; this.ik(up, lo, hand, this.root.worldToLocal(world.clone()), pole, w); return true; }
   // 在角色空間繞某軸轉（彎腰、側靠）
   twist(name, axis, ang) {
     if (Math.abs(ang) < 1e-3) return; const b = this.bones[name]; if (!b) return;
@@ -274,17 +281,30 @@ export class Avatar {
     if ((w = s('swing', pose === 'swing'))) { this.aim(R, RF, V(-0.22, 1, 0.12), w); this.aim(RF, RH, V(-0.15, 1, 0.1), w); this.aim(L, LF, V(0.22, 1, 0.12), w); this.aim(LF, LH, V(0.15, 1, 0.1), w); }
     if ((w = s('recline', pose === 'recline'))) this.twist('Spine', V(1, 0, 0), -(this.reclineAng ?? 0.45) * w); // 往後靠的角度（海灘椅比沙發躺得更斜）
     if ((w = s('reach', this.reaching && pose !== 'lie'))) { this.aim(R, RF, V(-0.18, -0.15, 1), w); this.aim(RF, RH, V(-0.05, 0.1, 1), w); this.aim(L, LF, V(0.18, -0.2, 1), w * 0.8); this.aim(LF, LH, V(0.05, 0.05, 1), w * 0.8); }
-    if ((w = s('handR', this.handSide < 0 && !seated && pose !== 'lie'))) { this.aim(R, RF, V(-0.42, -0.9, 0.12), w); this.aim(RF, RH, V(-0.35, -0.92, 0.18), w); }
-    if ((w = s('handL', this.handSide > 0 && !seated && pose !== 'lie'))) { this.aim(L, LF, V(0.42, -0.9, 0.12), w); this.aim(LF, LH, V(0.35, -0.92, 0.18), w); }
+    // 牽手：靠近對方的那隻手伸到兩個人中間，跟對方的手碰在一起
+    const mate = this.mate && this.mate.bones && this.mate.root.visible && this.mate.root.position.distanceTo(this.root.position) < 1.4 ? this.mate : null;
+    let mateSide = 0; if (mate) { _v1.copy(mate.root.position); this.root.worldToLocal(_v1); mateSide = _v1.x > 0 ? 1 : -1; }
+    const holding = this.handSide !== 0 && !seated && pose !== 'lie';
+    if ((w = s('handM', holding && !!mate))) {
+      const a = this.bones.Hips.getWorldPosition(new THREE.Vector3()), b = mate.bones.Hips.getWorldPosition(new THREE.Vector3()), mid = a.add(b).multiplyScalar(0.5); mid.y -= 0.12;
+      this.root.getWorldQuaternion(_q); mid.add(V(0, 0, 0.06).applyQuaternion(_q));
+      if (mateSide > 0) this.reachTo(L, LF, LH, mid, V(1, -0.6, -0.3), w); else this.reachTo(R, RF, RH, mid, V(-1, -0.6, -0.3), w);
+    }
+    if ((w = s('handR', holding && !mate && this.handSide < 0))) { this.aim(R, RF, V(-0.42, -0.9, 0.12), w); this.aim(RF, RH, V(-0.35, -0.92, 0.18), w); }
+    if ((w = s('handL', holding && !mate && this.handSide > 0))) { this.aim(L, LF, V(0.42, -0.9, 0.12), w); this.aim(LF, LH, V(0.35, -0.92, 0.18), w); }
     if ((w = s('lean', !!this.leanSide))) this.twist('Spine1', V(0, 0, 1), -this.leanSide * 0.2 * w);
     const osc = Math.sin(et * 14);
     if ((w = s('wave', e === 'wave'))) { this.aim(R, RF, V(-0.92, 0.38, 0.12), w); this.aim(RF, RH, V(-0.35 + osc * 0.4, 1, 0.25), w); }
     if ((w = s('cheer', e === 'cheer' || e === 'jump'))) { this.aim(R, RF, V(-0.85, 0.55, 0.1), w); this.aim(RF, RH, V(-0.45, 1, 0.1), w); this.aim(L, LF, V(0.85, 0.55, 0.1), w); this.aim(LF, LH, V(0.45, 1, 0.1), w); }
     if (e === 'jump' || e === 'cheer') by += Math.abs(Math.sin(et * (e === 'jump' ? 7 : 6))) * (e === 'jump' ? 0.3 : 0.15);
     if ((w = s('clap', e === 'clap'))) { const c = 0.35 + Math.sin(et * 18) * 0.25; this.aim(R, RF, V(-0.3, -0.25, 1), w); this.aim(RF, RH, V(c, 0.25, 1), w); this.aim(L, LF, V(0.3, -0.25, 1), w); this.aim(LF, LH, V(-c, 0.25, 1), w); }
-    if ((w = s('hug', e === 'hug'))) { this.aim(R, RF, V(-0.5, 0.05, 1), w); this.aim(RF, RH, V(0.85, 0.05, 0.55), w); this.aim(L, LF, V(0.5, 0.05, 1), w); this.aim(LF, LH, V(-0.85, 0.05, 0.55), w); this.twist('Spine1', V(1, 0, 0), 0.12 * w); }
-    if ((w = s('kiss', e === 'kiss'))) { this.twist('Spine1', V(1, 0, 0), 0.3 * w * Math.min(1, et * 3)); this.aim(R, RF, V(-0.3, -0.8, -0.5), w); this.aim(L, LF, V(0.3, -0.8, -0.5), w); }
-    if ((w = s('pat', e === 'pat'))) { this.aim(R, RF, V(-0.15, 0.65, 0.8), w); this.aim(RF, RH, V(0.15, 0.1 + Math.sin(et * 12) * 0.25, 1), w); }
+    // 抱抱：兩手繞到對方背後（真的抱住）；沒有對方時才用原本的姿勢
+    if ((w = s('hugM', e === 'hug' && !!mate))) { this.twist('Spine1', V(1, 0, 0), 0.16 * w); this.reachTo(R, RF, RH, this.matePt('Spine1', -0.13, 0.13, 0.02), V(-1, -0.2, -0.4), w); this.reachTo(L, LF, LH, this.matePt('Spine1', -0.13, -0.13, 0.02), V(1, -0.2, -0.4), w); }
+    if ((w = s('hug', e === 'hug' && !mate))) { this.aim(R, RF, V(-0.5, 0.05, 1), w); this.aim(RF, RH, V(0.85, 0.05, 0.55), w); this.aim(L, LF, V(0.5, 0.05, 1), w); this.aim(LF, LH, V(-0.85, 0.05, 0.55), w); this.twist('Spine1', V(1, 0, 0), 0.12 * w); }
+    // 親親：身體往前傾到臉碰在一起；有對方時兩手扶在對方腰上
+    if ((w = s('kiss', e === 'kiss'))) { this.twist('Spine1', V(1, 0, 0), 0.32 * w * Math.min(1, et * 3)); if (mate) { this.reachTo(R, RF, RH, this.matePt('Hips', 0.02, 0.15, 0.12), V(-1, -0.8, 0), w); this.reachTo(L, LF, LH, this.matePt('Hips', 0.02, -0.15, 0.12), V(1, -0.8, 0), w); } else { this.aim(R, RF, V(-0.3, -0.8, -0.5), w); this.aim(L, LF, V(0.3, -0.8, -0.5), w); } }
+    // 摸頭：手放在對方頭頂上輕輕拍
+    if ((w = s('pat', e === 'pat'))) { const top = mate?.head ? mate.head.getWorldPosition(new THREE.Vector3()).add(V(0, 0.3 + Math.sin(et * 12) * 0.04, 0)) : null; if (!this.reachTo(R, RF, RH, top, V(-1, 0.2, -0.3), w)) { this.aim(R, RF, V(-0.15, 0.65, 0.8), w); this.aim(RF, RH, V(0.15, 0.1 + Math.sin(et * 12) * 0.25, 1), w); } }
     if ((w = s('shy', e === 'shy'))) { this.aim(R, RF, V(-0.3, -0.55, 0.75), w); this.aim(RF, RH, V(0.35, 0.92, 0.2), w); this.aim(L, LF, V(0.3, -0.55, 0.75), w); this.aim(LF, LH, V(-0.35, 0.92, 0.2), w); this.twist('Spine1', V(0, 0, 1), Math.sin(et * 3) * 0.12 * w); }
     // 蹲下摸狗：右手往前下方輕輕摸
     // 撐傘：右手舉在肩膀前面
@@ -319,6 +339,6 @@ export class Avatar {
     if (this.lapItem) { this.bones.Hips.getWorldPosition(_v1); this.root.worldToLocal(_v1); this.lap.position.set(_v1.x + LAP[0], _v1.y + LAP[1], _v1.z + LAP[2]); }
     // 4. 手上的東西保持跟身體同方向；頭微微晃
     if (this.item) { this.handSlot.parent.getWorldQuaternion(_q); this.root.getWorldQuaternion(_q2); this.handSlot.quaternion.copy(_q.invert().multiply(_q2)); }
-    if (this.headHolder) this.head.rotation.z = (e === 'shy' ? Math.sin(et * 3) * 0.15 : Math.sin(this.t * 1.3) * 0.03);
+    if (this.headHolder) this.head.rotation.z = (e === 'shy' ? Math.sin(et * 3) * 0.15 : (e === 'hug' && this.mate) ? 0.38 * (this.w.hugM || 0) : e === 'kiss' && this.mate ? 0.18 * (this.w.kiss || 0) : Math.sin(this.t * 1.3) * 0.03); // 抱抱時頭歪向一邊，兩顆頭才不會撞在一起
   }
 }

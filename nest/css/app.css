@@ -450,3 +450,8 @@ body.calm .right .round.small#btn-chat.unread { opacity: 1; } /* 有新訊息時
 .ch-warn { margin: 6px 0; padding: 8px 12px; border-radius: 12px; background: rgba(255, 190, 90, .18); color: var(--ink); font-size: var(--fs-xs); line-height: 1.5; }
 .ch-msg.pend .ch-bubble, .ch-msg.pend .ch-sticker { opacity: .6; }
 .ch-retry { margin-top: 3px; padding: 2px 8px; border: 0; border-radius: 999px; background: rgba(255, 79, 123, .15); color: #e0456d; font-size: 11px; }
+
+/* 快速輸入列放在畫面上方（HUD 下面）：iPhone 鍵盤打開時不會把整個畫面往上推 */
+#qchat { top: calc(var(--safe-t) + 136px); bottom: auto; }
+/* 聊天室打字時：貼齊鍵盤上方的可見範圍 */
+#chat.kb { top: var(--vvt, 0px); bottom: auto; height: var(--vvh, 100%); border-radius: 0; animation: none; }
