@@ -586,6 +586,7 @@ function tickSpots() {
     s.el.style.opacity = d < 10 ? 1 : d < 16 ? 0.8 : 0.6; s.el.style.setProperty('--k', d < 10 ? 1 : d < 16 ? 0.9 : 0.8); // 遠的地點標籤小一點、淡一點 s.el.classList.toggle('near', s === best);
     if (s.badge) s.el.textContent = `${s.icon} ${s.name}${s.badge() ? ' ●' : ''}`;
   }
+  tickSay();
   // 名字（頭上）
   const seen = new Set();
   for (const c of allChars()) {
@@ -1552,7 +1553,7 @@ function shareSave() {
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
-const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic'];
+const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic', 'qch'];
 function applySave(keys, first) {
   for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; st[k] = v; }
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
@@ -1599,7 +1600,7 @@ function onNet(m) {
   if (m.t === 'owner') { MP.owner = m.owner; if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
   if (m.t === 'paired') { if (MP.owner) MP.owner.paired = true; toast('另一半加入小島了 ❤', 3500); burst('heart', headPos(me(), 1.6), 10); if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
   if (m.t === 'book') { if (MP.owner) MP.owner.book = [m.e, ...(MP.owner.book || [])]; if (MP.role !== 'g') toast(`📝 ${m.e.n}：${m.e.text}`, 4000); return; }
-  if (m.t === 'say') { const c = peerChar(m.id) || (m.id === MP.id ? me() : null); if (c) showSay(c, m.text); return; }
+  if (m.t === 'say') { const c = peerChar(m.id) || (m.id === MP.id ? me() : null); if (c) showSay(c, m.text, m.mute ? 'mute' : 'say'); return; }
   if (m.t === 'err') { toast(m.why === 'slow' ? '留言太快了，等一下再寫' : CHAT_WHY[m.why] || '沒有送出'); return; }
   if (m.t === 'love') { onLoveReq(m.from, m.k); return; }
   if (m.t === 'loveok') { onLoveOk(m.from, m.k, m.ok); return; }
@@ -1617,10 +1618,26 @@ function addPeer(p, quiet) {
   updateNetChip();
 }
 // 頭上冒出的一句話
-function showSay(c, text) {
-  const e = document.createElement('div'); e.className = 'lbl say'; e.textContent = text; $('#labels').appendChild(e);
-  const t0 = performance.now(), tick = () => { const k = (performance.now() - t0) / 5000; if (k > 1 || !c.av.root.visible) { e.remove(); return; } v3.copy(c.av.root.position); v3.y += 2.3; v3.project(cam); e.style.left = ((v3.x + 1) / 2 * innerWidth) + 'px'; e.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px'; e.style.opacity = k > 0.85 ? (1 - k) / 0.15 : 1; requestAnimationFrame(tick); };
-  tick();
+// 頭上的對話泡泡：同一個人連續講話會往上疊；離太遠縮小變淡；人在畫面外時，泡泡貼在畫面邊緣、箭頭指向他
+// kind：'say' 說出來（白）／'w' 悄悄話（粉紅愛心框）／'mute' 朋友看到別人在講悄悄話（……）
+const sayStacks = new Map();
+function showSay(c, text, kind = 'say') {
+  let S = sayStacks.get(c);
+  if (!S) { const box = document.createElement('div'); box.className = 'say-stack'; box.innerHTML = '<div class="say-list"></div><i class="say-arrow"></i>'; $('#labels').appendChild(box); S = { c, box, list: box.firstChild }; sayStacks.set(c, S); }
+  const e = document.createElement('div'); e.className = 'say-b ' + kind; e.textContent = text; S.list.appendChild(e);
+  while (S.list.children.length > 3) S.list.firstChild.remove();
+  setTimeout(() => { e.classList.add('out'); setTimeout(() => e.remove(), 400); }, 5200 + Math.min(4000, text.length * 120));
+}
+function tickSay() {
+  for (const [c, S] of sayStacks) {
+    if (!S.list.children.length || !c.av.root.visible || c.sc !== scene) { S.box.style.display = 'none'; if (!S.list.children.length && !document.body.contains(c.av.root.parent ? S.box : null)) {} continue; }
+    tagPos(c, v3); v3.y += 0.35; const d = cam.position.distanceTo(v3); v3.project(cam);
+    let x = (v3.x + 1) / 2 * innerWidth, y = (1 - v3.y) / 2 * innerHeight; const behind = v3.z > 1; if (behind) { x = innerWidth - x; y = innerHeight - 40; }
+    const m = 46, off = behind || x < m || x > innerWidth - m || y < 90 || y > innerHeight - 120;
+    S.box.style.display = ''; S.box.classList.toggle('edge', off);
+    if (off) { const cx = innerWidth / 2, cy = innerHeight / 2, ang = Math.atan2(y - cy, x - cx), hw = Math.min(130, (S.box.offsetWidth || 120) / 2 + 10); x = Math.min(innerWidth - hw, Math.max(hw, x)); y = Math.min(innerHeight - 160, Math.max(130, y)); /* 用泡泡自己的寬度決定離邊緣多遠，不會被擠成直排 */ S.box.style.setProperty('--ang', ang + 'rad'); S.box.dataset.who = nameOf(c.i); }
+    const k = off ? 0.85 : d < 14 ? 1 : d < 24 ? 0.85 : 0.72; S.box.style.left = x + 'px'; S.box.style.top = y + 'px'; S.box.style.setProperty('--k', k); S.box.style.opacity = off ? 0.95 : d < 24 ? 1 : 0.75;
+  }
 }
 // 情侶互動（連線）：問對方 → 對方答應才開始
 let loveAsk = null, approach = null;
@@ -2643,7 +2660,7 @@ const chatPartner = () => 1 - myIdx();
 const chatUnread = () => CHAT.list.filter(m => m.by === chatPartner() && m.ts > (CHAT.read[myIdx()] || 0)).length;
 function chatBadge() {
   const n = chatUnread(), b = $('#chat-badge'); b.hidden = !n || CHAT.open; b.textContent = n > 9 ? '9+' : n; $('#btn-chat').classList.toggle('unread', !!n && !CHAT.open);
-  $('#btn-chat').hidden = MP.role === 'g';
+
 }
 const hhmm = ts => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 function chatTime(ts) { const d = new Date(ts), n = new Date(); const same = d.toDateString() === n.toDateString(), y = new Date(n - 864e5).toDateString() === d.toDateString(); return `${same ? '今天' : y ? '昨天' : `${d.getMonth() + 1}/${d.getDate()}`} ${hhmm(ts)}`; }
@@ -2660,7 +2677,7 @@ function renderChat() {
     const mine = m.by === me_, grouped = prev && prev.by === m.by && m.ts - prev.ts < 120e3;
     const st_ = STICKERS.find(x => x[0] === m.v);
     const body = m.k === 's' && st_ ? `<div class="ch-sticker"><span>${st_[1]}</span><b>${st_[2]}</b></div>` : `<div class="ch-bubble">${esc(m.v).replace(/\n/g, '<br>')}</div>`;
-    html += `<div class="ch-msg ${mine ? 'me' : 'you'} ${grouped ? 'grp' : ''}">${body}${mine && lastMineRead === m ? '<small class="ch-read">已讀</small>' : ''}</div>`;
+    html += `<div class="ch-msg ${mine ? 'me' : 'you'} ${grouped ? 'grp' : ''} ${m.ch === 'say' ? 'said' : ''}">${m.ch === 'say' && !grouped ? '<small class="ch-said">說出來</small>' : ''}${body}${mine && lastMineRead === m ? '<small class="ch-read">已讀</small>' : ''}</div>`;
     prev = m;
   }
   box.innerHTML = html; if (atBottom || box.dataset.first !== '1') { box.scrollTop = box.scrollHeight; box.dataset.first = '1'; }
@@ -2676,21 +2693,66 @@ function openChat() {
   renderChat(); chatMarkRead(); chatBadge();
 }
 function closeChat() { CHAT.open = false; $('#chat').hidden = true; $('#ch-stickers').hidden = true; $('#ch-stk').setAttribute('aria-pressed', 'false'); $('#ch-in').blur(); chatBadge(); }
-function chatSend(k, v) {
-  if (!MP.on || !v) return; MP.net.send({ t: 'chat', k, v }); sfx('pop');
-  if (k === 't') showSay(me(), v.length > 24 ? v.slice(0, 24) + '…' : v); else { const s_ = STICKERS.find(x => x[0] === v); if (s_) showSay(me(), `${s_[1]} ${s_[2]}`); }
+function chatSend(k, v, w = 0) {
+  if (!MP.on || !v) return; MP.net.send({ t: 'chat', k, v, w }); sfx('pop');
+  if (k === 't') showSay(me(), v.length > 24 ? v.slice(0, 24) + '…' : v, 'w'); else { const s_ = STICKERS.find(x => x[0] === v); if (s_) showSay(me(), `${s_[1]} ${s_[2]}`, 'w'); }
 }
 function onChat(m) {
   if (CHAT.list.some(x => x.id === m.id)) return; CHAT.list.push(m); if (CHAT.list.length > 300) CHAT.list.shift();
   const fromPartner = m.by === chatPartner();
+  if (m.ch === 'say') { renderChat(); chatBadge(); return; } // 說出來的：頭上泡泡已經出現過，只記在聊天紀錄
   if (fromPartner) {
     $('#ch-typing').hidden = true; const c = chars[m.by], s_ = STICKERS.find(x => x[0] === m.v), text = m.k === 's' && s_ ? `${s_[1]} ${s_[2]}` : m.v;
-    if (c?.remote) showSay(c, text.length > 24 ? text.slice(0, 24) + '…' : text);
+    if (c?.remote) { showSay(c, text.length > 24 ? text.slice(0, 24) + '…' : text, 'w'); if (Math.hypot(c.x - me().x, c.z - me().z) < 2.2 && c.sc === scene) setTimeout(() => { me().av.emote('shy', 1.4); burst('heart', headPos(me(), 1.4), 3, 0.3); }, 700); }
     if (CHAT.open) chatMarkRead(); else { sfx('pop'); toast(`💬 ${nameOf(m.by)}：${text.length > 30 ? text.slice(0, 30) + '…' : text}`, 3500); }
   }
   renderChat(); chatBadge();
 }
-$('#btn-chat').onclick = () => CHAT.open ? closeChat() : openChat();
+// ---- 快速輸入列：打字直接冒在頭上 ----
+const QC = { ch: 'say' };
+function qcLabel() { const w = QC.ch === 'w'; $('#qc-ch').innerHTML = w ? '💗 悄悄話' : '💬 說出來'; $('#qc-ch').classList.toggle('w', w); $('#qc-in').placeholder = w ? `只有 ${nameOf(chatPartner())} 看得到…` : '說點什麼，島上的人都看得到…'; }
+function openQuick() {
+  if (CHAT.open) return closeChat(); if (MP.role !== 'g' && chatUnread()) return openChat(); // 有未讀：先看訊息
+  QC.ch = MP.role === 'g' ? 'say' : (st.qch || 'say'); qcLabel(); $('#qc-ch').hidden = MP.role === 'g'; $('#qc-room').hidden = MP.role === 'g';
+  $('#qchat').hidden = false; $('#qc-in').focus(); toggleLoveMenu(false);
+}
+function closeQuick() { $('#qchat').hidden = true; $('#qc-in').blur(); }
+$('#qc-ch').onclick = () => { if (QC.ch === 'say' && !MP.on) { toast('先在 🌐 跟另一半連線，才能講悄悄話'); return; } QC.ch = QC.ch === 'say' ? 'w' : 'say'; st.qch = QC.ch; save(); qcLabel(); $('#qc-in').focus(); sfx('click'); };
+$('#qc-room').onclick = () => { closeQuick(); openChat(); };
+$('#qc-in').addEventListener('keydown', e => e.stopPropagation());
+$('#qc-in').addEventListener('blur', () => setTimeout(() => { if (!$('#qchat').contains(document.activeElement) && !$('#qc-in').value.trim()) closeQuick(); }, 200));
+$('#qchat').onsubmit = e => { e.preventDefault(); const v = $('#qc-in').value.trim(); if (!v) return; $('#qc-in').value = ''; speak(v, QC.ch); };
+// 說出來：頭上白色泡泡（島上的人都看得到）；悄悄話：只傳給另一半，靠很近時角色會湊過去咬耳朵
+function speak(v, ch) {
+  if (ch === 'w') {
+    if (!MP.on || MP.role === 'g') return toast('先在 🌐 跟另一半連線，才能講悄悄話');
+    const q = chars[chatPartner()]; if (q?.remote && q.sc === scene && Math.hypot(q.x - me().x, q.z - me().z) < 2.2 && !me().locked) { me().ry = Math.atan2(q.x - me().x, q.z - me().z); me().av.emote('whisper', 1.8); }
+    chatSend('t', v.slice(0, 200), 1); return; // w=1：在島上的朋友會看到「……」
+  }
+  const r = checkChat(v); if (!r.ok) return toast(CHAT_WHY[r.why] || '沒有送出');
+  if (MP.on) MP.net.send({ t: 'say', text: r.text }); else showSay(me(), r.text);
+  sfx('pop');
+}
+// ---- 表情輪盤：長按聊天按鈕，滑到想說的那一個放開 ----
+const WHEEL = [['wave', '👋', '嗨～'], ['shy', '💗', '想你'], ['laugh', '😂', '哈哈哈'], ['shy', '🥺', '嗚嗚'], ['cheer', '🎉', '耶！'], ['clap', '👍', '好喔'], ['', '😴', '好睏'], ['', '🍙', '肚子餓']];
+const WH = { t: 0, on: false, pick: -1, skipClick: false };
+function openWheel() {
+  const el = $('#wheel'), cx = innerWidth / 2, cy = innerHeight - 250, R = Math.min(118, innerWidth / 2 - 54);
+  el.innerHTML = WHEEL.map(([, e, t], i) => { const a = -Math.PI / 2 + i / WHEEL.length * Math.PI * 2; return `<div class="wh-i" data-i="${i}" style="left:${cx + Math.cos(a) * R}px;top:${cy + Math.sin(a) * R}px"><span>${e}</span><b>${t}</b></div>`; }).join('') + `<div class="wh-c" style="left:${cx}px;top:${cy}px">滑過去放開</div>`;
+  el.hidden = false; WH.on = true; WH.pick = -1; if (navigator.vibrate) navigator.vibrate(12); sfx('click');
+}
+function wheelMove(x, y) { let best = -1, bd = 70; $('#wheel').querySelectorAll('.wh-i').forEach((n, i) => { const r = n.getBoundingClientRect(), d = Math.hypot(r.left + r.width / 2 - x, r.top + r.height / 2 - y); if (d < bd) { bd = d; best = i; } n.classList.toggle('on', false); }); WH.pick = best; if (best >= 0) $('#wheel').children[best].classList.add('on'); }
+function closeWheel() {
+  $('#wheel').hidden = true; WH.on = false; const it = WHEEL[WH.pick]; if (!it) return;
+  if (it[0]) me().av.emote(it[0], 1.6); speak(`${it[1]} ${it[2]}`, 'say');
+}
+const bc = $('#btn-chat');
+bc.addEventListener('pointerdown', e => { WH.skipClick = false; clearTimeout(WH.t); WH.t = setTimeout(() => { WH.skipClick = true; openWheel(); }, 420); });
+addEventListener('pointermove', e => { if (WH.on) wheelMove(e.clientX, e.clientY); });
+addEventListener('pointerup', () => { clearTimeout(WH.t); if (WH.on) closeWheel(); });
+addEventListener('pointercancel', () => { clearTimeout(WH.t); if (WH.on) { WH.pick = -1; closeWheel(); } });
+bc.addEventListener('contextmenu', e => e.preventDefault());
+bc.onclick = () => { if (WH.skipClick) { WH.skipClick = false; return; } openQuick(); };
 $('#ch-close').onclick = closeChat;
 $('#ch-quick').innerHTML = QUICK.map(q => `<button type="button">${esc(q)}</button>`).join('');
 $('#ch-quick').onclick = e => { const b = e.target.closest('button'); if (b) chatSend('t', b.textContent); };

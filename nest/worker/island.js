@@ -211,8 +211,14 @@ export class Island {
       case 'boat': if (this.gap(s, 'boat', 120)) return; this.bcast({ t: 'boat', x: num(m.x, -80, 80), z: num(m.z, -80, 80), ry: num(m.ry, -100, 100), home: m.home ? 1 : 0 }, s); break;
       case 'item': this.bcast({ t: 'item', id: s.id, k: String(m.k || '').slice(0, 12) }, s); break;
       case 'say': { // 朋友之間的一句話（40 字內，過濾）
-        if (this.gap(s, 'say', 1500)) return; const r = checkChat(m.text); if (!r.ok) return send(s, { t: 'err', why: r.why });
-        this.bcast({ t: 'say', id: s.id, text: r.text }); break;
+        if (this.gap(s, 'say', 1200)) return send(s, { t: 'err', why: 'slow' }); const r = checkChat(m.text); if (!r.ok) return send(s, { t: 'err', why: r.why });
+        this.bcast({ t: 'say', id: s.id, text: r.text });
+        if (owner) { // 島主說出來的話也記進兩個人的聊天紀錄（標成「說出來」）
+          const msg = { id: rnd(8), by: s.role, k: 't', v: r.text, ts: Date.now(), ch: 'say' };
+          this.chat.push(msg); if (this.chat.length > 300) this.chat = this.chat.slice(-300); await this.persist('chat');
+          for (const x of this.sessions.values()) if (x.ready && (x.role === 0 || x.role === 1)) send(x, { t: 'chat', m: msg });
+        }
+        break;
       }
       case 'love': case 'loveok': { // 情侶互動：只有島主之間
         if (!owner || this.gap(s, 'love', 400)) return; const to = [...this.sessions.values()].find(x => x.id === m.to && (x.role === 0 || x.role === 1)); if (!to) return;
@@ -239,9 +245,10 @@ export class Island {
         if (!owner || this.gap(s, 'chat', 350)) return send(s, { t: 'err', why: 'slow' });
         const k = m.k === 's' ? 's' : 't', v = k === 's' ? String(m.v || '') : String(m.v || '').replace(/\s+$/g, '').slice(0, 200);
         if (!v.trim() || (k === 's' && !/^[a-z0-9_]{1,16}$/.test(v))) return;
-        const msg = { id: rnd(8), by: s.role, k, v, ts: Date.now(), c: String(m.c || '').slice(0, 12) };
+        const msg = { id: rnd(8), by: s.role, k, v, ts: Date.now(), ch: 'w' }; // 聊天室和悄悄話：只有兩位島主看得到
         this.chat.push(msg); if (this.chat.length > 300) this.chat = this.chat.slice(-300); await this.persist('chat');
         for (const x of this.sessions.values()) if (x.ready && (x.role === 0 || x.role === 1)) send(x, { t: 'chat', m: msg });
+        if (m.w) for (const x of this.sessions.values()) if (x.ready && x.role === 'g') send(x, { t: 'say', id: s.id, text: '……', mute: 1 }); // 朋友只看到在講悄悄話
         const to = 1 - s.role; if (![...this.sessions.values()].some(x => x.ready && x.role === to)) {
           const name = (this.save.names || [])[s.role] || '另一半';
           await this.push(to, { title: `💬 ${name}`, body: k === 's' ? '傳了一張貼圖' : v.slice(0, 80), tag: 'chat' });
