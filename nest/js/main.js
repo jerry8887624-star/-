@@ -23,8 +23,13 @@ const AS = 1, HIP = 0.306; // 角色大小、坐下時屁股離腳底的高度
 const KEY = 'nest.save';
 const DEF = { v: 1, names: ['', ''], looks: [null, null], anniv: '', love: 0, day: 1, tod: 9, diary: [], fish: {}, shells: {}, garden: [null, null, null], castles: 0, letterDay: 0, ctrl: 0, music: true, started: false, hand: false, flowersGiven: 0, dishes: 0, wishes: 0, fireworks: 0, laps: 0 };
 let st = (() => { try { return { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { return { ...DEF }; } })();
-const save = () => { if (MP.role === 'g') return; if (st.myLook && (MP.id || (!MP.on && MP.role == null))) { /* 連上島、拿到身分後才同步「我是誰」 */ st.myLook = st.looks[myIdx()]; st.myName = st.names[myIdx()]; } try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} shareSave(); };
-setInterval(save, 5000); addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+const save = () => { if (MP.role === 'g') return; rememberWhere(); if (st.myLook && (MP.id || (!MP.on && MP.role == null))) { /* 連上島、拿到身分後才同步「我是誰」 */ st.myLook = st.looks[myIdx()]; st.myName = st.names[myIdx()]; } try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} shareSave(); };
+setInterval(save, 5000); addEventListener('visibilitychange', () => { if (document.hidden) save(); }); addEventListener('pagehide', () => save());
+// 記住自己最後站在哪裡（下次打開從這裡繼續）；活動中就記活動旁邊的位置
+function rememberWhere() {
+  try { if (!st.started || !$('#splash').hidden) return; const c = me(); if (!c || c.ghost) return; const b = act?.back;
+    st.where = { sc: scene, x: +(b ? b[0] : c.x).toFixed(2), z: +(b ? b[1] : c.z).toFixed(2), ry: +c.ry.toFixed(2), yaw: +(scene === 'in' ? view.inYaw : view.yaw).toFixed(2) }; } catch (e) {}
+}
 const myIdx = () => MP.role === 0 || MP.role === 1 ? MP.role : st.ctrl; // 連線拿到身分前，用原本的
 const nameOf = i => st.names[i] || (i === myIdx() ? '我' : '另一半');
 
@@ -89,7 +94,13 @@ $('#start-btn').onclick = () => {
   if (first) { addMemo('🏝️', `${nameOf(myIdx())} 搬到了小島上`); setTimeout(() => toast('歡迎回家！靠近有標籤的地方就能做事；🌐 可以邀請另一半 ♥', 4500), 900); }
   else { toast(pick(TIPS), 4000); showNewsOnce(); }
 };
-function placeStart() { const c0 = me(); c0.x = 0.5; c0.z = 3.2; c0.ry = 0.5; view.yaw = 0.5; updateCam(0, true); }
+function placeStart() {
+  const c0 = me(), w = st.where;
+  if (w?.sc === 'in') { c0.x = 0.5; c0.z = 3.2; enterHouse(w); return; } // 上次在小屋裡：直接回到屋裡原本的位置
+  if (w && Number.isFinite(w.x)) { [c0.x, c0.z] = freeSpot(w.x, w.z); c0.ry = w.ry || 0; view.yaw = w.yaw ?? 0.5; }
+  else { c0.x = 0.5; c0.z = 3.2; c0.ry = 0.5; view.yaw = 0.5; }
+  updateCam(0, true);
+}
 
 // ---------- 介面小工具 ----------
 let toastT = 0;
@@ -551,12 +562,14 @@ function tickSpots() {
 $('#btn-act').onclick = () => { if (nearSpot && !act) { sfx('click'); nearSpot.run(); } };
 
 // ---------- 小木屋：進出 ----------
-async function enterHouse() {
+async function enterHouse(at) {
   if (!IN) { toast('小屋整理中，稍等一下…'); IN = await buildInterior(st.theme || 'muji'); }
   await fadeDo(() => {
     scene = 'in'; localChars().forEach(c => { c.sc = 'in'; c.path = null; c.y = null; });
     const p = me(), q = you(); p.x = INSPOTS.exit.x - 0.4; p.z = INSPOTS.exit.z - 0.6; p.ry = Math.PI; if (partnerLocal()) { q.x = p.x - 0.8; q.z = p.z + 0.2; q.ry = Math.PI; }
     view.inYaw = 0; nearSpot = null;
+    if (at && Number.isFinite(at.x)) { [p.x, p.z] = freeSpot(at.x, at.z); p.ry = at.ry || 0; view.inYaw = at.yaw || 0; }
+    updateCam(0, true);
   });
   sfx('door');
 }
@@ -1358,7 +1371,7 @@ function shareSave() {
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
-const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash'];
+const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where'];
 function applySave(keys, first) {
   for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; st[k] = v; }
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
@@ -1520,7 +1533,7 @@ async function openNet() {
       ${o.paired ? '' : `<div class="memo"><span class="ic">💌</span><b>情侶碼：<span style="font-size:22px;letter-spacing:.15em">${esc(o.pair || '（已過期）')}</span></b><small>給另一半在自己手機的「🌐 → 我有情侶碼」輸入（7 天內有效）</small></div><button type="button" class="primary" id="net-invite">💌 傳給另一半</button><button type="button" class="ghost" id="net-newpair">重新產生情侶碼</button>`}
       <div class="memo"><span class="ic">🎈</span><b>訪客連結</b><small style="word-break:break-all">${esc(link)}</small></div>
       <div class="row"><button type="button" class="ghost" id="net-share">分享給朋友</button><button type="button" class="ghost" id="net-newguest">重設連結</button></div>
-      <button type="button" class="ghost" id="net-lock">${o.locked ? '🔓 打開小島（朋友可以進來）' : '🔒 鎖起來（朋友暫時不能進來）'}</button>
+      <div class="toggle-row"><span>${o.locked ? '🔒' : '🚪'} 朋友可以來玩<br><small class="muted">${o.locked ? '目前：鎖住了，朋友點連結也進不來' : '目前：開放中，有訪客連結的朋友都能進來'}</small></span><button type="button" id="net-lock" aria-pressed="${!o.locked}" aria-label="朋友可以來玩">${o.locked ? '關' : '開'}</button></div>
       <b>📝 訪客留言簿</b>${(o.book || []).length ? o.book.slice(0, 20).map(e => `<div class="memo"><span class="ic">📝</span><b>${esc(e.text)}</b><small>${esc(e.n)}</small></div>`).join('') : '<p class="muted">還沒有人留言。</p>'}
       <label class="anniv"><span>說一句話（大家都看得到）</span><input id="net-say" maxlength="40"></label><button type="button" class="ghost" id="net-say-go">送出</button>
       <button type="button" class="ghost" id="net-logout">這支手機改回單機版</button>`;
@@ -1542,7 +1555,7 @@ async function openNet() {
     try { if (navigator.share) await navigator.share({ title: '我們的小島', text, url: link }); else { await navigator.clipboard.writeText(text + '\n' + link); toast('邀請連結已複製，貼給另一半吧'); } } catch (e) {}
   });
   on('net-newguest', () => { if (confirm('重設之後，舊的訪客連結就不能用了。確定嗎？')) MP.net.send({ t: 'newguest' }); });
-  on('net-lock', () => MP.net.send({ t: 'lock', on: !MP.owner?.locked }));
+  on('net-lock', () => { const lock = !MP.owner?.locked; MP.net.send({ t: 'lock', on: lock }); toast(lock ? '🔒 小島鎖起來了，朋友暫時進不來' : '🚪 小島打開了，朋友可以來玩'); });
   on('net-share', async () => { const o = MP.owner || {}, link = `${location.origin}${location.pathname}?visit=${savedAuthNow().island}.${o.guest}`; const text = `來 ${nameOf(0)} ♥ ${nameOf(1)} 的小島玩吧！`; try { if (navigator.share) await navigator.share({ title: '我們的小島', text, url: link }); else { await navigator.clipboard.writeText(link); toast('連結已複製'); } } catch (e) {} });
   on('net-logout', () => { if (!confirm('這支手機會離開連線、改回單機版（之後可以用情侶碼再加入）。確定嗎？')) return; saveAuth(null); leaveNet(); $('#dlg').close(); });
   on('net-leave', () => { MP.net.close(); location.replace(location.pathname); });
