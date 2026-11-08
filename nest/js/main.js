@@ -477,18 +477,23 @@ function unseat(c) { if (c.ghost || c.remote) return; c.av.reclineAng = null; c.
 function setBtns(list) {
   const box = $('#ap-btns'); box.innerHTML = '';
   list.filter(Boolean).forEach(b => {
-    const el = document.createElement('button'); el.type = 'button'; el.textContent = b.t; if (b.main) el.className = 'main'; if (b.dis) el.disabled = true; if (b.id) el.id = b.id;
+    // 按鈕文字：一行主標＋一行小字說明（「撿雞蛋（還有 2 顆）」→ 主標「撿雞蛋」、小字「還有 2 顆」）；開頭的表情符號拿掉，版面比較乾淨
+    let t = String(b.t).trim(), sub = b.s || '';
+    const sp = t.indexOf(' '); if (sp > 0 && sp <= 3 && !/[\u4e00-\u9fffA-Za-z0-9]/.test(t.slice(0, sp))) t = t.slice(sp + 1);
+    const m = !sub && t.match(/^(.+?)\s*[（(](.+)[）)]$/); if (m) { t = m[1]; sub = m[2]; }
+    const el = document.createElement('button'); el.type = 'button'; el.innerHTML = `<span class="bl">${esc(t)}</span>${sub ? `<span class="bs">${esc(sub)}</span>` : ''}`; el.setAttribute('aria-label', sub ? `${t}，${sub}` : t); if (b.main) el.className = 'main'; if (b.dis) el.disabled = true; if (b.id) el.id = b.id;
     if (b.hold) { el.addEventListener('pointerdown', e => { e.preventDefault(); el.setPointerCapture(e.pointerId); b.hold(true); }); const up = () => b.hold(false); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('contextmenu', e => e.preventDefault()); }
     else el.onclick = () => { sfx('click'); b.fn(); };
     box.appendChild(el);
   });
+  box.dataset.n = box.children.length; box.classList.toggle('lead', !!box.querySelector('.main') && box.firstElementChild?.classList.contains('main'));
 }
 const msg = t => { $('#ap-msg').textContent = t; };
 function meter(on, v = 0, zone) { const m = $('#ap-meter'); m.hidden = !on; if (!on) return; m.querySelector('i').style.width = (v * 100) + '%'; if (zone) { const em = m.querySelector('em'); em.style.left = zone[0] * 100 + '%'; em.style.width = (zone[1] - zone[0]) * 100 + '%'; } }
 function beginAct(id, title, text, o = {}) {
   act = { id, t: 0, ...o }; $('#act-panel').hidden = false; $('#ap-title').textContent = title; msg(text); meter(false); setBtns(o.btns || []);
   toggleLoveMenu(false); $('#btn-act').hidden = true; if (!o.move) $('#joy').style.visibility = 'hidden';
-  $('#act-panel').classList.toggle('top', !!o.move); // 可以走動的活動：面板放上面，不擋搖桿
+  $('#act-panel').classList.toggle('at-top', !!o.move); // 可以走動的活動：面板放上面，不擋搖桿
   // 有些活動要看向特定方向（海、夕陽、煙火）
   act.camBack = { yaw: view.yaw, pitch: view.pitch };
   if (o.camYaw != null) { view.yaw = o.camYaw; if (o.camPitch != null) view.pitch = o.camPitch; }
@@ -1945,12 +1950,12 @@ function actCoop() {
   const c = SPOTS.coop;
   fadeDo(() => { const p = me(); p.x = c.x; p.z = c.z + 1.9; p.ry = Math.PI; }, 200);
   const btns = () => setBtns([
-    { t: `🥚 撿雞蛋（還有 ${eggsToday()} 顆）`, main: true, dis: !eggsToday(), fn: () => {
+    { t: '撿雞蛋', s: eggsToday() ? `還有 ${eggsToday()} 顆` : '今天撿完了', main: true, dis: !eggsToday(), fn: () => {
       if (!eggsToday()) return; st.eggs.n--; st.pantry = st.pantry || {}; st.pantry['雞蛋'] = (st.pantry['雞蛋'] || 0) + 1; save(); drawEggs();
       me().av.emote('pickup', 1.1); sfx('pop'); quest('egg'); burst('star', headPos(me(), 0.4), 2, 0.2);
       msg(`撿到一顆雞蛋！冰箱裡有 ${st.pantry['雞蛋']} 顆。`); btns();
     } },
-    { t: st.fedDay === st.day ? '今天餵過了' : '🌾 餵雞', dis: st.fedDay === st.day, fn: () => {
+    { t: '餵雞', s: st.fedDay === st.day ? '今天餵過了' : '明天多一顆蛋', dis: st.fedDay === st.day, fn: () => {
       st.fedDay = st.day; save(); me().av.emote('throw', 0.8); sfx('sand'); quest('feed'); addLove(1, '雞雞們好開心');
       const p = me(); (W.chickens || []).forEach((a, i) => { a.tx = p.x + Math.sin(i * 2.1) * 1.1; a.tz = p.z - 1.0 + Math.cos(i * 2.1) * 0.5; a.t = 6; });
       for (let i = 0; i < 6; i++) burst('star', new THREE.Vector3(p.x + rand(-0.8, 0.8), standH(p.x, p.z) + 0.2, p.z - 1 + rand(-0.4, 0.4)), 1, 0.1);
@@ -2326,7 +2331,7 @@ function actTree() {
   const next = TREE_STAGES[s0 + 1]?.[0];
   const status = () => `${TREE_STAGES[treeStage()][1]}${TREE_STAGES[treeStage() + 1] ? `（成長 ${treeG()}／${TREE_STAGES[treeStage() + 1][0]}）` : ''} · 今天：${t.care.by.length ? t.care.by.map(i => nameOf(i)).join('、') + ' 來照顧過' : '還沒有人來'}`;
   const btns = () => setBtns([
-    { t: treeCaredByMe() ? '今天照顧過了 ✓' : '💧 澆水、跟小樹說說話', main: true, dis: treeCaredByMe(), fn: water },
+    { t: treeCaredByMe() ? '今天照顧過了' : '澆水', s: treeCaredByMe() ? '明天再來' : '陪小樹說說話', main: true, dis: treeCaredByMe(), fn: water },
     treeFruits() > 0 && { t: `🍓 摘愛心果（還有 ${treeFruits()} 顆）`, fn: pickFruit },
   ]);
   function water() {
@@ -2446,7 +2451,7 @@ function actPuzzle() {
   const prog = () => { const z = puzzle(), n = z.placed.filter(Boolean).length; return `拼圖 ${n}／${z.placed.length}　今天你還能放 ${Math.max(0, pzLeftToday())} 片${z.done ? `　· 已經拼完 ${z.done} 幅` : ''}`; };
   const complete = () => puzzle().placed.every(Boolean);
   const btns = () => setBtns(complete() ? [{ t: '🖼️ 換一幅新的拼圖', main: true, fn: () => { const d = st.puzzle.done; st.puzzle = null; puzzle().done = d; puzzle().src = st.photos?.[0]?.src || ''; save(); drawPuzzle(); msg('新的拼圖倒在茶几上了。' + prog()); btns(); } }]
-    : [{ t: `🧩 放一片（今天還能放 ${Math.max(0, pzLeftToday())} 片）`, main: true, dis: pzLeftToday() <= 0, fn: place }]);
+    : [{ t: '放一片', s: pzLeftToday() > 0 ? `今天還能放 ${pzLeftToday()} 片` : '明天再一起拼', main: true, dis: pzLeftToday() <= 0, fn: place }]);
   function place() {
     if (pzLeftToday() <= 0) return; const z = puzzle(); if (z.day !== st.day) { z.day = st.day; z.n = [0, 0]; }
     const empty = z.placed.map((v, i) => v ? -1 : i).filter(i => i >= 0); const i = pick(empty); z.placed[i] = 1; z.n[myIdx()]++;
@@ -2488,7 +2493,7 @@ function actGreenhouse() {
   const flower = pick([['鬱金香', '🌷'], ['玫瑰', '🌹'], ['滿天星', '💮'], ['向日葵', '🌻'], ['繡球花', '💠']]);
   beginAct('gh', '🌷 花園溫室', mine ? '今天已經摘過一束花了，花明天會再開。' : '溫室裡的花一年四季都開著，每天可以摘一束送給另一半。', {
     focus: () => new THREE.Vector3(PLACES.gh.x, 1.2, PLACES.gh.z), back: [PLACES.gh.x + 3.2, PLACES.gh.z],
-    btns: [{ t: mine ? '今天摘過了 ✓' : `💐 摘一束花送給 ${partnerName()}`, main: true, dis: mine, fn: () => {
+    btns: [{ t: mine ? '今天摘過了' : '摘一束花', s: mine ? '花明天會再開' : `送給 ${partnerName()}`, main: true, dis: mine, fn: () => {
       t.by.push(myIdx()); st.picked = st.picked || {}; st.picked[flower[0]] = (st.picked[flower[0]] || 0) + 1; st.flowersGiven++;
       me().av.emote('pickup', 1.4); burst('heart', headPos(me(), 1.2), 6); addLove(5, `${flower[1]} 一束${flower[0]}`); addMemo('💐', `${nameOf(myIdx())} 從溫室摘了一束${flower[0]}送給 ${partnerName()}`); save();
       msg(duo() ? `${partnerName()} 收到花，開心地抱著不放 ${flower[1]}` : `把${flower[0]}放在小屋的餐桌上，${partnerName()} 回來就會看到 ${flower[1]}`); setBtns([]);
