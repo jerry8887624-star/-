@@ -392,7 +392,7 @@ function toggleLoveMenu(force) {
   const m = $('#love-menu'); m.hidden = force === undefined ? !m.hidden : !force;
   // 另一半不在：只留自己能做的動作
   const alone = you().ghost; m.querySelectorAll('[data-l]').forEach(b => { b.hidden = (alone && ['hand', 'hug', 'kiss', 'pat'].includes(b.dataset.l)) || (MP.role === 'g' && ['miss', 'note'].includes(b.dataset.l)); });
-  let tip = m.querySelector('.tip'); if (!tip) { tip = document.createElement('p'); tip.className = 'tip muted'; tip.style.cssText = 'grid-column:1/-1;margin:2px 4px 0;font-size:12px'; m.appendChild(tip); }
+  let tip = m.querySelector('.tip'); if (!tip) { tip = document.createElement('p'); tip.className = 'tip muted'; tip.style.cssText = 'grid-column:1/-1;margin:2px 4px 0;font-size:var(--fs-xs)'; m.appendChild(tip); }
   tip.textContent = alone ? (MP.role === 'g' ? '朋友可以揮手、跳舞、一起跳' : '另一半上線後，就能牽手、抱抱、親親（🌐 邀請）') : '';
   m.querySelector('[data-l="hand"]').setAttribute('aria-pressed', String(!!(MP.lead || MP.led)));
 }
@@ -562,7 +562,7 @@ function tickSpots() {
     v3.set(pp.x, y, pp.z).project(cam);
     if (v3.z > 1) { s.el.style.display = 'none'; continue; }
     s.el.style.display = ''; s.el.style.left = ((v3.x + 1) / 2 * innerWidth) + 'px'; s.el.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px';
-    s.el.style.opacity = d < 12 ? 1 : 0.75; s.el.classList.toggle('near', s === best);
+    s.el.style.opacity = d < 10 ? 1 : d < 16 ? 0.8 : 0.6; s.el.style.setProperty('--k', d < 10 ? 1 : d < 16 ? 0.9 : 0.8); // 遠的地點標籤小一點、淡一點 s.el.classList.toggle('near', s === best);
     if (s.badge) s.el.textContent = `${s.icon} ${s.name}${s.badge() ? ' ●' : ''}`;
   }
   // 名字（頭上）
@@ -1236,7 +1236,9 @@ function actEat() {
 }
 
 // ---------- 對話框：地圖、回憶本、造型 ----------
-function openDlg(title, html) { $('#dlg-title').textContent = title; $('#dlg-body').innerHTML = html; const d = $('#dlg'); if (!d.open) d.showModal(); }
+// 視窗的樣子跟著內容走：任務＝手帳、信＝信紙、回憶本＝相簿、便利貼＝軟木板
+const dlgKind = t => /^📋/.test(t) ? 'note' : /^📔/.test(t) ? 'album' : /^📝 冰箱|留給你的/.test(t) ? 'cork' : /信|^🎉|^🍾/.test(t) ? 'letter' : '';
+function openDlg(title, html) { $('#dlg-title').textContent = title; $('#dlg-body').innerHTML = html; const d = $('#dlg'); const k = dlgKind(title); if (k) d.dataset.kind = k; else delete d.dataset.kind; d.querySelector('#dlg-body').scrollTop = 0; if (!d.open) d.showModal(); }
 $('#btn-map').onclick = () => {
   sfx('click');
   const cell = s => `<button type="button" class="cell" data-s="${s.id}" style="border:0"><span class="e">${s.icon}</span>${esc(s.name)}</button>`;
@@ -1266,8 +1268,9 @@ function openBook(tab = 'memo') {
       <button type="button" class="primary" id="ed-save">儲存</button>${unlockHtml()}`,
     about: () => `<p>兩個人的 3D 小島。小木屋、沙灘、碼頭、燈塔，一起盪鞦韆、釣魚、烤棉花糖、看夕陽、划船、放煙火。</p>
       <p class="muted">資料只存在這支手機（瀏覽器）裡。版本 ${esc(APP_VER)}</p>
-      <details><summary>3D 模型出處（Polyfork，CC BY 4.0）</summary><div id="credits" class="muted" style="font-size:12px;line-height:1.5">載入中…</div></details>
+      <details><summary>3D 模型出處（Polyfork，CC BY 4.0）</summary><div id="credits" class="muted" style="font-size:var(--fs-xs);line-height:1.5">載入中…</div></details>
       <b>⚙️ 設定</b>
+      <div class="toggle-row"><span>🔠 大字模式<br><small class="muted">所有文字放大一點，比較好讀</small></span><button type="button" id="big-tg" aria-pressed="${!!st.bigText}">${st.bigText ? '開' : '關'}</button></div>
       <div class="toggle-row"><span>🔋 省電模式<br><small class="muted">畫面稍微不那麼細，比較順、比較不燙</small></span><button type="button" id="low-tg" aria-pressed="${!!st.low}">${st.low ? '開' : '關'}</button></div>
       <button type="button" class="ghost" id="tut-again">🎓 再看一次新手教學</button>
       <button type="button" class="ghost" id="reset-all" style="margin-top:8px">清除所有資料、重新開始</button>`,
@@ -1280,6 +1283,7 @@ function openBook(tab = 'memo') {
   }
   if (tab === 'about') {
     fetch('models/credits.json').then(r => r.json()).then(c => { $('#credits').innerHTML = Object.values(c).filter(Boolean).map(esc).join('<br>'); }).catch(() => {});
+    $('#big-tg').onclick = () => { st.bigText = !st.bigText; save(); document.documentElement.classList.toggle('big-text', st.bigText); $('#big-tg').setAttribute('aria-pressed', String(st.bigText)); $('#big-tg').textContent = st.bigText ? '開' : '關'; };
     $('#low-tg').onclick = () => { st.low = !st.low; save(); applyLow(); $('#low-tg').setAttribute('aria-pressed', String(st.low)); $('#low-tg').textContent = st.low ? '開' : '關'; };
     $('#tut-again').onclick = () => { $('#dlg').close(); tutorialStart(); };
     $('#reset-all').onclick = () => { if (confirm('確定要清除小島上所有的回憶嗎？這個動作不能復原。')) { localStorage.removeItem(KEY); location.reload(); } };
@@ -1466,7 +1470,7 @@ function shareSave() {
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
-const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere'];
+const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'bigText'];
 function applySave(keys, first) {
   for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; st[k] = v; }
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
@@ -1543,7 +1547,7 @@ function onLoveReq(from, k) {
   if (k === 'unhand') { MP.lead = false; MP.led = null; toast(`${peerName(from)} 放開手了`); return; }
   if (!LOVE_WORD[k]) return;
   loveAsk = { from, k };
-  openDlg('💕', `<p style="font-size:17px;font-weight:700;text-align:center">${esc(peerName(from))} 想${LOVE_WORD[k]} ❤</p><div class="row"><button type="button" class="ghost" id="lv-no">等一下</button><button type="button" class="primary" id="lv-ok">好呀</button></div>`);
+  openDlg('💕', `<p style="font-size:var(--fs-l);font-weight:700;text-align:center">${esc(peerName(from))} 想${LOVE_WORD[k]} ❤</p><div class="row"><button type="button" class="ghost" id="lv-no">等一下</button><button type="button" class="primary" id="lv-ok">好呀</button></div>`);
   sfx('chime');
   $('#lv-no').onclick = () => { MP.net.send({ t: 'loveok', to: from, k, ok: 0 }); $('#dlg').close(); };
   $('#lv-ok').onclick = () => {
@@ -1628,7 +1632,7 @@ async function openNet() {
   else {
     const o = MP.owner || {}, link = `${location.origin}${location.pathname}?visit=${savedAuthNow().island}.${o.guest || ''}`;
     html = `${peopleHtml(true)}
-      ${o.paired ? '' : `<div class="memo"><span class="ic">💌</span><b>情侶碼：<span style="font-size:22px;letter-spacing:.15em">${esc(o.pair || '（已過期）')}</span></b><small>給另一半在自己手機的「🌐 → 我有情侶碼」輸入（7 天內有效）</small></div><button type="button" class="primary" id="net-invite">💌 傳給另一半</button><button type="button" class="ghost" id="net-newpair">重新產生情侶碼</button>`}
+      ${o.paired ? '' : `<div class="memo"><span class="ic">💌</span><b>情侶碼：<span style="font-size:var(--fs-xl);letter-spacing:.15em">${esc(o.pair || '（已過期）')}</span></b><small>給另一半在自己手機的「🌐 → 我有情侶碼」輸入（7 天內有效）</small></div><button type="button" class="primary" id="net-invite">💌 傳給另一半</button><button type="button" class="ghost" id="net-newpair">重新產生情侶碼</button>`}
       <div class="memo"><span class="ic">🎈</span><b>訪客連結</b><small style="word-break:break-all">${esc(link)}</small></div>
       <div class="row"><button type="button" class="ghost" id="net-share">分享給朋友</button><button type="button" class="ghost" id="net-newguest">重設連結</button></div>
       <div class="toggle-row"><span>${o.locked ? '🔒' : '🚪'} 朋友可以來玩<br><small class="muted">${o.locked ? '目前：鎖住了，朋友點連結也進不來' : '目前：開放中，有訪客連結的朋友都能進來'}</small></span><button type="button" id="net-lock" aria-pressed="${!o.locked}" aria-label="朋友可以來玩">${o.locked ? '關' : '開'}</button></div>
@@ -1666,7 +1670,7 @@ async function openNet() {
 const savedAuthNow = () => { try { return JSON.parse(localStorage.getItem('nest.net') || '{}'); } catch (e) { return {}; } };
 function peopleHtml(owner) {
   const rows = [`<li>${MP.role === 'g' ? '🎈 ' + esc(MP.guest?.name || '我') : esc(nameOf(MP.role))}（我）</li>`];
-  for (const [id, p] of MP.peers) rows.push(`<li>${p.role === 'g' ? '🎈 ' + esc(p.name) : '💗 ' + esc(nameOf(p.role)) + '（島主）'}${owner && p.role === 'g' ? ` <button type="button" class="ghost" data-kick="${id}" style="padding:2px 8px;font-size:12px">請離開</button>` : ''}</li>`);
+  for (const [id, p] of MP.peers) rows.push(`<li>${p.role === 'g' ? '🎈 ' + esc(p.name) : '💗 ' + esc(nameOf(p.role)) + '（島主）'}${owner && p.role === 'g' ? ` <button type="button" class="ghost" data-kick="${id}" style="padding:2px 8px;font-size:var(--fs-xs)">請離開</button>` : ''}</li>`);
   return `<b>在島上的人（${MP.peers.size + 1}）</b><ul style="margin:0;padding-left:1.2em;display:grid;gap:4px">${rows.join('')}</ul>`;
 }
 
@@ -2439,6 +2443,19 @@ function actGreenhouse() {
     } }],
   });
 }
+
+// ---------- 乾淨畫面：走路 1.5 秒或發呆 8 秒後介面淡出，一碰螢幕就回來 ----------
+const calm = { input: performance.now(), walk: 0 };
+addEventListener('pointerdown', e => { if (!e.target.closest?.('#joy')) calm.input = performance.now(); }, true);
+addEventListener('keydown', () => { calm.input = performance.now(); }, true);
+setInterval(() => {
+  const now = performance.now(), c = started() ? me() : null, walking = !!c && c.moving && !c.locked;
+  calm.walk = walking ? calm.walk || now : 0; if (joy.id == null && !walking) calm.walk = 0;
+  const busy = !started() || act || $('#dlg').open || !$('#coach').hidden || photo.on || !$('#love-menu').hidden || now - calm.input < 1200;
+  const on = !busy && ((calm.walk && now - calm.walk > 1500) || (!walking && now - calm.input > 8000));
+  document.body.classList.toggle('calm', on);
+}, 250);
+if (st.bigText) document.documentElement.classList.add('big-text');
 
 // ---------- 開始 ----------
 (async function boot() {
