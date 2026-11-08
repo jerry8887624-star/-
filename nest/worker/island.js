@@ -62,6 +62,12 @@ export default {
       if (j.error) return json(j, 400);
       return json({ island: r.island, key: j.key, role: j.role });
     }
+    if (path === '/api/peekpair') { // 看情侶碼是誰的小島（不會用掉情侶碼）
+      const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const r = await (await call(reg, '/look', { code })).json(); if (!r.island) return json({ error: '情侶碼不對或已經過期了' }, 400);
+      const j = await (await call(env.ISLAND.get(env.ISLAND.idFromName(r.island)), '/owner', {})).json();
+      return json(j, j.error ? 400 : 200);
+    }
     if (path === '/api/peek') {
       const island = String(body.island || '').toUpperCase(); if (!/^[A-Z0-9]{10}$/.test(island)) return json({ error: '連結不對' }, 400);
       const j = await (await call(env.ISLAND.get(env.ISLAND.idFromName(island)), '/peek', { guest: body.guest })).json();
@@ -81,6 +87,7 @@ export class Registry {
       const exp = Date.now() + PAIR_DAYS * 864e5; await S.put('c:' + code, { island: b.island, exp });
       return json({ code, exp });
     }
+    if (p === '/look') { const v = await S.get('c:' + b.code); return json(v && v.exp > Date.now() ? { island: v.island } : {}); }
     if (p === '/take') {
       const v = await S.get('c:' + b.code); if (!v || v.exp < Date.now()) { if (v) await S.delete('c:' + b.code); return json({}); }
       await S.delete('c:' + b.code); return json({ island: v.island });
@@ -133,6 +140,7 @@ export class Island {
       this.bcast({ t: 'paired' });
       return json({ key, role });
     }
+    if (url.pathname === '/owner') { const n = this.save.names || ['', '']; return json({ names: n, paired: !!(this.meta.keys[0] && this.meta.keys[1]) }); }
     if (url.pathname === '/peek') {
       if (b.guest !== this.meta.guest) return json({ error: '這個訪客連結已經失效了，請島主重新分享' });
       const guests = [...this.sessions.values()].filter(s => s.role === 'g').length;

@@ -217,3 +217,5 @@ dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
 .card .love { width: 100%; }
 .card .days { grid-column: 1 / -1; }
 .clock-chip { font-size: 12.5px; padding: 6px 10px; }
+
+.invite { margin: 0 0 8px; padding: 8px 12px; border-radius: 14px; background: linear-gradient(135deg, #ffe1ea, #ffeedd); color: var(--rose); font-weight: 900; font-size: 15px; text-align: center; }
