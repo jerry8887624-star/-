@@ -203,3 +203,6 @@ dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
 .toggle-row button[aria-pressed="true"] { background: var(--rose); color: #fff; }
 
 .shop button[aria-pressed="true"] { outline: 2px solid var(--rose); }
+
+#act-panel.top { top: calc(140px + var(--safe-t)); bottom: auto; padding: 10px 12px 12px; }
+#act-panel.top #ap-msg { margin: 2px 0 6px; font-size: 13px; }

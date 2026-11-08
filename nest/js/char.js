@@ -219,7 +219,7 @@ export class Avatar {
     this.speed += (Math.min(sp, 8) - this.speed) * Math.min(1, dt * 8);
     if (this.halo) { this.halo.rotation.y += dt * 1.2; }
     if (!this.model || !this.actions) return;
-    const pose = this.pose, seated = pose === 'sit' || pose === 'swing' || pose === 'recline' || pose === 'floor';
+    const pose = this.pose, seated = pose === 'sit' || pose === 'swing' || pose === 'recline' || pose === 'floor' || pose === 'ride';
     const k = Math.min(1, dt * 8);
     // 1. 選動作
     if (this.emoteKind || this.clipEmote) { this.emoteT += dt; if (this.emoteT > this.emoteDur) { this.emoteKind = null; this.clipEmote = null; } }
@@ -247,6 +247,9 @@ export class Avatar {
     let w;
     // 坐著：大腿往前、小腿往下（椅子）；坐地上：腳往前伸；斜躺：腳抬高一點
     const LL = [['LeftUpLeg', 'LeftLeg', 'LeftFoot', 1], ['RightUpLeg', 'RightLeg', 'RightFoot', -1]];
+    // 騎腳踏車：兩腳輪流踩踏板（有在動才踩）
+    this.pedal = (this.pedal || 0) + dt * Math.min(9, this.speed * 1.6);
+    if ((w = s('legRide', pose === 'ride'))) LL.forEach(([u, l, f, sx], j) => { const ph = this.pedal + j * Math.PI; this.aim(u, l, V(0.07 * sx, -0.5 + Math.sin(ph) * 0.38, 0.85), w); this.aim(l, f, V(0.03 * sx, -1, -0.05 + Math.cos(ph) * 0.3), w); });
     if ((w = s('legChair', pose === 'sit' || pose === 'swing'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.08 * sx, -0.05, 1), w); this.aim(l, f, V(0.03 * sx, -1, 0.12), w); });
     if ((w = s('legFloor', pose === 'floor'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.12 * sx, 0.02, 1), w); this.aim(l, f, V(0.08 * sx, -0.1, 1), w); });
     if ((w = s('legRecl', pose === 'recline'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.06 * sx, 0.18, 1), w); this.aim(l, f, V(0.04 * sx, -0.35, 1), w); });

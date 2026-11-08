@@ -19,6 +19,8 @@ export const SPOTS = {
   boat: { x: 33.5, z: 1.6, boatX: 35.5, boatZ: 2.4 },
   sunset: { x: -23.2, z: -9.5 },
   dog: { x: 4, z: 2 },
+  coop: { x: 9, z: -2.6 },
+  bike: { x: -5.2, z: -3.4 },
 };
 // 室內（另一個場景，原點在房間中央）
 export const ROOM = { w: 11, d: 8, h: 3 };
@@ -226,7 +228,9 @@ export async function buildIsland(S) {
   const jobs = [
     one(S, 'cabin', 0, -8, 0, 1, { y: LAND_Y }),
     one(S, 'mailbox', SPOTS.mailbox.x, SPOTS.mailbox.z - 0.6, Math.PI, 1, { col: 0.3 }),
-    one(S, 'bike', -5.2, -3.4, 0.4, 1, { col: 0.6 }),
+    one(S, 'bike', SPOTS.bike.x, SPOTS.bike.z, 0.4, 1).then(o => { W.bike = o; }),
+    one(S, 'chicken-coop-371f97', SPOTS.coop.x, SPOTS.coop.z - 0.6, -Math.PI / 2, 0.8, { col: 1.1 }),
+    one(S, 'feed-sack-c84641', SPOTS.coop.x - 1.6, SPOTS.coop.z - 1.4, 0.6, 1, { col: 0.25 }),
     one(S, 'hammock', SPOTS.hammock.x, SPOTS.hammock.z, 0, 1, { }),
     one(S, 'campfire', SPOTS.campfire.x, SPOTS.campfire.z, 0, 1, { col: 0.9 }),
     one(S, 'logBench', SPOTS.campfire.x, SPOTS.campfire.z - 1.9, 0, 1, { col: 0 }),
@@ -262,6 +266,7 @@ export async function buildIsland(S) {
   // 動物：狗跟著你、貓在門廊打盹、兔子在草地、寄居蟹在沙灘、海鷗在碼頭、魚在碼頭下
   const zoo = [
     animal(S, 'dog', SPOTS.dog.x, SPOTS.dog.z, { s: 0.8, speed: 1.4 }).then(a => { W.dog = a; }),
+    ...[[0.8, 0.9], [-0.9, 1.1], [0.2, 1.8]].map(([dx, dz]) => animal(S, 'chicken-base', SPOTS.coop.x + dx, SPOTS.coop.z + dz, { s: 0.8, roam: 2.2, speed: 0.5 }).then(a => { if (a) (W.chickens ||= []).push(a); })),
     animal(S, 'cat', 1.6, -3.0, { s: 1.0, idleOnly: true }).then(a => { W.cat = a; if (a) a.o.rotation.y = 0.4; }),
     ...[[-6, 12], [-16, 2], [16, -2]].map(([x, z]) => animal(S, 'rabbit', x, z, { s: 0.9, roam: 4, speed: 0.6 })),
     ...ring(4, 5.5, 7, 3, (x, z) => [x, z]).map(([x, z]) => animal(S, 'crab', x, z, { s: 0.22, roam: 2.5, speed: 0.25 })),
