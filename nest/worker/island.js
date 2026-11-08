@@ -10,7 +10,7 @@ const MAX_GUESTS = 4;
 const PAIR_DAYS = 7;
 const HOUR_MS = 36000; // 遊戲裡一小時 = 36 秒（跟前端一樣）
 // 兩位島主共用的存檔欄位
-const SHARED = ['names', 'looks', 'anniv', 'love', 'day', 'diary', 'fish', 'fishMax', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
+const SHARED = ['names', 'looks', 'anniv', 'love', 'day', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
 const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(x => ABC[x % ABC.length]).join(''); };
 const hash = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
