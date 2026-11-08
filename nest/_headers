@@ -1,0 +1,16 @@
+# Cloudflare 靜態檔的快取規則：網頁、程式、樣式每次都跟伺服器確認有沒有新版（沒變只會回 304，很快）
+# 避免更新後手機拿到「新網頁＋舊程式」混在一起，小島卡在載入中
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/changes.json
+  Cache-Control: no-cache
+/js/*
+  Cache-Control: no-cache
+/css/*
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
