@@ -374,3 +374,41 @@ html[data-ui="editorial"] .bu-btn.ok > span { background: #3a2a28; box-shadow: 0
 @media (prefers-color-scheme: dark) { .shop button.item .th { background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04)); } }
 .shop button.item { position: relative; }
 .shop button.item .tag { position: absolute; top: 6px; left: 6px; padding: 2px 7px; border-radius: 999px; background: rgba(255, 255, 255, .9); color: var(--rose); font-style: normal; font-size: 10.5px; box-shadow: 0 1px 4px rgba(120, 40, 70, .12); }
+
+/* 聊天：右下按鈕的未讀數字 */
+#btn-chat { position: relative; }
+#btn-chat .badge { position: absolute; top: -3px; right: -3px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #ff4f7b; color: #fff; font: 700 12px/20px var(--font-round); box-shadow: 0 0 0 2px #fff; }
+/* 聊天面板：從下面升起來，上半部還看得到小島 */
+#chat { position: fixed; left: 50%; transform: translateX(-50%); bottom: var(--kb, 0px); z-index: 20; width: min(520px, 100vw); height: min(62vh, 560px); display: flex; flex-direction: column;
+  background: var(--bg); border-radius: 24px 24px 0 0; box-shadow: 0 -10px 40px rgba(60, 20, 40, .25); padding-bottom: env(safe-area-inset-bottom, 0px); animation: rise .25s ease both; }
+.ch-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+.ch-dot { width: 10px; height: 10px; border-radius: 50%; background: #c9bcc3; flex: none; }
+.ch-dot.on { background: #4fcf7c; box-shadow: 0 0 0 3px rgba(79, 207, 124, .25); }
+.ch-who { display: grid; flex: 1; min-width: 0; } .ch-who b { font-family: var(--font-round); font-weight: 400; font-size: var(--fs-m); } .ch-who small { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-x { width: 36px; height: 36px; padding: 0; border-radius: 12px; }
+#ch-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; }
+.ch-time { align-self: center; margin: 10px 0 4px; font-size: 11px; color: var(--muted); }
+.ch-msg { display: flex; flex-direction: column; max-width: 78%; } .ch-msg.me { align-self: flex-end; align-items: flex-end; } .ch-msg.you { align-self: flex-start; align-items: flex-start; }
+.ch-msg:not(.grp) { margin-top: 4px; }
+.ch-bubble { padding: 8px 12px; border-radius: 18px; font-size: var(--fs-m); line-height: 1.45; word-break: break-word; }
+.me .ch-bubble { background: linear-gradient(135deg, #ff7a9c, #ff9a6a); color: #fff; border-bottom-right-radius: 6px; }
+.you .ch-bubble { background: var(--card); color: var(--ink); border-bottom-left-radius: 6px; box-shadow: 0 1px 4px rgba(120, 40, 70, .08); }
+.grp.me .ch-bubble { border-top-right-radius: 6px; } .grp.you .ch-bubble { border-top-left-radius: 6px; }
+.ch-sticker { display: grid; justify-items: center; gap: 2px; padding: 6px 10px; } .ch-sticker span { font-size: 54px; line-height: 1.1; filter: drop-shadow(0 3px 6px rgba(120, 40, 70, .18)); } .ch-sticker b { font-family: var(--font-round); font-weight: 400; font-size: var(--fs-xs); color: var(--rose); }
+.ch-read { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.ch-empty { margin: auto; text-align: center; color: var(--muted); } .ch-empty span { font-size: 40px; } .ch-empty p { margin: 6px 0 0; font-size: var(--fs-s); line-height: 1.7; }
+#ch-typing { display: flex; gap: 4px; padding: 0 22px 6px; } #ch-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: chDot 1s infinite ease-in-out; } #ch-typing i:nth-child(2) { animation-delay: .15s; } #ch-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes chDot { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.ch-quick { display: flex; gap: 6px; overflow-x: auto; padding: 4px 14px 6px; scrollbar-width: none; } .ch-quick::-webkit-scrollbar { display: none; }
+.ch-quick button { flex: none; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-family: var(--font-round); font-size: var(--fs-s); white-space: nowrap; }
+#ch-stickers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 6px 14px; max-height: 190px; overflow-y: auto; }
+#ch-stickers button { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border: 0; border-radius: 14px; background: var(--card); } #ch-stickers span { font-size: 30px; } #ch-stickers b { font-family: var(--font-round); font-weight: 400; font-size: 11px; white-space: nowrap; }
+#ch-form { display: flex; align-items: flex-end; gap: 8px; padding: 8px 12px 12px; border-top: 1px solid var(--line); }
+#ch-in { flex: 1; min-width: 0; resize: none; max-height: 110px; padding: 10px 14px; border-radius: 20px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 16px; line-height: 1.35; }
+.ch-ib { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; display: grid; place-items: center; background: transparent; color: var(--muted); }
+.ch-ib[aria-pressed="true"] { color: var(--rose); background: rgba(232, 90, 128, .12); }
+.ch-ib.send { background: linear-gradient(135deg, #ff7a9c, #ff9a6a); color: #fff; } .ch-ib .ico { width: 22px; height: 22px; }
+html[data-ui="editorial"] .me .ch-bubble, html[data-ui="editorial"] .ch-ib.send { background: #3a2a28; }
+/* 右下：聊天在上、互動在下，活動大按鈕在右邊 */
+.right > #btn-chat { grid-column: 1; grid-row: 1; } .right > #btn-love { grid-column: 1; grid-row: 2; } .right > #btn-act { grid-column: 2; grid-row: 1 / span 2; align-self: end; }
+body.calm .right .round.small#btn-chat.unread { opacity: 1; } /* 有新訊息時不淡出 */

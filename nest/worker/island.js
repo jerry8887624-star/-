@@ -115,6 +115,7 @@ export class Island {
       this.save = (await state.storage.get('save')) || {};
       this.clock = (await state.storage.get('clock')) || { tod: 9, day: 1, at: Date.now() };
       this.book = (await state.storage.get('book')) || [];
+      this.chat = (await state.storage.get('chat')) || []; // 兩位島主之間的聊天（最新 300 則）
     });
   }
   now() { // 現在的遊戲時間
@@ -193,7 +194,7 @@ export class Island {
       if (s.role === 'g') { const r = checkName(m.name); s.name = r.ok && r.text ? r.text : '朋友'; s.look = cleanLook(m.look); }
       else { s.name = (this.save.names || [])[s.role] || ''; s.look = (this.save.looks || [])[s.role] || null; }
       s.ready = true;
-      send(s, { t: 'welcome', id: s.id, role: s.role, save: this.save, clock: this.now(), peers: this.others(s).map(x => this.info(x)), owner: owner ? this.ownerView() : null });
+      send(s, { t: 'welcome', id: s.id, role: s.role, save: this.save, clock: this.now(), peers: this.others(s).map(x => this.info(x)), owner: owner ? this.ownerView() : null, chat: owner ? { list: this.chat.slice(-80), read: this.meta.read || {} } : null });
       this.bcast({ t: 'join', p: this.info(s) }, s);
       if (s.role === 'g') { this.addMemo({ icon: '🎈', text: `${s.name} 來島上玩` }); }
       return;
@@ -233,6 +234,26 @@ export class Island {
         if (m.on && okSub(m.sub)) mine.unshift({ endpoint: m.sub.endpoint, keys: { p256dh: m.sub.keys.p256dh, auth: m.sub.keys.auth } });
         P[s.role] = mine.slice(0, 3); this.meta.push = P; await this.persist('meta'); send(s, { t: 'pushok', on: !!(m.on && okSub(m.sub)) }); break;
       }
+      // 聊天：只有兩位島主之間；文字 200 字內或貼圖；對方不在線上就推播
+      case 'chat': {
+        if (!owner || this.gap(s, 'chat', 350)) return send(s, { t: 'err', why: 'slow' });
+        const k = m.k === 's' ? 's' : 't', v = k === 's' ? String(m.v || '') : String(m.v || '').replace(/\s+$/g, '').slice(0, 200);
+        if (!v.trim() || (k === 's' && !/^[a-z0-9_]{1,16}$/.test(v))) return;
+        const msg = { id: rnd(8), by: s.role, k, v, ts: Date.now(), c: String(m.c || '').slice(0, 12) };
+        this.chat.push(msg); if (this.chat.length > 300) this.chat = this.chat.slice(-300); await this.persist('chat');
+        for (const x of this.sessions.values()) if (x.ready && (x.role === 0 || x.role === 1)) send(x, { t: 'chat', m: msg });
+        const to = 1 - s.role; if (![...this.sessions.values()].some(x => x.ready && x.role === to)) {
+          const name = (this.save.names || [])[s.role] || '另一半';
+          await this.push(to, { title: `💬 ${name}`, body: k === 's' ? '傳了一張貼圖' : v.slice(0, 80), tag: 'chat' });
+        }
+        break;
+      }
+      case 'chatread': { // 已讀到哪一則
+        if (!owner) return; this.meta.read = this.meta.read || {}; const ts = num(m.ts, 0, 1e14); if (ts <= (this.meta.read[s.role] || 0)) return;
+        this.meta.read[s.role] = ts; await this.persist('meta');
+        for (const x of this.sessions.values()) if (x.ready && x.role === 1 - s.role) send(x, { t: 'chatread', role: s.role, ts }); break;
+      }
+      case 'typing': if (!owner || this.gap(s, 'typing', 1500)) return; for (const x of this.sessions.values()) if (x.ready && x.role === 1 - s.role) send(x, { t: 'typing', role: s.role }); break;
       // 想你、留便利貼：另一半在線上就直接告訴他，不在就推播到他手機
       case 'nudge': {
         if (!owner) return; const k = m.k === 'note' ? 'note' : 'miss'; if (this.gap(s, 'nudge-' + k, k === 'miss' ? 15000 : 5000)) return send(s, { t: 'err', why: 'slow' });

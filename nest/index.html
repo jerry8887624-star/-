@@ -70,6 +70,7 @@
   <div id="coach" hidden><p id="coach-text"></p><div class="coach-row"><span id="coach-step"></span><button type="button" id="coach-skip" class="ghost">略過教學</button><button type="button" id="coach-next" class="primary" hidden>好</button></div></div>
   <div class="right">
     <button type="button" id="btn-swap" class="round small" aria-label="換人操作" hidden><span>🔄</span><small id="swap-name">換人</small></button>
+    <button type="button" id="btn-chat" class="round small" aria-label="聊天"><span data-ico="chat"></span><small>聊天</small><b id="chat-badge" class="badge" hidden>0</b></button>
     <button type="button" id="btn-love" class="round small" aria-label="情侶互動"><span data-ico="heart"></span><small>互動</small></button>
     <button type="button" id="btn-act" class="round big" hidden><span id="act-icon">🎣</span><small id="act-name">釣魚</small></button>
   </div>
@@ -87,6 +88,16 @@
   </div>
   <div id="toast" role="status"></div>
 </div>
+
+<!-- 兩個人的聊天：從下面升起的面板 -->
+<section id="chat" hidden aria-label="聊天">
+  <header class="ch-head"><span class="ch-dot" id="ch-dot"></span><div class="ch-who"><b id="ch-name">另一半</b><small id="ch-status">不在島上</small></div><button type="button" class="ghost ch-x" id="ch-close" aria-label="關閉聊天">✕</button></header>
+  <div id="ch-list" role="log" aria-live="polite"></div>
+  <div id="ch-typing" hidden><i></i><i></i><i></i></div>
+  <div class="ch-quick" id="ch-quick"></div>
+  <div id="ch-stickers" hidden></div>
+  <form id="ch-form" autocomplete="off"><button type="button" id="ch-stk" class="ch-ib" aria-label="貼圖" aria-pressed="false"><span data-ico="smile"></span></button><textarea id="ch-in" rows="1" maxlength="200" placeholder="說點什麼…" enterkeyhint="send"></textarea><button type="submit" id="ch-send" class="ch-ib send" aria-label="送出"><span data-ico="send"></span></button></form>
+</section>
 
 <!-- 活動進行中的控制面板 -->
 <div id="act-panel" hidden>

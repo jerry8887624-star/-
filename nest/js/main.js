@@ -1565,6 +1565,7 @@ function applySave(keys, first) {
 function onNet(m) {
   if (m.t === 'welcome') {
     MP.id = m.id; MP.role = m.role; MP.owner = m.owner; MP.awayChecked = false;
+    if (m.chat) { CHAT.list = m.chat.list || []; CHAT.read = { 0: 0, 1: 0, ...(m.chat.read || {}) }; setTimeout(() => { chatBadge(); renderChat(); }, 0); }
     if (m.role === 'g') { st = { ...DEF, ...m.save, music: st.music }; [0, 1].forEach(i => { if (st.looks?.[i]) chars[i].av.setLook(st.looks[i]); }); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); snapSent(); updateHud(); }
     else {
       applySave(m.save, true);
@@ -1603,6 +1604,9 @@ function onNet(m) {
   if (m.t === 'love') { onLoveReq(m.from, m.k); return; }
   if (m.t === 'loveok') { onLoveOk(m.from, m.k, m.ok); return; }
   if (m.t === 'nudge') { onNudge(m); return; }
+  if (m.t === 'chat') { onChat(m.m); return; }
+  if (m.t === 'chatread') { CHAT.read[m.role] = m.ts; renderChat(); return; }
+  if (m.t === 'typing') { if (CHAT.open) { const t = $('#ch-typing'); t.hidden = false; clearTimeout(CHAT.typingT); CHAT.typingT = setTimeout(() => { t.hidden = true; }, 3500); } return; }
   if (m.t === 'nudged') { onNudged(m); return; }
   if (m.t === 'pushok') { toast(m.on ? '📳 手機通知開好了！另一半想你時會通知你' : '通知關掉了'); return; }
 }
@@ -2626,6 +2630,83 @@ applyUI(st.ui); setBackgroundPlay(st.bgMusic !== false);
 [['#btn-map', 'map'], ['#btn-book', 'book'], ['#btn-photo', 'camera'], ['#btn-music', 'music']].forEach(([q, n]) => { $(q).innerHTML = icon(n); });
 document.querySelectorAll('[data-ico]').forEach(e => { e.innerHTML = icon(e.dataset.ico); });
 $('#btn-net').innerHTML = icon('users'); $('#clock').innerHTML = clockHtml();
+
+// ================= 兩個人的聊天（只有兩位島主；紀錄存在伺服器，對方不在會推播） =================
+const CHAT = { list: [], read: { 0: 0, 1: 0 }, open: false, typingT: 0, sentTyping: 0 };
+const STICKERS = [
+  ['miss', '🥺', '想你'], ['love', '💕', '愛你'], ['hug', '🤗', '抱抱'], ['kiss', '😘', '親一個'],
+  ['morning', '☀️', '早安'], ['night', '🌙', '晚安'], ['eat', '🍙', '吃飯了沒'], ['come', '🏝️', '上島嗎'],
+  ['haha', '😂', '哈哈哈'], ['ok', '👌', '好喔'], ['wait', '⏳', '等我一下'], ['sorry', '🙇', '對不起嘛'],
+];
+const QUICK = ['在幹嘛？', '想你了 💗', '晚點上島', '我先去忙', '好～', '今天辛苦了'];
+const chatPartner = () => 1 - myIdx();
+const chatUnread = () => CHAT.list.filter(m => m.by === chatPartner() && m.ts > (CHAT.read[myIdx()] || 0)).length;
+function chatBadge() {
+  const n = chatUnread(), b = $('#chat-badge'); b.hidden = !n || CHAT.open; b.textContent = n > 9 ? '9+' : n; $('#btn-chat').classList.toggle('unread', !!n && !CHAT.open);
+  $('#btn-chat').hidden = MP.role === 'g';
+}
+const hhmm = ts => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function chatTime(ts) { const d = new Date(ts), n = new Date(); const same = d.toDateString() === n.toDateString(), y = new Date(n - 864e5).toDateString() === d.toDateString(); return `${same ? '今天' : y ? '昨天' : `${d.getMonth() + 1}/${d.getDate()}`} ${hhmm(ts)}`; }
+function renderChat() {
+  if (!CHAT.open) return;
+  const me_ = myIdx(), other = chatPartner(), online = !!chars[other]?.remote;
+  $('#ch-name').textContent = nameOf(other); $('#ch-status').textContent = online ? '在島上' : '不在島上・訊息會等對方回來看'; $('#ch-dot').classList.toggle('on', online);
+  const box = $('#ch-list'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  if (!CHAT.list.length) { box.innerHTML = `<div class="ch-empty"><span>💬</span><p>這裡是只有你們兩個人看得到的聊天室。<br>傳一句話給 ${esc(nameOf(other))} 吧。</p></div>`; return; }
+  const lastMineRead = [...CHAT.list].reverse().find(m => m.by === me_ && m.ts <= (CHAT.read[other] || 0));
+  let html = '', prev = null;
+  for (const m of CHAT.list) {
+    if (!prev || m.ts - prev.ts > 10 * 60e3) html += `<div class="ch-time">${chatTime(m.ts)}</div>`;
+    const mine = m.by === me_, grouped = prev && prev.by === m.by && m.ts - prev.ts < 120e3;
+    const st_ = STICKERS.find(x => x[0] === m.v);
+    const body = m.k === 's' && st_ ? `<div class="ch-sticker"><span>${st_[1]}</span><b>${st_[2]}</b></div>` : `<div class="ch-bubble">${esc(m.v).replace(/\n/g, '<br>')}</div>`;
+    html += `<div class="ch-msg ${mine ? 'me' : 'you'} ${grouped ? 'grp' : ''}">${body}${mine && lastMineRead === m ? '<small class="ch-read">已讀</small>' : ''}</div>`;
+    prev = m;
+  }
+  box.innerHTML = html; if (atBottom || box.dataset.first !== '1') { box.scrollTop = box.scrollHeight; box.dataset.first = '1'; }
+}
+function chatMarkRead() {
+  const last = [...CHAT.list].reverse().find(m => m.by === chatPartner()); if (!last || last.ts <= (CHAT.read[myIdx()] || 0)) return;
+  CHAT.read[myIdx()] = last.ts; if (MP.on) MP.net.send({ t: 'chatread', ts: last.ts }); chatBadge();
+}
+function openChat() {
+  if (MP.role === 'g') return;
+  if (!MP.on) { toast('先在 🌐 跟另一半連線，就能聊天了', 3500); return openNet(); }
+  CHAT.open = true; $('#chat').hidden = false; $('#ch-list').dataset.first = ''; toggleLoveMenu(false); sfx('click');
+  renderChat(); chatMarkRead(); chatBadge();
+}
+function closeChat() { CHAT.open = false; $('#chat').hidden = true; $('#ch-stickers').hidden = true; $('#ch-stk').setAttribute('aria-pressed', 'false'); $('#ch-in').blur(); chatBadge(); }
+function chatSend(k, v) {
+  if (!MP.on || !v) return; MP.net.send({ t: 'chat', k, v }); sfx('pop');
+  if (k === 't') showSay(me(), v.length > 24 ? v.slice(0, 24) + '…' : v); else { const s_ = STICKERS.find(x => x[0] === v); if (s_) showSay(me(), `${s_[1]} ${s_[2]}`); }
+}
+function onChat(m) {
+  if (CHAT.list.some(x => x.id === m.id)) return; CHAT.list.push(m); if (CHAT.list.length > 300) CHAT.list.shift();
+  const fromPartner = m.by === chatPartner();
+  if (fromPartner) {
+    $('#ch-typing').hidden = true; const c = chars[m.by], s_ = STICKERS.find(x => x[0] === m.v), text = m.k === 's' && s_ ? `${s_[1]} ${s_[2]}` : m.v;
+    if (c?.remote) showSay(c, text.length > 24 ? text.slice(0, 24) + '…' : text);
+    if (CHAT.open) chatMarkRead(); else { sfx('pop'); toast(`💬 ${nameOf(m.by)}：${text.length > 30 ? text.slice(0, 30) + '…' : text}`, 3500); }
+  }
+  renderChat(); chatBadge();
+}
+$('#btn-chat').onclick = () => CHAT.open ? closeChat() : openChat();
+$('#ch-close').onclick = closeChat;
+$('#ch-quick').innerHTML = QUICK.map(q => `<button type="button">${esc(q)}</button>`).join('');
+$('#ch-quick').onclick = e => { const b = e.target.closest('button'); if (b) chatSend('t', b.textContent); };
+$('#ch-stickers').innerHTML = STICKERS.map(([id, e, t]) => `<button type="button" data-s="${id}" aria-label="${t}"><span>${e}</span><b>${t}</b></button>`).join('');
+$('#ch-stickers').onclick = e => { const b = e.target.closest('[data-s]'); if (b) chatSend('s', b.dataset.s); };
+$('#ch-stk').onclick = () => { const on = $('#ch-stickers').hidden; $('#ch-stickers').hidden = !on; $('#ch-stk').setAttribute('aria-pressed', String(on)); if (on) $('#ch-in').blur(); };
+const chIn = $('#ch-in');
+chIn.addEventListener('input', () => {
+  chIn.style.height = 'auto'; chIn.style.height = Math.min(110, chIn.scrollHeight) + 'px';
+  if (MP.on && performance.now() - CHAT.sentTyping > 1600 && chIn.value.trim()) { CHAT.sentTyping = performance.now(); MP.net.send({ t: 'typing' }); }
+});
+chIn.addEventListener('focus', () => { $('#ch-stickers').hidden = true; $('#ch-stk').setAttribute('aria-pressed', 'false'); });
+chIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('#ch-form').requestSubmit(); } e.stopPropagation(); });
+$('#ch-form').onsubmit = e => { e.preventDefault(); const v = chIn.value.trim(); if (!v) return; chatSend('t', v); chIn.value = ''; chIn.style.height = 'auto'; };
+// 鍵盤打開時：面板跟著往上（iPhone 的鍵盤會蓋住畫面下方）
+if (window.visualViewport) { const vv = window.visualViewport, fit = () => { document.documentElement.style.setProperty('--kb', Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px'); }; vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
 
 // ---------- 開始 ----------
 (async function boot() {
