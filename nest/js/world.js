@@ -89,6 +89,53 @@ function makeWater() {
   const m = new THREE.Mesh(geo, mat); m.position.y = 0; m.renderOrder = 1; return m;
 }
 
+// ---------- 岸邊浪花：浪沖上沙灘（前緣白色泡沫）→ 退回去（留下深色濕沙），兩道浪錯開 ----------
+// 一條貼著地面的環狀帶子：d = 離「岸邊基準線」的距離（負的往陸地、正的往海），水線大約在 d = -0.25
+function makeSurf() {
+  const N = 900, D = [-3.6, -3, -2.5, -2, -1.6, -1.2, -0.85, -0.5, -0.25, 0, 0.4, 0.9, 1.5];
+  const pos = [], ad = [], aa = [], idx = [];
+  for (let i = 0; i <= N; i++) {
+    const a = i / N * Math.PI * 2 - Math.PI, R = 33 + 2.5 * Math.sin(3 * a) + 1.5 * Math.sin(5 * a + 1);
+    for (const d of D) { const r = R - 4.6 + d, x = Math.cos(a) * r, z = Math.sin(a) * r; pos.push(x, Math.max(groundH(x, z), 0) + 0.02, z); ad.push(d); aa.push(a); }
+  }
+  const M = D.length; for (let i = 0; i < N; i++) for (let j = 0; j < M - 1; j++) { const a = i * M + j, b = a + M; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('aD', new THREE.Float32BufferAttribute(ad, 1)); g.setAttribute('aA', new THREE.Float32BufferAttribute(aa, 1)); g.setIndex(idx);
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2,
+    uniforms: { uTime: { value: 0 }, uDark: { value: 0 } },
+    vertexShader: `attribute float aD, aA; varying float vD, vS;
+      void main(){ vD = aD; vS = aA * 33.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform float uTime, uDark; varying float vD, vS;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);
+        return mix(mix(hash(i), hash(i+vec2(1.0,0.0)), u.x), mix(hash(i+vec2(0.0,1.0)), hash(i+vec2(1.0,1.0)), u.x), u.y); }
+      // 沖上來快（前 40%），退回去慢
+      float swash(float u){ return u < 0.4 ? sin(u / 0.4 * 1.5708) : cos((u - 0.4) / 0.6 * 1.5708); }
+      void main(){
+        float wl = -0.25, sheetA = 0.0, foam = 0.0, wet = 0.0;
+        for (int k = 0; k < 2; k++) {
+          float fk = float(k);
+          float u = fract(uTime / 7.0 + noise(vec2(vS * 0.04, fk * 9.0)) * 0.5 + fk * 0.5);
+          float run = (1.5 + 1.1 * noise(vec2(vS * 0.07, 3.0 + fk * 7.0))) * (k == 1 ? 0.72 : 1.0);
+          float edge = wl - run * swash(u) + (noise(vec2(vS * 0.7, uTime * 0.35 + fk)) - 0.5) * 0.3;
+          float lace = noise(vec2(vS * 1.7, vD * 3.2 - uTime * 0.5 + fk * 4.0));
+          float sheet = smoothstep(edge - 0.04, edge + 0.22, vD);
+          sheetA = max(sheetA, sheet);
+          float front = smoothstep(0.5, 0.0, abs(vD - edge - 0.14)) * (u < 0.4 ? 1.0 : 1.0 - (u - 0.4) / 0.6 * 0.75);
+          foam = max(foam, front * (0.6 + 0.6 * lace) + sheet * smoothstep(0.58, 0.9, lace) * 0.45 * smoothstep(wl + 1.4, wl - 0.2, vD));
+          float maxEdge = wl - run;
+          wet = max(wet, (1.0 - sheet) * smoothstep(maxEdge - 0.15, maxEdge + 0.35, vD) * (u > 0.4 ? 1.0 - (u - 0.4) / 0.6 : 0.35 + u));
+        }
+        float seaFade = 1.0 - smoothstep(wl + 0.4, 1.5, vD); // 往海裡慢慢交給原本的海水
+        vec3 water = vec3(0.7, 0.96, 0.93), sand = vec3(0.42, 0.32, 0.2);
+        vec3 c = mix(sand, water, sheetA); float a = max(wet * 0.32, sheetA * 0.42 * seaFade);
+        c = mix(c, vec3(1.0), clamp(foam, 0.0, 1.0)); a = max(a, clamp(foam, 0.0, 1.0) * 0.92 * seaFade);
+        c *= mix(1.0, 0.35, uDark);
+        gl_FragColor = vec4(c, a); }`,
+  });
+  const m = new THREE.Mesh(g, mat); m.renderOrder = 2; return m;
+}
+
 // ---------- 天空：漸層圓頂＋星星＋太陽月亮＋雲 ----------
 function makeSky() {
   const g = new THREE.Group();
@@ -205,7 +252,7 @@ function makeLights(points) {
 export async function buildIsland(S) {
   const W = {};
   W.ground = makeIsland(); S.add(W.ground);
-  W.water = makeWater(); S.add(W.water);
+  W.water = makeWater(); S.add(W.water); W.surf = makeSurf(); S.add(W.surf);
   W.sky = makeSky(); S.add(W.sky.g);
   W.hemi = new THREE.HemisphereLight('#dff2ff', '#a89a70', 1); S.add(W.hemi);
   W.sunL = new THREE.DirectionalLight('#ffffff', 1.8); W.sunL.position.set(30, 60, 20); S.add(W.sunL); S.add(W.sunL.target);
@@ -303,7 +350,7 @@ export function setTimeOfDay(W, S, t, camPos) {
   W.sunL.position.set(sp.x * 60, Math.max(10, sp.y * 60), 30); W.hemi.intensity = k.amb * 1.1;
   W.hemi.color.copy(k.top).lerp(_c1.set('#ffffff'), 0.6); W.hemi.groundColor.set('#a89a70').multiplyScalar(1 - k.night * 0.6);
   S.fog.color.copy(k.fog);
-  W.water.material.uniforms.uDark.value = k.night * 0.85; W.water.material.uniforms.uSky.value.copy(k.hor);
+  W.water.material.uniforms.uDark.value = k.night * 0.85; if (W.surf) W.surf.material.uniforms.uDark.value = k.night * 0.85; W.water.material.uniforms.uSky.value.copy(k.hor);
   const lamp = Math.max(0, Math.min(1, (k.night - 0.15) * 2));
   W.porchL.intensity = lamp * 14; W.dockL.intensity = lamp * 10;
   [W.lights, W.lights2].forEach(l => l.userData.mats.forEach((m, i) => m.color.set(['#ffd27a', '#ff9ab8', '#9ad8ff', '#c8ff9a'][i]).multiplyScalar(0.35 + lamp * 0.9)));
