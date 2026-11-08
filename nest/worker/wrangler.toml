@@ -1,0 +1,21 @@
+# 網站（nest/ 資料夾）＋連線伺服器，一起部署成一個 Cloudflare Worker
+name = "our-island"
+main = "island.js"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = ".."
+not_found_handling = "none"
+run_worker_first = ["/api/*", "/ws"]
+
+[[durable_objects.bindings]]
+name = "ISLAND"
+class_name = "Island"
+
+[[durable_objects.bindings]]
+name = "REGISTRY"
+class_name = "Registry"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Island", "Registry"]

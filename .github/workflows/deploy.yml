@@ -35,7 +35,7 @@ jobs:
       - name: Add 線上參拜文昌帝君 app
         run: cp -r wenchang dist/wenchang && rm -rf dist/wenchang/worker
       - name: Add 我們的小島 couple island game
-        run: cp -r nest dist/nest && rm -rf dist/nest/_test
+        run: cp -r nest dist/nest && rm -rf dist/nest/_test dist/nest/worker
       - name: Old URL shows a lightweight move page (app now lives on Cloudflare Pages)
         run: test -f divination/old-site.html && cp divination/old-site.html dist/divination/index.html || true
       - name: Setup Pages

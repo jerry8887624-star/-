@@ -7,6 +7,8 @@ import { load, toon, tickAnimals, playA, progress, mixers } from './models.js';
 import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS } from './data.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
 import { Music, sfx } from './audio.js';
+import { Net, auth as savedAuth, saveAuth, serverAvailable, createIsland, pairIsland, peekIsland } from './net.js';
+import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -18,7 +20,7 @@ const AS = 1, HIP = 0.306; // 角色大小、坐下時屁股離腳底的高度
 const KEY = 'nest.save';
 const DEF = { v: 1, names: ['', ''], looks: [null, null], anniv: '', love: 0, day: 1, tod: 9, diary: [], fish: {}, shells: {}, garden: [null, null, null], castles: 0, letterDay: 0, ctrl: 0, music: true, started: false, hand: false, flowersGiven: 0, dishes: 0, wishes: 0, fireworks: 0, laps: 0 };
 let st = (() => { try { return { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { return { ...DEF }; } })();
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+const save = () => { if (MP.role === 'g') return; try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} shareSave(); };
 setInterval(save, 5000); addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 const nameOf = i => st.names[i] || (i ? '另一半' : '我');
 
@@ -36,13 +38,28 @@ const curS = () => scene === 'in' ? IN.S : OUT;
 
 // ---------- 角色 ----------
 for (let i = 0; i < 2; i++) if (!st.looks[i]) st.looks[i] = randomLook(i ? 'm' : 'f');
-const chars = [0, 1].map(i => ({ i, av: null, x: i ? 1.4 : 0, z: 1.5, ry: Math.PI, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0 }));
+const chars = [0, 1].map(i => ({ i, av: null, x: i ? 1.4 : 0, z: 1.5, ry: Math.PI, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }));
 function makeAv(i) {
   const c = chars[i];
   if (c.av) { c.av.setLook(st.looks[i]); return; }
-  c.av = new Avatar(st.looks[i]); c.av.root.scale.setScalar(AS); OUT.add(c.av.root);
+  c.av = new Avatar(st.looks[i]); c.av.root.scale.setScalar(AS); OUT.add(c.av.root); hookEmote(c);
 }
-const me = () => chars[st.ctrl], you = () => chars[1 - st.ctrl];
+// 連線狀態：role = 0／1（島主）、'g'（朋友）、null（單機）
+const MP = { on: false, role: null, id: null, net: null, owner: null, peers: new Map(), sent: null, led: null, lead: false, expTod: null, guest: null };
+// 「隱形的另一半」：朋友、或另一半不在線但島上有別人時，活動裡的另一半就用它（看不到、不做事）
+const NOOP = () => {};
+const ghost = { i: -1, ghost: true, x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0,
+  av: { root: new THREE.Group(), handSlot: new THREE.Group(), reaching: false, pose: 'stand', emote: NOOP, setPose: NOOP, holdHand: NOOP, setItem: NOOP, reach: NOOP, lean: NOOP, update: NOOP } };
+let guestChar = null;
+const othersOnline = () => [...MP.peers.values()].some(p => p.role === 'g') || (MP.role === 'g');
+const me = () => !MP.on ? chars[st.ctrl] : MP.role === 'g' ? guestChar : chars[MP.role];
+const you = () => {
+  if (!MP.on) return chars[1 - st.ctrl];
+  if (MP.role === 'g') return ghost;
+  const q = chars[1 - MP.role]; return q.remote ? q : othersOnline() ? ghost : q;
+};
+// 另一半是這支手機在控制（電腦跟著走）
+const partnerLocal = () => { const q = you(); return !q.remote && !q.ghost; };
 
 // ---------- 開場 ----------
 const preview = { on: true, t: 0 };
@@ -65,6 +82,8 @@ $('#start-btn').onclick = () => {
   chars.forEach(c => { c.locked = false; c.av.setPose('stand'); });
   placeStart();
   updateHud();
+  if (savedAuth?.key) serverAvailable().then(ok => { if (ok) { MP.role = savedAuth.role; MP.on = true; snapSent(); connectNet(savedAuth); } });
+  if (pairParam) setTimeout(() => { openNet().then(() => { $('#net-pair')?.click(); const i = $('#pair-in'); if (i) i.value = pairParam; }); }, 800);
   if (first) { addMemo('🏝️', `${nameOf(0)} 和 ${nameOf(1)} 一起搬到了小島上`); setTimeout(() => toast('歡迎回家！靠近有標籤的地方就能一起做事 ♥', 4200), 900); }
   else { toast(pick(TIPS), 4000); showNewsOnce(); }
 };
@@ -75,12 +94,17 @@ let toastT = 0;
 function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms); }
 function fadeDo(fn, hold = 380) { const f = $('#fade'); f.classList.add('on'); return new Promise(r => setTimeout(() => { fn(); setTimeout(() => { f.classList.remove('on'); r(); }, 120); }, hold)); }
 function dateStr() { const d = new Date(); return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`; }
-function addMemo(icon, text) { st.diary.unshift({ d: dateStr(), day: st.day, icon, text }); if (st.diary.length > 300) st.diary.length = 300; save(); }
+function addMemo(icon, text) {
+  if (MP.role === 'g') return; const m = { d: dateStr(), day: st.day, icon, text };
+  st.diary.unshift(m); if (st.diary.length > 300) st.diary.length = 300; save(); if (MP.on) MP.net.send({ t: 'memo', ...m });
+}
 function daysTogether() { if (!st.anniv) return null; const a = new Date(st.anniv + 'T00:00:00'), n = new Date(); n.setHours(0, 0, 0, 0); return Math.max(1, Math.round((n - a) / 864e5) + 1); }
 const loveCD = {};
 function addLove(n, why, key) {
   if (key) { const now = performance.now(); if (loveCD[key] && now - loveCD[key] < 45e3) { n = Math.ceil(n / 4); } loveCD[key] = now; }
+  if (MP.role === 'g') { if (why) toast(why); return; }
   const before = levelOf(st.love).lv; st.love += n; const after = levelOf(st.love);
+  if (MP.on) { MP.net.send({ t: 'addlove', n }); MP.sent && (MP.sent.love = JSON.stringify(st.love)); }
   updateHud();
   if (after.lv > before) {
     sfx('chime'); setTimeout(() => toast(`💗 升到 Lv${after.lv}「${after.title}」！${REWARDS[after.lv] ? '解鎖：' + REWARDS[after.lv] : ''}`, 4500), 400);
@@ -137,7 +161,8 @@ const midPos = (up = 1.6) => headPos(chars[0], up).add(headPos(chars[1], up)).mu
 
 // ---------- 煙火 ----------
 const fireworks = [];
-function launchFirework(heart) {
+function launchFirework(heart, fromNet) {
+  if (MP.on && !fromNet) MP.net.send({ t: 'fx', k: 'fw', a: heart ? 1 : 0 });
   const g = new THREE.BufferGeometry(), n = 140, pos = new Float32Array(n * 3), vel = [];
   const ox = SPOTS.beach.x + rand(-9, 9), oz = 42 + rand(-3, 5), oy = 8 + rand(0, 4);
   for (let i = 0; i < n; i++) {
@@ -304,7 +329,7 @@ function syncAv(c, dt) {
 // ---------- 另一半：跟著你走、牽手 ----------
 let lovePending = null, loveHold = 0; // loveHold：抱抱、親親、拍照時另一半先站著不動
 function partnerAI(dt) {
-  const p = me(), q = you(); if (q.locked) return;
+  const p = me(), q = you(); if (q.locked || !partnerLocal()) return;
   if (loveHold > 0) { loveHold -= dt; q.moving = false; return; }
   const fx = Math.sin(p.ry), fz = Math.cos(p.ry), rx = -fz, rz = fx; // 朝向、右手邊
   let tx, tz, near;
@@ -348,6 +373,14 @@ $('#btn-love').onclick = () => toggleLoveMenu();
 $('#love-menu').addEventListener('click', e => { const b = e.target.closest('[data-l]'); if (!b) return; toggleLoveMenu(false); loveAction(b.dataset.l); });
 function loveAction(kind) {
   sfx('click');
+  if (MP.on && (MP.role === 'g' || you().ghost)) { // 朋友、或另一半不在線上：只能做自己的動作
+    const solo = { dance: 'dance', jump: 'jump', spin: 'cheer', wave: 'wave' }[kind];
+    if (solo) { me().av.emote(solo, solo === 'dance' ? 6 : 1.5); burst(kind === 'dance' ? 'note' : 'star', headPos(me(), 1.3), 4, 0.3); }
+    else toast(MP.role === 'g' ? '這是島主之間的互動喔' : '另一半現在不在線上');
+    return;
+  }
+  if (MP.on && you().remote && LOVE_WORD[kind]) { requestLove(kind); return; }
+  if (MP.on && you().remote && (kind === 'dance' || kind === 'jump' || kind === 'spin')) { me().av.emote(kind === 'spin' ? 'cheer' : kind, kind === 'dance' ? 6 : 1.5); burst('note', headPos(me(), 1.3), 4, 0.3); addLove(1, null, kind); return; }
   if (kind === 'hand') {
     if (act || scene === 'in' && false) return;
     st.hand = !st.hand; save();
@@ -361,6 +394,7 @@ function loveAction(kind) {
     burst('heart', midPos(), kind === 'kiss' ? 9 : 5); sfx('pop'); addLove(kind === 'kiss' ? 3 : 2, null, kind);
     return;
   }
+  if (kind === 'wave') { me().av.emote('wave', 1.5); you().av.emote('wave', 1.5); return; }
   if (kind === 'dance') { me().av.emote('dance', 6); you().av.emote('dance', 6); burst('note', midPos(), 6); addLove(2, '一起跳舞～', 'dance'); sfx('pop'); return; }
   if (kind === 'spin') { me().spinT = 1.1; you().av.emote('clap', 1.4); burst('star', headPos(me(), 1.2), 6); addLove(1, '轉圈圈～', 'spin'); sfx('pop'); return; }
   lovePending = { kind, t: 0 }; me().path = null;
@@ -379,6 +413,7 @@ function doLove(kind) {
 
 // ---------- 換人操作 ----------
 $('#btn-swap').onclick = () => {
+  if (MP.on) return toast('連線中，每個人操作自己的角色');
   if (act) return toast('先離開目前的活動喔');
   st.ctrl = 1 - st.ctrl; save(); updateHud(); me().path = null; you().path = null; me().stuck = you().stuck = 0;
   toast(`現在操作：${nameOf(st.ctrl)}`); me().av.emote('wave', 1.2); sfx('click');
@@ -388,8 +423,14 @@ $('#btn-swap').onclick = () => {
 let act = null;
 const started = () => !preview.on;
 const v3 = new THREE.Vector3();
-function seat(c, x, y, z, ry, pose = 'sit') { c.locked = true; c.path = null; c.x = x; c.z = z; c.y = y; c.ry = ry; c.moving = false; c.av.setPose(pose); c.av.holdHand(0); }
-function unseat(c) { c.locked = false; c.y = null; c.tilt = 0; c.moving = false; c.av.setPose('stand'); c.av.reach(false); c.av.lean(0); c.av.setItem(null); }
+let lastMeSeat = null;
+function seat(c, x, y, z, ry, pose = 'sit') {
+  if (c.ghost) return;
+  // 另一半是真人：他已經坐在我要坐的位置，我就坐他的位置
+  if (c.remote) { if (lastMeSeat && Math.hypot(c.x - lastMeSeat[0], c.z - lastMeSeat[1]) < 0.4) { lastMeSeat = null; seat(me(), x, y, z, ry, pose); } return; }
+  if (c === me()) lastMeSeat = [x, z];
+  c.locked = true; c.path = null; c.x = x; c.z = z; c.y = y; c.ry = ry; c.moving = false; c.av.setPose(pose); c.av.holdHand(0); }
+function unseat(c) { if (c.ghost || c.remote) return; c.locked = false; c.y = null; c.tilt = 0; c.moving = false; c.av.setPose('stand'); c.av.reach(false); c.av.lean(0); c.av.setItem(null); }
 function setBtns(list) {
   const box = $('#ap-btns'); box.innerHTML = '';
   list.forEach(b => {
@@ -410,7 +451,7 @@ function beginAct(id, title, text, o = {}) {
 }
 function endAct() {
   if (!act) return; const a = act; act = null;
-  a.end?.(); chars.forEach(unseat);
+  a.end?.(); chars.forEach(unseat); if (guestChar) unseat(guestChar);
   if (a.camBack && a.camYaw != null) { view.yaw = a.camBack.yaw; view.pitch = a.camBack.pitch; } $('#act-panel').hidden = true; $('#joy').style.visibility = '';
   // 站到活動地點旁邊
   if (a.back) { const [x, z] = a.back; const p = me(), q = you(); [p.x, p.z] = freeSpot(x, z); [q.x, q.z] = freeSpot(p.x + 0.9, p.z + 0.5); }
@@ -452,12 +493,15 @@ SP.forEach(s => {
   el.onclick = () => { if (act || !started()) return; const p = s.pos?.() || s; route(me(), p.x, p.z, s); sfx('click'); };
   $('#labels').appendChild(el); s.el = el;
 });
-const nameEls = [0, 1].map(() => { const e = document.createElement('div'); e.className = 'lbl name'; $('#labels').appendChild(e); return e; });
+const nameEls = new Map();
+// 朋友不能用的地點（島主專屬）
+const OWNER_ONLY = ['mailbox', 'garden', 'bed', 'wardrobe'];
+const spotHidden = s => s.hide?.() || (MP.role === 'g' && OWNER_ONLY.includes(s.id));
 let nearSpot = null;
 function tickSpots() {
   const p = me(); let best = null, bd = 1e9;
   for (const s of SP) {
-    const pp = s.pos?.() || s; const show = s.sc === scene && started() && !photo.on && !(s.hide?.());
+    const pp = s.pos?.() || s; const show = s.sc === scene && started() && !photo.on && !spotHidden(s);
     const d = Math.hypot(pp.x - p.x, pp.z - p.z);
     if (s.dyn) { const [ic, nm] = s.dyn(); if (s.icon !== ic) { s.icon = ic; s.name = nm; s.el.textContent = `${ic} ${nm}`; } }
     if (show && !act && d < s.r && d < bd) { bd = d; best = s; }
@@ -471,12 +515,17 @@ function tickSpots() {
     if (s.badge) s.el.textContent = `${s.icon} ${s.name}${s.badge() ? ' ●' : ''}`;
   }
   // 名字（頭上）
-  chars.forEach((c, i) => {
-    const e = nameEls[i]; if (!started() || photo.on) { e.style.display = 'none'; return; }
+  const seen = new Set();
+  for (const c of allChars()) {
+    let e = nameEls.get(c); if (!e) { e = document.createElement('div'); e.className = 'lbl name'; $('#labels').appendChild(e); nameEls.set(c, e); }
+    seen.add(c);
+    if (!started() || photo.on || !c.av.root.visible) { e.style.display = 'none'; continue; }
     v3.copy(c.av.root.position); v3.y += c.av.pose === 'lie' ? 0.8 : 1.95; v3.project(cam);
-    if (v3.z > 1) { e.style.display = 'none'; return; }
-    e.style.display = ''; e.textContent = (i === st.ctrl ? '▼ ' : '') + nameOf(i); e.style.left = ((v3.x + 1) / 2 * innerWidth) + 'px'; e.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px';
-  });
+    if (v3.z > 1) { e.style.display = 'none'; continue; }
+    const tag = c.i === 'g' ? '🎈 ' : c.remote ? '💗 ' : '';
+    e.style.display = ''; e.textContent = (c === me() ? '▼ ' : tag) + charName(c); e.style.left = ((v3.x + 1) / 2 * innerWidth) + 'px'; e.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px';
+  }
+  for (const [c, e] of nameEls) if (!seen.has(c)) { e.remove(); nameEls.delete(c); }
   if (best !== nearSpot) {
     nearSpot = best; const b = $('#btn-act');
     if (best) { $('#act-icon').textContent = best.icon; $('#act-name').textContent = best.name; b.hidden = false; b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; }
@@ -489,16 +538,16 @@ $('#btn-act').onclick = () => { if (nearSpot && !act) { sfx('click'); nearSpot.r
 async function enterHouse() {
   if (!IN) { toast('小屋整理中，稍等一下…'); IN = await buildInterior(); }
   await fadeDo(() => {
-    scene = 'in'; chars.forEach(c => { OUT.remove(c.av.root); IN.S.add(c.av.root); c.path = null; c.y = null; });
-    const p = me(), q = you(); p.x = INSPOTS.exit.x - 0.4; p.z = INSPOTS.exit.z - 0.6; p.ry = Math.PI; q.x = p.x - 0.8; q.z = p.z + 0.2; q.ry = Math.PI;
+    scene = 'in'; localChars().forEach(c => { c.sc = 'in'; c.path = null; c.y = null; });
+    const p = me(), q = you(); p.x = INSPOTS.exit.x - 0.4; p.z = INSPOTS.exit.z - 0.6; p.ry = Math.PI; if (partnerLocal()) { q.x = p.x - 0.8; q.z = p.z + 0.2; q.ry = Math.PI; }
     view.inYaw = 0; nearSpot = null;
   });
   sfx('door');
 }
 async function exitHouse() {
   await fadeDo(() => {
-    scene = 'out'; chars.forEach(c => { IN.S.remove(c.av.root); OUT.add(c.av.root); c.path = null; c.y = null; });
-    const p = me(), q = you(); p.x = SPOTS.door.x; p.z = SPOTS.door.z + 1.4; p.ry = 0; q.x = p.x + 0.8; q.z = p.z + 0.3; q.ry = 0;
+    scene = 'out'; localChars().forEach(c => { c.sc = 'out'; c.path = null; c.y = null; });
+    const p = me(), q = you(); p.x = SPOTS.door.x; p.z = SPOTS.door.z + 1.4; p.ry = 0; if (partnerLocal()) { q.x = p.x + 0.8; q.z = p.z + 0.3; q.ry = 0; }
     view.yaw = 0; nearSpot = null;
   });
   sfx('door');
@@ -517,8 +566,9 @@ function openMail() {
 function actSwing() {
   const sw = W.swing, pv = sw.userData.pivot, seatG = sw.userData.seat;
   let amp = 0.18, ph = 0, tick = 0;
+  const mine = you().remote && you().act === 'swing' && you().x < SPOTS.swing.x ? 0.42 : -0.42;
   const place = () => {
-    [[me(), -0.42], [you(), 0.42]].forEach(([c, x]) => { seatG.localToWorld(v3.set(x, 0.05, 0.02)); c.locked = true; c.x = v3.x; c.z = v3.z; c.y = v3.y - HIP; c.ry = 0; c.tilt = pv.rotation.x; c.av.setPose('swing'); });
+    [[me(), mine], [you(), -mine]].forEach(([c, x]) => { if (c.remote || c.ghost) return; seatG.localToWorld(v3.set(x, 0.05, 0.02)); c.locked = true; c.x = v3.x; c.z = v3.z; c.y = v3.y - HIP; c.ry = 0; c.tilt = pv.rotation.x; c.av.setPose('swing'); });
   };
   fadeDo(place, 250);
   beginAct('swing', '🎠 雙人鞦韆', '兩個人一起盪鞦韆，風好舒服。', {
@@ -656,7 +706,7 @@ function actBeach() {
   const kite = kiteItem(); OUT.add(kite);
   const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#ffffff' })); OUT.add(line);
   let h = 3, want = 10, t = 0, tk = 0;
-  fadeDo(() => { const y = standH(x, z); [[me(), -0.45], [you(), 0.45]].forEach(([c, dx]) => { c.locked = true; c.x = x + dx; c.z = z; c.y = null; c.ry = 0.1; c.moving = false; }); me().av.reach(true); }, 250);
+  fadeDo(() => { const y = standH(x, z); [[me(), -0.45], [you(), 0.45]].forEach(([c, dx]) => { if (c.remote || c.ghost) return; c.locked = true; c.x = x + dx; c.z = z; c.y = null; c.ry = 0.1; c.moving = false; }); me().av.reach(true); }, 250);
   beginAct('kite', '🪁 放風箏', '海風好大，風箏飛好高！', {
     focus: () => new THREE.Vector3(x, 3.5, z + 3), back: [x, z - 1], camYaw: Math.PI + 0.3, camPitch: 0.22,
     btns: [{ t: '放線（飛高一點）', main: true, fn: () => { want = Math.min(24, want + 3); } }, { t: '收線', fn: () => { want = Math.max(4, want - 3); } }, { t: '交給對方', fn: () => { const a = me().av.reaching; me().av.reach(!a); you().av.reach(a); you().av.emote('cheer', 1); addLove(1, null, 'kitepass'); } }],
@@ -730,22 +780,29 @@ function actFish() {
 // ---------- 划船：繞小島一圈 ----------
 function actBoat() {
   const boat = W.boat; if (!boat) return toast('小船還沒準備好');
+  // 連線時：另一個人已經在划船 → 我上船當乘客（船由他控制）
+  const driver = [...allChars()].find(c => c.remote && c.act === 'boat');
+  const passenger = !!driver; if (MP.boatAway && !passenger) return toast('小船出海了，等它回來吧');
   const home = boat.position.clone(), homeRy = boat.rotation.y;
   const RAD = 49, a0 = Math.atan2(home.z, home.x) + 0.05;
   let s = 0, paused = false, phase = 'out', lapA = 0, tk = 0;
   const place = () => {
     const ry = boat.rotation.y, fx = Math.sin(ry), fz = Math.cos(ry);
     const y = boat.position.y + 0.18 - HIP + 0.1;
-    me().x = boat.position.x + fx * 0.55; me().z = boat.position.z + fz * 0.55; me().y = y; me().ry = ry + Math.PI;
-    you().x = boat.position.x - fx * 0.55; you().z = boat.position.z - fz * 0.55; you().y = y; you().ry = ry;
+    const [a, b] = passenger ? [you(), me()] : [me(), you()];
+    if (!a.remote && !a.ghost) { a.x = boat.position.x + fx * 0.55; a.z = boat.position.z + fz * 0.55; a.y = y; a.ry = ry + Math.PI; }
+    if (!b.remote && !b.ghost) { b.x = boat.position.x - fx * 0.55; b.z = boat.position.z - fz * 0.55; b.y = y; b.ry = ry; }
   };
-  fadeDo(() => { [me(), you()].forEach(c => { c.locked = true; c.av.setPose('sit'); c.moving = false; }); me().av.reach(true); place(); }, 250);
+  MP.driving = !passenger;
+  fadeDo(() => { [me(), you()].forEach(c => { if (c.remote || c.ghost) return; c.locked = true; c.av.setPose('sit'); c.moving = false; }); if (!passenger) me().av.reach(true); place(); }, 250);
   const startP = new THREE.Vector3(Math.cos(a0) * RAD, 0, Math.sin(a0) * RAD);
   beginAct('boat', '🚣 划船', '慢慢划著船，繞小島一圈。', {
     focus: () => boat.position.clone().add(new THREE.Vector3(0, 1, 0)), back: [SPOTS.boat.x, 0.2], bigView: true,
-    btns: [{ t: '停下來看海', fn: () => { paused = !paused; msg(paused ? '海面亮晶晶的，好安靜。' : '繼續划～'); me().av.reach(!paused); if (paused) { you().av.emote('shy', 1.4); burst('heart', midPos(1.1), 4); addLove(2, null, 'boatstop'); } } }, { t: '划回碼頭', main: true, fn: () => { phase = 'home'; paused = false; msg('往碼頭划回去～'); } }],
+    btns: passenger ? [{ t: '在船上比愛心', main: true, fn: () => { me().av.emote('shy', 1.4); burst('heart', headPos(me(), 1.2), 5); addLove(2, null, 'boatheart'); } }] : [{ t: '停下來看海', fn: () => { paused = !paused; msg(paused ? '海面亮晶晶的，好安靜。' : '繼續划～'); me().av.reach(!paused); if (paused) { you().av.emote('shy', 1.4); burst('heart', midPos(1.1), 4); addLove(2, null, 'boatstop'); } } }, { t: '划回碼頭', main: true, fn: () => { phase = 'home'; paused = false; msg('往碼頭划回去～'); } }],
     update(dt) {
+      if (passenger) { if (driver.act !== 'boat' || !driver.remote) { endAct(); return; } place(); return; }
       const t = performance.now() / 1000; boat.position.y = 0.05 + Math.sin(t * 1.6) * 0.05; boat.rotation.z = Math.sin(t * 1.2) * 0.04;
+      if (MP.on) MP.net.send({ t: 'boat', x: +boat.position.x.toFixed(2), z: +boat.position.z.toFixed(2), ry: +boat.rotation.y.toFixed(3) });
       if (!paused) {
         const sp = 3.4 * dt;
         if (phase === 'out') { const d = startP.clone().sub(boat.position).setY(0); if (d.length() < 0.5) { phase = 'lap'; lapA = 0; } else { d.normalize(); boat.position.addScaledVector(d, sp); turnTo(boat, Math.atan2(d.x, d.z), dt); } }
@@ -754,7 +811,7 @@ function actBoat() {
       }
       place(); tk += dt; if (tk > 10) { tk = 0; addLove(1); }
     },
-    end() { boat.position.copy(home); boat.rotation.set(0, homeRy, 0); },
+    end() { MP.driving = false; if (passenger) return; boat.position.copy(home); boat.rotation.set(0, homeRy, 0); if (MP.on) MP.net.send({ t: 'boat', x: home.x, z: home.z, ry: homeRy, home: 1 }); },
   });
 }
 // 小船模型的船頭朝 +z
@@ -912,12 +969,13 @@ function actEat() {
 function openDlg(title, html) { $('#dlg-title').textContent = title; $('#dlg-body').innerHTML = html; const d = $('#dlg'); if (!d.open) d.showModal(); }
 $('#btn-map').onclick = () => {
   sfx('click');
-  const list = SP.filter(s => s.sc === scene && !s.hide?.() && s.id !== 'dog');
+  const list = SP.filter(s => s.sc === scene && !spotHidden(s) && s.id !== 'dog');
   openDlg(scene === 'in' ? '🏠 小木屋裡' : '🗺️ 小島地圖', `<p class="muted">點一下，${esc(nameOf(me().i))} 會走過去。</p><div class="grid3">${list.map(s => `<button type="button" class="cell" data-s="${s.id}" style="border:0"><span class="e">${s.icon}</span>${esc(s.name)}</button>`).join('')}</div>`);
   $('#dlg-body').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { const s = SP.find(x => x.id === b.dataset.s); $('#dlg').close(); if (act) endAct(); route(me(), s.x, s.z, s); });
 };
-$('#couple-card').onclick = () => openBook('us');
-$('#btn-book').onclick = () => openBook('memo');
+$('#couple-card').onclick = () => MP.role === 'g' ? openNet() : openBook('us');
+$('#btn-book').onclick = () => MP.role === 'g' ? openNet() : openBook('memo');
+$('#btn-net').onclick = () => openNet();
 function openBook(tab = 'memo') {
   sfx('click');
   const tabs = [['memo', '回憶'], ['col', '收藏'], ['us', '我們'], ['about', '關於']];
@@ -1062,6 +1120,241 @@ function updateCam(dt, snap) {
   camT.lerp(tmpT, k); cam.position.lerp(camP, k); cam.lookAt(camT);
 }
 
+// ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
+const SHARED = ['names', 'looks', 'anniv', 'day', 'fish', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
+const LOVE_WORD = { hand: '牽你的手', hug: '抱抱你', kiss: '親親你', pat: '摸摸你的頭' };
+function newChar(look) { const c = { i: 'g', av: new Avatar(look), x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }; OUT.add(c.av.root); hookEmote(c); return c; }
+function hookEmote(c) { const orig = c.av.emote.bind(c.av); c.av.emote = (k, d) => { orig(k, d); if (MP.on && c === me()) MP.net.send({ t: 'emo', k, d }); }; }
+// 畫面上所有角色（看得到的）
+function allChars() { const a = [...chars]; if (guestChar) a.push(guestChar); for (const p of MP.peers.values()) if (p.role === 'g' && p.c) a.push(p.c); return a; }
+// 這支手機在控制的角色
+function localChars() { if (!MP.on) return chars; const a = [me()]; if (partnerLocal()) a.push(you()); return a; }
+const peerChar = id => { const p = MP.peers.get(id); return p ? (p.role === 'g' ? p.c : chars[p.role]) : null; };
+const peerName = id => { const p = MP.peers.get(id); return p ? (p.role === 'g' ? p.name : nameOf(p.role)) : '對方'; };
+function charName(c) { if (c === guestChar) return MP.guest?.name || '我'; if (c.i === 'g') { for (const p of MP.peers.values()) if (p.c === c) return p.name; return '朋友'; } return nameOf(c.i); }
+// 每一格：每個角色放到他所在的場景，看不到的藏起來；別人的角色平滑移動到收到的位置
+function placeRoots(dt) {
+  for (const c of allChars()) {
+    let show = true;
+    if (MP.on && (c === chars[0] || c === chars[1])) { const idx = c.i; show = MP.role === idx || c.remote || (MP.role !== 'g' && !othersOnline()); }
+    if (preview.on) show = c === chars[0] || c === chars[1] || c === guestChar;
+    const S = (c.sc || 'out') === 'in' ? IN?.S : OUT;
+    if (S && c.av.root.parent !== S) S.add(c.av.root);
+    c.av.root.visible = show && (c.sc || 'out') === scene;
+    if (c.remote && c.net) {
+      const n = c.net, k = Math.min(1, dt * 10);
+      if (Math.hypot(n.x - c.x, n.z - c.z) > 6) { c.x = n.x; c.z = n.z; } else { c.x += (n.x - c.x) * k; c.z += (n.z - c.z) * k; }
+      let d = n.ry - c.ry; d = Math.atan2(Math.sin(d), Math.cos(d)); c.ry += d * k;
+      c.y = n.y; c.moving = !!n.mv; c.tilt = n.tilt || 0; c.sc = n.sc; c.act = n.act;
+      if (c.av.pose !== n.pose) c.av.setPose(n.pose);
+      c.av.holdHand(n.hand === 'L' ? -1 : n.hand === 'F' ? 1 : 0);
+    }
+  }
+}
+// 送出自己的位置；時間跳了（睡覺、看夕陽）也告訴大家
+function netTick(dt) {
+  if (!MP.on || !MP.net.alive) return;
+  const c = me();
+  MP.net.pos({ x: +c.x.toFixed(2), z: +c.z.toFixed(2), ry: +c.ry.toFixed(2), y: c.y == null ? null : +c.y.toFixed(2), sc: scene, pose: c.av.pose || 'stand', mv: c.moving ? 1 : 0, act: act?.id || '', hand: MP.lead ? 'L' : MP.led ? 'F' : '', tilt: +(c.tilt || 0).toFixed(2) });
+  if (MP.role === 'g') return;
+  if (MP.expTod == null) MP.expTod = st.tod;
+  MP.expTod += dt / 36; if (MP.expTod >= 24) MP.expTod -= 24;
+  let diff = Math.abs(st.tod - MP.expTod); diff = Math.min(diff, 24 - diff);
+  if (diff > 0.05) { MP.net.send({ t: 'tod', tod: st.tod, day: st.day }); MP.expTod = st.tod; }
+}
+// 存檔有變化的欄位送給另一位島主
+function shareSave() {
+  if (!MP.on || MP.role === 'g' || !MP.sent) return;
+  const keys = {}; let any = false;
+  for (const k of SHARED) { const v = JSON.stringify(st[k] ?? null); if (MP.sent[k] !== v) { MP.sent[k] = v; keys[k] = st[k]; any = true; } }
+  if (any) MP.net.send({ t: 'save', keys });
+}
+function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
+function applySave(keys, first) {
+  for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; st[k] = v; }
+  if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
+  if ('castles' in keys) showCastles();
+  if (keys.garden) st.garden.forEach((_, i) => drawPlant(i));
+  snapSent(); if (MP.role !== 'g') try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
+  updateHud();
+}
+function onNet(m) {
+  if (m.t === 'welcome') {
+    MP.id = m.id; MP.role = m.role; MP.owner = m.owner;
+    if (m.role === 'g') { st = { ...DEF, ...m.save, music: st.music }; [0, 1].forEach(i => { if (st.looks?.[i]) chars[i].av.setLook(st.looks[i]); }); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); snapSent(); updateHud(); }
+    else applySave(m.save, true);
+    st.tod = m.clock.tod; st.day = m.clock.day; MP.expTod = st.tod;
+    for (const p of MP.peers.values()) if (p.c && p.role === 'g') OUT.remove(p.c.av.root);
+    MP.peers.clear(); chars.forEach(c => { if (c.remote) c.remote = false; });
+    m.peers.forEach(p => addPeer(p, true));
+    updateNetChip(); if ($('#dlg').open && $('#dlg').dataset.net) openNet();
+    return;
+  }
+  if (m.t === 'join') { addPeer(m.p); toast(`${m.p.role === 'g' ? '🎈 ' + m.p.name : nameOf(m.p.role)} 來到小島了`); sfx('chime'); return; }
+  if (m.t === 'leave') {
+    const p = MP.peers.get(m.id); if (!p) return; MP.peers.delete(m.id);
+    if (p.role === 'g') { p.c.av.root.parent?.remove(p.c.av.root); toast(`${p.name} 離開小島了`); }
+    else { const c = chars[p.role]; c.remote = false; c.net = null; c.locked = false; c.y = null; c.av.setPose('stand'); c.av.holdHand(0); c.sc = scene; c.x = me().x + 1; c.z = me().z + 1; toast(`${nameOf(p.role)} 離線了`); if (MP.led || MP.lead) { MP.led = null; MP.lead = false; } }
+    updateNetChip(); return;
+  }
+  if (m.t === 'pos') { const c = peerChar(m.id); if (!c) return; c.net = m; if (!c.seen) { c.seen = 1; c.x = m.x; c.z = m.z; c.ry = m.ry; } return; }
+  if (m.t === 'emo') { const c = peerChar(m.id); if (!c) return; c.av.emote(m.k, m.d); if (m.k === 'kiss' || m.k === 'hug') burst('heart', headPos(c, 1.6), 5, 0.3); return; }
+  if (m.t === 'fx') { if (m.k === 'fw' && scene === 'out') launchFirework(!!m.a, true); return; }
+  if (m.t === 'boat') { if (W?.boat && !MP.driving) { W.boat.position.x = m.x; W.boat.position.z = m.z; W.boat.rotation.y = m.ry; } MP.boatAway = !m.home; return; }
+  if (m.t === 'save') { applySave(m.keys); return; }
+  if (m.t === 'memo') { st.diary.unshift(m.m); if (st.diary.length > 300) st.diary.length = 300; save(); return; }
+  if (m.t === 'clock') { st.tod = m.clock.tod; st.day = m.clock.day; MP.expTod = st.tod; updateHud(); return; }
+  if (m.t === 'owner') { MP.owner = m.owner; if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
+  if (m.t === 'paired') { if (MP.owner) MP.owner.paired = true; toast('另一半加入小島了 ❤'); if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
+  if (m.t === 'book') { if (MP.owner) MP.owner.book = [m.e, ...(MP.owner.book || [])]; if (MP.role !== 'g') toast(`📝 ${m.e.n}：${m.e.text}`, 4000); return; }
+  if (m.t === 'say') { const c = peerChar(m.id) || (m.id === MP.id ? me() : null); if (c) showSay(c, m.text); return; }
+  if (m.t === 'err') { toast(m.why === 'slow' ? '留言太快了，等一下再寫' : CHAT_WHY[m.why] || '沒有送出'); return; }
+  if (m.t === 'love') { onLoveReq(m.from, m.k); return; }
+  if (m.t === 'loveok') { onLoveOk(m.from, m.k, m.ok); return; }
+}
+function addPeer(p, quiet) {
+  MP.peers.set(p.id, p);
+  if (p.role === 'g') { p.c = newChar(p.look || randomLook()); p.c.remote = true; if (p.pos) { p.c.net = p.pos; p.c.x = p.pos.x; p.c.z = p.pos.z; p.c.seen = 1; } }
+  else { const c = chars[p.role]; c.remote = true; c.locked = false; c.path = null; if (p.pos) { c.net = p.pos; c.x = p.pos.x; c.z = p.pos.z; c.seen = 1; } else c.seen = 0; }
+  updateNetChip();
+}
+// 頭上冒出的一句話
+function showSay(c, text) {
+  const e = document.createElement('div'); e.className = 'lbl say'; e.textContent = text; $('#labels').appendChild(e);
+  const t0 = performance.now(), tick = () => { const k = (performance.now() - t0) / 5000; if (k > 1 || !c.av.root.visible) { e.remove(); return; } v3.copy(c.av.root.position); v3.y += 2.3; v3.project(cam); e.style.left = ((v3.x + 1) / 2 * innerWidth) + 'px'; e.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px'; e.style.opacity = k > 0.85 ? (1 - k) / 0.15 : 1; requestAnimationFrame(tick); };
+  tick();
+}
+// 情侶互動（連線）：問對方 → 對方答應才開始
+let loveAsk = null, approach = null;
+function requestLove(k) {
+  const q = you(); const pid = [...MP.peers.values()].find(p => p.role === 1 - MP.role)?.id; if (!pid) return;
+  if (k === 'hand' && (MP.lead || MP.led)) { MP.net.send({ t: 'love', to: pid, k: 'unhand' }); MP.lead = false; MP.led = null; toast('放開手了'); return; }
+  MP.net.send({ t: 'love', to: pid, k }); toast(`問問 ${nameOf(q.i)}…`);
+}
+function onLoveReq(from, k) {
+  if (k === 'unhand') { MP.lead = false; MP.led = null; toast(`${peerName(from)} 放開手了`); return; }
+  if (!LOVE_WORD[k]) return;
+  loveAsk = { from, k };
+  openDlg('💕', `<p style="font-size:17px;font-weight:700;text-align:center">${esc(peerName(from))} 想${LOVE_WORD[k]} ❤</p><div class="row"><button type="button" class="ghost" id="lv-no">等一下</button><button type="button" class="primary" id="lv-ok">好呀</button></div>`);
+  sfx('chime');
+  $('#lv-no').onclick = () => { MP.net.send({ t: 'loveok', to: from, k, ok: 0 }); $('#dlg').close(); };
+  $('#lv-ok').onclick = () => {
+    $('#dlg').close(); MP.net.send({ t: 'loveok', to: from, k, ok: 1 });
+    const c = peerChar(from); if (!c) return;
+    if (act) endAct();
+    if (k === 'hand') { MP.led = c; toast(`${peerName(from)} 牽著你走 🤝（推搖桿就會放開）`); return; }
+    approach = { c, k, t: 0 };
+  };
+}
+function onLoveOk(from, k, ok) {
+  const c = peerChar(from); if (!c) return;
+  if (!ok) { toast(`${peerName(from)} 說等一下`); return; }
+  if (k === 'hand') { MP.lead = true; toast(`牽起 ${peerName(from)} 的手 🤝`); addLove(2, null, 'hand'); return; }
+  setTimeout(() => {
+    const p = me(); p.ry = Math.atan2(c.x - p.x, c.z - p.z);
+    if (k === 'hug') { p.av.emote('hug', 1.8); toast(`抱住了 ${peerName(from)} 🤗`); }
+    if (k === 'kiss') { p.av.emote('kiss', 1.5); toast('啾 😘'); }
+    if (k === 'pat') { p.av.emote('pat', 1.6); }
+    burst('heart', headPos(p, 1.6), k === 'kiss' ? 10 : 6, 0.4); sfx('pop'); addLove({ hug: 2, kiss: 3, pat: 2 }[k] || 1, null, k);
+  }, 900);
+}
+// 這支手機的角色被牽著走、或走過去讓對方抱
+function netMove(dt, hasInput) {
+  const p = me();
+  if (approach) {
+    const c = approach.c, yw = scene === 'in' ? view.inYaw : view.yaw, gap = approach.k === 'hug' ? 0.55 : approach.k === 'kiss' ? 0.62 : 0.8;
+    let tx = c.x + Math.cos(yw) * gap, tz = c.z - Math.sin(yw) * gap; if (!canStand(tx, tz)) { tx = c.x - Math.cos(yw) * gap; tz = c.z + Math.sin(yw) * gap; }
+    approach.t += dt; const d = Math.hypot(tx - p.x, tz - p.z);
+    if (d < 0.12 || approach.t > 2) { if (d >= 0.12) { p.x = tx; p.z = tz; } p.ry = Math.atan2(c.x - p.x, c.z - p.z); const k = approach.k; p.av.emote(k === 'hug' ? 'hug' : 'shy', 1.8); burst('heart', headPos(p, 1.6), 4, 0.3); approach = null; loveHold = 2; }
+    else stepChar(p, tx - p.x, tz - p.z, dt, 3.2);
+    return true;
+  }
+  if (MP.led) {
+    if (hasInput) { const pid = [...MP.peers.values()].find(x => x.role === 1 - MP.role)?.id; MP.net.send({ t: 'love', to: pid, k: 'unhand' }); MP.led = null; toast('放開手了'); return false; }
+    const c = MP.led, rx = -Math.cos(c.ry), rz = Math.sin(c.ry), tx = c.x + rx * 0.62, tz = c.z + rz * 0.62, d = Math.hypot(tx - p.x, tz - p.z);
+    if (d > 4 || c.sc !== scene) { p.x = tx; p.z = tz; }
+    if (d > 0.06) stepChar(p, tx - p.x, tz - p.z, dt, Math.max(2.6, d * 6)); else { let dd = c.ry - p.ry; dd = Math.atan2(Math.sin(dd), Math.cos(dd)); p.ry += dd * Math.min(1, dt * 10); }
+    p.moving = c.moving || d > 0.12; p.av.holdHand(1);
+    return true;
+  }
+  if (MP.lead) p.av.holdHand(-1);
+  return false;
+}
+function updateNetChip() {
+  const el = $('#btn-net'); if (!el) return;
+  if (!MP.on) { el.textContent = '🌐'; el.classList.remove('on'); return; }
+  const n = MP.peers.size + 1; el.textContent = `🌐 ${n}`; el.classList.add('on');
+  const g = MP.role === 'g';
+  $('#btn-swap').hidden = true;
+  if (g) $('#hud-names').textContent = `拜訪 ${nameOf(0)} ♥ ${nameOf(1)} 的小島`;
+}
+function connectNet(a) {
+  MP.on = true; MP.net = new Net({ message: onNet, status: (ok, was, code, reason) => {
+    updateNetChip();
+    if (!ok && (code === 4001 || code === 4003 || code === 4004 || code === 4005)) {
+      toast(reason || '連線中斷了', 5000);
+      if (code === 4004 && MP.role !== 'g') { saveAuth(null); }
+      if (MP.role === 'g') setTimeout(() => location.replace(location.pathname), 2500);
+      else leaveNet();
+    } else if (!ok && was) toast('連線中斷，重新連線中…');
+  } });
+  MP.net.connect(a); updateNetChip();
+}
+function leaveNet() {
+  MP.net?.close(); MP.on = false; MP.role = null; MP.led = null; MP.lead = false;
+  for (const p of MP.peers.values()) if (p.role === 'g') p.c.av.root.parent?.remove(p.c.av.root);
+  MP.peers.clear(); chars.forEach(c => { c.remote = false; c.net = null; c.sc = scene; }); $('#btn-swap').hidden = false; updateNetChip(); updateHud();
+}
+// 連線面板
+async function openNet() {
+  sfx('click'); const avail = await serverAvailable();
+  let html = '';
+  if (!avail) html = `<p>這個網址是<b>單機版</b>。連線版要用部署在 Cloudflare 的網址開啟（設定方法在 nest/worker/README.md）。</p><p class="muted">單機版的存檔不會不見；到了連線版網址再按「建立我們的小島」就能把存檔帶過去（同一支手機、同一個瀏覽器）。</p>`;
+  else if (!MP.on) html = `<p>把你們的小島放到網路上，兩個人用自己的手機一起玩，也可以邀請朋友來玩。</p>
+    <div class="opts"><button type="button" id="net-create">🏝️ 建立我們的小島<small>用這支手機目前的存檔；會拿到「情侶碼」給另一半</small></button>
+    <button type="button" id="net-pair">💌 我有情侶碼<small>加入另一半建立的小島（這支手機的存檔會換成那座島的）</small></button></div>`;
+  else if (MP.role === 'g') html = `<p>你在 <b>${esc(nameOf(0))} ♥ ${esc(nameOf(1))}</b> 的小島作客。</p>${peopleHtml()}
+    <label class="anniv"><span>說一句話（大家都看得到）</span><input id="net-say" maxlength="40" placeholder="例如：這裡好漂亮！"></label><button type="button" class="ghost" id="net-say-go">送出</button>
+    <label class="anniv"><span>在留言簿寫一句話給島主</span><input id="net-book" maxlength="40" placeholder="例如：謝謝招待～"></label><button type="button" class="ghost" id="net-book-go">留言</button>
+    <button type="button" class="ghost" id="net-leave">離開小島</button>`;
+  else {
+    const o = MP.owner || {}, link = `${location.origin}${location.pathname}?visit=${savedAuthNow().island}.${o.guest || ''}`;
+    html = `${peopleHtml(true)}
+      ${o.paired ? '' : `<div class="memo"><span class="ic">💌</span><b>情侶碼：<span style="font-size:22px;letter-spacing:.15em">${esc(o.pair || '（已過期）')}</span></b><small>給另一半在自己手機的「🌐 → 我有情侶碼」輸入（7 天內有效）</small></div><button type="button" class="ghost" id="net-newpair">重新產生情侶碼</button>`}
+      <div class="memo"><span class="ic">🎈</span><b>訪客連結</b><small style="word-break:break-all">${esc(link)}</small></div>
+      <div class="row"><button type="button" class="ghost" id="net-share">分享給朋友</button><button type="button" class="ghost" id="net-newguest">重設連結</button></div>
+      <button type="button" class="ghost" id="net-lock">${o.locked ? '🔓 打開小島（朋友可以進來）' : '🔒 鎖起來（朋友暫時不能進來）'}</button>
+      <b>📝 訪客留言簿</b>${(o.book || []).length ? o.book.slice(0, 20).map(e => `<div class="memo"><span class="ic">📝</span><b>${esc(e.text)}</b><small>${esc(e.n)}</small></div>`).join('') : '<p class="muted">還沒有人留言。</p>'}
+      <label class="anniv"><span>說一句話（大家都看得到）</span><input id="net-say" maxlength="40"></label><button type="button" class="ghost" id="net-say-go">送出</button>
+      <button type="button" class="ghost" id="net-logout">這支手機改回單機版</button>`;
+  }
+  openDlg('🌐 連線', html); $('#dlg').dataset.net = '1'; $('#dlg').addEventListener('close', () => { delete $('#dlg').dataset.net; }, { once: true });
+  const on = (id, fn) => { const e = $('#' + id); if (e) e.onclick = fn; };
+  on('net-create', async () => {
+    try { const r = await createIsland(st, st.ctrl); saveAuth({ island: r.island, key: r.key, role: r.role }); toast('小島建立好了！把情侶碼給另一半'); connectNet({ island: r.island, key: r.key }); setTimeout(openNet, 1200); }
+    catch (e) { toast(e.message); }
+  });
+  on('net-pair', () => {
+    openDlg('💌 輸入情侶碼', `<label class="anniv"><span>情侶碼（6 碼）</span><input id="pair-in" maxlength="8" autocomplete="off" style="text-transform:uppercase;letter-spacing:.15em"></label><button type="button" class="primary" id="pair-go">加入小島</button>`);
+    $('#pair-go').onclick = async () => { try { const r = await pairIsland($('#pair-in').value); saveAuth({ island: r.island, key: r.key, role: r.role }); $('#dlg').close(); toast('加入小島了 ❤'); connectNet({ island: r.island, key: r.key }); } catch (e) { toast(e.message); } };
+  });
+  on('net-newpair', () => MP.net.send({ t: 'newpair' }));
+  on('net-newguest', () => { if (confirm('重設之後，舊的訪客連結就不能用了。確定嗎？')) MP.net.send({ t: 'newguest' }); });
+  on('net-lock', () => MP.net.send({ t: 'lock', on: !MP.owner?.locked }));
+  on('net-share', async () => { const o = MP.owner || {}, link = `${location.origin}${location.pathname}?visit=${savedAuthNow().island}.${o.guest}`; const text = `來 ${nameOf(0)} ♥ ${nameOf(1)} 的小島玩吧！`; try { if (navigator.share) await navigator.share({ title: '我們的小島', text, url: link }); else { await navigator.clipboard.writeText(link); toast('連結已複製'); } } catch (e) {} });
+  on('net-logout', () => { if (!confirm('這支手機會離開連線、改回單機版（之後可以用情侶碼再加入）。確定嗎？')) return; saveAuth(null); leaveNet(); $('#dlg').close(); });
+  on('net-leave', () => { MP.net.close(); location.replace(location.pathname); });
+  on('net-say-go', () => { const r = checkChat($('#net-say').value); if (!r.ok) return toast(CHAT_WHY[r.why]); MP.net.send({ t: 'say', text: r.text }); $('#net-say').value = ''; $('#dlg').close(); });
+  on('net-book-go', () => { const r = checkChat($('#net-book').value); if (!r.ok) return toast(CHAT_WHY[r.why]); MP.net.send({ t: 'book', text: r.text }); $('#net-book').value = ''; toast('留言送出了 📝'); });
+  document.querySelectorAll('[data-kick]').forEach(b => b.onclick = () => { if (confirm('請這位朋友先離開嗎？')) MP.net.send({ t: 'kick', id: b.dataset.kick }); });
+}
+const savedAuthNow = () => { try { return JSON.parse(localStorage.getItem('nest.net') || '{}'); } catch (e) { return {}; } };
+function peopleHtml(owner) {
+  const rows = [`<li>${MP.role === 'g' ? '🎈 ' + esc(MP.guest?.name || '我') : esc(nameOf(MP.role))}（我）</li>`];
+  for (const [id, p] of MP.peers) rows.push(`<li>${p.role === 'g' ? '🎈 ' + esc(p.name) : '💗 ' + esc(nameOf(p.role)) + '（島主）'}${owner && p.role === 'g' ? ` <button type="button" class="ghost" data-kick="${id}" style="padding:2px 8px;font-size:12px">請離開</button>` : ''}</li>`);
+  return `<b>在島上的人（${MP.peers.size + 1}）</b><ul style="margin:0;padding-left:1.2em;display:grid;gap:4px">${rows.join('')}</ul>`;
+}
+
 // ---------- 主迴圈 ----------
 const clock = new THREE.Clock(); let T = 0, saveT = 0;
 function frame() {
@@ -1080,7 +1373,7 @@ function frame() {
     preview.t += dt * 0.08; const a = preview.t + 0.3;
     cam.position.set(Math.sin(a) * 52, 26, Math.cos(a) * 52); cam.lookAt(0, -6, 0);
     chars.forEach((c, i) => { c.x = i ? 0.7 : -0.7; c.z = -1.4; c.ry = 0; c.y = null; syncAv(c, dt); });
-    chars[0].av.holdHand(1); chars[1].av.holdHand(-1);
+    chars[0].av.holdHand(1); chars[1].av.holdHand(-1); placeRoots(dt); if (guestChar) syncAv(guestChar, dt);
     mixers.forEach(m => m.update(dt)); tickAnimals(dt, null, walkable);
     R.render(OUT, cam); return;
   }
@@ -1092,7 +1385,8 @@ function frame() {
     if (keys.has('w') || keys.has('arrowup')) iy -= 1; if (keys.has('s') || keys.has('arrowdown')) iy += 1; if (keys.has('a') || keys.has('arrowleft')) ix -= 1; if (keys.has('d') || keys.has('arrowright')) ix += 1;
     const mag = Math.min(1, Math.hypot(ix, iy));
     const yaw = scene === 'in' ? view.inYaw : view.yaw;
-    if (mag > 0.12) {
+    if (MP.on && netMove(dt, mag > 0.12)) { /* 被牽著走、走過去讓對方抱 */ }
+    else if (mag > 0.12) {
       p.path = null; lovePending = null;
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = -fz, rz = fx;
       const dx = fx * -iy + rx * ix, dz = fz * -iy + rz * ix;
@@ -1108,7 +1402,9 @@ function frame() {
   }
   if (!act || !you().locked) partnerAI(dt);
   if (act) { act.t += dt; act.update?.(dt); }
-  chars.forEach(c => syncAv(c, dt));
+  placeRoots(dt);
+  allChars().forEach(c => syncAv(c, dt));
+  netTick(dt);
   if (ringM?.parent) { ringM.userData.t += dt; ringM.material.opacity = 1 - ringM.userData.t; ringM.scale.setScalar(1 + ringM.userData.t); if (ringM.userData.t > 1) ringM.parent.remove(ringM); }
 
   if (scene === 'out') {
@@ -1124,6 +1420,37 @@ function frame() {
   R.render(curS(), cam);
 }
 
+// ---------- 訪客連結、情侶碼連結 ----------
+const qs = new URLSearchParams(location.search);
+const visitParam = (qs.get('visit') || '').toUpperCase().split('.'), pairParam = (qs.get('pair') || '').toUpperCase();
+if (!visitParam[0] || !visitParam[1]) visitParam.length = 0;
+async function setupVisit() {
+  const [island, code] = visitParam, card = $('.splash-card');
+  const look = randomLook(Math.random() < 0.5 ? 'f' : 'm');
+  card.innerHTML = `<p class="eyebrow">朋友的小島</p><h1>拜訪小島</h1><p class="sub" id="v-sub">讀取中…</p>
+    <label class="anniv"><span>你的暱稱</span><input id="v-name" maxlength="8" autocomplete="off" placeholder="例如：小明"></label>
+    <div class="seg"><button type="button" data-g="f">女生</button><button type="button" data-g="m">男生</button><button type="button" class="shuffle">🎲 換樣子</button></div>
+    <button type="button" id="v-go" class="primary" disabled>登島拜訪 🎈</button><p class="load-msg" id="v-msg"></p>`;
+  let L = look; const prev = newChar(L); prev.x = 0; prev.z = -1.4; prev.ry = 0; guestChar = prev;
+  const segs = () => card.querySelectorAll('[data-g]').forEach(b => b.setAttribute('aria-pressed', String(L.gender === b.dataset.g))); segs();
+  card.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { L = randomLook(b.dataset.g); prev.av.setLook(L); segs(); });
+  card.querySelector('.shuffle').onclick = () => { L = randomLook(L.gender); prev.av.setLook(L); prev.av.emote('jump', 1); };
+  let info = null;
+  try { info = await peekIsland(island, code); } catch (e) { $('#v-sub').textContent = e.message; return; }
+  $('#v-sub').textContent = `${info.names?.[0] || '島主'} ♥ ${info.names?.[1] || '島主'} 邀請你來小島玩` + (info.locked ? '（小島目前鎖起來了）' : info.full ? '（朋友已經滿了）' : '');
+  if (info.looks) { [0, 1].forEach(i => { st.looks[i] = info.looks[i]; chars[i].av.setLook(info.looks[i]); }); st.names = info.names; }
+  $('#v-go').disabled = !!(info.locked || info.full);
+  $('#v-go').onclick = () => {
+    const r = checkName($('#v-name').value); if (!r.ok) { $('#v-msg').textContent = NAME_WHY[r.why]; return; }
+    MP.guest = { name: r.text || '朋友', look: L }; MP.role = 'g'; MP.on = true;
+    Music.init(); if (st.music) Music.play();
+    $('#splash').classList.add('out'); setTimeout(() => { $('#splash').hidden = true; }, 600);
+    $('#hud').hidden = false; preview.on = false;
+    prev.x = SPOTS.door.x + rand(-1, 1); prev.z = 3 + rand(0, 1); prev.ry = 0; updateCam(0, true);
+    connectNet({ island, guest: code, name: MP.guest.name, look: L }); toast(`歡迎來到 ${nameOf(0)} ♥ ${nameOf(1)} 的小島！`, 3500);
+  };
+}
+
 // ---------- 開始 ----------
 (async function boot() {
   makeAv(0); makeAv(1); syncSplash(); initUpdates();
@@ -1137,5 +1464,6 @@ function frame() {
   spawnShells(); showCastles(); st.garden.forEach((_, i) => drawPlant(i));
   updateCam(0, true);
   buildInterior().then(I => { IN = I; });
-  window.__nest = { st, chars, W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  if (visitParam.length) setupVisit();
+  window.__nest = { get st() { return st; }, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();
