@@ -5,12 +5,13 @@
 // - 島主用「鑰匙」（隨機 32 字，只存雜湊）登入；朋友用訪客連結裡的訪客碼，最多 4 位，島主可重設、請離開、鎖島。
 // - 不收真實姓名、電話等個資；暱稱與留言用 js/chatfilter.js 過濾（擋網址、聯絡方式、不雅字詞）。
 import { checkChat, checkName } from '../js/chatfilter.js';
+import { newVapid, okSub, sendPush } from './push.js';
 
 const MAX_GUESTS = 4;
 const PAIR_DAYS = 7;
 const HOUR_MS = 36000; // 遊戲裡一小時 = 36 秒（跟前端一樣）
 // 兩位島主共用的存檔欄位
-const SHARED = ['names', 'looks', 'anniv', 'love', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
+const SHARED = ['names', 'looks', 'anniv', 'love', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos'];
 const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(x => ABC[x % ABC.length]).join(''); };
 const hash = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -28,6 +29,10 @@ function cleanSave(s) {
   if (o.looks) o.looks = [cleanLook(o.looks[0]), cleanLook(o.looks[1])];
   if (o.names) o.names = [0, 1].map(i => { const r = checkName(o.names?.[i]); return r.ok ? r.text : ''; });
   if (Array.isArray(o.diary)) o.diary = o.diary.slice(0, 300);
+  // 冰箱便利貼：最多 20 張，每張 60 字
+  if ('notes' in o) o.notes = (Array.isArray(o.notes) ? o.notes : []).slice(0, 20).filter(n => n && typeof n.text === 'string').map(n => ({ by: n.by === 1 ? 1 : 0, text: n.text.slice(0, 60), ts: num(n.ts, 0, 1e14) }));
+  // 相片牆：最多 6 張小縮圖
+  if ('photos' in o) o.photos = (Array.isArray(o.photos) ? o.photos : []).slice(0, 6).filter(p => p && typeof p.src === 'string' && p.src.startsWith('data:image/jpeg;base64,') && p.src.length < 30000).map(p => ({ src: p.src, d: String(p.d || '').slice(0, 12) }));
   if (JSON.stringify(o).length > 200000) delete o.diary;
   return o;
 }
@@ -62,6 +67,7 @@ export default {
       if (j.error) return json(j, 400);
       return json({ island: r.island, key: j.key, role: j.role });
     }
+    if (path === '/api/vapid') { const v = await (await call(reg, '/vapid', {})).json(); return json({ key: v.pub }); }
     if (path === '/api/peekpair') { // 看情侶碼是誰的小島（不會用掉情侶碼）
       const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       const r = await (await call(reg, '/look', { code })).json(); if (!r.island) return json({ error: '情侶碼不對或已經過期了' }, 400);
@@ -87,6 +93,7 @@ export class Registry {
       const exp = Date.now() + PAIR_DAYS * 864e5; await S.put('c:' + code, { island: b.island, exp });
       return json({ code, exp });
     }
+    if (p === '/vapid') { let v = await S.get('vapid'); if (!v) { v = await newVapid(); await S.put('vapid', v); } return json(v); } // 推播金鑰：只在伺服器裡
     if (p === '/look') { const v = await S.get('c:' + b.code); return json(v && v.exp > Date.now() ? { island: v.island } : {}); }
     if (p === '/take') {
       const v = await S.get('c:' + b.code); if (!v || v.exp < Date.now()) { if (v) await S.delete('c:' + b.code); return json({}); }
@@ -150,6 +157,7 @@ export class Island {
   }
 
   async join(url) {
+    this.origin = url.origin.replace(/^ws/, 'http'); // 推播時說明是誰送的
     const pair = new WebSocketPair(), [client, server] = Object.values(pair);
     server.accept();
     const fail = (code, why) => { server.close(code, why); return new Response(null, { status: 101, webSocket: client }); };
@@ -216,7 +224,22 @@ export class Island {
         this.bcast({ t: 'save', keys }, s); break;
       }
       case 'addlove': if (!owner) return; this.save.love = int((this.save.love || 0) + int(m.n, 0, 30), 0, 1e7); await this.persist('save'); this.bcast({ t: 'save', keys: { love: this.save.love } }); break;
-      case 'memo': if (!owner) return; await this.addMemo({ icon: String(m.icon || '').slice(0, 4), text: String(m.text || '').slice(0, 80), d: String(m.d || '').slice(0, 12), day: int(m.day, 1, 99999) }, s); break;
+      case 'memo': if (!owner) return; await this.addMemo({ icon: String(m.icon || '').slice(0, 4), text: String(m.text || '').slice(0, 80), d: String(m.d || '').slice(0, 12), day: int(m.day, 1, 99999), by: s.role }, s); break;
+      // 推播：這支手機的訂閱（on = false 取消）
+      case 'pushsub': {
+        if (!owner || this.gap(s, 'pushsub', 2000)) return; const P = this.meta.push || { 0: [], 1: [] }, mine = (P[s.role] || []).filter(x => x.endpoint !== m.sub?.endpoint);
+        if (m.on && okSub(m.sub)) mine.unshift({ endpoint: m.sub.endpoint, keys: { p256dh: m.sub.keys.p256dh, auth: m.sub.keys.auth } });
+        P[s.role] = mine.slice(0, 3); this.meta.push = P; await this.persist('meta'); send(s, { t: 'pushok', on: !!(m.on && okSub(m.sub)) }); break;
+      }
+      // 想你、留便利貼：另一半在線上就直接告訴他，不在就推播到他手機
+      case 'nudge': {
+        if (!owner) return; const k = m.k === 'note' ? 'note' : 'miss'; if (this.gap(s, 'nudge-' + k, k === 'miss' ? 15000 : 5000)) return send(s, { t: 'err', why: 'slow' });
+        const to = 1 - s.role, name = (this.save.names || [])[s.role] || '另一半', text = String(m.text || '').slice(0, 60);
+        const on = [...this.sessions.values()].filter(x => x.ready && x.role === to);
+        if (on.length) { on.forEach(x => send(x, { t: 'nudge', k, from: s.role, text })); return send(s, { t: 'nudged', k, live: 1 }); }
+        const n = await this.push(to, k === 'miss' ? { title: '💗 我們的小島', body: `${name} 想你了`, tag: 'miss' } : { title: '📝 冰箱上多了一張便利貼', body: `${name}：「${text}」`, tag: 'note' });
+        send(s, { t: 'nudged', k, live: 0, pushed: n }); break;
+      }
       case 'tod': if (!owner) return; this.clock = { tod: num(m.tod, 0, 23.999), day: int(m.day, 1, 99999), at: Date.now() }; await this.persist('clock'); this.bcast({ t: 'clock', clock: this.clock }, s); break;
       case 'book': { // 訪客留言簿
         if (this.gap(s, 'book', 20000)) return send(s, { t: 'err', why: 'slow' }); const r = checkChat(m.text); if (!r.ok) return send(s, { t: 'err', why: r.why });
@@ -237,8 +260,17 @@ export class Island {
     }
   }
   ownersSend(o) { for (const x of this.sessions.values()) if (x.ready && (x.role === 0 || x.role === 1)) send(x, o); }
+  // 推播給某位島主的所有手機；回傳送出幾則
+  async push(role, payload) {
+    const subs = this.meta.push?.[role] || []; if (!subs.length) return 0;
+    if (!this.vapid) this.vapid = await (await this.env.REGISTRY.get(this.env.REGISTRY.idFromName('registry')).fetch('https://x/vapid', { method: 'POST', body: '{}' })).json();
+    let n = 0, gone = [];
+    for (const sub of subs) { try { const r = await sendPush(sub, payload, this.vapid, this.origin || 'https://our-island.workers.dev'); if (r === 'ok') n++; if (r === 'gone') gone.push(sub.endpoint); } catch (e) {} }
+    if (gone.length) { this.meta.push[role] = subs.filter(x => !gone.includes(x.endpoint)); await this.persist('meta'); }
+    return n;
+  }
   async addMemo(e, except) {
-    const d = new Date(Date.now() + 8 * 3600e3); const memo = { d: e.d || `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`, day: e.day || this.now().day, icon: e.icon || '💗', text: e.text };
+    const d = new Date(Date.now() + 8 * 3600e3); const memo = { d: e.d || `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`, day: e.day || this.now().day, icon: e.icon || '💗', text: e.text, ts: Date.now(), by: e.by ?? null };
     this.save.diary = [memo, ...(this.save.diary || [])].slice(0, 300); await this.persist('save');
     for (const x of this.sessions.values()) if (x !== except && x.ready && (x.role === 0 || x.role === 1)) send(x, { t: 'memo', m: memo });
   }
