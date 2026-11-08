@@ -209,3 +209,11 @@ dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
 
 #btn-flash { position: absolute; left: calc(150px + var(--safe-l)); bottom: calc(92px + var(--safe-b)); }
 #btn-flash[aria-pressed="true"] { background: linear-gradient(135deg, #ffd86a, #ffb03a); color: #4a3440; }
+
+/* 左上角卡片：字太長就截斷，不超出卡片 */
+.card { overflow: hidden; }
+.card > span { min-width: 0; }
+.card .days { overflow: hidden; text-overflow: ellipsis; }
+.card .love { width: 100%; }
+.card .days { grid-column: 1 / -1; }
+.clock-chip { font-size: 12.5px; padding: 6px 10px; }

@@ -117,7 +117,7 @@ function addLove(n, why, key) {
 }
 function updateHud() {
   $('#hud-names').textContent = `${nameOf(myIdx())} ♥ ${nameOf(1 - myIdx())}`;
-  const d = daysTogether(), se = seasonOf(st.day); $('#hud-days').textContent = (d ? `在一起第 ${d} 天` : `小島第 ${st.day} 天`) + ` ${se.icon}${se.name}`;
+  const d = daysTogether(), se = seasonOf(st.day); $('#hud-days').textContent = (d ? `在一起第 ${d} 天` : `小島第 ${st.day} 天`) + ` ${se.icon}`;
   const L = levelOf(st.love); $('#hud-lv').textContent = `Lv${L.lv} ${L.title}`; $('#love-bar').style.width = (L.pct * 100).toFixed(1) + '%';
   $('#btn-music').setAttribute('aria-pressed', String(!!st.music));
 }
@@ -1799,8 +1799,10 @@ function flashFor(c) {
   const item = new THREE.Group(); const body = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.22, 10), toon('#3a3a44')); body.rotation.x = Math.PI / 2; body.position.z = 0.08; item.add(body);
   const lens = new THREE.Mesh(new THREE.CircleGeometry(0.045, 12), new THREE.MeshBasicMaterial({ color: '#fff6c8' })); lens.position.z = 0.195; item.add(lens);
   const spot = new THREE.SpotLight('#fff1c8', 40, 22, 0.45, 0.55, 1.4); const tgt = new THREE.Object3D(); spot.target = tgt;
-  const beam = new THREE.Mesh(new THREE.ConeGeometry(1.2, 6, 20, 1, true), new THREE.MeshBasicMaterial({ color: '#fff3c0', transparent: true, opacity: 0.07, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false }));
-  f = { item, spot, tgt, beam, on: false }; flashes.set(c, f); return f;
+  // 光束：尖端在原點（燈頭）、往 +z 變寬，用 lookAt 對準照的方向
+  const cone = new THREE.ConeGeometry(1.1, 6, 20, 1, true); cone.translate(0, -3, 0); cone.rotateX(-Math.PI / 2);
+  const beam = new THREE.Mesh(cone, new THREE.MeshBasicMaterial({ color: '#fff3c0', transparent: true, opacity: 0.07, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false }));
+  f = { item, lens, spot, tgt, beam, on: false }; flashes.set(c, f); return f;
 }
 function tickFlash() {
   for (const c of allChars()) {
@@ -1813,12 +1815,12 @@ function tickFlash() {
     if (f.spot.parent !== S) { S.add(f.spot); S.add(f.tgt); S.add(f.beam); }
     // 活動結束後手上空了：再拿起手電筒
     if (!c.av.item && !c.locked && !(c === me() ? act : c.act)) { c.av.setItem(f.item); c.av.reach(true); }
-    // 從手的位置往前照
-    const fx = Math.sin(c.ry), fz = Math.cos(c.ry), base = c.av.root.position;
-    f.spot.position.set(base.x + fx * 0.3, base.y + 1.0, base.z + fz * 0.3);
-    f.tgt.position.set(base.x + fx * 7, base.y - 0.3, base.z + fz * 7);
-    f.beam.position.set(base.x + fx * 3.2, base.y + 0.55, base.z + fz * 3.2);
-    f.beam.lookAt(f.tgt.position); f.beam.rotateX(-Math.PI / 2);
+    // 從手電筒的燈頭往前、稍微往下照
+    const fx = Math.sin(c.ry), fz = Math.cos(c.ry), base = c.av.root.position, lp = new THREE.Vector3();
+    if (c.av.item === f.item) f.lens.getWorldPosition(lp); else lp.set(base.x + fx * 0.35, base.y + 0.7, base.z + fz * 0.35);
+    f.spot.position.copy(lp);
+    f.tgt.position.set(lp.x + fx * 7, base.y - 0.2, lp.z + fz * 7);
+    f.beam.position.copy(lp); f.beam.lookAt(f.tgt.position);
     // 白天光束淡一點
     f.beam.material.opacity = 0.03 + nightK * 0.07;
   }
