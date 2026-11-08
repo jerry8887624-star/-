@@ -928,19 +928,23 @@ function actBoat() {
   let s = 0, paused = false, phase = 'out', lapA = 0, tk = 0;
   const place = () => {
     const ry = boat.rotation.y, fx = Math.sin(ry), fz = Math.cos(ry);
-    const y = boat.position.y + 0.18 - HIP + 0.1;
+    const y = boat.position.y + 0.44 - HIP; // 坐在船中間的橫板上，上半身露出船邊
     const [a, b] = passenger ? [you(), me()] : [me(), you()];
     if (!a.remote && !a.ghost) { a.x = boat.position.x + fx * 0.55; a.z = boat.position.z + fz * 0.55; a.y = y; a.ry = ry + Math.PI; }
     if (!b.remote && !b.ghost) { b.x = boat.position.x - fx * 0.55; b.z = boat.position.z - fz * 0.55; b.y = y; b.ry = ry; }
   };
   MP.driving = !passenger;
-  fadeDo(() => { [me(), you()].forEach(c => { if (c.remote || c.ghost) return; c.locked = true; c.av.setPose('sit'); c.moving = false; }); if (!passenger) me().av.reach(true); place(); }, 250);
+  if (!W.oars) { W.oars = makeOars(boat); poseOars(W.oars, null); }
+  let rowPh = 0; const rower = () => passenger ? driver : me();
+  const grips = () => W.oars.map(o => o.userData.grip.getWorldPosition(new THREE.Vector3()));
+  fadeDo(() => { [me(), you()].forEach(c => { if (c.remote || c.ghost) return; c.locked = true; c.av.setPose('sit'); c.moving = false; }); if (!passenger) me().av.emote('row', 9999); place(); }, 250);
   const startP = new THREE.Vector3(Math.cos(a0) * RAD, 0, Math.sin(a0) * RAD);
   beginAct('boat', '🚣 划船', '慢慢划著船，繞小島一圈。', {
     focus: () => boat.position.clone().add(new THREE.Vector3(0, 1, 0)), back: [SPOTS.boat.x, 0.2], bigView: true,
     btns: passenger ? [{ t: '在船上比愛心', main: true, fn: () => { me().av.emote('shy', 1.4); burst('heart', headPos(me(), 1.2), 5); addLove(2, null, 'boatheart'); } }] : [{ t: '停下來看海', fn: () => { paused = !paused; msg(paused ? '海面亮晶晶的，好安靜。' : '繼續划～'); me().av.reach(!paused); if (paused) { you().av.emote('shy', 1.4); burst('heart', midPos(1.1), 4); addLove(2, null, 'boatstop'); } } }, { t: '划回碼頭', main: true, fn: () => { phase = 'home'; paused = false; msg('往碼頭划回去～'); } }],
     update(dt) {
-      if (passenger) { if (driver.act !== 'boat' || !driver.remote) { endAct(); return; } place(); return; }
+      if (passenger) { if (driver.act !== 'boat' || !driver.remote) { endAct(); return; } rowPh += dt * 2.4; poseOars(W.oars, rowPh); boat.updateMatrixWorld(true); driver.av.rowGrip = grips(); place(); return; }
+      if (!paused) rowPh += dt * 2.4; poseOars(W.oars, paused ? null : rowPh); boat.updateMatrixWorld(true); me().av.rowGrip = paused ? null : grips();
       const t = performance.now() / 1000; boat.position.y = 0.05 + Math.sin(t * 1.6) * 0.05; boat.rotation.z = Math.sin(t * 1.2) * 0.04;
       if (MP.on) MP.net.send({ t: 'boat', x: +boat.position.x.toFixed(2), z: +boat.position.z.toFixed(2), ry: +boat.rotation.y.toFixed(3) });
       if (!paused) {
@@ -951,7 +955,28 @@ function actBoat() {
       }
       place(); tk += dt; if (tk > 10) { tk = 0; addLove(1); }
     },
-    end() { MP.driving = false; if (passenger) return; boat.position.copy(home); boat.rotation.set(0, homeRy, 0); if (MP.on) MP.net.send({ t: 'boat', x: home.x, z: home.z, ry: homeRy, home: 1 }); },
+    end() { MP.driving = false; poseOars(W.oars, null); rower().av.rowGrip = null; if (passenger) return; me().av.emote('idle', 0.1); boat.position.copy(home); boat.rotation.set(0, homeRy, 0); if (MP.on) MP.net.send({ t: 'boat', x: home.x, z: home.z, ry: homeRy, home: 1 }); },
+  });
+}
+// 兩支木槳：掛在船邊的槳架上（船的座標：x 往左右、z 往船頭），划的時候前後擺、槳葉一下一下入水
+function makeOars(boat) {
+  const wood = toon('#a87a4e'), blade = toon('#c99a62');
+  return [-1, 1].map(side => {
+    const pivot = new THREE.Group(); pivot.position.set(side * 0.64, 0.62, 0.3); boat.add(pivot);
+    const tilt = new THREE.Group(); pivot.add(tilt);
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.3, 6), wood); shaft.rotation.z = Math.PI / 2; shaft.position.x = side * 0.7; tilt.add(shaft);
+    const bl = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.16), blade); bl.position.x = side * 1.7; tilt.add(bl);
+    const grip = new THREE.Object3D(); grip.position.x = -side * 0.42; tilt.add(grip); // 手握的地方（在船裡面）
+    pivot.userData = { side, tilt, grip }; return pivot;
+  });
+}
+// ph：划槳的進度（弧度）；null = 收槳休息
+function poseOars(oars, ph) {
+  oars.forEach(o => {
+    const { side, tilt } = o.userData;
+    if (ph == null) { o.rotation.y = side * 0.9; tilt.rotation.z = side * 0.12; return; }
+    const sw = Math.sin(ph), dip = Math.cos(ph) > 0 ? 1 : 0; // 往前拉的半圈槳葉在水裡，回程抬起來
+    o.rotation.y = side * sw * 0.55; tilt.rotation.z = side * (dip ? -0.36 : -0.18);
   });
 }
 // 小船模型的船頭朝 +z

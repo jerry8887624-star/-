@@ -305,6 +305,13 @@ export class Avatar {
       this.ik(L, LF, LH, V(lp.x + GUITAR.neck[0], lp.y + GUITAR.neck[1], lp.z + 0.1), V(0.3, -1, -0.4), w);
       this.ik(R, RF, RH, V(lp.x - 0.02, lp.y + 0.08 + sw * 0.04, lp.z + 0.14), V(-0.6, -0.2, -1), w);
     }
+    // 划船：兩手握住槳柄（位置由 main.js 每格算好，世界座標），身體跟著一推一拉前後擺
+    if ((w = s('row', e === 'row' && !!this.rowGrip, 6))) {
+      const [A, B] = this.rowGrip.map(p => this.root.worldToLocal(p.clone())), [Lp, Rp] = A.x > B.x ? [A, B] : [B, A];
+      const lean = Math.max(-0.25, Math.min(0.3, ((Lp.z + Rp.z) / 2 - 0.3) * 0.8));
+      this.twist('Spine', V(1, 0, 0), lean * 1.1 * w); this.twist('Spine1', V(1, 0, 0), lean * 0.5 * w);
+      this.ik(L, LF, LH, Lp, V(1, -0.7, -0.5), w); this.ik(R, RF, RH, Rp, V(-1, -0.7, -0.5), w);
+    }
     this.body.position.y = by;
     if (this.lapItem) { this.bones.Hips.getWorldPosition(_v1); this.root.worldToLocal(_v1); this.lap.position.set(_v1.x + LAP[0], _v1.y + LAP[1], _v1.z + LAP[2]); }
     // 4. 手上的東西保持跟身體同方向；頭微微晃
