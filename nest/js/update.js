@@ -30,8 +30,13 @@ async function check() {
 
 async function applyUpdate() {
   $('#update-go').disabled = true; $('#update-go').textContent = '更新中…';
-  try { const r = await navigator.serviceWorker?.getRegistration(); await r?.update(); } catch (e) {}
-  location.reload();
+  // 等新版的離線快取裝好再重新開（最多 6 秒），網址加上時間讓瀏覽器一定拿新的網頁
+  try {
+    const r = await navigator.serviceWorker?.getRegistration(); await r?.update();
+    const w = r?.installing || r?.waiting;
+    if (w) await new Promise(res => { const t = setTimeout(res, 6000); w.addEventListener('statechange', () => { if (w.state === 'activated') { clearTimeout(t); res(); } }); });
+  } catch (e) {}
+  location.replace(location.pathname + (location.search ? location.search + '&' : '?') + 'u=' + Date.now());
 }
 
 // 更新後第一次打開：介紹這次改了什麼

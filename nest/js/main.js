@@ -1240,7 +1240,9 @@ function actEat() {
 const dlgKind = t => /^📋/.test(t) ? 'note' : /^📔/.test(t) ? 'album' : /^📝 冰箱|留給你的/.test(t) ? 'cork' : /信|^🎉|^🍾/.test(t) ? 'letter' : '';
 const DLG_EN = { '📋': 'Daily Quest', '📔': 'Memories', '💌': 'Letter', '🌐': 'Connect', '🗺️': 'Island Map', '🎵': 'Music', '📝': 'Notes', '🍾': 'Message in a Bottle', '🎁': 'Gift', '🎉': 'Anniversary', '🛍️': 'Shop', '🪙': 'Shop', '👗': 'Wardrobe', '🍳': 'Recipes', '🌱': 'Garden', '📳': 'Notifications', '🏆': 'Rewards' };
 function setDlgTitle(title) {
-  const m = title.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u), ic = m?.[1] || '', tx = m ? m[2] : title, en = DLG_EN[ic] || '';
+  // 標題都是「圖示＋空白＋文字」；不用 \p{…} 正規表示式（舊版 iPhone 不支援，整支程式會載不起來）
+  const sp = title.indexOf(' '), head = sp > 0 && sp <= 3 ? title.slice(0, sp) : '', isIc = head && !/[\u4e00-\u9fffA-Za-z0-9]/.test(head);
+  const ic = isIc ? head : '', tx = isIc ? title.slice(sp + 1) : title, en = DLG_EN[ic] || '';
   $('#dlg-title').innerHTML = `${en ? `<small class="t-en">${esc(en)}</small>` : ''}${ic ? `<span class="t-ic">${ic}</span>` : ''}<span class="t-tx">${esc(tx)}</span>`;
 }
 function openDlg(title, html) { setDlgTitle(title); $('#dlg-body').innerHTML = html; const d = $('#dlg'); const k = dlgKind(title); if (k) d.dataset.kind = k; else delete d.dataset.kind; d.querySelector('#dlg-body').scrollTop = 0; if (!d.open) d.showModal(); }
@@ -2471,6 +2473,8 @@ applyUI(st.ui);
 
 // ---------- 開始 ----------
 (async function boot() {
+  window.__modOK = true; // 給 index.html 的看門狗：程式有順利跑起來
+  if (/[?&]u=/.test(location.search)) history.replaceState(null, '', location.pathname + location.search.replace(/[?&]u=\d+/, '').replace(/^&/, '?'));
   makeAv(0); makeAv(1); syncSplash(); initUpdates();
   const msgEl = $('#load-msg'), btn = $('#start-btn'); btn.disabled = true;
   if (st.started) { btn.textContent = `回到小島 ♥`; }
@@ -2485,5 +2489,6 @@ applyUI(st.ui);
   CIRCLES.push([TREE.x, TREE.z, 0.45]); drawTree(); setupSurprise(); drawPlaces();
   if (visitParam.length) setupVisit();
   else if (pairParam) setupPairSplash();
+  window.__booted = true;
   window.__nest = { bond: { setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();

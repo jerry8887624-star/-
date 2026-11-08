@@ -120,6 +120,24 @@
   </form>
 </dialog>
 <span id="app-ver" hidden></span>
+<script>
+/* 看門狗：更新後如果程式檔新舊混在一起、小島載不起來，就清掉手機裡的舊檔重新開（自動一次，之後給按鈕） */
+window.__fixIsland = function () {
+  try { sessionStorage.setItem('nest.fixed', '1'); } catch (e) {}
+  var go = function () { location.replace(location.pathname + '?u=' + Date.now()); };
+  var jobs = [];
+  if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+  if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+  Promise.all(jobs).then(go, go); setTimeout(go, 3000);
+};
+setTimeout(function () {
+  if (window.__modOK) return;
+  var fixed = false; try { fixed = sessionStorage.getItem('nest.fixed'); } catch (e) {}
+  if (!fixed) return window.__fixIsland();
+  var m = document.getElementById('load-msg');
+  if (m) { m.innerHTML = '小島沒有載入完整　<button type="button" id="fix-btn" class="ghost" style="margin-left:6px">重新整理小島</button>'; document.getElementById('fix-btn').onclick = window.__fixIsland; }
+}, 9000);
+</script>
 <script type="module" src="js/main.js"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', function () { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {}); });
