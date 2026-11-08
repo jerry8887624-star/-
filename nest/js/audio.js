@@ -17,6 +17,8 @@ function noise(t0, dur, { vol = 0.2, freq = 1200, q = 0.8, type = 'bandpass' } =
   const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; f.type = type; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol;
   s.connect(f); f.connect(g); g.connect(master); s.start(t0);
 }
+// 給環境音用：拿到同一個 AudioContext 與總音量
+export function audioCtx() { return ac() ? { ctx, master } : null; }
 export function sfx(name) {
   if (!ac()) return; const t = ctx.currentTime;
   switch (name) {

@@ -1,11 +1,13 @@
 // 我們的小島：情侶小窩 3D 遊戲
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
-import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR } from './terrain.js';
+import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from './terrain.js';
 import { buildIsland, buildInterior, setTimeOfDay, SPOTS, INSPOTS, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, toon, toonGrad, tickAnimals, playA, progress, mixers } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
-import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS } from './data.js';
+import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES } from './data.js';
+import { Amb } from './amb.js';
+import { weatherAt, seasonOf, createWeatherFX, umbrellaItem, snowmanMesh, SEASON_DAYS } from './weather.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
 import { Music, sfx, TRACKS } from './audio.js';
 import { Net, auth as savedAuth, saveAuth, serverAvailable, createIsland, pairIsland, peekIsland } from './net.js';
@@ -80,6 +82,8 @@ $('#start-btn').onclick = () => {
   chars.forEach(c => { c.locked = false; c.av.setPose('stand'); c.av.holdHand(0); });
   placeStart();
   updateHud();
+  Amb.start(); Amb.setOn(st.amb !== false); updateChips(); drawDecor(); drawSnowman(); if (st.low) applyLow(); setRun(!!st.run);
+  if (!st.tut) setTimeout(tutorialStart, 1500);
   if (savedAuth?.key) serverAvailable().then(ok => { if (ok) { MP.role = savedAuth.role; MP.on = true; snapSent(); connectNet(savedAuth); } });
   if (pairParam) setTimeout(() => { openNet().then(() => { $('#net-pair')?.click(); const i = $('#pair-in'); if (i) i.value = pairParam; }); }, 800);
   if (first) { addMemo('🏝️', `${nameOf(myIdx())} 搬到了小島上`); setTimeout(() => toast('歡迎回家！靠近有標籤的地方就能做事；🌐 可以邀請另一半 ♥', 4500), 900); }
@@ -113,11 +117,11 @@ function addLove(n, why, key) {
 }
 function updateHud() {
   $('#hud-names').textContent = `${nameOf(myIdx())} ♥ ${nameOf(1 - myIdx())}`;
-  const d = daysTogether(); $('#hud-days').textContent = d ? `在一起第 ${d} 天` : `小島第 ${st.day} 天`;
+  const d = daysTogether(), se = seasonOf(st.day); $('#hud-days').textContent = (d ? `在一起第 ${d} 天` : `小島第 ${st.day} 天`) + ` ${se.icon}${se.name}`;
   const L = levelOf(st.love); $('#hud-lv').textContent = `Lv${L.lv} ${L.title}`; $('#love-bar').style.width = (L.pct * 100).toFixed(1) + '%';
   $('#btn-music').setAttribute('aria-pressed', String(!!st.music));
 }
-function clockText() { const h = Math.floor(st.tod), m = Math.floor((st.tod - h) * 60); const ic = st.tod >= 5.5 && st.tod < 17.8 ? '☀️' : st.tod >= 17.8 && st.tod < 19.3 ? '🌇' : '🌙'; return `${ic} ${String(h).padStart(2, '0')}:${String(Math.floor(m / 10) * 10).padStart(2, '0')}`; }
+function clockText() { const h = Math.floor(st.tod), m = Math.floor((st.tod - h) * 60); const wi = weatherAt(st.day, st.tod).icon; const ic = wi || (st.tod >= 5.5 && st.tod < 17.8 ? '☀️' : st.tod >= 17.8 && st.tod < 19.3 ? '🌇' : '🌙'); return `${ic} ${String(h).padStart(2, '0')}:${String(Math.floor(m / 10) * 10).padStart(2, '0')}`; }
 const isNight = () => st.tod >= 19 || st.tod < 5.3;
 
 // ---------- 特效：愛心、音符、睡覺 Z、亮晶晶 ----------
@@ -253,8 +257,8 @@ function spawnRing(p) {
 // ---------- 移動與碰撞 ----------
 const R_BODY = 0.28;
 function canStand(x, z) {
-  if (scene === 'in') { const hw = ROOM.w / 2 - 0.4, hd = ROOM.d / 2 - 0.4; return x > -hw && x < hw && z > -hd && z < hd + 0.3 && !blocked(x, z, R_BODY, [], IN.BOXES); }
-  return walkable(x, z) && !blocked(x, z, R_BODY, CIRCLES, BOXES);
+  if (scene === 'in') { const hw = ROOM.w / 2 - 0.4, hd = ROOM.d / 2 - 0.4; return x > -hw && x < hw && z > -hd && z < hd + 0.3 && !blocked(x, z, R_BODY, DCIRC.in, IN.BOXES); }
+  return walkable(x, z) && !blocked(x, z, R_BODY, CIRCLES, BOXES) && !blocked(x, z, R_BODY, DCIRC.out, []);
 }
 // ---------- 找路（A*）：繞過小木屋、樹、家具，沿著沙灘走上碼頭 ----------
 const grids = {};
@@ -450,7 +454,7 @@ const msg = t => { $('#ap-msg').textContent = t; };
 function meter(on, v = 0, zone) { const m = $('#ap-meter'); m.hidden = !on; if (!on) return; m.querySelector('i').style.width = (v * 100) + '%'; if (zone) { const em = m.querySelector('em'); em.style.left = zone[0] * 100 + '%'; em.style.width = (zone[1] - zone[0]) * 100 + '%'; } }
 function beginAct(id, title, text, o = {}) {
   act = { id, t: 0, ...o }; $('#act-panel').hidden = false; $('#ap-title').textContent = title; msg(text); meter(false); setBtns(o.btns || []);
-  toggleLoveMenu(false); $('#btn-act').hidden = true; $('#joy').style.visibility = 'hidden';
+  toggleLoveMenu(false); $('#btn-act').hidden = true; if (!o.move) $('#joy').style.visibility = 'hidden';
   // 有些活動要看向特定方向（海、夕陽、煙火）
   act.camBack = { yaw: view.yaw, pitch: view.pitch };
   if (o.camYaw != null) { view.yaw = o.camYaw; if (o.camPitch != null) view.pitch = o.camPitch; }
@@ -458,6 +462,7 @@ function beginAct(id, title, text, o = {}) {
 function endAct() {
   if (!act) return; const a = act; act = null;
   a.end?.(); chars.forEach(unseat); if (guestChar) unseat(guestChar);
+  if (tutorial.step === 2 && a.id !== 'place') tutorialNext();
   if (a.camBack && a.camYaw != null) { view.yaw = a.camBack.yaw; view.pitch = a.camBack.pitch; } $('#act-panel').hidden = true; $('#joy').style.visibility = '';
   // 站到活動地點旁邊
   if (a.back) { const [x, z] = a.back; const p = me(), q = you(); [p.x, p.z] = freeSpot(x, z); [q.x, q.z] = freeSpot(p.x + 0.9, p.z + 0.5); }
@@ -486,6 +491,7 @@ const SP = [
   { id: 'boat', sc: 'out', x: SPOTS.boat.x, z: 0.2, r: 2, icon: '🚣', name: '划船', run: actBoat },
   { id: 'sunset', sc: 'out', x: SPOTS.sunset.x + 1.4, z: SPOTS.sunset.z + 0.4, icon: '🌅', name: '看夕陽', run: actSunset, dyn: () => isNight() ? ['🌠', '看星星'] : ['🌅', '看夕陽'] },
   { id: 'dog', sc: 'out', x: 0, z: 0, r: 1.8, icon: '🐶', name: '狗狗', run: actDog, pos: () => W.dog?.o.position },
+  { id: 'snowman', sc: 'out', x: 3.5, z: 12.4, icon: '⛄', name: '堆雪人', run: () => actSnowman(), hide: () => seasonOf(st.day).k !== 'winter' },
   { id: 'exit', sc: 'in', ...INSPOTS.exit, r: 1.6, icon: '🚪', name: '出門', run: exitHouse },
   { id: 'bed', sc: 'in', ...INSPOTS.bed, icon: '🛏️', name: '床', run: actBed },
   { id: 'sofa', sc: 'in', ...INSPOTS.sofa, icon: '🛋️', name: '沙發', run: actSofa },
@@ -566,7 +572,7 @@ function openMail() {
   const idx = (st.day * 7 + (myIdx() ? 3 : 0)) % LETTERS.length;
   const text = LETTERS[idx].replaceAll('{a}', nameOf(me().i)).replaceAll('{b}', nameOf(you().i));
   openDlg('💌 今天的信', `<div class="letter">${esc(text)}</div><p class="muted">${fresh ? '每天都會有一封新的信。' : '今天的信已經看過了，明天再來看看。'}</p>`);
-  if (fresh) { st.letterDay = st.day; addLove(3, '收到情書'); addMemo('💌', `${nameOf(me().i)} 收到 ${nameOf(you().i)} 寫的信`); me().av.emote('shy', 1.6); burst('heart', headPos(me()), 4); }
+  if (fresh) { st.letterDay = st.day; quest('mail'); addLove(3, '收到情書'); addMemo('💌', `${nameOf(me().i)} 收到 ${nameOf(you().i)} 寫的信`); me().av.emote('shy', 1.6); burst('heart', headPos(me()), 4); }
 }
 
 // ---------- 雙人鞦韆 ----------
@@ -577,7 +583,7 @@ function actSwing() {
   const place = () => {
     [[me(), mine], [you(), -mine]].forEach(([c, x]) => { if (c.remote || c.ghost) return; seatG.localToWorld(v3.set(x, 0.05, 0.02)); c.locked = true; c.x = v3.x; c.z = v3.z; c.y = v3.y - HIP; c.ry = 0; c.tilt = pv.rotation.x; c.av.setPose('swing'); });
   };
-  fadeDo(place, 250);
+  fadeDo(place, 250); quest('swing');
   beginAct('swing', '🎠 雙人鞦韆', '兩個人一起盪鞦韆，風好舒服。', {
     focus: () => new THREE.Vector3(SPOTS.swing.x, LAND_Y + 1.4, SPOTS.swing.z), back: [SPOTS.swing.x, SPOTS.swing.z + 1.8],
     btns: [{ t: '用力盪！', main: true, fn: () => { amp = Math.min(0.62, amp + 0.12); me().av.emote('cheer', 0.8); sfx('whoosh'); } }, duo() && { t: '靠在肩膀上', fn: () => { you().av.lean(-1); me().av.lean(1); burst('heart', midPos(1.3), 4); addLove(2, '靠在一起', 'lean'); setTimeout(() => { you().av.lean(0); me().av.lean(0); }, 4000); } }],
@@ -624,7 +630,7 @@ function actCampfire() {
     const good = h >= ZONE[0] && h <= ZONE[1];
     msg(`${t} 餵給 ${nameOf(you().i)} 吃～`); me().av.reach(false);
     setTimeout(() => { me().av.setItem(null); roast = null; meter(true, 0, ZONE); you().av.emote(good ? 'cheer' : 'shy', 1.4); burst('heart', headPos(you(), 1.3), good ? 8 : 3); sfx('pop'); }, 500);
-    made++; addLove(good ? 4 : 1, good ? '完美棉花糖' : null, good ? null : 'mm');
+    made++; addLove(good ? 4 : 1, good ? '完美棉花糖' : null, good ? null : 'mm'); if (good) { quest('marsh'); addCoins(5); }
     if (good) addMemo('🍡', `${nameOf(me().i)} 烤了完美的棉花糖餵 ${nameOf(you().i)}`);
   };
   const player = () => duo() ? you() : me();
@@ -647,6 +653,7 @@ function actPicnic() {
   fadeDo(() => { seat(me(), x - 0.5, y, z + 0.35, 0.5, 'floor'); seat(you(), x + 0.5, y, z + 0.35, -0.5, 'floor'); W.picnic.userData.food.visible = true; }, 250);
   const btns = () => setBtns([duo() ? { t: '餵你吃一口', main: true, fn: () => { me().av.reach(true); setTimeout(() => { me().av.reach(false); you().av.emote('shy', 1.5); burst('heart', headPos(you(), 1.2), 5); sfx('pop'); }, 600); addLove(3, pick(['草莓好甜', '三明治好吃', '西瓜冰冰涼涼']), 'feed'); } } : { t: '吃一口', main: true, fn: () => { me().av.emote('eatseat', 2.2); burst('heart', headPos(me(), 1.2), 2); addLove(1, pick(['草莓好甜', '三明治好吃', '西瓜冰冰涼涼']), 'feed'); } },
     { t: lying ? '坐起來' : '躺下看雲', fn: () => { lying = !lying; if (lying) { seat(me(), x - 0.35, LAND_Y + 0.02, z + 0.9, 0, 'lie'); seat(you(), x + 0.35, LAND_Y + 0.02, z + 0.9, 0, 'lie'); msg(pick(['那朵雲像一隻小狗！', '那朵雲像愛心耶', '那朵雲好像棉花糖'])); addLove(2, null, 'cloud'); } else { seat(me(), x - 0.5, y, z + 0.35, 0.5, 'floor'); seat(you(), x + 0.5, y, z + 0.35, -0.5, 'floor'); } btns(); } }]);
+  quest('picnic');
   beginAct('picnic', '🧺 野餐', '櫻花樹下的野餐墊，準備了草莓、西瓜和三明治。', {
     focus: () => new THREE.Vector3(x, LAND_Y + 0.6, z), back: [x, z + 1.8],
     end() { W.picnic.userData.food.visible = false; addMemo('🧺', '在櫻花樹下野餐'); },
@@ -687,7 +694,7 @@ async function actSand() {
     btns: [{ t: '堆沙！', main: true, id: 'sand-go', fn: () => {
       if (n >= N) return; n++; castle.scale.setScalar(0.05 + 0.95 * (n / N)); me().av.dig(); you().av.dig?.(); sfx('sand'); burst('star', new THREE.Vector3(cx, standH(cx, cz) + 0.5, cz), 1, 0.3);
       msg(n < N ? `堆了 ${n}/${N}` : `完成了！這是你們的第 ${st.castles + 1} 座沙堡 🏰`);
-      if (n === N) { st.castles++; addLove(4, '沙堡完成'); addMemo('🏰', `堆好第 ${st.castles} 座沙堡`); me().av.emote('cheer', 1.5); you().av.emote('clap', 1.5); burst('heart', midPos(1.2), 8); $('#sand-go').disabled = true; }
+      if (n === N) { st.castles++; addLove(4, '沙堡完成'); quest('castle'); addCoins(10); checkMilestones(); addMemo('🏰', `堆好第 ${st.castles} 座沙堡`); me().av.emote('cheer', 1.5); you().av.emote('clap', 1.5); burst('heart', midPos(1.2), 8); $('#sand-go').disabled = true; }
     } }],
     end() { OUT.remove(castle); showCastles(); },
   });
@@ -717,6 +724,7 @@ function actBeach() {
   const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#ffffff' })); OUT.add(line);
   let h = 3, want = 10, t = 0, tk = 0;
   fadeDo(() => { const y = standH(x, z); [[me(), -0.45], [you(), 0.45]].forEach(([c, dx]) => { if (c.remote || c.ghost) return; c.locked = true; c.x = x + dx; c.z = z; c.y = null; c.ry = 0.1; c.moving = false; }); me().av.reach(true); }, 250);
+  quest('kite');
   beginAct('kite', '🪁 放風箏', '海風好大，風箏飛好高！', {
     focus: () => new THREE.Vector3(x, 3.5, z + 3), back: [x, z - 1], camYaw: Math.PI + 0.3, camPitch: 0.22,
     btns: [{ t: '放線（飛高一點）', main: true, fn: () => { want = Math.min(24, want + 3); } }, { t: '收線', fn: () => { want = Math.max(4, want - 3); } }, duo() && { t: '交給對方', fn: () => { const a = me().av.reaching; me().av.reach(!a); you().av.reach(a); you().av.emote('cheer', 1); addLove(1, null, 'kitepass'); } }],
@@ -829,6 +837,7 @@ function actFish() {
     const label = `${f[1]} ${f[0]}${size ? ` ${size} 公分` : ''}`; showSay(me(), label);
     msg(`${fish.record ? '新紀錄！' : ''}釣到 ${label}！${f[5]}${bottle ? '　' + pick(BOTTLE) : ''}`);
     addLove(rare ? 20 : bottle ? 5 : 2, rare ? '💗 傳說中的愛心魚！' : null, rare ? null : 'fish');
+    quest('fish'); addCoins(Math.max(3, Math.round((size || 10) / 3))); checkMilestones();
     if (rare || fish.first) addMemo(f[1], `${nameOf(me().i)} 第一次釣到${f[0]}${size ? `（${size} 公分）` : ''}`);
     else if (fish.record) addMemo(f[1], `${nameOf(me().i)} 釣到最大的${f[0]}：${size} 公分（新紀錄）`);
     burst(rare ? 'heart' : 'star', headPos(me(), 2), rare ? 16 : 6, 0.5); sfx('chime');
@@ -907,7 +916,7 @@ function actBoat() {
       if (!paused) {
         const sp = 3.4 * dt;
         if (phase === 'out') { const d = startP.clone().sub(boat.position).setY(0); if (d.length() < 0.5) { phase = 'lap'; lapA = 0; } else { d.normalize(); boat.position.addScaledVector(d, sp); turnTo(boat, Math.atan2(d.x, d.z), dt); } }
-        else if (phase === 'lap') { lapA += sp / RAD; const a = a0 + lapA; boat.position.x = Math.cos(a) * RAD; boat.position.z = Math.sin(a) * RAD; turnTo(boat, Math.atan2(-Math.sin(a), Math.cos(a)), dt); if (lapA >= Math.PI * 2) { phase = 'home'; st.laps++; addLove(6, '繞小島一圈！'); addMemo('🚣', `一起划船繞了小島一圈（第 ${st.laps} 次）`); } }
+        else if (phase === 'lap') { lapA += sp / RAD; const a = a0 + lapA; boat.position.x = Math.cos(a) * RAD; boat.position.z = Math.sin(a) * RAD; turnTo(boat, Math.atan2(-Math.sin(a), Math.cos(a)), dt); if (lapA >= Math.PI * 2) { phase = 'home'; st.laps++; addLove(6, '繞小島一圈！'); quest('boat'); addCoins(15); addMemo('🚣', `一起划船繞了小島一圈（第 ${st.laps} 次）`); } }
         else if (phase === 'home') { const d = home.clone().sub(boat.position).setY(0); if (d.length() < 0.3) { boat.position.x = home.x; boat.position.z = home.z; boat.rotation.y = homeRy; endAct(); return; } d.normalize(); boat.position.addScaledVector(d, sp); turnTo(boat, Math.atan2(d.x, d.z), dt); }
       }
       place(); tk += dt; if (tk > 10) { tk = 0; addLove(1); }
@@ -935,7 +944,7 @@ function actSunset() {
   beginAct('sunset', isNight() ? '🌠 看星星' : '🌅 看夕陽', isNight() ? '滿天星星，等等看會不會有流星。' : '燈塔旁的長椅，最適合看夕陽。', {
     focus: () => new THREE.Vector3(x - 1.5, 2.2, z - 0.6), back: [x + 1.6, z + 0.6], camYaw: ry + Math.PI, camPitch: 0.1,
     update(dt) {
-      if (warp) { st.tod += dt * 1.6; if (st.tod >= warp) { warp = 0; msg('夕陽好美。' + (Math.random() < 0.5 ? `${nameOf(you().i)} 偷偷看了你一眼。` : '天空變成粉紅色了。')); addLove(4, '一起看夕陽'); addMemo('🌅', '在燈塔旁一起看夕陽'); btns(); } }
+      if (warp) { st.tod += dt * 1.6; if (st.tod >= warp) { warp = 0; msg('夕陽好美。' + (Math.random() < 0.5 ? `${nameOf(you().i)} 偷偷看了你一眼。` : '天空變成粉紅色了。')); addLove(4, '一起看夕陽'); addMemo('🌅', '在燈塔旁一起看夕陽'); quest('sunset'); btns(); } }
       if (isNight()) { mt -= dt; if (mt <= 0 && !meteor) { spawnMeteor(); mt = rand(5, 11); act.metT = 3; msg('流星！快許願！'); sfx('chime'); } }
       if (act.metT > 0) { act.metT -= dt; const b = $('#ss-wish'); if (b) b.disabled = false; } else { const b = $('#ss-wish'); if (b && !b.disabled) b.disabled = true; }
     },
@@ -979,7 +988,7 @@ function actGarden() {
     openDlg('🌱 要種什麼？', `<div class="opts">${FLOWERS.map((f, t) => `<button type="button" data-t="${t}">${f[1]} ${f[0]}</button>`).join('')}</div>`);
     $('#dlg-body').querySelectorAll('[data-t]').forEach(b => b.onclick = () => { st.garden[i] = { t: +b.dataset.t, w: [] }; save(); drawPlant(i); goPlot(i); me().av.emote('plant', 2.2); sfx('sand'); toast(`種下了${FLOWERS[+b.dataset.t][0]}的種子`); render(); });
   };
-  const water = i => { const s = st.garden[i]; if (s.w.includes(st.day)) return; s.w.push(st.day); goPlot(i); me().av.emote('water', 2.4); me().av.setItem(canItem()); setTimeout(() => me().av.setItem(null), 2400); save(); drawPlant(i); const p = SPOTS.garden.plots[i]; burst('drop', new THREE.Vector3(p[0], LAND_Y + 1, p[1]), 5, 0.4); sfx('water'); addLove(1, null, 'water'); if (s.w.length >= 3) { toast(`${FLOWERS[s.t][1]} 開花了！`); addMemo(FLOWERS[s.t][1], `菜園的${FLOWERS[s.t][0]}開花了`); } render(); };
+  const water = i => { const s = st.garden[i]; if (s.w.includes(st.day)) return; s.w.push(st.day); quest('water'); goPlot(i); me().av.emote('water', 2.4); me().av.setItem(canItem()); setTimeout(() => me().av.setItem(null), 2400); save(); drawPlant(i); const p = SPOTS.garden.plots[i]; burst('drop', new THREE.Vector3(p[0], LAND_Y + 1, p[1]), 5, 0.4); sfx('water'); addLove(1, null, 'water'); if (s.w.length >= 3) { toast(`${FLOWERS[s.t][1]} 開花了！`); addMemo(FLOWERS[s.t][1], `菜園的${FLOWERS[s.t][0]}開花了`); } render(); };
   const pickF = i => {
     goPlot(i); me().av.emote('pickup', 1.2);
     const s = st.garden[i], f = FLOWERS[s.t]; st.garden[i] = null; st.flowersGiven++; save(); drawPlant(i); $('#dlg').close();
@@ -1001,7 +1010,7 @@ function actDog() {
     // 狗狗先停下來，走到牠前面蹲下摸
     d.hold = 3.2; d.tx = dp.x; d.tz = dp.z;
     const ang = Math.atan2(p.x - dp.x, p.z - dp.z), tx = dp.x + Math.sin(ang) * 0.75, tz = dp.z + Math.cos(ang) * 0.75;
-    const pet = () => { p.ry = Math.atan2(dp.x - p.x, dp.z - p.z); d.o.rotation.y = Math.atan2(p.x - dp.x, p.z - dp.z); p.av.emote('petdog', 2.4); setTimeout(() => { burst('heart', dp.clone().add(new THREE.Vector3(0, 0.9, 0)), 4, 0.3); sfx('pop'); }, 600); addLove(1, '狗狗搖尾巴', 'dog'); };
+    const pet = () => { quest('dog'); p.ry = Math.atan2(dp.x - p.x, dp.z - p.z); d.o.rotation.y = Math.atan2(p.x - dp.x, p.z - dp.z); p.av.emote('petdog', 2.4); setTimeout(() => { burst('heart', dp.clone().add(new THREE.Vector3(0, 0.9, 0)), 4, 0.3); sfx('pop'); }, 600); addLove(1, '狗狗搖尾巴', 'dog'); };
     if (Math.hypot(tx - p.x, tz - p.z) < 0.4) pet(); else route(p, tx, tz, { r: 0.5, run: pet });
   };
   $('#dog-ball').onclick = () => {
@@ -1062,7 +1071,7 @@ function actCook() {
   function start(i) { dish = DISHES[i]; cooking = true; prog = 0; me().av.emote('interact', 4.2); you().av.emote('interact', 4.2); msg(duo() ? `${nameOf(me().i)} 切菜、${nameOf(you().i)} 掌廚，做${dish[0]}中…` : `做${dish[0]}中…`); setBtns([]); sfx('sizzle'); }
   function serve() {
     IN.dish.clear(); [-0.35, 0.35].forEach(dx => { const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.03, 16), toon('#ffffff')); pl.position.set(0, 0, dx); IN.dish.add(pl); const f = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), toon(dish[2])); f.scale.y = 0.45; f.position.set(0, 0.05, dx); IN.dish.add(f); });
-    IN.dish.visible = true; st.dishes++; addLove(3, `${dish[1]} ${dish[0]}完成`); addMemo(dish[1], `一起做了${dish[0]}`);
+    IN.dish.visible = true; st.dishes++; quest('cook'); addCoins(8); addLove(3, `${dish[1]} ${dish[0]}完成`); addMemo(dish[1], `一起做了${dish[0]}`);
     msg(`${dish[0]}做好了，放在餐桌上！到餐桌一起吃吧。`); setBtns([{ t: '去餐桌吃飯', main: true, fn: () => { endAct(); actEat(); } }]);
   }
 }
@@ -1080,9 +1089,10 @@ function actEat() {
 function openDlg(title, html) { $('#dlg-title').textContent = title; $('#dlg-body').innerHTML = html; const d = $('#dlg'); if (!d.open) d.showModal(); }
 $('#btn-map').onclick = () => {
   sfx('click');
-  const list = SP.filter(s => s.sc === scene && !spotHidden(s) && s.id !== 'dog');
-  openDlg(scene === 'in' ? '🏠 小木屋裡' : '🗺️ 小島地圖', `<p class="muted">點一下，${esc(nameOf(me().i))} 會走過去。</p><div class="grid3">${list.map(s => `<button type="button" class="cell" data-s="${s.id}" style="border:0"><span class="e">${s.icon}</span>${esc(s.name)}</button>`).join('')}</div>`);
-  $('#dlg-body').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { const s = SP.find(x => x.id === b.dataset.s); $('#dlg').close(); if (act) endAct(); route(me(), s.x, s.z, s); });
+  const cell = s => `<button type="button" class="cell" data-s="${s.id}" style="border:0"><span class="e">${s.icon}</span>${esc(s.name)}</button>`;
+  const outL = SP.filter(s => s.sc === 'out' && !spotHidden(s) && s.id !== 'door'), inL = SP.filter(s => s.sc === 'in' && !spotHidden(s) && s.id !== 'exit');
+  openDlg('🗺️ 小島地圖', `<p class="muted">點一下，畫面一暗就到了。</p><b>🏝️ 屋外</b><div class="grid3">${outL.map(cell).join('')}</div>${MP.role === 'g' ? '' : `<b>🏠 小木屋裡</b><div class="grid3">${inL.map(cell).join('')}</div>`}`);
+  $('#dlg-body').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { const s = SP.find(x => x.id === b.dataset.s); $('#dlg').close(); teleportTo(s); });
 };
 $('#couple-card').onclick = () => MP.role === 'g' ? openNet() : openBook('us');
 $('#btn-book').onclick = () => MP.role === 'g' ? openNet() : openBook('memo');
@@ -1105,6 +1115,9 @@ function openBook(tab = 'memo') {
     about: () => `<p>兩個人的 3D 小島。小木屋、沙灘、碼頭、燈塔，一起盪鞦韆、釣魚、烤棉花糖、看夕陽、划船、放煙火。</p>
       <p class="muted">資料只存在這支手機（瀏覽器）裡。版本 ${esc(APP_VER)}</p>
       <details><summary>3D 模型出處（Polyfork，CC BY 4.0）</summary><div id="credits" class="muted" style="font-size:12px;line-height:1.5">載入中…</div></details>
+      <b>⚙️ 設定</b>
+      <div class="toggle-row"><span>🔋 省電模式<br><small class="muted">畫面稍微不那麼細，比較順、比較不燙</small></span><button type="button" id="low-tg" aria-pressed="${!!st.low}">${st.low ? '開' : '關'}</button></div>
+      <button type="button" class="ghost" id="tut-again">🎓 再看一次新手教學</button>
       <button type="button" class="ghost" id="reset-all" style="margin-top:8px">清除所有資料、重新開始</button>`,
   };
   openDlg('📔 我們的回憶本', `<div class="tabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-t="${k}" aria-selected="${k === tab}">${n}</button>`).join('')}</div><div id="book-body" style="display:grid;gap:8px">${body[tab]()}</div>`);
@@ -1115,6 +1128,8 @@ function openBook(tab = 'memo') {
   }
   if (tab === 'about') {
     fetch('models/credits.json').then(r => r.json()).then(c => { $('#credits').innerHTML = Object.values(c).filter(Boolean).map(esc).join('<br>'); }).catch(() => {});
+    $('#low-tg').onclick = () => { st.low = !st.low; save(); applyLow(); $('#low-tg').setAttribute('aria-pressed', String(st.low)); $('#low-tg').textContent = st.low ? '開' : '關'; };
+    $('#tut-again').onclick = () => { $('#dlg').close(); tutorialStart(); };
     $('#reset-all').onclick = () => { if (confirm('確定要清除小島上所有的回憶嗎？這個動作不能復原。')) { localStorage.removeItem(KEY); location.reload(); } };
   }
 }
@@ -1159,7 +1174,7 @@ function tickShells(t) {
     const s = shellObjs[i]; s.sp.material.opacity = 0.45 + Math.sin(t * 3 + i) * 0.3;
     if (Math.hypot(s.o.position.x - p.x, s.o.position.z - p.z) < 1.0) {
       OUT.remove(s.o); shellObjs.splice(i, 1); const [n, e] = SHELLS[s.t]; st.shells[n] = (st.shells[n] || 0) + 1; save();
-      p.av.emote('pickup', 1.1); toast(`撿到 ${e} ${n}（共 ${st.shells[n]} 個）`); sfx('chime'); burst('star', s.o.position.clone().add(new THREE.Vector3(0, 0.5, 0)), 3, 0.2);
+      p.av.emote('pickup', 1.1); toast(`撿到 ${e} ${n}（共 ${st.shells[n]} 個）　+5 🪙`); st.coins = (st.coins || 0) + 5; quest('shell'); checkMilestones(); updateChips(); sfx('chime'); burst('star', s.o.position.clone().add(new THREE.Vector3(0, 0.5, 0)), 3, 0.2);
       if (st.shells[n] === 1) addMemo(e, `在海邊撿到第一個${n}`);
       if (s.t === 5) { addLove(3, `把心形石頭送給 ${nameOf(you().i)}`); you().av.emote('shy', 1.4); }
     }
@@ -1168,7 +1183,8 @@ function tickShells(t) {
 
 // ---------- 新的一天 ----------
 function newDay() {
-  st.day++; spawnShells(); save(); updateHud();
+  st.day++; spawnShells(); save(); updateHud(); updateChips(); drawSnowman();
+  const s0 = seasonOf(st.day - 1), s1 = seasonOf(st.day); if (s0 !== s1) setTimeout(() => toast(`${s1.icon} ${s1.name}來了！`, 3500), 1200);
 }
 
 // ---------- 拍照 ----------
@@ -1204,13 +1220,15 @@ $('#ph-shot').onclick = () => {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     toast('照片已儲存');
   }, 'image/png');
-  addMemo('📷', '拍了一張合照');
+  addMemo('📷', '拍了一張合照'); quest('photo');
 };
 // 背景音樂：選歌面板
 $('#btn-music').onclick = () => {
   sfx('click'); const cur = st.music ? (st.track ?? -1) : null;
   const row = (v, t, sub) => `<button type="button" data-m="${v}" aria-pressed="${cur === v}">${t}<small>${sub}</small></button>`;
-  openDlg('🎵 背景音樂', `<div class="opts music">${row(-1, '🔀 自動輪播', '四首輪流播放')}${TRACKS.map((t, i) => row(i, `🎶 ${t[1]}`, t[0])).join('')}${row('off', '🔇 關閉音樂', '音效還是會有')}</div>${st.music && Music.playing ? `<p class="muted">正在播放：${esc(Music.playing)}</p>` : ''}`);
+  openDlg('🎵 背景音樂', `<div class="opts music">${row(-1, '🔀 自動輪播', '四首輪流播放')}${TRACKS.map((t, i) => row(i, `🎶 ${t[1]}`, t[0])).join('')}${row('off', '🔇 關閉音樂', '音效還是會有')}</div>${st.music && Music.playing ? `<p class="muted">正在播放：${esc(Music.playing)}</p>` : ''}
+    <div class="toggle-row"><span>🌿 環境音<br><small class="muted">海浪、鳥叫、蟲鳴、營火、雨聲、腳步聲</small></span><button type="button" id="amb-tg" aria-pressed="${st.amb !== false}">${st.amb !== false ? '開' : '關'}</button></div>`);
+  $('#amb-tg').onclick = () => { st.amb = st.amb === false; Amb.setOn(st.amb); save(); $('#amb-tg').setAttribute('aria-pressed', String(st.amb)); $('#amb-tg').textContent = st.amb ? '開' : '關'; };
   $('#dlg-body').querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
     const v = b.dataset.m;
     if (v === 'off') { st.music = false; Music.stop(); }
@@ -1244,7 +1262,7 @@ function updateCam(dt, snap) {
 }
 
 // ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
-const SHARED = ['names', 'looks', 'anniv', 'day', 'fish', 'fishMax', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
+const SHARED = ['names', 'looks', 'anniv', 'day', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
 const LOVE_WORD = { hand: '牽你的手', hug: '抱抱你', kiss: '親親你', pat: '摸摸你的頭' };
 function newChar(look) { const c = { i: 'g', av: new Avatar(look), x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }; OUT.add(c.av.root); hookEmote(c); return c; }
 function hookEmote(c) { const orig = c.av.emote.bind(c.av); c.av.emote = (k, d) => { orig(k, d); if (MP.on && c === me()) MP.net.send({ t: 'emo', k, d }); }; }
@@ -1298,6 +1316,7 @@ function applySave(keys, first) {
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
   if ('castles' in keys) showCastles();
   if (keys.garden) st.garden.forEach((_, i) => drawPlant(i));
+  if (keys.decor) drawDecor(); if ('snowman' in keys) drawSnowman(); updateChips?.();
   snapSent(); if (MP.role !== 'g') try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
   updateHud();
 }
@@ -1485,16 +1504,213 @@ function peopleHtml(owner) {
   return `<b>在島上的人（${MP.peers.size + 1}）</b><ul style="margin:0;padding-left:1.2em;display:grid;gap:4px">${rows.join('')}</ul>`;
 }
 
+// ---------- 天氣、環境音 ----------
+let WX = null, wNow = null, ambT = 0;
+function tickWeather(dt, k) {
+  if (!WX) return;
+  wNow = weatherAt(st.day, st.tod);
+  WX.update(dt, wNow, me().av.root.position, k.night, scene === 'out', scene === 'out' ? W : null);
+  if (IN) IN.winMat.color.lerp(new THREE.Color('#8a96a2'), WX.st.rain * 0.5);
+  // 下雨：在屋外走動的人自己撐傘
+  const raining = WX.st.rain > 0.5 && scene === 'out';
+  for (const c of allChars()) {
+    const want = raining && !c.locked && !c.act && (c.av.pose || 'stand') === 'stand' && (c.sc || 'out') === 'out';
+    const has = !!c.av.item?.userData?.umbrella;
+    if (want && !has && !c.av.item) { c.av.setItem(umbrellaItem(c === me() ? '#ff8fab' : '#8ec8f0')); c.av.holdUmbrella(true); }
+    else if (!want && has) { c.av.setItem(null); c.av.holdUmbrella(false); }
+  }
+  if (raining && me().moving) { umbT += dt; if (umbT > 8) { umbT = -1e9; quest('umbrella'); } }
+  // 環境音：每 0.25 秒依位置、時間、天氣調整
+  ambT += dt; if (ambT < 0.25) return; ambT = 0;
+  const p = me(), out = scene === 'out', night = k.night, day = 1 - night;
+  const sr = shoreR(p.x, p.z) - 4.6, r = Math.hypot(p.x, p.z), shore = clamp(1 - (sr - r) / 22, 0, 1);
+  const fire = out ? clamp(1 - Math.hypot(p.x - SPOTS.campfire.x, p.z - SPOTS.campfire.z) / 13, 0, 1) : 0;
+  const hill = clamp(1 - Math.hypot(p.x - HILL.x, p.z - HILL.z) / 14, 0, 1), rain = WX.st.rain, snow = WX.st.snow;
+  const q = out ? 1 : 0.18;
+  Amb.set({
+    waves: (0.25 + 0.75 * shore) * q, campfire: fire * (0.5 + night * 0.5), wind: (0.2 + hill * 0.6 + rain * 0.25 + snow * 0.3) * q,
+    seagulls: day * shore * (1 - rain) * 0.9 * q, birds: day * (1 - shore) * (1 - rain * 0.8) * (wNow?.season.k === 'winter' ? 0.3 : 1) * q,
+    crickets: night * (1 - rain) * (wNow?.season.k === 'winter' ? 0.2 : 1) * (out ? 1 : 0.25), frog: night * (wNow?.season.k === 'summer' ? 0.8 : 0.35) * (1 - shore * 0.5) * q,
+    'light-rain': rain * (out ? 1 : 0.35), 'rain-on-umbrella': rain * (out && p.av.item?.userData?.umbrella ? 1 : 0),
+    'walk-on-leaves': p.moving && !p.locked ? (st.run ? 1 : 0.65) : 0,
+  });
+}
+let umbT = 0;
+
+// ---------- 小島幣、每日任務、收藏獎勵 ----------
+function addCoins(n, why) { if (MP.role === 'g' || !n) return; st.coins = (st.coins || 0) + n; save(); updateChips(); if (why) toast(`${why}　+${n} 🪙`); }
+function questsToday() {
+  if (MP.role === 'g') return [];
+  if (!st.quests || st.quests.day !== st.day) {
+    const season = seasonOf(st.day).k, pool = QUESTS.filter(q => !q[3] || q[3] === season);
+    let s = st.day * 9301 + 49297; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+    const picked = []; while (picked.length < 3) { const q = pool[Math.floor(rnd() * pool.length)]; if (!picked.includes(q)) picked.push(q); }
+    st.quests = { day: st.day, list: picked.map(q => ({ k: q[0], n: 0 })), bonus: false };
+  }
+  return st.quests.list;
+}
+function quest(k, n = 1) {
+  const list = questsToday(); const q = list.find(x => x.k === k); if (!q) return;
+  const def = QUESTS.find(x => x[0] === k); if (q.n >= def[2]) return;
+  q.n = Math.min(def[2], q.n + n);
+  if (q.n >= def[2]) { addCoins(QUEST_COIN); toast(`📋 任務完成：${def[1]}　+${QUEST_COIN} 🪙`, 3200); sfx('chime'); }
+  if (!st.quests.bonus && list.every(x => x.n >= QUESTS.find(y => y[0] === x.k)[2])) {
+    st.quests.bonus = true; st.questDays = (st.questDays || 0) + 1; addCoins(QUEST_BONUS);
+    setTimeout(() => { toast(`🎉 今天的任務全部完成！+${QUEST_BONUS} 🪙`, 3500); burst('star', headPos(me(), 1.6), 10); }, 1500);
+    addLove(5); addMemo('📋', `完成了第 ${st.questDays} 天的每日任務`);
+  }
+  save(); updateChips(); checkMilestones();
+}
+function checkMilestones() {
+  if (MP.role === 'g') return; st.rewards = st.rewards || {};
+  for (const [k, text, ok, coins, item] of MILESTONES) {
+    if (st.rewards[k] || !ok(st)) continue;
+    st.rewards[k] = true; st.inv = st.inv || {}; st.inv[item] = (st.inv[item] || 0) + 1; st.coins = (st.coins || 0) + coins;
+    const name = DECOR.find(d => d[0] === item)?.[1] || '擺設';
+    setTimeout(() => { toast(`🏆 收藏獎勵：${text}！送你「${name}」和 ${coins} 🪙`, 4500); sfx('chime'); }, 2200);
+    addMemo('🏆', `收藏獎勵：${text}`); save(); updateChips();
+  }
+}
+function updateChips() {
+  const g = MP.role === 'g'; $('.chips').hidden = g || !started(); if (g) return;
+  const list = questsToday(), done = list.filter(q => q.n >= QUESTS.find(x => x[0] === q.k)[2]).length;
+  const qc = $('#quest-chip'); qc.textContent = `📋 今日任務 ${done}/3`; qc.classList.toggle('done', done === 3);
+  $('#coin-chip').textContent = `🪙 ${st.coins || 0}`;
+}
+$('#quest-chip').onclick = () => openQuests();
+$('#coin-chip').onclick = () => openShop();
+function openQuests() {
+  sfx('click'); const list = questsToday(), s = seasonOf(st.day), w = weatherAt(st.day, st.tod);
+  const rows = list.map(q => { const d = QUESTS.find(x => x[0] === q.k), ok = q.n >= d[2]; return `<div class="quest ${ok ? 'ok' : ''}"><span class="q-e">${ok ? '✅' : '⬜'}</span><b>${esc(d[1])}</b><span class="q-r">+${QUEST_COIN} 🪙</span><small>${q.n}/${d[2]}</small><div class="bar"><i style="width:${q.n / d[2] * 100}%"></i></div></div>`; }).join('');
+  const ms = MILESTONES.map(([k, text, ok, coins, item]) => `<div class="quest ${st.rewards?.[k] ? 'ok' : ''}"><span class="q-e">${st.rewards?.[k] ? '🏆' : '🔒'}</span><b>${esc(text)}</b><span class="q-r">+${coins} 🪙</span><small>送「${esc(DECOR.find(d => d[0] === item)?.[1] || '')}」</small></div>`).join('');
+  openDlg('📋 今日任務', `<p class="muted">小島第 ${st.day} 天 · ${s.icon} ${s.name}（每 7 天換季）· 今天 ${w.icon || '☀️'} ${w.name}</p>${rows}<p class="muted">三個都完成再加 ${QUEST_BONUS} 🪙 和甜蜜值，明天會換新的任務。</p><b>🏆 收藏獎勵</b>${ms}<button type="button" class="primary" id="q-shop">🪙 ${st.coins || 0} → 去買擺設</button>`);
+  $('#q-shop').onclick = openShop;
+}
+
+// ---------- 裝潢：買擺設、擺在屋外或小木屋裡 ----------
+const decorObjs = []; const DCIRC = { out: [], in: [] };
+async function drawDecor() {
+  decorObjs.forEach(o => o.parent?.remove(o)); decorObjs.length = 0; DCIRC.out = []; DCIRC.in = [];
+  for (const d of st.decor || []) {
+    const def = DECOR.find(x => x[0] === d.id); if (!def) continue;
+    const S = d.sc === 'in' ? IN?.S : OUT; if (!S) continue;
+    const g = await load(def[0]); if (!g) continue;
+    const o = g.scene.clone(true); o.scale.setScalar(def[4]); o.position.set(d.x, d.sc === 'in' ? 0 : standH(d.x, d.z), d.z); o.rotation.y = d.ry || 0; S.add(o); decorObjs.push(o);
+    if (def[5]) DCIRC[d.sc].push([d.x, d.z, def[5]]);
+  }
+  delete grids.out; delete grids.in;
+}
+function openShop() {
+  if (MP.role === 'g') return; sfx('click'); st.inv = st.inv || {}; st.decor = st.decor || [];
+  const here = scene, can = d => d[3] === 'any' || d[3] === here;
+  const items = DECOR.filter(can).map(d => `<button type="button" data-buy="${d[0]}" ${(st.coins || 0) < d[2] ? 'disabled' : ''}>${esc(d[1])}<small>🪙 ${d[2]}${st.inv[d[0]] ? ` · 有 ${st.inv[d[0]]} 個` : ''}</small></button>`).join('');
+  const inv = Object.entries(st.inv).filter(([k, n]) => n > 0 && can(DECOR.find(d => d[0] === k) || [0, 0, 0, 'none'])).map(([k, n]) => `<button type="button" data-place="${k}">${esc(DECOR.find(d => d[0] === k)[1])}<small>×${n}・點一下擺放</small></button>`).join('');
+  const placed = (st.decor || []).map((d, i) => d.sc === here ? `<button type="button" data-take="${i}">${esc(DECOR.find(x => x[0] === d.id)?.[1] || '')}<small>收起來（放回包包）</small></button>` : '').join('');
+  openDlg(`🛠️ 裝潢${here === 'in' ? '小木屋' : '小島'}`, `<p class="muted">🪙 ${st.coins || 0} 小島幣（做每日任務、釣魚、撿貝殼、堆沙堡可以賺）${here === 'in' ? '' : '　想裝潢小木屋就進屋再打開'}</p>
+    ${inv ? `<b>🎒 包包裡</b><div class="shop">${inv}</div>` : ''}<b>🛒 商店</b><div class="shop">${items}</div>${placed ? `<b>📍 已經擺好的</b><div class="shop">${placed}</div>` : ''}`);
+  $('#dlg-body').querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const d = DECOR.find(x => x[0] === b.dataset.buy); if ((st.coins || 0) < d[2]) return; st.coins -= d[2]; st.inv[d[0]] = (st.inv[d[0]] || 0) + 1; save(); updateChips(); sfx('chime'); toast(`買了「${d[1]}」`); startPlace(d[0]); });
+  $('#dlg-body').querySelectorAll('[data-place]').forEach(b => b.onclick = () => startPlace(b.dataset.place));
+  $('#dlg-body').querySelectorAll('[data-take]').forEach(b => b.onclick = () => { const d = st.decor.splice(+b.dataset.take, 1)[0]; st.inv[d.id] = (st.inv[d.id] || 0) + 1; save(); drawDecor(); openShop(); });
+}
+async function startPlace(id) {
+  $('#dlg').close(); const def = DECOR.find(x => x[0] === id); const g = await load(def[0]); if (!g) return;
+  const ghostO = g.scene.clone(true); ghostO.scale.setScalar(def[4]); ghostO.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.6; } }); curS().add(ghostO);
+  let ry = me().ry + Math.PI, ok = false;
+  const pos = () => { const p = me(), d = 1.5; return [p.x + Math.sin(p.ry) * d, p.z + Math.cos(p.ry) * d]; };
+  beginAct('place', `🛠️ 擺放「${def[1]}」`, '走動決定位置，擺好按「放這裡」。', {
+    move: true,
+    btns: [{ t: '放這裡', main: true, fn: () => { if (!ok) return toast('這裡放不下，換個地方'); const [x, z] = pos(); st.decor = st.decor || []; st.decor.push({ id, sc: scene, x: +x.toFixed(2), z: +z.toFixed(2), ry: +ry.toFixed(2) }); st.inv[id]--; save(); drawDecor(); sfx('pop'); burst('star', new THREE.Vector3(x, (scene === 'in' ? 0 : standH(x, z)) + 0.6, z), 6, 0.4); addMemo('🛠️', `在${scene === 'in' ? '小木屋' : '小島'}擺了「${def[1]}」`); endAct(); } }, { t: '轉一下', fn: () => { ry += Math.PI / 4; } }],
+    update() { const [x, z] = pos(); ghostO.position.set(x, scene === 'in' ? 0 : standH(x, z), z); ghostO.rotation.y = ry; ok = canStand(x, z) || (def[5] === 0); ghostO.traverse(o => { if (o.isMesh) o.material.color?.set(ok ? '#ffffff' : '#ff6a6a'); }); },
+    end() { ghostO.parent?.remove(ghostO); },
+  });
+}
+
+// ---------- 雪人（冬天，地上有積雪時） ----------
+const SNOWMAN = { x: 3.5, z: 11 };
+let snowmanObj = null;
+function drawSnowman() {
+  snowmanObj?.parent?.remove(snowmanObj); snowmanObj = null;
+  if (!st.snowman || seasonOf(st.day).k !== 'winter' || seasonOf(st.snowman.day).k !== 'winter' || st.day - st.snowman.day > SEASON_DAYS) return;
+  snowmanObj = snowmanMesh(3); snowmanObj.position.set(SNOWMAN.x, LAND_Y, SNOWMAN.z); snowmanObj.rotation.y = 0.4; OUT.add(snowmanObj);
+}
+function actSnowman() {
+  if (seasonOf(st.day).k !== 'winter' || (WX?.st.cover || 0) < 0.25) return toast('要等冬天下過雪、地上有積雪才能堆雪人喔');
+  snowmanObj?.parent?.remove(snowmanObj);
+  const g = new THREE.Group(); g.position.set(SNOWMAN.x, LAND_Y, SNOWMAN.z); g.rotation.y = 0.4; OUT.add(g);
+  let stage = 0;
+  fadeDo(() => { seat(me(), SNOWMAN.x - 0.9, null, SNOWMAN.z + 0.3, Math.PI / 2 - 0.2, 'crouch'); seat(you(), SNOWMAN.x + 0.9, null, SNOWMAN.z + 0.3, -Math.PI / 2 + 0.2, 'crouch'); }, 250);
+  const names = ['滾出大雪球', '疊上身體', '放上頭、眼睛、紅蘿蔔鼻子和圍巾'];
+  beginAct('snowman', '⛄ 堆雪人', '按三次「堆雪」把雪人堆起來。', {
+    focus: () => new THREE.Vector3(SNOWMAN.x, LAND_Y + 1, SNOWMAN.z), back: [SNOWMAN.x, SNOWMAN.z + 1.8],
+    btns: [{ t: '堆雪！', main: true, id: 'snow-go', fn: () => {
+      if (stage >= 3) return; stage++; g.clear(); g.add(snowmanMesh(stage)); me().av.dig(); you().av.dig?.(); sfx('sand'); burst('star', new THREE.Vector3(SNOWMAN.x, LAND_Y + 0.6 * stage, SNOWMAN.z), 3, 0.4);
+      msg(names[stage - 1] + (stage < 3 ? '…' : '！雪人完成了 ⛄'));
+      if (stage === 3) { st.snowman = { day: st.day }; save(); quest('snowman'); addCoins(15); addLove(3, '雪人完成'); addMemo('⛄', '在小島上堆了一個雪人'); $('#snow-go').disabled = true; me().av.emote('cheer', 1.4); }
+    } }],
+    end() { g.parent?.remove(g); drawSnowman(); },
+  });
+}
+
+// ---------- 傳送（地圖點地點，畫面一暗就到了） ----------
+async function teleportTo(s) {
+  if (act) endAct();
+  if (s.sc !== scene) { if (s.sc === 'in') await enterHouse(); else await exitHouse(); }
+  const pp = s.pos?.() || s; let x = pp.x, z = pp.z;
+  if (s.id === 'dog') { x += 0.9; z += 0.9; }
+  [x, z] = freeSpot(x, z);
+  await fadeDo(() => { const p = me(); p.x = x; p.z = z; p.path = null; p.ry = Math.atan2(pp.x - x, pp.z - z) || p.ry; updateCam(0, true); }, 300);
+  if (tutorial.step === 1) tutorialNext();
+  s.run();
+}
+
+// ---------- 跑步 ----------
+function setRun(v) { st.run = !!v; $('#btn-run').setAttribute('aria-pressed', String(st.run)); save(); }
+$('#btn-run').onclick = () => { setRun(!st.run); sfx('click'); toast(st.run ? '🏃 跑步' : '🚶 走路'); };
+
+// ---------- 新手教學 ----------
+const TUT = [
+  { t: '👋 歡迎來到小島！先推左下角的搖桿，走走看。', el: '#joy' },
+  { t: '🗺️ 點右上角的地圖，選一個想去的地方，畫面一暗就到了。', el: '#btn-map' },
+  { t: '🎣 到了之後就會開始活動，照著下面的按鈕玩玩看，玩完按「離開」。', el: null },
+  { t: '📋 每天有 3 個小任務，完成可以拿 🪙 小島幣；點 🪙 可以買擺設裝潢小島和小木屋。', el: '#quest-chip', next: true },
+  { t: '🌐 想跟另一半一起玩，點右上角的 🌐 建立小島，把情侶碼給對方。左下角 🏃 可以跑步。', el: '#btn-net', next: true },
+];
+const tutorial = { step: -1, moved: 0 };
+function tutorialShow() {
+  document.querySelectorAll('.glow').forEach(e => e.classList.remove('glow'));
+  const s = TUT[tutorial.step]; if (!s) { $('#coach').hidden = true; return; }
+  $('#coach').hidden = false; $('#coach-text').textContent = s.t; $('#coach-step').textContent = `${tutorial.step + 1}/${TUT.length}`;
+  $('#coach-next').hidden = !s.next; $('#coach-next').textContent = tutorial.step === TUT.length - 1 ? '開始玩！' : '好';
+  if (s.el) $(s.el)?.classList.add('glow');
+}
+function tutorialNext() { if (tutorial.step < 0) return; tutorial.step++; if (tutorial.step >= TUT.length) { tutorialEnd(); return; } tutorialShow(); sfx('pop'); }
+function tutorialEnd() { tutorial.step = -1; st.tut = 1; save(); $('#coach').hidden = true; document.querySelectorAll('.glow').forEach(e => e.classList.remove('glow')); }
+function tutorialStart() { tutorial.step = 0; tutorial.moved = 0; tutorialShow(); }
+$('#coach-skip').onclick = tutorialEnd;
+$('#coach-next').onclick = tutorialNext;
+function tickTutorial(dt) { if (tutorial.step === 0 && me().moving) { tutorial.moved += dt; if (tutorial.moved > 1.2) tutorialNext(); } }
+
+// ---------- 省電模式 ----------
+function applyLow() { R.setPixelRatio(st.low ? 1 : PR); resize(); }
+let fpsT = 0, fpsN = 0, lowAsked = false;
+function tickFps(dt) {
+  if (st.low || lowAsked || !started() || navigator.webdriver) return; fpsT += dt; fpsN++;
+  if (fpsT > 10) { const fps = fpsN / fpsT; fpsT = 0; fpsN = 0; if (fps < 24) { lowAsked = true; openDlg('🔋 手機有點吃力', `<p>畫面每秒只有 ${Math.round(fps)} 張，要不要打開<b>省電模式</b>？畫面會稍微不那麼細，但比較順、比較不燙。</p><div class="row"><button type="button" class="ghost" value="close">先不用</button><button type="button" class="primary" id="low-on">打開省電模式</button></div>`); $('#low-on').onclick = () => { st.low = true; save(); applyLow(); $('#dlg').close(); toast('🔋 已打開省電模式（📔 → 關於 可以關掉）'); }; } }
+}
+
 // ---------- 主迴圈 ----------
 const clock = new THREE.Clock(); let T = 0, saveT = 0;
+let lowSkip = false;
 function frame() {
   requestAnimationFrame(frame);
+  if (st.low && !preview.on && (lowSkip = !lowSkip)) return; // 省電：每秒 30 張
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
   if (started() && !document.hidden) { st.tod += dt / 36; if (st.tod >= 24) { st.tod -= 24; newDay(); toast(`第 ${st.day} 天了`); } }
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : st.tod, cam.position);
   W.water.material.uniforms.uTime.value = T;
+  if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); }
   if (IN) { IN.winMat.color.copy(k.hor); }
   W.sky.clouds.rotation.y += dt * 0.004;
   W.fireL.intensity = (6 + Math.sin(T * 13) * 1.2 + Math.sin(T * 7.3) * 1.0) * (0.5 + k.night * 0.8);
@@ -1523,14 +1739,14 @@ function frame() {
       p.path = null; lovePending = null;
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = -fz, rz = fx;
       const dx = fx * -iy + rx * ix, dz = fz * -iy + rz * ix;
-      stepChar(p, dx, dz, dt, (st.hand ? 3.4 : 4.2) * mag);
+      stepChar(p, dx, dz, dt, (st.run ? 7 : 4.2) * mag);
     } else if (p.path) {
       const P = p.path, last = P.i >= P.pts.length - 1, [wx, wz] = P.pts[Math.min(P.i, P.pts.length - 1)];
       const dx = wx - p.x, dz = wz - p.z, d = Math.hypot(dx, dz);
       const dEnd = Math.hypot(P.x - p.x, P.z - p.z), arrive = P.then ? Math.min(1.4, P.then.r * 0.6) : 0.15;
       if (dEnd < arrive || (last && d < 0.15)) { const then = P.then; p.path = null; p.moving = false; if (then && !act) then.run(); }
       else if (!last && d < 0.35) P.i++;
-      else if (!stepChar(p, dx, dz, dt, st.hand ? 3.4 : 4.2)) { p.stuck += dt; if (p.stuck > 0.8) { p.stuck = 0; const re = findPath(p.x, p.z, P.x, P.z); if (re && !P.retried) { P.pts = re; P.i = 0; P.retried = true; } else p.path = null; } } else p.stuck = 0;
+      else if (!stepChar(p, dx, dz, dt, st.run ? 7 : 4.2)) { p.stuck += dt; if (p.stuck > 0.8) { p.stuck = 0; const re = findPath(p.x, p.z, P.x, P.z); if (re && !P.retried) { P.pts = re; P.i = 0; P.retried = true; } else p.path = null; } } else p.stuck = 0;
     } else p.moving = false;
   }
   if (!act || !you().locked) partnerAI(dt);
@@ -1580,7 +1796,7 @@ async function setupVisit() {
     $('#splash').classList.add('out'); setTimeout(() => { $('#splash').hidden = true; }, 600);
     $('#hud').hidden = false; preview.on = false;
     prev.x = SPOTS.door.x + rand(-1, 1); prev.z = 3 + rand(0, 1); prev.ry = 0; updateCam(0, true);
-    connectNet({ island, guest: code, name: MP.guest.name, look: L }); toast(`歡迎來到 ${nameOf(0)} ♥ ${nameOf(1)} 的小島！`, 3500);
+    Amb.start(); updateChips(); connectNet({ island, guest: code, name: MP.guest.name, look: L }); toast(`歡迎來到 ${nameOf(0)} ♥ ${nameOf(1)} 的小島！`, 3500);
   };
 }
 
@@ -1594,9 +1810,9 @@ async function setupVisit() {
   try { W = await buildIsland(OUT); } catch (e) { console.error(e); msgEl.textContent = '載入失敗，請重新整理'; clearInterval(tick); return; }
   clearInterval(tick); msgEl.textContent = st.started ? '歡迎回來 ♥' : '準備好了！';
   btn.disabled = false;
-  spawnShells(); showCastles(); st.garden.forEach((_, i) => drawPlant(i));
+  spawnShells(); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); WX = createWeatherFX(OUT);
   updateCam(0, true);
-  buildInterior().then(I => { IN = I; });
+  buildInterior().then(I => { IN = I; drawDecor(); });
   if (visitParam.length) setupVisit();
-  window.__nest = { get st() { return st; }, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  window.__nest = { get st() { return st; }, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();

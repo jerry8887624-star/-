@@ -190,6 +190,7 @@ export class Avatar {
   setItem(obj) { if (this.item) this.handSlot.remove(this.item); this.item = obj || null; if (obj) this.handSlot.add(obj); }
   reach(on) { this.reaching = !!on; }
   dig() { this.digT = 0.5; this.emoteT = 0; }
+  holdUmbrella(on) { this.umb = !!on; }
   lean(side) { this.leanSide = side | 0; }
   kneel() {} hold() {}
 
@@ -265,6 +266,8 @@ export class Avatar {
     if ((w = s('pat', e === 'pat'))) { this.aim(R, RF, V(-0.15, 0.65, 0.8), w); this.aim(RF, RH, V(0.15, 0.1 + Math.sin(et * 12) * 0.25, 1), w); }
     if ((w = s('shy', e === 'shy'))) { this.aim(R, RF, V(-0.3, -0.55, 0.75), w); this.aim(RF, RH, V(0.35, 0.92, 0.2), w); this.aim(L, LF, V(0.3, -0.55, 0.75), w); this.aim(LF, LH, V(-0.35, 0.92, 0.2), w); this.twist('Spine1', V(0, 0, 1), Math.sin(et * 3) * 0.12 * w); }
     // 蹲下摸狗：右手往前下方輕輕摸
+    // 撐傘：右手舉在肩膀前面
+    if ((w = s('umb', this.umb && !seated && pose !== 'lie'))) { this.aim(R, RF, V(-0.3, -0.35, 0.55), w); this.aim(RF, RH, V(-0.05, 0.95, 0.2), w); }
     // 蹲著挖沙：雙手輪流往前下方挖
     if ((w = s('dig', pose === 'crouch'))) { const k = this.digT || 0; this.digT = Math.max(0, k - dt); const f = k > 0 ? Math.sin(et * 14) : 0; this.aim(R, RF, V(-0.2, -0.7, 0.7), w); this.aim(RF, RH, V(-0.05, -0.75 + f * 0.25, 0.6), w); this.aim(L, LF, V(0.2, -0.7, 0.7), w); this.aim(LF, LH, V(0.05, -0.75 - f * 0.25, 0.6), w); }
     // 彎腰摸狗：上半身往前彎、右手往前下方輕輕摸

@@ -47,10 +47,44 @@ export const BOTTLE = ['「願撿到這封信的人，永遠被溫柔對待。�
 // 每一天的小提示
 export const TIPS = [
   '靠近有標籤的地方，右下角會出現活動按鈕。',
-  '💕 互動可以牽手、抱抱、親親，甜蜜值會增加。',
+  '另一半上線後，💕 互動可以牽手、抱抱、親親。',
   '晚上到燈塔旁的長椅，有機會看到流星。',
   '菜園要每天澆水，澆滿三天就會開花。',
   '晚上在海邊可以放煙火喔。',
   '進小木屋可以睡覺、看電影、做飯、換衣服。',
-  '🔄 換人可以改操作另一半。',
+  '📋 每天有 3 個小任務，完成可以拿 🪙 小島幣買擺設裝潢小屋。',
+  '地圖上點地點，畫面一暗就到了；左下角 🏃 可以跑步。',
+  '小島每 7 天換一個季節，冬天可以堆雪人。',
+];
+
+// 每日小任務：[代號, 說明, 需要幾次, 只在什麼季節（可省略）]
+export const QUESTS = [
+  ['fish', '釣到 2 條魚', 2], ['shell', '在海邊撿 3 個貝殼', 3], ['water', '幫菜園澆水', 1], ['dog', '摸摸狗狗', 1],
+  ['castle', '堆一座沙堡', 1], ['marsh', '烤出完美的棉花糖', 1], ['sunset', '在燈塔看夕陽', 1], ['cook', '在小木屋做一頓飯', 1],
+  ['swing', '盪鞦韆', 1], ['picnic', '去野餐', 1], ['kite', '放風箏', 1], ['boat', '划船繞島一圈', 1], ['mail', '看今天的信', 1],
+  ['photo', '拍一張照片', 1], ['snowman', '堆一個雪人', 1, 'winter'], ['umbrella', '下雨天撐傘散步', 1],
+];
+export const QUEST_COIN = 20, QUEST_BONUS = 30;
+
+// 裝潢：[代號, 名字, 價錢, 放哪裡（out 屋外／in 屋內／any）, 大小, 碰撞半徑]
+export const DECOR = [
+  ['flowerBed', '小花圃', 60, 'out', 1, 0.5], ['sunflower', '向日葵', 30, 'out', 0.6, 0.2], ['common-daisy-6b2004', '小雛菊', 25, 'out', 0.06, 0.15],
+  ['potted-autumn-mums-08db8c', '秋菊盆栽', 40, 'any', 0.9, 0.35], ['potted-shrub-43bd21', '小盆栽', 40, 'any', 0.7, 0.35], ['potted-cactus-855c1d', '仙人掌', 20, 'any', 2.2, 0.2],
+  ['plant', '大盆栽', 60, 'any', 1, 0.4], ['cherry', '櫻花樹', 150, 'out', 0.8, 0.4], ['sapling', '小椰子樹', 60, 'out', 1, 0.3], ['bush', '圓灌木', 30, 'out', 1, 0.5],
+  ['birdhouse-post-66d6c1', '鳥屋', 80, 'out', 1, 0.25], ['frontyard-gnome-997876', '花園小矮人', 50, 'any', 1.4, 0.25], ['garden-birdbath-9671de', '鳥浴盆', 90, 'out', 1, 0.35],
+  ['rocker', '搖椅', 80, 'any', 1, 0.4], ['deckChair', '海灘椅', 50, 'out', 1, 0.4], ['parasol', '陽傘', 70, 'out', 1, 0.15], ['picnicTable', '野餐桌', 90, 'out', 0.8, 0.8],
+  ['dockLamp', '路燈', 60, 'out', 1, 0.2], ['andon-floor-lantern-b1b7ea', '紙燈籠', 50, 'any', 1, 0.25], ['camping-lantern-21d14b', '露營燈', 30, 'any', 1.6, 0.15],
+  ['windsock-d5df79', '風向袋', 70, 'out', 0.35, 0.2], ['bike', '腳踏車', 120, 'out', 1, 0.5], ['guitar', '吉他', 60, 'any', 1, 0.2],
+  ['rug', '地毯', 80, 'in', 0.8, 0], ['cushion', '抱枕', 20, 'in', 1, 0.15], ['tableLamp', '檯燈', 30, 'in', 1, 0.15], ['floorLamp', '立燈', 60, 'in', 1, 0.25],
+  ['bookcase', '書櫃', 100, 'in', 1, 0.5],
+];
+// 收藏獎勵：[代號, 說明, 條件, 送的小島幣, 送的擺設]
+export const MILESTONES = [
+  ['fish3', '釣到 3 種不同的東西', s => Object.keys(s.fish || {}).length >= 3, 50, 'garden-birdbath-9671de'],
+  ['fish6', '釣到 6 種不同的東西', s => Object.keys(s.fish || {}).length >= 6, 100, 'frontyard-gnome-997876'],
+  ['fish10', '釣魚圖鑑全部收集', s => Object.keys(s.fish || {}).length >= 10, 200, 'andon-floor-lantern-b1b7ea'],
+  ['shell3', '撿到 3 種貝殼', s => Object.keys(s.shells || {}).length >= 3, 50, 'birdhouse-post-66d6c1'],
+  ['shell6', '貝殼全部收集', s => Object.keys(s.shells || {}).length >= 6, 120, 'cherry'],
+  ['castle3', '堆了 3 座沙堡', s => (s.castles || 0) >= 3, 60, 'windsock-d5df79'],
+  ['quest7', '完成 7 天的每日任務', s => (s.questDays || 0) >= 7, 150, 'rocker'],
 ];
