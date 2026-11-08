@@ -1566,6 +1566,7 @@ function applySave(keys, first) {
 function onNet(m) {
   if (m.t === 'welcome') {
     MP.id = m.id; MP.role = m.role; MP.owner = m.owner; MP.awayChecked = false;
+    CHAT.old = m.role !== 'g' && !('chat' in m); // 伺服器沒給聊天資料＝還是舊版
     if (m.chat) { CHAT.list = m.chat.list || []; CHAT.read = { 0: 0, 1: 0, ...(m.chat.read || {}) }; setTimeout(() => { chatBadge(); renderChat(); }, 0); }
     if (m.role === 'g') { st = { ...DEF, ...m.save, music: st.music }; [0, 1].forEach(i => { if (st.looks?.[i]) chars[i].av.setLook(st.looks[i]); }); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); snapSent(); updateHud(); }
     else {
@@ -2649,7 +2650,7 @@ document.querySelectorAll('[data-ico]').forEach(e => { e.innerHTML = icon(e.data
 $('#btn-net').innerHTML = icon('users'); $('#clock').innerHTML = clockHtml();
 
 // ================= 兩個人的聊天（只有兩位島主；紀錄存在伺服器，對方不在會推播） =================
-const CHAT = { list: [], read: { 0: 0, 1: 0 }, open: false, typingT: 0, sentTyping: 0 };
+const CHAT = { list: [], pend: [], read: { 0: 0, 1: 0 }, open: false, typingT: 0, sentTyping: 0, old: false };
 const STICKERS = [
   ['miss', '🥺', '想你'], ['love', '💕', '愛你'], ['hug', '🤗', '抱抱'], ['kiss', '😘', '親一個'],
   ['morning', '☀️', '早安'], ['night', '🌙', '晚安'], ['eat', '🍙', '吃飯了沒'], ['come', '🏝️', '上島嗎'],
@@ -2669,18 +2670,21 @@ function renderChat() {
   const me_ = myIdx(), other = chatPartner(), online = !!chars[other]?.remote;
   $('#ch-name').textContent = nameOf(other); $('#ch-status').textContent = online ? '在島上' : '不在島上・訊息會等對方回來看'; $('#ch-dot').classList.toggle('on', online);
   const box = $('#ch-list'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
-  if (!CHAT.list.length) { box.innerHTML = `<div class="ch-empty"><span>💬</span><p>這裡是只有你們兩個人看得到的聊天室。<br>傳一句話給 ${esc(nameOf(other))} 吧。</p></div>`; return; }
+  const warn = CHAT.old ? '<div class="ch-warn">⚠️ 伺服器還是舊版，訊息送不出去：請到 Cloudflare 重新部署一次（Deployments → Retry deployment）。</div>' : !MP.net?.alive ? '<div class="ch-warn">連線中斷了，重新連上後才送得出去…</div>' : '';
+  if (!CHAT.list.length && !CHAT.pend.length) { box.innerHTML = warn + `<div class="ch-empty"><span>💬</span><p>這裡是只有你們兩個人看得到的聊天室。<br>傳一句話給 ${esc(nameOf(other))} 吧。</p></div>`; return; }
   const lastMineRead = [...CHAT.list].reverse().find(m => m.by === me_ && m.ts <= (CHAT.read[other] || 0));
   let html = '', prev = null;
-  for (const m of CHAT.list) {
+  for (const m of [...CHAT.list, ...CHAT.pend]) {
     if (!prev || m.ts - prev.ts > 10 * 60e3) html += `<div class="ch-time">${chatTime(m.ts)}</div>`;
     const mine = m.by === me_, grouped = prev && prev.by === m.by && m.ts - prev.ts < 120e3;
     const st_ = STICKERS.find(x => x[0] === m.v);
     const body = m.k === 's' && st_ ? `<div class="ch-sticker"><span>${st_[1]}</span><b>${st_[2]}</b></div>` : `<div class="ch-bubble">${esc(m.v).replace(/\n/g, '<br>')}</div>`;
-    html += `<div class="ch-msg ${mine ? 'me' : 'you'} ${grouped ? 'grp' : ''} ${m.ch === 'say' ? 'said' : ''}">${m.ch === 'say' && !grouped ? '<small class="ch-said">說出來</small>' : ''}${body}${mine && lastMineRead === m ? '<small class="ch-read">已讀</small>' : ''}</div>`;
+    const pst = m.fail ? `<button type="button" class="ch-retry" data-cid="${m.cid}">沒有送出・點一下重送</button>` : m.pend ? '<small class="ch-read">傳送中…</small>' : '';
+    html += `<div class="ch-msg ${mine ? 'me' : 'you'} ${grouped ? 'grp' : ''} ${m.ch === 'say' ? 'said' : ''} ${m.pend ? 'pend' : ''}">${m.ch === 'say' && !grouped ? '<small class="ch-said">說出來</small>' : ''}${body}${mine && lastMineRead === m ? '<small class="ch-read">已讀</small>' : ''}${pst}</div>`;
     prev = m;
   }
-  box.innerHTML = html; if (atBottom || box.dataset.first !== '1') { box.scrollTop = box.scrollHeight; box.dataset.first = '1'; }
+  box.innerHTML = warn + html;
+  box.querySelectorAll('.ch-retry').forEach(b => b.onclick = () => { const p_ = CHAT.pend.find(x => x.cid === b.dataset.cid); if (!p_) return; CHAT.pend = CHAT.pend.filter(x => x !== p_); chatSend(p_.k, p_.v, p_.w); }); if (atBottom || box.dataset.first !== '1') { box.scrollTop = box.scrollHeight; box.dataset.first = '1'; }
 }
 function chatMarkRead() {
   const last = [...CHAT.list].reverse().find(m => m.by === chatPartner()); if (!last || last.ts <= (CHAT.read[myIdx()] || 0)) return;
@@ -2694,10 +2698,16 @@ function openChat() {
 }
 function closeChat() { CHAT.open = false; $('#chat').hidden = true; $('#ch-stickers').hidden = true; $('#ch-stk').setAttribute('aria-pressed', 'false'); $('#ch-in').blur(); chatBadge(); }
 function chatSend(k, v, w = 0) {
-  if (!MP.on || !v) return; MP.net.send({ t: 'chat', k, v, w }); sfx('pop');
+  if (!MP.on || !v) return; const cid = Math.random().toString(36).slice(2, 10);
+  // 先顯示在聊天室（傳送中），伺服器收到才變成正式訊息；5 秒沒回應就標「沒有送出」
+  const p_ = { cid, by: myIdx(), k, v, w, ts: Date.now(), ch: 'w', pend: 1 }; CHAT.pend.push(p_); renderChat();
+  if (!MP.net?.alive) p_.fail = 1; else MP.net.send({ t: 'chat', k, v, w, cid });
+  setTimeout(() => { if (CHAT.pend.includes(p_)) { p_.fail = 1; renderChat(); if (!CHAT.open) toast('訊息沒有送出，打開聊天室可以重送', 3500); } }, 5000);
+  sfx('pop');
   if (k === 't') showSay(me(), v.length > 24 ? v.slice(0, 24) + '…' : v, 'w'); else { const s_ = STICKERS.find(x => x[0] === v); if (s_) showSay(me(), `${s_[1]} ${s_[2]}`, 'w'); }
 }
 function onChat(m) {
+  if (m.cid) CHAT.pend = CHAT.pend.filter(x => x.cid !== m.cid);
   if (CHAT.list.some(x => x.id === m.id)) return; CHAT.list.push(m); if (CHAT.list.length > 300) CHAT.list.shift();
   const fromPartner = m.by === chatPartner();
   if (m.ch === 'say') { renderChat(); chatBadge(); return; } // 說出來的：頭上泡泡已經出現過，只記在聊天紀錄
@@ -2765,10 +2775,16 @@ chIn.addEventListener('input', () => {
   if (MP.on && performance.now() - CHAT.sentTyping > 1600 && chIn.value.trim()) { CHAT.sentTyping = performance.now(); MP.net.send({ t: 'typing' }); }
 });
 chIn.addEventListener('focus', () => { $('#ch-stickers').hidden = true; $('#ch-stk').setAttribute('aria-pressed', 'false'); });
-chIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('#ch-form').requestSubmit(); } e.stopPropagation(); });
+chIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); const f = $('#ch-form'); if (f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true })); } e.stopPropagation(); });
 $('#ch-form').onsubmit = e => { e.preventDefault(); const v = chIn.value.trim(); if (!v) return; chatSend('t', v); chIn.value = ''; chIn.style.height = 'auto'; };
 // 鍵盤打開時：面板跟著往上（iPhone 的鍵盤會蓋住畫面下方）
-if (window.visualViewport) { const vv = window.visualViewport, fit = () => { document.documentElement.style.setProperty('--kb', Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px'); }; vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+if (window.visualViewport) {
+  const vv = window.visualViewport, fit = () => { document.documentElement.style.setProperty('--kb', Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px'); };
+  vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit);
+  // iPhone 打開鍵盤時會把整頁往上捲：捲回來，再重新算一次鍵盤高度，輸入框才會剛好在鍵盤上面
+  ['#ch-in', '#qc-in'].forEach(q => $(q).addEventListener('focus', () => { [80, 300, 600].forEach(t => setTimeout(() => { scrollTo(0, 0); fit(); }, t)); }));
+  ['#ch-in', '#qc-in'].forEach(q => $(q).addEventListener('blur', () => setTimeout(fit, 300)));
+}
 
 // ---------- 開始 ----------
 (async function boot() {
@@ -2789,5 +2805,5 @@ if (window.visualViewport) { const vv = window.visualViewport, fit = () => { doc
   if (visitParam.length) setupVisit();
   else if (pairParam) setupPairSplash();
   window.__booted = true;
-  window.__nest = { build: () => build, buildSet: (x, z) => { build.x = x; build.z = z; buildCheck(); return [build.top, build.ok]; }, canStand: (x, z) => canStand(x, z), bond: { setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  window.__nest = { CHAT, build: () => build, buildSet: (x, z) => { build.x = x; build.z = z; buildCheck(); return [build.top, build.ok]; }, canStand: (x, z) => canStand(x, z), bond: { setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();

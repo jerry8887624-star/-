@@ -446,3 +446,7 @@ body.calm .right .round.small#btn-chat.unread { opacity: 1; } /* 有新訊息時
 /* 聊天室裡「說出來」的話：外框泡泡 */
 .ch-msg.said .ch-bubble { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
 .ch-said { font-size: 10.5px; color: var(--muted); margin-bottom: 2px; }
+
+.ch-warn { margin: 6px 0; padding: 8px 12px; border-radius: 12px; background: rgba(255, 190, 90, .18); color: var(--ink); font-size: var(--fs-xs); line-height: 1.5; }
+.ch-msg.pend .ch-bubble, .ch-msg.pend .ch-sticker { opacity: .6; }
+.ch-retry { margin-top: 3px; padding: 2px 8px; border: 0; border-radius: 999px; background: rgba(255, 79, 123, .15); color: #e0456d; font-size: 11px; }
