@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from './terrain.js';
-import { buildIsland, buildInterior, setTimeOfDay, SPOTS, INSPOTS, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { buildIsland, buildInterior, applyTheme, THEMES, setTimeOfDay, SPOTS, INSPOTS, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES } from './data.js';
@@ -548,7 +548,7 @@ $('#btn-act').onclick = () => { if (nearSpot && !act) { sfx('click'); nearSpot.r
 
 // ---------- 小木屋：進出 ----------
 async function enterHouse() {
-  if (!IN) { toast('小屋整理中，稍等一下…'); IN = await buildInterior(); }
+  if (!IN) { toast('小屋整理中，稍等一下…'); IN = await buildInterior(st.theme || 'muji'); }
   await fadeDo(() => {
     scene = 'in'; localChars().forEach(c => { c.sc = 'in'; c.path = null; c.y = null; });
     const p = me(), q = you(); p.x = INSPOTS.exit.x - 0.4; p.z = INSPOTS.exit.z - 0.6; p.ry = Math.PI; if (partnerLocal()) { q.x = p.x - 0.8; q.z = p.z + 0.2; q.ry = Math.PI; }
@@ -1262,7 +1262,7 @@ function updateCam(dt, snap) {
 }
 
 // ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
-const SHARED = ['names', 'looks', 'anniv', 'day', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
+const SHARED = ['names', 'looks', 'anniv', 'day', 'theme', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn'];
 const LOVE_WORD = { hand: '牽你的手', hug: '抱抱你', kiss: '親親你', pat: '摸摸你的頭' };
 function newChar(look) { const c = { i: 'g', av: new Avatar(look), x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }; OUT.add(c.av.root); hookEmote(c); return c; }
 function hookEmote(c) { const orig = c.av.emote.bind(c.av); c.av.emote = (k, d) => { orig(k, d); if (MP.on && c === me()) MP.net.send({ t: 'emo', k, d }); }; }
@@ -1316,7 +1316,7 @@ function applySave(keys, first) {
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
   if ('castles' in keys) showCastles();
   if (keys.garden) st.garden.forEach((_, i) => drawPlant(i));
-  if (keys.decor) drawDecor(); if ('snowman' in keys) drawSnowman(); updateChips?.();
+  if (keys.decor) drawDecor(); if (keys.theme && IN) applyTheme(IN, keys.theme); if ('snowman' in keys) drawSnowman(); updateChips?.();
   snapSent(); if (MP.role !== 'g') try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
   updateHud();
 }
@@ -1607,9 +1607,11 @@ function openShop() {
   const inv = Object.entries(st.inv).filter(([k, n]) => n > 0 && can(DECOR.find(d => d[0] === k) || [0, 0, 0, 'none'])).map(([k, n]) => `<button type="button" data-place="${k}">${esc(DECOR.find(d => d[0] === k)[1])}<small>×${n}・點一下擺放</small></button>`).join('');
   const placed = (st.decor || []).map((d, i) => d.sc === here ? `<button type="button" data-take="${i}">${esc(DECOR.find(x => x[0] === d.id)?.[1] || '')}<small>收起來（放回包包）</small></button>` : '').join('');
   openDlg(`🛠️ 裝潢${here === 'in' ? '小木屋' : '小島'}`, `<p class="muted">🪙 ${st.coins || 0} 小島幣（做每日任務、釣魚、撿貝殼、堆沙堡可以賺）${here === 'in' ? '' : '　想裝潢小木屋就進屋再打開'}</p>
+    ${here === 'in' ? `<b>🏠 屋內風格</b><div class="shop">${Object.entries(THEMES).map(([k, t]) => `<button type="button" data-theme="${k}" aria-pressed="${(st.theme || 'muji') === k}">${k === 'muji' ? '🤍' : '🪵'} ${esc(t.name)}<small>${k === 'muji' ? '淺色原木、米白、亞麻灰' : '原木牆、深木地板、暖黃光'}</small></button>`).join('')}</div>` : ''}
     ${inv ? `<b>🎒 包包裡</b><div class="shop">${inv}</div>` : ''}<b>🛒 商店</b><div class="shop">${items}</div>${placed ? `<b>📍 已經擺好的</b><div class="shop">${placed}</div>` : ''}`);
   $('#dlg-body').querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const d = DECOR.find(x => x[0] === b.dataset.buy); if ((st.coins || 0) < d[2]) return; st.coins -= d[2]; st.inv[d[0]] = (st.inv[d[0]] || 0) + 1; save(); updateChips(); sfx('chime'); toast(`買了「${d[1]}」`); startPlace(d[0]); });
   $('#dlg-body').querySelectorAll('[data-place]').forEach(b => b.onclick = () => startPlace(b.dataset.place));
+  $('#dlg-body').querySelectorAll('[data-theme]').forEach(b => b.onclick = () => { st.theme = b.dataset.theme; save(); if (IN) applyTheme(IN, st.theme); sfx('chime'); toast(`屋內換成「${THEMES[st.theme].name}」風格`); openShop(); });
   $('#dlg-body').querySelectorAll('[data-take]').forEach(b => b.onclick = () => { const d = st.decor.splice(+b.dataset.take, 1)[0]; st.inv[d.id] = (st.inv[d.id] || 0) + 1; save(); drawDecor(); openShop(); });
 }
 async function startPlace(id) {
@@ -1812,7 +1814,7 @@ async function setupVisit() {
   btn.disabled = false;
   spawnShells(); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); WX = createWeatherFX(OUT);
   updateCam(0, true);
-  buildInterior().then(I => { IN = I; drawDecor(); });
+  buildInterior(st.theme || 'muji').then(I => { IN = I; drawDecor(); });
   if (visitParam.length) setupVisit();
   window.__nest = { get st() { return st; }, OUT, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();
