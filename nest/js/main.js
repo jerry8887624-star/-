@@ -251,14 +251,17 @@ function syncAv(c, dt) {
 }
 
 // ---------- 另一半：跟著你走、牽手 ----------
-let lovePending = null;
+let lovePending = null, loveHold = 0; // loveHold：抱抱、親親、拍照時另一半先站著不動
 function partnerAI(dt) {
   const p = me(), q = you(); if (q.locked) return;
+  if (loveHold > 0) { loveHold -= dt; q.moving = false; return; }
   const fx = Math.sin(p.ry), fz = Math.cos(p.ry), rx = -fz, rz = fx; // 朝向、右手邊
   let tx, tz, near;
   if (lovePending) {
-    const k = lovePending, gap = k.kind === 'hug' ? 0.5 : k.kind === 'kiss' ? 0.55 : 0.8;
-    tx = p.x + fx * gap; tz = p.z + fz * gap; k.t += dt;
+    const k = lovePending, gap = k.kind === 'hug' ? 0.55 : k.kind === 'kiss' ? 0.62 : 0.8;
+    // 站在你的「畫面右邊」，兩個人面對面，鏡頭看到側面
+    const yw = scene === 'in' ? view.inYaw : view.yaw, sx = Math.cos(yw), sz = -Math.sin(yw);
+    tx = p.x + sx * gap; tz = p.z + sz * gap; if (!canStand(tx, tz)) { tx = p.x - sx * gap; tz = p.z - sz * gap; } k.t += dt;
     const d = Math.hypot(tx - q.x, tz - q.z);
     if (d < 0.12 || k.t > 2.2) { if (d >= 0.12) { q.x = tx; q.z = tz; } q.ry = Math.atan2(p.x - q.x, p.z - q.z); doLove(k.kind); lovePending = null; }
     else stepChar(q, tx - q.x, tz - q.z, dt, 3.2);
@@ -315,6 +318,7 @@ function doLove(kind) {
   const p = me(), q = you();
   p.ry = Math.atan2(q.x - p.x, q.z - p.z); q.ry = Math.atan2(p.x - q.x, p.z - q.z);
   const n = { hug: 2, kiss: 3, pat: 2, jump: 1 }[kind] || 1;
+  loveHold = kind === 'jump' ? 1.4 : 2.2; p.path = null;
   if (kind === 'hug') { p.av.emote('hug', 1.8); q.av.emote('hug', 1.8); burst('heart', midPos(), 6); toast(`${nameOf(p.i)} 抱住了 ${nameOf(q.i)} 🤗`); }
   if (kind === 'kiss') { p.av.emote('kiss', 1.5); setTimeout(() => q.av.emote('shy', 1.8), 500); setTimeout(() => burst('heart', midPos(1.55), 10, 0.4), 450); toast(`啾 😘`); }
   if (kind === 'pat') { p.av.emote('pat', 1.6); q.av.emote('shy', 1.6); burst('heart', headPos(q, 1.8), 4, 0.3); toast(`摸摸 ${nameOf(q.i)} 的頭`); }
@@ -956,7 +960,7 @@ $('#photo-ui').querySelector('.ph-poses').addEventListener('click', e => {
     if (k === 'hug' || k === 'kiss') { q.x = p.x + rx * 0.45; q.z = p.z + rz * 0.45; p.ry = ry - 0.9; q.ry = ry + 0.9; }
   }
   const map = { hug: ['hug', 'hug'], kiss: ['kiss', 'shy'], wave: ['wave', 'wave'], cheer: ['cheer', 'cheer'], heart: ['clap', 'clap'] }[k];
-  p.av.emote(map[0], 3); q.av.emote(map[1], 3); if (k === 'heart' || k === 'kiss') burst('heart', midPos(), 6);
+  p.av.emote(map[0], 3); q.av.emote(map[1], 3); loveHold = 3.2; if (k === 'heart' || k === 'kiss') burst('heart', midPos(), 6);
 });
 $('#ph-shot').onclick = () => {
   const w = innerWidth, h = innerHeight, scale = Math.max(1, 1080 / Math.min(w, h)) * (PR > 1.4 ? 1 : 1);
