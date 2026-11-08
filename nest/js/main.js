@@ -232,7 +232,15 @@ function canStand(x, z) {
   if (scene === 'in') { const hw = ROOM.w / 2 - 0.4, hd = ROOM.d / 2 - 0.4; return x > -hw && x < hw && z > -hd && z < hd + 0.3 && !blocked(x, z, R_BODY, [], IN.BOXES); }
   return walkable(x, z) && !blocked(x, z, R_BODY, CIRCLES, BOXES);
 }
+// 找離 (x, z) 最近、可以站的地方（一圈一圈往外找）
+function freeSpot(x, z) {
+  if (canStand(x, z)) return [x, z];
+  for (let r = 0.3; r < 4; r += 0.3) for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, nx = x + Math.cos(a) * r, nz = z + Math.sin(a) * r; if (canStand(nx, nz)) return [nx, nz]; }
+  return [x, z];
+}
 function stepChar(c, dx, dz, dt, speed) {
+  // 萬一已經卡在家具裡：先讓他走出來
+  if (!canStand(c.x, c.z)) { const L0 = Math.hypot(dx, dz); if (L0 > 1e-4) { c.x += dx / L0 * speed * dt; c.z += dz / L0 * speed * dt; c.ry = Math.atan2(dx, dz); c.moving = true; return true; } }
   const L = Math.hypot(dx, dz); if (L < 1e-4) { c.moving = false; return false; }
   const sx = dx / L * speed * dt, sz = dz / L * speed * dt;
   let moved = false;
@@ -360,7 +368,8 @@ function endAct() {
   if (!act) return; const a = act; act = null;
   a.end?.(); chars.forEach(unseat); $('#act-panel').hidden = true; $('#joy').style.visibility = '';
   // 站到活動地點旁邊
-  if (a.back) { const [x, z] = a.back; const p = me(), q = you(); p.x = x; p.z = z; q.x = x + 0.9; q.z = z + 0.5; }
+  if (a.back) { const [x, z] = a.back; const p = me(), q = you(); [p.x, p.z] = freeSpot(x, z); [q.x, q.z] = freeSpot(p.x + 0.9, p.z + 0.5); }
+  chars.forEach(c => { if (!canStand(c.x, c.z)) [c.x, c.z] = freeSpot(c.x, c.z); });
 }
 $('#ap-close').onclick = () => { sfx('click'); endAct(); };
 // 兩個人坐成一排：中心、朝向、間距
