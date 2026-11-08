@@ -7,7 +7,7 @@ import { load, toon, toonGrad, tickAnimals, playA, progress, mixers } from './mo
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS } from './data.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
-import { Music, sfx } from './audio.js';
+import { Music, sfx, TRACKS } from './audio.js';
 import { Net, auth as savedAuth, saveAuth, serverAvailable, createIsland, pairIsland, peekIsland } from './net.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 
@@ -74,7 +74,7 @@ $('#start-btn').onclick = () => {
   st.myName = $('#name0').value.trim().slice(0, 8); st.names[myIdx()] = st.myName;
   st.anniv = $('#anniv').value || '';
   const first = !st.started; st.started = true; save();
-  Music.init(); if (st.music) Music.play();
+  Music.init(); if (st.music) { Music.pick(st.track ?? -1); Music.play(); }
   $('#splash').classList.add('out'); setTimeout(() => { $('#splash').hidden = true; }, 600);
   $('#hud').hidden = false; preview.on = false;
   chars.forEach(c => { c.locked = false; c.av.setPose('stand'); c.av.holdHand(0); });
@@ -1206,7 +1206,18 @@ $('#ph-shot').onclick = () => {
   }, 'image/png');
   addMemo('📷', '拍了一張合照');
 };
-$('#btn-music').onclick = () => { st.music = !st.music; save(); Music.init(); st.music ? Music.play() : Music.stop(); updateHud(); };
+// 背景音樂：選歌面板
+$('#btn-music').onclick = () => {
+  sfx('click'); const cur = st.music ? (st.track ?? -1) : null;
+  const row = (v, t, sub) => `<button type="button" data-m="${v}" aria-pressed="${cur === v}">${t}<small>${sub}</small></button>`;
+  openDlg('🎵 背景音樂', `<div class="opts music">${row(-1, '🔀 自動輪播', '四首輪流播放')}${TRACKS.map((t, i) => row(i, `🎶 ${t[1]}`, t[0])).join('')}${row('off', '🔇 關閉音樂', '音效還是會有')}</div>${st.music && Music.playing ? `<p class="muted">正在播放：${esc(Music.playing)}</p>` : ''}`);
+  $('#dlg-body').querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
+    const v = b.dataset.m;
+    if (v === 'off') { st.music = false; Music.stop(); }
+    else { const i = +v; st.music = true; st.track = i; Music.pick(i); Music.play(); }
+    save(); updateHud(); $('#dlg').close();
+  });
+};
 
 // ---------- 鏡頭 ----------
 const camT = new THREE.Vector3(), camP = new THREE.Vector3(), tmpT = new THREE.Vector3();

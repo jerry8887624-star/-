@@ -37,27 +37,46 @@ export function sfx(name) {
   }
 }
 
-// 背景音樂：溫柔的烏克麗麗風琶音（C–Am–F–G），營火邊彈吉他時多一層旋律
-const CH = [[261.6, 329.6, 392.0], [220.0, 261.6, 329.6], [174.6, 220.0, 261.6], [196.0, 246.9, 293.7]];
+// 背景音樂：四首 mp3（audio/），自動輪播或指定一首；營火彈吉他時再疊一段合成的吉他旋律
+export const TRACKS = [
+  ['Island Toybox', '島嶼玩具盒', 'audio/island-toybox.mp3'],
+  ['Island Drift', '小島漂流', 'audio/island-drift.mp3'],
+  ['Glassy Pads', '玻璃晴空', 'audio/glassy-pads.mp3'],
+  ['Cozy Puzzle', '暖暖拼圖', 'audio/cozy-puzzle.mp3'],
+];
+const VOL = 0.55;
+const el = typeof Audio !== 'undefined' ? new Audio() : null;
+if (el) { el.preload = 'none'; el.volume = 0; el.setAttribute('playsinline', ''); }
+let on = false, pickI = -1, idx = 0, fadeT = null, order = [];
+function fadeTo(v, ms, done) {
+  if (!el) return; clearInterval(fadeT); const from = el.volume, t0 = performance.now();
+  fadeT = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / ms); el.volume = from + (v - from) * k; if (k >= 1) { clearInterval(fadeT); done?.(); } }, 50);
+}
+function nextIdx() { if (pickI >= 0) return pickI; if (!order.length) order = TRACKS.map((_, i) => i).sort(() => Math.random() - 0.5); return order.shift(); }
+function load(i) { idx = i; el.src = TRACKS[i][2]; el.currentTime = 0; }
+if (el) el.addEventListener('ended', () => { if (!on) return; load(nextIdx()); el.play().catch(() => {}); });
+// 吉他旋律（合成）
 const MEL = [659.3, 587.3, 523.3, 587.3, 659.3, 659.3, 659.3, 0, 587.3, 587.3, 587.3, 0, 659.3, 784, 784, 0];
-let bus = null, timer = null, step = 0, next = 0, duet = false;
+let duetT = null, dStep = 0, dNext = 0;
 export const Music = {
-  init() { if (!ac() || bus) return; bus = ctx.createGain(); bus.gain.value = 0; bus.connect(master); },
+  init() {},
+  get track() { return pickI; },
+  get playing() { return on ? TRACKS[idx][1] : ''; },
   play() {
-    if (!ac()) return; this.init(); bus.gain.cancelScheduledValues(ctx.currentTime); bus.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 1.5);
-    if (timer) return; next = ctx.currentTime + 0.1;
-    timer = setInterval(() => {
-      while (next < ctx.currentTime + 0.4) {
-        const bar = Math.floor(step / 8) % 4, ch = CH[bar], i = step % 8, beat = 0.32;
-        const f = [ch[0], ch[1], ch[2], ch[1] * 2, ch[2], ch[1], ch[0] * 2, ch[2]][i];
-        tone(f, next, 0.9, { type: 'triangle', vol: 0.05, out: bus });
-        if (i === 0) tone(ch[0] / 2, next, 2.4, { vol: 0.06, out: bus, attack: 0.05 });
-        if (duet) { const m = MEL[step % 16]; if (m) tone(m, next, 0.5, { type: 'sine', vol: 0.05, out: bus }); }
-        next += beat; step++;
-      }
-    }, 100);
+    if (!el) return; on = true;
+    if (!el.src) load(nextIdx());
+    el.play().then(() => fadeTo(VOL, 1200)).catch(() => {});
   },
-  stop() { if (!bus) return; bus.gain.cancelScheduledValues(ctx.currentTime); bus.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6); setTimeout(() => { if (timer) { clearInterval(timer); timer = null; } }, 700); },
-  duet(on) { duet = !!on; },
+  stop() { if (!el) return; on = false; fadeTo(0, 600, () => el.pause()); },
+  // i = -1 自動輪播
+  pick(i) { pickI = i; order = []; if (!el) return; if (!on || el.paused) { load(i >= 0 ? i : nextIdx()); return; } fadeTo(0, 400, () => { load(i >= 0 ? i : nextIdx()); if (on) el.play().then(() => fadeTo(VOL, 900)).catch(() => {}); }); },
+  duet(v) {
+    if (!v) { clearInterval(duetT); duetT = null; return; }
+    if (duetT || !ac()) return; dNext = ctx.currentTime + 0.1;
+    duetT = setInterval(() => { while (dNext < ctx.currentTime + 0.4) { const m = MEL[dStep % 16]; if (m) tone(m, dNext, 0.55, { type: 'triangle', vol: 0.06 }); dNext += 0.32; dStep++; } }, 100);
+  },
 };
-document.addEventListener('visibilitychange', () => { if (!ctx) return; document.hidden ? ctx.suspend() : ctx.resume(); });
+document.addEventListener('visibilitychange', () => {
+  if (ctx) document.hidden ? ctx.suspend() : ctx.resume();
+  if (!el || !on) return; if (document.hidden) el.pause(); else el.play().catch(() => {});
+});
