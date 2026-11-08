@@ -151,3 +151,11 @@ dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
 .icon.net.on { background: var(--rose); color: #fff; }
 .lbl.say { background: #fff; color: #4a3440; font-size: 13.5px; max-width: 60vw; white-space: normal; text-align: center; pointer-events: none; border-radius: 14px; }
 .card { max-width: calc(100vw - 244px - var(--safe-l) - var(--safe-r)); }
+
+/* 開場：只設定自己；日期欄在 iPhone 不要撐破卡片 */
+#splash { place-items: end center; background: linear-gradient(180deg, rgba(255, 220, 230, 0) 45%, rgba(255, 214, 226, .55)); }
+.me-row .seg button { flex: 1 1 0; }
+.me-row .seg .shuffle { flex-basis: auto; }
+.anniv input[type="date"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; max-width: 100%; min-height: 46px; text-align: left; }
+.anniv input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.splash-card { padding: 18px 18px 14px; }

@@ -3,7 +3,8 @@ import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR } from './terrain.js';
 import { buildIsland, buildInterior, setTimeOfDay, SPOTS, INSPOTS, ROOM, blocked, CIRCLES, BOXES } from './world.js';
-import { load, toon, tickAnimals, playA, progress, mixers } from './models.js';
+import { load, toon, toonGrad, tickAnimals, playA, progress, mixers } from './models.js';
+import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS } from './data.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
 import { Music, sfx } from './audio.js';
@@ -20,9 +21,10 @@ const AS = 1, HIP = 0.306; // 角色大小、坐下時屁股離腳底的高度
 const KEY = 'nest.save';
 const DEF = { v: 1, names: ['', ''], looks: [null, null], anniv: '', love: 0, day: 1, tod: 9, diary: [], fish: {}, shells: {}, garden: [null, null, null], castles: 0, letterDay: 0, ctrl: 0, music: true, started: false, hand: false, flowersGiven: 0, dishes: 0, wishes: 0, fireworks: 0, laps: 0 };
 let st = (() => { try { return { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) { return { ...DEF }; } })();
-const save = () => { if (MP.role === 'g') return; try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} shareSave(); };
+const save = () => { if (MP.role === 'g') return; if (st.myLook) { st.myLook = st.looks[myIdx()]; st.myName = st.names[myIdx()]; } try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} shareSave(); };
 setInterval(save, 5000); addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-const nameOf = i => st.names[i] || (i ? '另一半' : '我');
+const myIdx = () => MP.on && MP.role !== 'g' ? MP.role : st.ctrl;
+const nameOf = i => st.names[i] || (i === myIdx() ? '我' : '另一半');
 
 // ---------- 畫面 ----------
 const canvas = $('#stage');
@@ -38,6 +40,8 @@ const curS = () => scene === 'in' ? IN.S : OUT;
 
 // ---------- 角色 ----------
 for (let i = 0; i < 2; i++) if (!st.looks[i]) st.looks[i] = randomLook(i ? 'm' : 'f');
+// 這支手機的主人（自己的名字、樣子）；舊存檔從目前操作的角色帶過來
+if (!st.myLook) st.myLook = st.looks[st.ctrl]; if (st.myName == null) st.myName = st.names[st.ctrl] || '';
 const chars = [0, 1].map(i => ({ i, av: null, x: i ? 1.4 : 0, z: 1.5, ry: Math.PI, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }));
 function makeAv(i) {
   const c = chars[i];
@@ -52,42 +56,36 @@ const ghost = { i: -1, ghost: true, x: 0, z: 0, ry: 0, y: null, moving: false, l
   av: { root: new THREE.Group(), handSlot: new THREE.Group(), reaching: false, pose: 'stand', emote: NOOP, setPose: NOOP, holdHand: NOOP, setItem: NOOP, reach: NOOP, lean: NOOP, update: NOOP } };
 let guestChar = null;
 const othersOnline = () => [...MP.peers.values()].some(p => p.role === 'g') || (MP.role === 'g');
-const me = () => !MP.on ? chars[st.ctrl] : MP.role === 'g' ? guestChar : chars[MP.role];
-const you = () => {
-  if (!MP.on) return chars[1 - st.ctrl];
-  if (MP.role === 'g') return ghost;
-  const q = chars[1 - MP.role]; return q.remote ? q : othersOnline() ? ghost : q;
-};
-// 另一半是這支手機在控制（電腦跟著走）
-const partnerLocal = () => { const q = you(); return !q.remote && !q.ghost; };
+// 一個人生活：島上只有自己；另一半上線（連線版）才會出現
+const me = () => MP.role === 'g' ? guestChar : chars[myIdx()];
+const you = () => { if (MP.role === 'g') return ghost; const q = chars[1 - myIdx()]; return q.remote ? q : ghost; };
+const partnerLocal = () => false;
 
 // ---------- 開場 ----------
 const preview = { on: true, t: 0 };
 function syncSplash() {
-  $('#name0').value = st.names[0]; $('#name1').value = st.names[1]; $('#anniv').value = st.anniv || '';
-  document.querySelectorAll('.who').forEach(w => { const i = +w.dataset.i; w.querySelectorAll('[data-g]').forEach(b => b.setAttribute('aria-pressed', String(st.looks[i].gender === b.dataset.g))); });
+  $('#name0').value = st.myName || ''; $('#anniv').value = st.anniv || '';
+  document.querySelectorAll('.me-row [data-g]').forEach(b => b.setAttribute('aria-pressed', String(st.myLook.gender === b.dataset.g)));
 }
-document.querySelectorAll('.who').forEach(w => {
-  const i = +w.dataset.i;
-  w.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { st.looks[i] = randomLook(b.dataset.g); makeAv(i); syncSplash(); sfx('click'); });
-  w.querySelector('.shuffle').onclick = () => { st.looks[i] = randomLook(st.looks[i].gender); makeAv(i); chars[i].av.emote('jump', 1); sfx('click'); };
-});
+function setMyLook(L) { st.myLook = L; st.looks[myIdx()] = L; chars[myIdx()].av.setLook(L); }
+document.querySelectorAll('.me-row [data-g]').forEach(b => b.onclick = () => { setMyLook(randomLook(b.dataset.g)); syncSplash(); sfx('click'); });
+document.querySelector('.me-row .shuffle').onclick = () => { setMyLook(randomLook(st.myLook.gender)); chars[myIdx()].av.emote('jump', 1); sfx('click'); };
 $('#start-btn').onclick = () => {
-  st.names = [$('#name0').value.trim().slice(0, 8), $('#name1').value.trim().slice(0, 8)];
+  st.myName = $('#name0').value.trim().slice(0, 8); st.names[myIdx()] = st.myName;
   st.anniv = $('#anniv').value || '';
   const first = !st.started; st.started = true; save();
   Music.init(); if (st.music) Music.play();
   $('#splash').classList.add('out'); setTimeout(() => { $('#splash').hidden = true; }, 600);
   $('#hud').hidden = false; preview.on = false;
-  chars.forEach(c => { c.locked = false; c.av.setPose('stand'); });
+  chars.forEach(c => { c.locked = false; c.av.setPose('stand'); c.av.holdHand(0); });
   placeStart();
   updateHud();
   if (savedAuth?.key) serverAvailable().then(ok => { if (ok) { MP.role = savedAuth.role; MP.on = true; snapSent(); connectNet(savedAuth); } });
   if (pairParam) setTimeout(() => { openNet().then(() => { $('#net-pair')?.click(); const i = $('#pair-in'); if (i) i.value = pairParam; }); }, 800);
-  if (first) { addMemo('🏝️', `${nameOf(0)} 和 ${nameOf(1)} 一起搬到了小島上`); setTimeout(() => toast('歡迎回家！靠近有標籤的地方就能一起做事 ♥', 4200), 900); }
+  if (first) { addMemo('🏝️', `${nameOf(myIdx())} 搬到了小島上`); setTimeout(() => toast('歡迎回家！靠近有標籤的地方就能做事；🌐 可以邀請另一半 ♥', 4500), 900); }
   else { toast(pick(TIPS), 4000); showNewsOnce(); }
 };
-function placeStart() { const c0 = me(), c1 = you(); c0.x = 0.5; c0.z = 3.2; c0.ry = 0.5; c1.x = -0.6; c1.z = 3.4; c1.ry = 0.5; view.yaw = 0.5; updateCam(0, true); }
+function placeStart() { const c0 = me(); c0.x = 0.5; c0.z = 3.2; c0.ry = 0.5; view.yaw = 0.5; updateCam(0, true); }
 
 // ---------- 介面小工具 ----------
 let toastT = 0;
@@ -114,10 +112,9 @@ function addLove(n, why, key) {
   } else if (why) toast(`${why}　+${n} 甜蜜`);
 }
 function updateHud() {
-  $('#hud-names').textContent = `${nameOf(0)} ♥ ${nameOf(1)}`;
+  $('#hud-names').textContent = `${nameOf(myIdx())} ♥ ${nameOf(1 - myIdx())}`;
   const d = daysTogether(); $('#hud-days').textContent = d ? `在一起第 ${d} 天` : `小島第 ${st.day} 天`;
   const L = levelOf(st.love); $('#hud-lv').textContent = `Lv${L.lv} ${L.title}`; $('#love-bar').style.width = (L.pct * 100).toFixed(1) + '%';
-  $('#swap-name').textContent = `換${nameOf(1 - st.ctrl)}`;
   $('#btn-music').setAttribute('aria-pressed', String(!!st.music));
 }
 function clockText() { const h = Math.floor(st.tod), m = Math.floor((st.tod - h) * 60); const ic = st.tod >= 5.5 && st.tod < 17.8 ? '☀️' : st.tod >= 17.8 && st.tod < 19.3 ? '🌇' : '🌙'; return `${ic} ${String(h).padStart(2, '0')}:${String(Math.floor(m / 10) * 10).padStart(2, '0')}`; }
@@ -368,15 +365,22 @@ function partnerAI(dt) {
 }
 
 // ---------- 情侶互動 ----------
-function toggleLoveMenu(force) { const m = $('#love-menu'); m.hidden = force === undefined ? !m.hidden : !force; m.querySelector('[data-l="hand"]').setAttribute('aria-pressed', String(!!st.hand)); }
+function toggleLoveMenu(force) {
+  const m = $('#love-menu'); m.hidden = force === undefined ? !m.hidden : !force;
+  // 另一半不在：只留自己能做的動作
+  const alone = you().ghost; m.querySelectorAll('[data-l]').forEach(b => { b.hidden = alone && ['hand', 'hug', 'kiss', 'pat'].includes(b.dataset.l); });
+  let tip = m.querySelector('.tip'); if (!tip) { tip = document.createElement('p'); tip.className = 'tip muted'; tip.style.cssText = 'grid-column:1/-1;margin:2px 4px 0;font-size:12px'; m.appendChild(tip); }
+  tip.textContent = alone ? (MP.role === 'g' ? '朋友可以揮手、跳舞、一起跳' : '另一半上線後，就能牽手、抱抱、親親（🌐 邀請）') : '';
+  m.querySelector('[data-l="hand"]').setAttribute('aria-pressed', String(!!(MP.lead || MP.led)));
+}
 $('#btn-love').onclick = () => toggleLoveMenu();
 $('#love-menu').addEventListener('click', e => { const b = e.target.closest('[data-l]'); if (!b) return; toggleLoveMenu(false); loveAction(b.dataset.l); });
 function loveAction(kind) {
   sfx('click');
-  if (MP.on && (MP.role === 'g' || you().ghost)) { // 朋友、或另一半不在線上：只能做自己的動作
+  if (MP.role === 'g' || you().ghost) { // 朋友、或另一半不在：只能做自己的動作
     const solo = { dance: 'dance', jump: 'jump', spin: 'cheer', wave: 'wave' }[kind];
     if (solo) { me().av.emote(solo, solo === 'dance' ? 6 : 1.5); burst(kind === 'dance' ? 'note' : 'star', headPos(me(), 1.3), 4, 0.3); }
-    else toast(MP.role === 'g' ? '這是島主之間的互動喔' : '另一半現在不在線上');
+    else toast(MP.role === 'g' ? '這是島主之間的互動喔' : '另一半上線後才能一起做喔');
     return;
   }
   if (MP.on && you().remote && LOVE_WORD[kind]) { requestLove(kind); return; }
@@ -556,7 +560,7 @@ async function exitHouse() {
 // ---------- 信箱：另一半寫的情書（每天一封） ----------
 function openMail() {
   const fresh = st.letterDay !== st.day;
-  const idx = (st.day * 7 + (st.ctrl ? 3 : 0)) % LETTERS.length;
+  const idx = (st.day * 7 + (myIdx() ? 3 : 0)) % LETTERS.length;
   const text = LETTERS[idx].replaceAll('{a}', nameOf(me().i)).replaceAll('{b}', nameOf(you().i));
   openDlg('💌 今天的信', `<div class="letter">${esc(text)}</div><p class="muted">${fresh ? '每天都會有一封新的信。' : '今天的信已經看過了，明天再來看看。'}</p>`);
   if (fresh) { st.letterDay = st.day; addLove(3, '收到情書'); addMemo('💌', `${nameOf(me().i)} 收到 ${nameOf(you().i)} 寫的信`); me().av.emote('shy', 1.6); burst('heart', headPos(me()), 4); }
@@ -723,56 +727,123 @@ function actBeach() {
   });
 }
 
-// ---------- 釣魚 ----------
+// ---------- 釣魚：拋竿 → 等浮標下沉 → 收竿 → 按住拉線（別讓線斷掉）→ 把魚拉上岸、舉起來 ----------
 function rodItem() {
-  const g = new THREE.Group(); const r = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.02, 1.8, 5), toon('#5a3a22')); r.position.y = 0.85; g.add(r);
+  const g = new THREE.Group(); const r = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.022, 1.8, 6), toon('#5a3a22')); r.position.y = 0.85; g.add(r);
+  const reel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 10), toon('#c8c8d0')); reel.rotation.z = Math.PI / 2; reel.position.set(0.04, 0.15, 0); g.add(reel);
   const tip = new THREE.Object3D(); tip.position.y = 1.75; g.add(tip); g.userData.tip = tip; g.rotation.x = 0.9; return g;
 }
 function pickFish() { const tot = FISH.reduce((s, f) => s + f[2], 0); let r = Math.random() * tot; for (const f of FISH) { r -= f[2]; if (r <= 0) return f; } return FISH[0]; }
+// 釣上來的東西（3D）：魚用 Polyfork 的魚上色；章魚、靴子、瓶子用程式做
+const FISH_TINT = { 小丑魚: '#ff8a3a', 藍色倒吊: '#3a7ae0', 黃金鯛: '#f2c33a', 鮪魚: '#6a7ea0', 愛心魚: '#ff6a9a' };
+async function catchModel(f, size) {
+  const name = f[0], g = new THREE.Group(); let mixer = null;
+  if (FISH_TINT[name]) {
+    const m = await load('fish'); if (m) {
+      const o = SkeletonUtils.clone(m.scene); const tint = new THREE.Color(FISH_TINT[name]);
+      o.traverse(x => { if (x.isMesh) { x.material = x.material.clone(); x.material.color = x.material.color.clone().lerp(tint, 0.65); x.frustumCulled = false; } });
+      o.scale.setScalar(clamp(size / 45, 0.35, 1.7)); o.rotation.y = Math.PI / 2; g.add(o);
+      mixer = new THREE.AnimationMixer(o); const c = m.animations.find(a => a.name === 'Swim fast') || m.animations[0]; if (c) mixer.clipAction(c).play();
+      if (name === '愛心魚') { const h = heartMesh(0.12, toon('#ffffff', { emissive: '#ff3a7a' })); h.position.y = 0.45 * clamp(size / 45, 0.35, 1.7); g.add(h); }
+    }
+  } else if (name === '寄居蟹' || name === '海星') {
+    const m = await load(name === '寄居蟹' ? 'crab' : 'starfish'); if (m) { const o = name === '寄居蟹' ? SkeletonUtils.clone(m.scene) : m.scene.clone(true); o.scale.setScalar(name === '寄居蟹' ? 0.22 : 0.9); if (name === '海星') o.rotation.x = Math.PI / 2; g.add(o); }
+  } else if (name === '小章魚') {
+    const pm = toon('#ff7a8a'); const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), pm); head.scale.y = 1.2; g.add(head);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, t = new THREE.Mesh(new THREE.CapsuleGeometry(0.025, 0.16, 4, 6), pm); t.position.set(Math.cos(a) * 0.08, -0.16, Math.sin(a) * 0.08); t.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); g.add(t); }
+    [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), toon('#1a1a1a')); e.position.set(0.05 * s, 0.03, 0.1); g.add(e); });
+  } else if (name === '舊靴子') {
+    const bm = toon('#6a4a32'); const leg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.24, 0.12), bm); leg.position.y = 0.06; g.add(leg); const foot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.08, 0.24), bm); foot.position.set(0, -0.06, 0.06); g.add(foot);
+    const weed = new THREE.Mesh(new THREE.CapsuleGeometry(0.012, 0.14, 4, 4), toon('#4a8a3a')); weed.position.set(0.05, 0.2, 0); weed.rotation.z = 0.5; g.add(weed);
+  } else { // 瓶中信
+    const gl = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.24, 12), new THREE.MeshToonMaterial({ color: '#9ad8c8', transparent: true, opacity: 0.6, gradientMap: toonGrad() })); g.add(gl);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.07, 10), gl.material); neck.position.y = 0.15; g.add(neck);
+    const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.03, 8), toon('#b08050')); cork.position.y = 0.2; g.add(cork);
+    const paper = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.14, 8), toon('#fff4d8')); g.add(paper);
+  }
+  return { g, mixer };
+}
 function actFish() {
-  const fx = SPOTS.fishing.x, y = DOCK.y + 0.04 - HIP;
+  const fx = SPOTS.fishing.x;
   const rod = rodItem(), bob = new THREE.Group();
   const bb = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), toon('#ff4a4a')); bob.add(bb); const bw = new THREE.Mesh(new THREE.SphereGeometry(0.091, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), toon('#ffffff')); bob.add(bw);
-  const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8 }));
+  const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85 }));
   bob.visible = ln.visible = false; OUT.add(bob); OUT.add(ln);
-  fadeDo(() => { seat(me(), fx + 0.9, y, -0.35, Math.PI / 2); seat(you(), fx + 0.9, y, 0.45, Math.PI / 2); me().av.setItem(rod); me().av.reach(true); }, 250);
-  let state = 'idle', t = 0, wait = 0, flyT = 0; const target = new THREE.Vector3(fx + 4.4, 0, -0.6);
-  let caughtShow = null;
+  // 站在碼頭盡頭、面向大海；另一半（在線上的話）坐在旁邊
+  fadeDo(() => { seat(me(), fx + 0.8, null, -0.3, Math.PI / 2, 'stand'); seat(you(), fx + 0.9, DOCK.y + 0.04 - HIP, 0.55, Math.PI / 2); me().av.setItem(rod); me().av.reach(true); }, 250);
+  let state = 'idle', t = 0, wait = 0, flyT = 0, fish = null, catchO = null, tension = 0, prog = 0, holding = false, pull = 0, landT = 0;
+  const target = new THREE.Vector3(), start = new THREE.Vector3();
   const setState = s => { state = s; t = 0; };
-  const btns = () => setBtns([{ t: state === 'idle' ? '拋竿' : state === 'bite' ? '收竿！' : state === 'wait' ? '等魚上鉤…' : '…', main: true, dis: state === 'fly' || state === 'reel', fn: press }]);
-  const press = () => {
-    if (state === 'idle') { setState('fly'); bob.visible = ln.visible = true; flyT = 0; target.set(fx + 3.6 + rand(0, 1.6), 0, rand(-1.4, 0.8)); msg('咻～'); sfx('whoosh'); btns(); }
-    else if (state === 'wait') { msg('太早了，魚被嚇跑了…再試一次'); reset(); }
-    else if (state === 'bite') { catchFish(); }
+  const btns = () => {
+    if (state === 'fight') setBtns([{ t: '按住收線', main: true, hold: on => { holding = on; } }]);
+    else setBtns([{ t: state === 'idle' ? '拋竿' : state === 'bite' ? '收竿！' : state === 'wait' ? '等魚上鉤…' : state === 'show' ? '放回海裡' : '…', main: true, dis: state === 'fly' || state === 'land', fn: press }]);
   };
-  const reset = () => { setState('idle'); bob.visible = ln.visible = false; btns(); };
-  const catchFish = async () => {
-    setState('reel'); btns();
+  const press = () => {
+    if (state === 'idle') { setState('fly'); bob.visible = ln.visible = true; flyT = 0; target.set(fx + 4 + rand(0, 2), 0, rand(-1.6, 1)); msg('咻～'); sfx('whoosh'); btns(); }
+    else if (state === 'wait') { msg('太早了，魚被嚇跑了…再試一次'); reset(); }
+    else if (state === 'bite') startFight();
+    else if (state === 'show') { me().ry = Math.PI / 2; me().av.setItem(rod); me().av.reach(true); if (catchO) { catchO.g.parent?.remove(catchO.g); catchO = null; } msg('撲通～放回海裡了。再釣一次吧！'); sfx('plop'); reset(); }
+  };
+  const reset = () => { setState('idle'); bob.visible = ln.visible = false; meter(false); btns(); };
+  const startFight = async () => {
     const f = pickFish(), size = f[3] ? Math.round(rand(f[3], f[4])) : 0;
-    st.fish[f[0]] = (st.fish[f[0]] || 0) + 1; save();
-    sfx('splash'); me().av.emote('cheer', 1.2); you().av.emote('clap', 1.4);
-    // 魚跳出水面
-    const g = await load('fish'); let o = null;
-    if (g && f[0] !== '舊靴子' && f[0] !== '瓶中信') { o = g.scene.clone(true); o.scale.setScalar(0.6); o.position.copy(bob.position); OUT.add(o); caughtShow = { o, t: 0 }; }
-    bob.visible = ln.visible = false;
-    const rare = f[0] === '愛心魚', bottle = f[0] === '瓶中信';
-    msg(`釣到 ${f[1]} ${f[0]}${size ? `（${size} 公分）` : ''}！${f[5]}${bottle ? '\n' + pick(BOTTLE) : ''}`);
+    fish = { f, size, power: f[0] === '鮪魚' ? 1.6 : f[0] === '愛心魚' ? 1.4 : f[0] === '舊靴子' || f[0] === '瓶中信' ? 0.5 : 0.8 + size / 60 };
+    setState('fight'); tension = 0.25; prog = 0; holding = false; start.copy(bob.position);
+    catchO = await catchModel(f, size); catchO.g.position.copy(bob.position); catchO.g.position.y = -0.25; OUT.add(catchO.g);
+    msg('魚在拉！按住「收線」，紅色區太久線會斷，放開讓牠游一下'); meter(true, tension, [0.8, 1]); btns(); sfx('splash');
+  };
+  const land = () => {
+    setState('land'); meter(false); holding = false; btns();
+    const f = fish.f, size = fish.size; st.fish[f[0]] = (st.fish[f[0]] || 0) + 1; save(); sfx('splash');
+    landT = 0;
+  };
+  const showCatch = () => {
+    setState('show'); btns();
+    const f = fish.f, size = fish.size, rare = f[0] === '愛心魚', bottle = f[0] === '瓶中信';
+    // 舉起來：魚掛在手上，雙手高舉
+    me().ry = view.yaw; // 轉身面向鏡頭
+    me().av.reach(false); me().av.setItem(catchO.g); catchO.g.position.set(-0.12, 0.22, 0.18); catchO.g.rotation.set(0, 0, 0); catchO.g.scale.multiplyScalar(1.5); me().av.emote('cheer', 2.6);
+    you().av.emote('clap', 1.6);
+    const label = `${f[1]} ${f[0]}${size ? ` ${size} 公分` : ''}`; showSay(me(), label);
+    msg(`釣到 ${label}！${f[5]}${bottle ? '　' + pick(BOTTLE) : ''}`);
     addLove(rare ? 20 : bottle ? 5 : 2, rare ? '💗 傳說中的愛心魚！' : null, rare ? null : 'fish');
     if (rare || st.fish[f[0]] === 1) addMemo(f[1], `${nameOf(me().i)} 第一次釣到${f[0]}${size ? `（${size} 公分）` : ''}`);
-    if (rare) burst('heart', midPos(), 16);
-    setTimeout(() => { if (act?.id === 'fish') reset(); }, 1600);
+    burst(rare ? 'heart' : 'star', headPos(me(), 2), rare ? 16 : 6, 0.5); sfx('chime');
   };
   beginAct('fish', '🎣 釣魚', '按「拋竿」，浮標往下沉的時候馬上按「收竿」！', {
-    focus: () => new THREE.Vector3(fx + 2, DOCK.y + 0.5, 0), back: [fx - 0.5, 0], camYaw: -Math.PI / 2 - 0.5, camPitch: 0.35,
+    focus: () => state === 'show' ? headPos(me(), 1.2) : new THREE.Vector3(fx + 2, DOCK.y + 0.6, 0), near: () => state === 'show', back: [fx - 0.5, 0], camYaw: -Math.PI / 2 - 0.55, camPitch: 0.3,
     update(dt) {
       t += dt; rod.userData.tip.getWorldPosition(v3);
+      if (catchO?.mixer) catchO.mixer.update(dt);
       if (state === 'fly') { flyT += dt / 0.7; const k = Math.min(1, flyT); bob.position.lerpVectors(v3, target, k); bob.position.y += Math.sin(k * Math.PI) * 1.8; if (k >= 1) { setState('wait'); wait = rand(2, 6); msg('靜靜等待…'); btns(); sfx('plop'); } }
-      if (state === 'wait') { bob.position.y = Math.sin(t * 2.4) * 0.03; if (t > wait) { setState('bite'); msg('上鉤了！快收竿！'); btns(); sfx('bite'); you().av.emote('cheer', 0.6); } }
+      if (state === 'wait') { bob.position.y = Math.sin(t * 2.4) * 0.03; if (t > wait) { setState('bite'); msg('上鉤了！快收竿！'); btns(); sfx('bite'); } }
       if (state === 'bite') { bob.position.y = -0.12 + Math.sin(t * 22) * 0.06; if (t > 1.15) { msg('魚跑掉了…再試一次'); reset(); } }
+      if (state === 'fight' && catchO) {
+        // 魚一陣一陣地拉；按住收線：靠近、但線會繃緊
+        pull = Math.max(0, Math.sin(t * 2.3 * fish.power) * 0.7 + Math.sin(t * 5.1) * 0.3) * fish.power;
+        if (holding) { prog += dt * (0.22 - pull * 0.08); tension += dt * (0.32 + pull * 0.45); }
+        else { prog -= dt * 0.05 * fish.power; tension -= dt * 0.55; }
+        prog = clamp(prog, 0, 1); tension = clamp(tension, 0, 1.05); meter(true, Math.min(1, tension), [0.8, 1]);
+        if (tension >= 1) { msg('啪！線斷了…魚游走了。再試一次！'); sfx('whoosh'); catchO.g.parent?.remove(catchO.g); catchO = null; reset(); return; }
+        // 魚在水裡掙扎、慢慢被拉向碼頭
+        const near = new THREE.Vector3(fx + 1.3, 0, -0.3), p = catchO.g.position;
+        p.lerpVectors(start, near, prog); p.x += Math.sin(t * 7) * 0.25 * (1 - prog); p.z += Math.cos(t * 5) * 0.35 * (1 - prog); p.y = -0.12 + Math.abs(Math.sin(t * 9)) * 0.12 * pull;
+        catchO.g.rotation.y = Math.sin(t * 7) * 0.8; bob.position.copy(p); bob.position.y = Math.max(p.y, -0.05);
+        if (Math.random() < dt * 3 * pull) burst('drop', p.clone().add(new THREE.Vector3(0, 0.2, 0)), 1, 0.2);
+        $('#ap-msg').textContent = `${holding ? '收線中…' : '放開讓牠游一下'}　還有 ${(4.5 * (1 - prog)).toFixed(1)} 公尺`;
+        if (prog >= 1) land();
+      }
+      if (state === 'land' && catchO) {
+        // 從水裡拉出來：沿著弧線飛到手上
+        landT += dt / 0.8; const k = Math.min(1, landT), p = catchO.g.position;
+        me().av.handSlot.getWorldPosition(v3); p.lerpVectors(new THREE.Vector3(fx + 1.3, 0, -0.3), v3, k); p.y += Math.sin(k * Math.PI) * 1.4; catchO.g.rotation.z = k * 6;
+        bob.visible = false;
+        if (k >= 1) showCatch();
+      }
       if (bob.visible) ln.geometry.setFromPoints([v3.clone(), bob.position.clone()]);
-      if (caughtShow) { const c = caughtShow; c.t += dt; c.o.position.y = Math.sin(Math.min(1, c.t / 1.2) * Math.PI) * 2.2; c.o.rotation.z += dt * 6; if (c.t > 1.25) { OUT.remove(c.o); caughtShow = null; } }
+      ln.visible = bob.visible;
     },
-    end() { OUT.remove(bob); OUT.remove(ln); if (caughtShow) OUT.remove(caughtShow.o); },
+    end() { OUT.remove(bob); OUT.remove(ln); if (catchO) catchO.g.parent?.remove(catchO.g); },
   });
   btns();
 }
@@ -986,10 +1057,10 @@ function openBook(tab = 'memo') {
       <b>🐚 海邊撿到的</b><div class="grid3">${SHELLS.map(s => `<div class="cell ${st.shells[s[0]] ? '' : 'no'}"><span class="e">${s[1]}</span>${esc(s[0])}<small>×${st.shells[s[0]] || 0}</small></div>`).join('')}</div>
       <p class="muted">沙堡 ${st.castles} 座 · 送花 ${st.flowersGiven} 次 · 做飯 ${st.dishes} 次 · 煙火 ${st.fireworks} 發 · 繞島 ${st.laps} 圈 · 許願 ${st.wishes} 次</p>`,
     us: () => `<div class="memo"><span class="ic">💗</span><b>${esc(nameOf(0))} ♥ ${esc(nameOf(1))}</b><small>${d ? `在一起第 ${d} 天 · ` : ''}甜蜜值 ${st.love} · Lv${L.lv} ${L.title}${L.next ? `（再 ${L.next - st.love} 升級）` : ''}</small></div>
-      <label class="anniv"><span>我的名字</span><input id="ed-n0" maxlength="8" value="${esc(st.names[0])}"></label>
-      <label class="anniv"><span>另一半的名字</span><input id="ed-n1" maxlength="8" value="${esc(st.names[1])}"></label>
+      <label class="anniv"><span>我的名字</span><input id="ed-n0" maxlength="8" value="${esc(st.myName || '')}"></label>
       <label class="anniv"><span>在一起的日子</span><input id="ed-an" type="date" value="${esc(st.anniv)}"></label>
-      <div class="row"><button type="button" class="ghost" id="ed-look0">👗 ${esc(nameOf(0))} 的造型</button><button type="button" class="ghost" id="ed-look1">👔 ${esc(nameOf(1))} 的造型</button></div>
+      <button type="button" class="ghost" id="ed-look0">👗 我的造型</button>
+      <p class="muted">另一半的名字和造型，由另一半在自己的手機設定（🌐 連線後會同步）。</p>
       <button type="button" class="primary" id="ed-save">儲存</button>`,
     about: () => `<p>兩個人的 3D 小島。小木屋、沙灘、碼頭、燈塔，一起盪鞦韆、釣魚、烤棉花糖、看夕陽、划船、放煙火。</p>
       <p class="muted">資料只存在這支手機（瀏覽器）裡。版本 ${esc(APP_VER)}</p>
@@ -999,8 +1070,8 @@ function openBook(tab = 'memo') {
   openDlg('📔 我們的回憶本', `<div class="tabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-t="${k}" aria-selected="${k === tab}">${n}</button>`).join('')}</div><div id="book-body" style="display:grid;gap:8px">${body[tab]()}</div>`);
   $('#dlg-body').querySelectorAll('[data-t]').forEach(b => b.onclick = () => openBook(b.dataset.t));
   if (tab === 'us') {
-    $('#ed-save').onclick = () => { st.names = [$('#ed-n0').value.trim().slice(0, 8), $('#ed-n1').value.trim().slice(0, 8)]; st.anniv = $('#ed-an').value; save(); updateHud(); $('#dlg').close(); toast('已儲存'); };
-    $('#ed-look0').onclick = () => openLooks(0); $('#ed-look1').onclick = () => openLooks(1);
+    $('#ed-save').onclick = () => { st.myName = $('#ed-n0').value.trim().slice(0, 8); st.names[myIdx()] = st.myName; st.anniv = $('#ed-an').value; save(); updateHud(); $('#dlg').close(); toast('已儲存'); };
+    $('#ed-look0').onclick = () => openLooks(myIdx());
   }
   if (tab === 'about') {
     fetch('models/credits.json').then(r => r.json()).then(c => { $('#credits').innerHTML = Object.values(c).filter(Boolean).map(esc).join('<br>'); }).catch(() => {});
@@ -1111,7 +1182,7 @@ function updateCam(dt, snap) {
     camP.set(tmpT.x + Math.sin(yaw) * d * 0.8, tmpT.y + d * 0.62, tmpT.z + Math.cos(yaw) * d * 0.8);
   } else {
     if (act?.focus) tmpT.copy(act.focus()); else tmpT.set(p.av.root.position.x, p.av.root.position.y + 1.2, p.av.root.position.z);
-    let d = view.dist * (act?.bigView ? 1.6 : act ? 1.1 : 1);
+    let d = view.dist * (act?.bigView ? 1.6 : act?.near?.() ? 0.42 : act ? 1.1 : 1);
     const yaw = view.yaw, pit = view.pitch;
     for (let k = 0; k < 12; k++) { camP.set(tmpT.x + Math.sin(yaw) * Math.cos(pit) * d, tmpT.y + Math.sin(pit) * d, tmpT.z + Math.cos(yaw) * Math.cos(pit) * d); if (!camBlocked(camP.x, camP.y, camP.z)) break; if (d < 2.5) { camP.y = Math.max(camP.y, 7.2); break; } d *= 0.8; }
     camP.y = Math.max(camP.y, standH(camP.x, camP.z) + 0.6);
@@ -1136,8 +1207,8 @@ function charName(c) { if (c === guestChar) return MP.guest?.name || '我'; if (
 function placeRoots(dt) {
   for (const c of allChars()) {
     let show = true;
-    if (MP.on && (c === chars[0] || c === chars[1])) { const idx = c.i; show = MP.role === idx || c.remote || (MP.role !== 'g' && !othersOnline()); }
-    if (preview.on) show = c === chars[0] || c === chars[1] || c === guestChar;
+    if (c === chars[0] || c === chars[1]) show = (MP.role !== 'g' && c.i === myIdx()) || !!c.remote;
+    if (preview.on) show = visitParam.length ? c === guestChar : c === chars[myIdx()];
     const S = (c.sc || 'out') === 'in' ? IN?.S : OUT;
     if (S && c.av.root.parent !== S) S.add(c.av.root);
     c.av.root.visible = show && (c.sc || 'out') === scene;
@@ -1182,7 +1253,14 @@ function onNet(m) {
   if (m.t === 'welcome') {
     MP.id = m.id; MP.role = m.role; MP.owner = m.owner;
     if (m.role === 'g') { st = { ...DEF, ...m.save, music: st.music }; [0, 1].forEach(i => { if (st.looks?.[i]) chars[i].av.setLook(st.looks[i]); }); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); snapSent(); updateHud(); }
-    else applySave(m.save, true);
+    else {
+      applySave(m.save, true);
+      // 這支手機的主人：用自己設定的名字、樣子
+      const i = m.role; st.ctrl = i; if (st.myName) st.names[i] = st.myName; if (st.myLook) st.looks[i] = st.myLook;
+      chars[i].av.setLook(st.looks[i]); if (st.looks[1 - i]) chars[1 - i].av.setLook(st.looks[1 - i]);
+      const mc = chars[i], oc = chars[1 - i]; if (!mc.seenMe) { mc.x = oc.x; mc.z = oc.z; mc.ry = oc.ry; mc.sc = oc.sc || scene; mc.seenMe = 1; }
+      save(); updateHud();
+    }
     st.tod = m.clock.tod; st.day = m.clock.day; MP.expTod = st.tod;
     for (const p of MP.peers.values()) if (p.c && p.role === 'g') OUT.remove(p.c.av.root);
     MP.peers.clear(); chars.forEach(c => { if (c.remote) c.remote = false; });
@@ -1303,7 +1381,7 @@ function connectNet(a) {
 function leaveNet() {
   MP.net?.close(); MP.on = false; MP.role = null; MP.led = null; MP.lead = false;
   for (const p of MP.peers.values()) if (p.role === 'g') p.c.av.root.parent?.remove(p.c.av.root);
-  MP.peers.clear(); chars.forEach(c => { c.remote = false; c.net = null; c.sc = scene; }); $('#btn-swap').hidden = false; updateNetChip(); updateHud();
+  MP.peers.clear(); chars.forEach(c => { c.remote = false; c.net = null; c.sc = scene; }); updateNetChip(); updateHud();
 }
 // 連線面板
 async function openNet() {
@@ -1370,10 +1448,13 @@ function frame() {
   W.fireL.intensity = (6 + Math.sin(T * 13) * 1.2 + Math.sin(T * 7.3) * 1.0) * (0.5 + k.night * 0.8);
 
   if (preview.on) { // 開場：繞著小屋慢慢轉
-    preview.t += dt * 0.08; const a = preview.t + 0.3;
-    cam.position.set(Math.sin(a) * 52, 26, Math.cos(a) * 52); cam.lookAt(0, -6, 0);
-    chars.forEach((c, i) => { c.x = i ? 0.7 : -0.7; c.z = -1.4; c.ry = 0; c.y = null; syncAv(c, dt); });
-    chars[0].av.holdHand(1); chars[1].av.holdHand(-1); placeRoots(dt); if (guestChar) syncAv(guestChar, dt);
+    // 開場：鏡頭慢慢繞著自己的角色轉（角色在畫面上半部，下面是設定卡片）
+    preview.t += dt * 0.12; const a = Math.sin(preview.t) * 0.6;
+    const pc = visitParam.length && guestChar ? guestChar : chars[myIdx()];
+    pc.x = 0; pc.z = 1.2; pc.ry = 0; pc.y = null;
+    const gy = standH(0, 1.2), H = innerHeight / innerWidth > 1.2 ? 1 : 0.6;
+    cam.position.set(Math.sin(a) * 5.6, gy + 1.7, 1.2 + Math.cos(a) * 5.6); cam.lookAt(0, gy - 0.35 - H * 0.75, 1.2);
+    placeRoots(dt); syncAv(pc, dt);
     mixers.forEach(m => m.update(dt)); tickAnimals(dt, null, walkable);
     R.render(OUT, cam); return;
   }
