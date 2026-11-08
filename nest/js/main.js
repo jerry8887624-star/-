@@ -82,7 +82,7 @@ $('#start-btn').onclick = () => {
   chars.forEach(c => { c.locked = false; c.av.setPose('stand'); c.av.holdHand(0); });
   placeStart();
   updateHud();
-  Amb.start(); Amb.setOn(st.amb !== false); updateChips(); drawDecor(); drawSnowman(); if (st.low) applyLow(); setRun(!!st.run);
+  Amb.start(); Amb.setOn(st.amb !== false); updateChips(); drawDecor(); drawSnowman(); if (st.low) applyLow(); setRun(!!st.run); setFlash(!!st.flash);
   if (!st.tut) setTimeout(tutorialStart, 1500);
   if (savedAuth?.key) serverAvailable().then(ok => { if (ok) { MP.role = savedAuth.role; MP.on = true; snapSent(); connectNet(savedAuth); } });
   if (pairParam) setTimeout(() => { openNet().then(() => { $('#net-pair')?.click(); const i = $('#pair-in'); if (i) i.value = pairParam; }); }, 800);
@@ -1317,7 +1317,7 @@ function placeRoots(dt) {
 function netTick(dt) {
   if (!MP.on || !MP.net.alive) return;
   const c = me();
-  MP.net.pos({ x: +c.x.toFixed(2), z: +c.z.toFixed(2), ry: +c.ry.toFixed(2), y: c.y == null ? null : +c.y.toFixed(2), sc: scene, pose: c.av.pose || 'stand', mv: c.moving ? 1 : 0, act: act?.id || '', hand: MP.lead ? 'L' : MP.led ? 'F' : '', tilt: +(c.tilt || 0).toFixed(2) });
+  MP.net.pos({ x: +c.x.toFixed(2), z: +c.z.toFixed(2), ry: +c.ry.toFixed(2), y: c.y == null ? null : +c.y.toFixed(2), sc: scene, pose: c.av.pose || 'stand', mv: c.moving ? 1 : 0, act: act?.id || '', hand: MP.lead ? 'L' : MP.led ? 'F' : '', fl: st.flash ? 1 : 0, tilt: +(c.tilt || 0).toFixed(2) });
   if (MP.role === 'g') return;
   if (MP.expTod == null) MP.expTod = st.tod;
   MP.expTod += dt / 36; if (MP.expTod >= 24) MP.expTod -= 24;
@@ -1789,6 +1789,44 @@ function tickRemoteBikes() {
   if (W?.bike) W.bike.visible = ![...allChars()].some(c => c.remote && c.act === 'bike') || act?.id === 'bike';
 }
 
+
+// ---------- 走路速度、手電筒 ----------
+const WALK = { walk: 3.0, run: 6.0 };
+// 手電筒：拿在右手，往前照（聚光燈＋淡淡的光束）；別人開手電筒也看得到
+const flashes = new Map();
+function flashFor(c) {
+  let f = flashes.get(c); if (f) return f;
+  const item = new THREE.Group(); const body = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.22, 10), toon('#3a3a44')); body.rotation.x = Math.PI / 2; body.position.z = 0.08; item.add(body);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(0.045, 12), new THREE.MeshBasicMaterial({ color: '#fff6c8' })); lens.position.z = 0.195; item.add(lens);
+  const spot = new THREE.SpotLight('#fff1c8', 40, 22, 0.45, 0.55, 1.4); const tgt = new THREE.Object3D(); spot.target = tgt;
+  const beam = new THREE.Mesh(new THREE.ConeGeometry(1.2, 6, 20, 1, true), new THREE.MeshBasicMaterial({ color: '#fff3c0', transparent: true, opacity: 0.07, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false }));
+  f = { item, spot, tgt, beam, on: false }; flashes.set(c, f); return f;
+}
+function tickFlash() {
+  for (const c of allChars()) {
+    const want = (c === me() ? !!st.flash : !!c.net?.fl) && c.av.root.visible && (c.sc || 'out') === scene;
+    let f = flashes.get(c); if (!want && !f) continue; f = flashFor(c);
+    const S = curS();
+    if (want && !f.on) { f.on = true; S.add(f.spot); S.add(f.tgt); S.add(f.beam); if (!c.av.item) { c.av.setItem(f.item); c.av.reach(true); } }
+    if (!want && f.on) { f.on = false; f.spot.parent?.remove(f.spot); f.tgt.parent?.remove(f.tgt); f.beam.parent?.remove(f.beam); if (c.av.item === f.item) { c.av.setItem(null); if (!c.locked) c.av.reach(false); } }
+    if (!f.on) continue;
+    if (f.spot.parent !== S) { S.add(f.spot); S.add(f.tgt); S.add(f.beam); }
+    // 活動結束後手上空了：再拿起手電筒
+    if (!c.av.item && !c.locked && !(c === me() ? act : c.act)) { c.av.setItem(f.item); c.av.reach(true); }
+    // 從手的位置往前照
+    const fx = Math.sin(c.ry), fz = Math.cos(c.ry), base = c.av.root.position;
+    f.spot.position.set(base.x + fx * 0.3, base.y + 1.0, base.z + fz * 0.3);
+    f.tgt.position.set(base.x + fx * 7, base.y - 0.3, base.z + fz * 7);
+    f.beam.position.set(base.x + fx * 3.2, base.y + 0.55, base.z + fz * 3.2);
+    f.beam.lookAt(f.tgt.position); f.beam.rotateX(-Math.PI / 2);
+    // 白天光束淡一點
+    f.beam.material.opacity = 0.03 + nightK * 0.07;
+  }
+}
+let nightK = 0, flashTipNight = -1;
+function setFlash(v) { st.flash = !!v; $('#btn-flash').setAttribute('aria-pressed', String(st.flash)); save(); }
+$('#btn-flash').onclick = () => { setFlash(!st.flash); sfx('click'); toast(st.flash ? '🔦 打開手電筒' : '關掉手電筒'); };
+
 // ---------- 主迴圈 ----------
 const clock = new THREE.Clock(); let T = 0, saveT = 0;
 let lowSkip = false;
@@ -1801,7 +1839,9 @@ function frame() {
   if (started() && !document.hidden) { st.tod += dt / 36; if (st.tod >= 24) { st.tod -= 24; newDay(); toast(`第 ${st.day} 天了`); } }
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : st.tod, cam.position);
   W.water.material.uniforms.uTime.value = T;
-  if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickRemoteBikes(); }
+  if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickRemoteBikes(); nightK = k.night; tickFlash();
+    // 天黑了提醒一次可以開手電筒
+    if (k.night > 0.6 && !st.flash && scene === 'out' && flashTipNight !== st.day && started()) { flashTipNight = st.day; toast('🌙 天黑了，左下角 🔦 可以打開手電筒', 4000); $('#btn-flash').classList.add('glow'); setTimeout(() => $('#btn-flash').classList.remove('glow'), 6000); } }
   if (IN) { IN.winMat.color.copy(k.hor).lerp(new THREE.Color('#ffd9a8'), 0.25); }
   W.sky.clouds.rotation.y += dt * 0.004;
   W.fireL.intensity = (6 + Math.sin(T * 13) * 1.2 + Math.sin(T * 7.3) * 1.0) * (0.5 + k.night * 0.8);
@@ -1830,14 +1870,14 @@ function frame() {
       p.path = null; lovePending = null;
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = -fz, rz = fx;
       const dx = fx * -iy + rx * ix, dz = fz * -iy + rz * ix;
-      stepChar(p, dx, dz, dt, (act?.id === 'bike' ? 8.5 : st.run ? 7 : 4.2) * mag);
+      stepChar(p, dx, dz, dt, (act?.id === 'bike' ? 8.5 : st.run ? WALK.run : WALK.walk) * mag);
     } else if (p.path) {
       const P = p.path, last = P.i >= P.pts.length - 1, [wx, wz] = P.pts[Math.min(P.i, P.pts.length - 1)];
       const dx = wx - p.x, dz = wz - p.z, d = Math.hypot(dx, dz);
       const dEnd = Math.hypot(P.x - p.x, P.z - p.z), arrive = P.then ? Math.min(1.4, P.then.r * 0.6) : 0.15;
       if (dEnd < arrive || (last && d < 0.15)) { const then = P.then; p.path = null; p.moving = false; if (then && !act) then.run(); }
       else if (!last && d < 0.35) P.i++;
-      else if (!stepChar(p, dx, dz, dt, st.run ? 7 : 4.2)) { p.stuck += dt; if (p.stuck > 0.8) { p.stuck = 0; const re = findPath(p.x, p.z, P.x, P.z); if (re && !P.retried) { P.pts = re; P.i = 0; P.retried = true; } else p.path = null; } } else p.stuck = 0;
+      else if (!stepChar(p, dx, dz, dt, st.run ? WALK.run : WALK.walk)) { p.stuck += dt; if (p.stuck > 0.8) { p.stuck = 0; const re = findPath(p.x, p.z, P.x, P.z); if (re && !P.retried) { P.pts = re; P.i = 0; P.retried = true; } else p.path = null; } } else p.stuck = 0;
     } else p.moving = false;
   }
   if (!act || !you().locked) partnerAI(dt);
