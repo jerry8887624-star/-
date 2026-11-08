@@ -176,7 +176,7 @@ export class Avatar {
   emote(kind, dur = 1.6) {
     const clipMap = { dance: 'Dance', laugh: 'Laughing', eat: 'Eating', water: 'Watering', plant: 'Planting', pickup: 'Pick up', talk: 'Talking', crouch: 'Crouch', interact: 'Interact', harvest: 'Harvesting', phone: 'Phone call', lean_rail: 'Leaning on rail', sittalk: 'Sitting talking', fold: 'Arms folded', agree: 'Agree' };
     // 動作＋手的姿勢一起：蹲下摸狗
-    const COMBO = { petdog: ['Crouch', 'petdog'] };
+    const COMBO = { petdog: ['Idle', 'petdog'] };
     if (COMBO[kind]) { this.clipEmote = COMBO[kind][0]; this.emoteKind = COMBO[kind][1]; }
     else if (clipMap[kind]) { this.clipEmote = clipMap[kind]; this.emoteKind = null; } else { this.emoteKind = kind; this.clipEmote = null; }
     this.emoteT = 0; this.emoteDur = dur;
@@ -258,7 +258,8 @@ export class Avatar {
     if ((w = s('pat', e === 'pat'))) { this.aim(R, RF, V(-0.15, 0.65, 0.8), w); this.aim(RF, RH, V(0.15, 0.1 + Math.sin(et * 12) * 0.25, 1), w); }
     if ((w = s('shy', e === 'shy'))) { this.aim(R, RF, V(-0.3, -0.55, 0.75), w); this.aim(RF, RH, V(0.35, 0.92, 0.2), w); this.aim(L, LF, V(0.3, -0.55, 0.75), w); this.aim(LF, LH, V(-0.35, 0.92, 0.2), w); this.twist('Spine1', V(0, 0, 1), Math.sin(et * 3) * 0.12 * w); }
     // 蹲下摸狗：右手往前下方輕輕摸
-    if ((w = s('petdog', e === 'petdog'))) { this.aim(R, RF, V(-0.15, -0.6, 0.8), w); this.aim(RF, RH, V(0, -0.55 + Math.sin(et * 9) * 0.3, 1), w); }
+    // 彎腰摸狗：上半身往前彎、右手往前下方輕輕摸
+    if ((w = s('petdog', e === 'petdog'))) { this.twist('Spine', V(1, 0, 0), 0.5 * w); this.twist('Spine1', V(1, 0, 0), 0.35 * w); this.aim(R, RF, V(-0.12, -0.75, 0.65), w); this.aim(RF, RH, V(0, -0.8 + Math.sin(et * 9) * 0.2, 0.6), w); this.aim(L, LF, V(0.25, -0.9, 0.2), w); }
     // 丟球：手往後舉 → 往前甩
     if ((w = s('throw', e === 'throw', 14))) { if (et < 0.35) { this.aim(R, RF, V(-0.3, 0.85, -0.45), w); this.aim(RF, RH, V(-0.1, 1, -0.3), w); } else { this.aim(R, RF, V(-0.2, 0.4, 1), w); this.aim(RF, RH, V(-0.1, 0.25, 1), w); } }
     // 坐著吃東西：手拿到嘴邊
