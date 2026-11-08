@@ -19,8 +19,32 @@ function noise(t0, dur, { vol = 0.2, freq = 1200, q = 0.8, type = 'bandpass' } =
 }
 // 給環境音用：拿到同一個 AudioContext 與總音量
 export function audioCtx() { return ac() ? { ctx, master } : null; }
+// 錄好的音效（audio/sfx/）：Kenney、Ninja Adventure（CC0）、Moodist（CC0）；沒載到就用下面的合成音
+// [檔名（多個就隨機挑一個）, 音量]；沒列在這裡的（冒愛心、完成）維持合成音
+const SAMPLES = {
+  shutter: [['shutter'], 0.7], click: [['click'], 0.45], coin: [['coin'], 0.5], 'door-open': [['door-open'], 0.6], 'door-close': [['door-close'], 0.55],
+  wood: [['wood-0', 'wood-1', 'wood-2', 'wood-3'], 0.16], whoosh: [['whoosh'], 0.5], plop: [['plop'], 0.55], splash: [['splash'], 0.6],
+  water: [['water'], 0.4], sand: [['sand-0', 'sand-1'], 0.45], sizzle: [['sizzle'], 0.45], boom: [['boom'], 0.55], book: [['book'], 0.55],
+  bite: [['bite-0'], 0.6], bite2: [['bite-1'], 0.6],
+};
+const bufs = {}; let loading = false;
+function loadSamples() {
+  if (loading || !ctx) return; loading = true;
+  const names = new Set(Object.values(SAMPLES).flatMap(v => v[0]));
+  names.forEach(n => fetch(`audio/sfx/${n}.mp3`).then(r => r.arrayBuffer()).then(b => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej))).then(d => { bufs[n] = d; }).catch(() => {}));
+}
+function playSample(name, delay = 0) {
+  const S = SAMPLES[name]; if (!S) return false; const list = S[0].filter(n => bufs[n]); if (!list.length) return false;
+  const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = bufs[list[Math.floor(Math.random() * list.length)]]; g.gain.value = S[1];
+  src.playbackRate.value = name === 'wood' || name === 'sand' ? 0.94 + Math.random() * 0.12 : 1; // 腳步每一步音高稍微不一樣，聽起來比較自然
+  src.connect(g); g.connect(master); src.start(ctx.currentTime + delay); return true;
+}
 export function sfx(name) {
-  if (!ac()) return; const t = ctx.currentTime;
+  if (!ac()) return; const t = ctx.currentTime; loadSamples();
+  if (name === 'door') name = 'door-open';
+  if (name === 'bite' && playSample('bite')) { playSample('bite2', 0.15); return; }
+  if (name === 'launch') { playSample('whoosh'); return; } // 升空：輕輕一聲，真正的聲音在爆開那一下
+  if (playSample(name)) return;
   switch (name) {
     case 'click': tone(880, t, 0.06, { type: 'triangle', vol: 0.06 }); break;
     case 'pop': tone(660, t, 0.12, { vol: 0.12, bend: 1.6 }); tone(990, t + 0.06, 0.14, { vol: 0.08 }); break;

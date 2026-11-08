@@ -571,7 +571,7 @@ async function enterHouse(at) {
     if (at && Number.isFinite(at.x)) { [p.x, p.z] = freeSpot(at.x, at.z); p.ry = at.ry || 0; view.inYaw = at.yaw || 0; }
     updateCam(0, true);
   });
-  sfx('door');
+  sfx('door-open');
 }
 async function exitHouse() {
   await fadeDo(() => {
@@ -579,7 +579,7 @@ async function exitHouse() {
     const p = me(), q = you(); p.x = SPOTS.door.x; p.z = SPOTS.door.z + 1.4; p.ry = 0; if (partnerLocal()) { q.x = p.x + 0.8; q.z = p.z + 0.3; q.ry = 0; }
     view.yaw = 0; nearSpot = null;
   });
-  sfx('door');
+  sfx('door-close');
 }
 
 // ---------- 信箱：另一半寫的情書（每天一封） ----------
@@ -1095,7 +1095,7 @@ function actRead() {
   const lieRug = () => { seat(me(), N.x + 0.2, 0.04, N.z, 0, 'lie'); seat(you(), N.x + 0.85, 0.04, N.z, 0, 'lie'); };
   const books = on => [me(), you()].forEach(c => { c.av.setItem(on ? bookItem() : null); c.av.reach(on); });
   fadeDo(() => { sitBeans(); books(true); }, 250);
-  const btns = () => setBtns([{ t: '📖 翻一頁', main: true, fn: () => { pages++; msg(pick(BOOKS)); burst('heart', headPos(me(), 1.2), 1, 0.3); addLove(1, pages === 1 ? '安靜看書的午後' : null, 'read'); if (pages === 3) addMemo('📚', duo() ? '窩在閱讀角一起看書' : '在閱讀角看了一下午的書'); if (duo() && pages % 3 === 0) setTimeout(() => { you().av.emote('shy', 1.2); msg(`${nameOf(you().i)} 把頭靠過來一起看`); }, 900); } },
+  const btns = () => setBtns([{ t: '📖 翻一頁', main: true, fn: () => { pages++; sfx('book'); msg(pick(BOOKS)); burst('heart', headPos(me(), 1.2), 1, 0.3); addLove(1, pages === 1 ? '安靜看書的午後' : null, 'read'); if (pages === 3) addMemo('📚', duo() ? '窩在閱讀角一起看書' : '在閱讀角看了一下午的書'); if (duo() && pages % 3 === 0) setTimeout(() => { you().av.emote('shy', 1.2); msg(`${nameOf(you().i)} 把頭靠過來一起看`); }, 900); } },
     { t: lying ? '🛋️ 回懶人沙發' : '🧸 躺在地毯上', fn: () => { lying = !lying; fadeDo(() => { (lying ? lieRug : sitBeans)(); books(true); }, 200); btns(); } }]);
   beginAct('read', '📚 閱讀角', '窩在無印的懶人沙發上，旁邊有一疊書和一杯熱可可。', {
     focus: () => new THREE.Vector3(N.x, 0.7, N.z - 0.3), back: [INSPOTS.read.x, INSPOTS.read.z],
@@ -1586,6 +1586,8 @@ function tickWeather(dt, k) {
     else if (!want && has) { c.av.setItem(null); c.av.holdUmbrella(false); }
   }
   if (raining && me().moving) { umbT += dt; if (umbT > 8) { umbT = -1e9; quest('umbrella'); } }
+  // 屋內木地板腳步：走一步響一聲（跑步比較快）
+  { const c = me(); if (scene === 'in' && c.moving && !c.locked) { stepT -= dt; if (stepT <= 0) { stepT = st.run ? 0.3 : 0.44; sfx('wood'); } } else stepT = 0.15; }
   // 環境音：每 0.25 秒依位置、時間、天氣調整
   ambT += dt; if (ambT < 0.25) return; ambT = 0;
   const p = me(), out = scene === 'out', night = k.night, day = 1 - night;
@@ -1597,14 +1599,18 @@ function tickWeather(dt, k) {
     waves: (0.25 + 0.75 * shore) * q, campfire: fire * (0.5 + night * 0.5), wind: (0.2 + hill * 0.6 + rain * 0.25 + snow * 0.3) * q,
     seagulls: day * shore * (1 - rain) * 0.9 * q, birds: day * (1 - shore) * (1 - rain * 0.8) * (wNow?.season.k === 'winter' ? 0.3 : 1) * q,
     crickets: night * (1 - rain) * (wNow?.season.k === 'winter' ? 0.2 : 1) * (out ? 1 : 0.25), frog: night * (wNow?.season.k === 'summer' ? 0.8 : 0.35) * (1 - shore * 0.5) * q,
-    'light-rain': rain * (out ? 1 : 0.35), 'rain-on-umbrella': rain * (out && p.av.item?.userData?.umbrella ? 1 : 0),
-    'walk-on-leaves': p.moving && !p.locked ? (st.run ? 1 : 0.65) : 0,
+    'light-rain': rain * (out ? 1 : 0.12), 'rain-on-umbrella': rain * (out && p.av.item?.userData?.umbrella ? 1 : 0),
+    'rain-on-window': out ? 0 : rain, // 在屋裡：雨打在窗戶上
+    'walk-on-leaves': out && p.moving && !p.locked ? (st.run ? 1 : 0.65) : 0, // 屋內改成木地板一步一步的聲音
+    chickens: out ? clamp(1 - Math.hypot(p.x - SPOTS.coop.x, p.z - SPOTS.coop.z) / 12, 0, 1) * day * (1 - rain * 0.7) : 0,
+    'rowing-boat': act?.id === 'boat' ? 1 : 0,
+    'wind-chimes': out ? clamp(1 - Math.hypot(p.x - SPOTS.door.x, p.z - SPOTS.door.z) / 10, 0, 1) * (0.6 + rain * 0.2 + snow * 0.2) : 0.15,
   });
 }
-let umbT = 0;
+let umbT = 0, stepT = 0;
 
 // ---------- 小島幣、每日任務、收藏獎勵 ----------
-function addCoins(n, why) { if (MP.role === 'g' || !n) return; st.coins = (st.coins || 0) + n; save(); updateChips(); if (why) toast(`${why}　+${n} 🪙`); }
+function addCoins(n, why) { if (MP.role === 'g' || !n) return; if (n > 0) sfx('coin'); st.coins = (st.coins || 0) + n; save(); updateChips(); if (why) toast(`${why}　+${n} 🪙`); }
 function questsToday() {
   if (MP.role === 'g') return [];
   if (!st.quests || st.quests.day !== st.day) {
