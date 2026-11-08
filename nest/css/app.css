@@ -304,3 +304,6 @@ body.calm #joy { opacity: .55; transition: opacity 1.2s ease; }
 #dlg[data-kind="letter"] .letter { border: 0; box-shadow: none; border-radius: 0; padding: 0 4px; line-height: 32px; background-color: transparent; background-image: repeating-linear-gradient(180deg, transparent 0 31px, rgba(200, 160, 140, .35) 31px 32px); }
 
 #ui-pick .ghost[aria-pressed="true"] { background: var(--rose); color: #fff; border-color: var(--rose); }
+/* 視窗內容很多時，每一列都保持自己的高度（分頁列有 overflow 會被擠成 0 高，整排看不見） */
+#dlg-body { grid-auto-rows: max-content; align-content: start; }
+#dlg-body .tabs { flex: none; min-height: max-content; }
