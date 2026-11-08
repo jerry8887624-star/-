@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, THEMES, setTimeOfDay, SPOTS, INSPOTS, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES } from './data.js';
@@ -203,7 +203,7 @@ function spawnMeteor() {
 function tickMeteor(dt) { if (!meteor) return; meteor.t += dt; meteor.sp.position.addScaledVector(meteor.v, dt); meteor.sp.material.opacity = Math.sin(Math.min(1, meteor.t / 1.6) * Math.PI); if (meteor.t > 1.6) { OUT.remove(meteor.sp); meteor = null; } }
 
 // ---------- 輸入：搖桿、鍵盤、拖曳轉鏡頭、雙指縮放、點地板走過去 ----------
-const view = { yaw: 0.5, pitch: 0.5, dist: 11, inYaw: 0, inDist: 10.5 };
+const view = { yaw: 0.5, pitch: 0.5, dist: 11, inYaw: 0, inDist: 14 };
 const joy = { x: 0, y: 0, id: null };
 const keys = new Set();
 addEventListener('keydown', e => { if (e.target.closest('input,textarea')) return; keys.add(e.key.toLowerCase()); if (e.key === 'e' || e.key === ' ') { if (!$('#btn-act').hidden) $('#btn-act').click(); } });
@@ -224,14 +224,14 @@ addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
     const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
     if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y); zoom(pinch / d); pinch = d; return; }
     if (downAt) downAt.moved += Math.abs(dx) + Math.abs(dy);
-    if (scene === 'in') { view.inYaw = clamp(view.inYaw - dx * 0.004, -0.7, 0.7); return; }
+    if (scene === 'in') { view.inYaw -= dx * 0.006; return; } // 屋內可以 360 度轉
     view.yaw -= dx * 0.006; view.pitch = clamp(view.pitch + dy * 0.004, 0.08, 1.35);
   });
   const up = e => { const was = pts.get(e.pointerId); pts.delete(e.pointerId); if (downAt && was && downAt.moved < 10 && performance.now() - downAt.t < 400) tapAt(e.clientX, e.clientY); downAt = null; };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', e => { pts.delete(e.pointerId); downAt = null; });
   canvas.addEventListener('wheel', e => { e.preventDefault(); zoom(1 + Math.sign(e.deltaY) * 0.1); }, { passive: false });
 })();
-function zoom(k) { if (scene === 'in') view.inDist = clamp(view.inDist * k, 5.5, 15); else view.dist = clamp(view.dist * k, 3.2, 24); }
+function zoom(k) { if (scene === 'in') view.inDist = clamp(view.inDist * k, 5, 20); else view.dist = clamp(view.dist * k, 3.2, 24); }
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 function tapAt(x, y) {
   if (!started() || photo.on) return;
@@ -257,14 +257,14 @@ function spawnRing(p) {
 // ---------- 移動與碰撞 ----------
 const R_BODY = 0.28;
 function canStand(x, z) {
-  if (scene === 'in') { const hw = ROOM.w / 2 - 0.4, hd = ROOM.d / 2 - 0.4; return x > -hw && x < hw && z > -hd && z < hd + 0.3 && !blocked(x, z, R_BODY, DCIRC.in, IN.BOXES); }
+  if (scene === 'in') { const hw = ROOM.w / 2 - 0.4, hd = ROOM.d / 2 - 0.4; return x > -hw && x < hw && z > -hd && z < hd && !blocked(x, z, R_BODY, DCIRC.in, IN.BOXES); }
   return walkable(x, z) && !blocked(x, z, R_BODY, CIRCLES, BOXES) && !blocked(x, z, R_BODY, DCIRC.out, []);
 }
 // ---------- 找路（A*）：繞過小木屋、樹、家具，沿著沙灘走上碼頭 ----------
 const grids = {};
 function grid() {
   if (grids[scene]) return grids[scene];
-  const cell = scene === 'in' ? 0.25 : 0.5, half = scene === 'in' ? 6 : 48, n = Math.round(half * 2 / cell), ok = new Uint8Array(n * n);
+  const cell = scene === 'in' ? 0.25 : 0.5, half = scene === 'in' ? 7.5 : 48, n = Math.round(half * 2 / cell), ok = new Uint8Array(n * n);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) ok[j * n + i] = canStand(-half + (i + 0.5) * cell, -half + (j + 0.5) * cell) ? 1 : 0;
   return (grids[scene] = { cell, half, n, ok });
 }
@@ -499,8 +499,9 @@ const SP = [
   { id: 'bed', sc: 'in', ...INSPOTS.bed, icon: '🛏️', name: '床', run: actBed },
   { id: 'sofa', sc: 'in', ...INSPOTS.sofa, icon: '🛋️', name: '沙發', run: actSofa },
   { id: 'kitchen', sc: 'in', ...INSPOTS.kitchen, icon: '🍳', name: '做飯', run: actCook },
+  { id: 'read', sc: 'in', ...INSPOTS.read, icon: '📚', name: '閱讀角', run: actRead },
   { id: 'dining', sc: 'in', ...INSPOTS.dining, icon: '🍽️', name: '吃飯', run: actEat, hide: () => !IN?.dish.visible },
-  { id: 'wardrobe', sc: 'in', x: -0.6, z: -2.7, icon: '👗', name: '衣櫃', run: () => openLooks() },
+  { id: 'wardrobe', sc: 'in', x: -5.7, z: -1.2, icon: '👗', name: '衣櫃', run: () => openLooks() },
 ];
 SP.forEach(s => {
   s.r = s.r || 2.2;
@@ -1050,9 +1051,9 @@ function actBed() {
   // 上床前換上睡衣，起床（離開）時換回原本的衣服
   const prev = [st.looks[0].outfit, st.looks[1].outfit];
   const pj = j => OUTFITS[st.looks[j].outfit]?.kind === 'pj' ? st.looks[j].outfit : OUTFITS.findIndex(o => o.kind === 'pj' && o.name === (st.looks[j].gender === 'f' ? '粉紅睡衣' : '天藍睡衣'));
-  fadeDo(() => { [0, 1].forEach(j => { const o = pj(j); if (o !== st.looks[j].outfit) chars[j].av.setLook({ ...st.looks[j], outfit: o }); }); seat(me(), -3.75, y, -1.75, 0, 'lie'); seat(you(), -3.05, y, -1.75, 0, 'lie'); }, 250);
+  fadeDo(() => { [0, 1].forEach(j => { const o = pj(j); if (o !== st.looks[j].outfit) chars[j].av.setLook({ ...st.looks[j], outfit: o }); }); seat(me(), FURN.bed.x - 0.35, y, FURN.bed.z + 1.0, 0, 'lie'); seat(you(), FURN.bed.x + 0.35, y, FURN.bed.z + 1.0, 0, 'lie'); }, 250);
   beginAct('bed', '🛏️ 床', '換上睡衣，軟綿綿的床，可以一起睡到明天早上。', {
-    focus: () => new THREE.Vector3(-3.4, 0.8, -2.5), back: [INSPOTS.bed.x, INSPOTS.bed.z + 0.6],
+    focus: () => new THREE.Vector3(FURN.bed.x, 0.8, FURN.bed.z + 0.5), back: [INSPOTS.bed.x, INSPOTS.bed.z + 0.4],
     btns: [{ t: '晚安，睡到明天', main: true, fn: sleep }, duo() && { t: '枕頭大戰', fn: () => { me().av.emote('cheer', 1); you().av.emote('jump', 1); burst('star', midPos(0.6), 6); addLove(2, '哈哈哈', 'pillow'); } }],
     end() { [0, 1].forEach(j => { st.looks[j].outfit = prev[j]; chars[j].av.setLook(st.looks[j]); }); },
   });
@@ -1063,14 +1064,31 @@ function actBed() {
 }
 function actSofa() {
   const y = 0.45 - HIP + 0.02;
-  fadeDo(() => { seat(me(), 1.25, y, 0.85, Math.PI, 'recline'); seat(you(), 1.95, y, 0.85, Math.PI, 'recline'); }, 250);
+  fadeDo(() => { seat(me(), FURN.sofa.x - 0.35, y, FURN.sofa.z - 0.05, Math.PI, 'recline'); seat(you(), FURN.sofa.x + 0.35, y, FURN.sofa.z - 0.05, Math.PI, 'recline'); }, 250);
   let movie = false, t = 0;
   beginAct('sofa', '🛋️ 沙發', '窩在沙發上。', {
-    focus: () => new THREE.Vector3(1.6, 1, -1), back: [INSPOTS.sofa.x, INSPOTS.sofa.z + 0.8],
+    focus: () => new THREE.Vector3(0, 1, -2.4), back: [INSPOTS.sofa.x + 1.6, INSPOTS.sofa.z + 0.4],
     btns: [{ t: '看電影', main: true, fn: () => { movie = !movie; msg(movie ? pick(duo() ? ['看了一部愛情片，兩個人都哭了', '看恐怖片，一直抓著對方的手', '看動畫，笑到肚子痛'] : ['看了一部愛情片，好想另一半', '看動畫，笑到肚子痛', '看了一部冒險電影']) : '電視關掉了。'); if (movie) { you().av.lean(1); addLove(3, '電影之夜', 'movie'); addMemo('🎬', '窩在沙發上一起看電影'); } else you().av.lean(0); } }, duo() && { t: '靠過去', fn: () => { you().av.lean(1); me().av.lean(-1); burst('heart', midPos(1.1), 4); addLove(2, null, 'sofalean'); } }],
     update(dt) { t += dt; if (movie) IN.screen.material.color.setHSL((t * 0.07) % 1, 0.5, 0.45 + Math.sin(t * 3) * 0.1); else IN.screen.material.color.set('#111'); },
     end() { IN.screen.material.color.set('#111'); },
   });
+}
+// 閱讀角：窩在懶人沙發，或一起躺在地毯上看書
+const BOOKS = ['《小王子》：「你在你的玫瑰花身上花的時間，使你的玫瑰花變得如此重要。」', '一本旅行繪本，說好以後要一起去看極光', '食譜書：決定下次要做舒芙蕾', '一本推理小說，猜兇手猜錯了 😂', '詩集：「我想和你一起生活，在某個小鎮。」', '一本貓咪寫真，看得好療癒'];
+function bookItem() { const g = new THREE.Group(); const c = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.3), toon(pick(['#c97b63', '#7c9a8a', '#e0c27a', '#8a9ec9']))); g.add(c); const pg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.032, 0.28), toon('#fbf6ec')); pg.position.y = 0.004; g.add(pg); g.rotation.set(-1.0, 0, 0); g.position.set(0, 0.06, 0.12); return g; }
+function actRead() {
+  const [b0, b1] = FURN.beans, N = FURN.nook; let lying = false, pages = 0;
+  const sitBeans = () => { seat(me(), b0[0] + 0.1, 0.24 - HIP, b0[1], b0[2], 'recline'); seat(you(), b1[0] + 0.1, 0.24 - HIP, b1[1], b1[2], 'recline'); /* 陷進懶人沙發裡 */ };
+  const lieRug = () => { seat(me(), N.x + 0.2, 0.04, N.z, 0, 'lie'); seat(you(), N.x + 0.85, 0.04, N.z, 0, 'lie'); };
+  const books = on => [me(), you()].forEach(c => { c.av.setItem(on ? bookItem() : null); c.av.reach(on); });
+  fadeDo(() => { sitBeans(); books(true); }, 250);
+  const btns = () => setBtns([{ t: '📖 翻一頁', main: true, fn: () => { pages++; msg(pick(BOOKS)); burst('heart', headPos(me(), 1.2), 1, 0.3); addLove(1, pages === 1 ? '安靜看書的午後' : null, 'read'); if (pages === 3) addMemo('📚', duo() ? '窩在閱讀角一起看書' : '在閱讀角看了一下午的書'); if (duo() && pages % 3 === 0) setTimeout(() => { you().av.emote('shy', 1.2); msg(`${nameOf(you().i)} 把頭靠過來一起看`); }, 900); } },
+    { t: lying ? '🛋️ 回懶人沙發' : '🧸 躺在地毯上', fn: () => { lying = !lying; fadeDo(() => { (lying ? lieRug : sitBeans)(); books(true); }, 200); btns(); } }]);
+  beginAct('read', '📚 閱讀角', '窩在無印的懶人沙發上，旁邊有一疊書和一杯熱可可。', {
+    focus: () => new THREE.Vector3(N.x, 0.7, N.z - 0.3), back: [INSPOTS.read.x, INSPOTS.read.z],
+    end() { books(false); },
+  });
+  btns();
 }
 // 冰箱：食材數量；「魚」= 任何一條可以吃的魚
 function pantryCount(k) { const P = st.pantry || {}; return k === '魚' ? EDIBLE.filter(n => n !== '愛心魚').reduce((t, n) => t + (P[n] || 0), 0) : P[k] || 0; }
@@ -1079,25 +1097,25 @@ function useIngredients(r) { const P = st.pantry; for (const [k, n] of Object.en
 const FOOD_ICON = { 雞蛋: '🥚', 魚: '🐟', 鮪魚: '🐟', 小章魚: '🐙', 愛心魚: '💗', 小丑魚: '🐠', 藍色倒吊: '🐟', 黃金鯛: '🐡' };
 function pantryText() { const P = st.pantry || {}, list = Object.entries(P).filter(([, n]) => n > 0); return list.length ? list.map(([k, n]) => `${FOOD_ICON[k] || '🍽️'}${k}×${n}`).join('　') : '空空的（釣魚帶回家、去雞舍撿雞蛋）'; }
 function actCook() {
-  const p = me(), q = you(); seat(p, 3.6, 0, -0.45, Math.PI, 'stand'); p.y = null; seat(q, 4.4, 0, -0.45, Math.PI, 'stand'); q.y = null;
+  const p = me(), q = you(); seat(p, 4.9, 0, FURN.cook.z + 0.75, Math.PI, 'stand'); p.y = null; seat(q, 3.8, 0, FURN.cook.z + 0.75, Math.PI, 'stand'); q.y = null; // 站在流理台前：一個顧爐子、一個在水槽邊洗菜
   let dish = null, prog = 0, cooking = false;
   const pickRecipe = () => {
     openDlg('🍳 食譜', `<p class="muted">🧊 冰箱：${esc(pantryText())}</p><div class="shop">${RECIPES.map((r, i) => { const need = Object.entries(r[3]).map(([k, n]) => `${FOOD_ICON[k] || ''}${k}×${n}`).join(' ') || '不用食材'; return `<button type="button" data-r="${i}" ${canCook(r) ? '' : 'disabled'}>${r[1]} ${esc(r[0])}<small>${esc(need)}・+${r[4]} 🪙</small></button>`; }).join('')}</div>`);
     $('#dlg-body').querySelectorAll('[data-r]').forEach(b => b.onclick = () => { $('#dlg').close(); start(RECIPES[+b.dataset.r]); });
   };
   beginAct('cook', '🍳 做飯', `冰箱：${pantryText()}`, {
-    focus: () => new THREE.Vector3(3.9, 1, -1.2), back: [INSPOTS.kitchen.x, INSPOTS.kitchen.z + 1],
+    focus: () => new THREE.Vector3(4.5, 1, -3.6), back: [INSPOTS.kitchen.x, INSPOTS.kitchen.z + 0.9],
     btns: [{ t: '📖 看食譜', main: true, fn: pickRecipe }],
     update(dt) {
       if (!cooking) return; prog += dt / 4; meter(true, Math.min(1, prog) * 0.6); p.av.reach(Math.sin(prog * 30) > 0); q.av.reach(true);
-      if (Math.random() < dt * 3) burst('star', new THREE.Vector3(3.9, 1.2, -1.2), 1, 0.3);
+      if (Math.random() < dt * 3) burst('star', new THREE.Vector3(5.0, 1.25, FURN.cook.z), 1, 0.3);
       if (prog >= 1) { cooking = false; meter(false); p.av.reach(false); q.av.reach(false); serve(); }
     },
   });
   setTimeout(pickRecipe, 450);
   function start(r) { if (!canCook(r)) return; useIngredients(r); dish = r; cooking = true; prog = 0; me().av.emote('interact', 4.2); you().av.emote('interact', 4.2); msg(duo() ? `${nameOf(me().i)} 切菜、${nameOf(you().i)} 掌廚，做${dish[0]}中…` : `做${dish[0]}中…`); setBtns([]); sfx('sizzle'); }
   function serve() {
-    IN.dish.clear(); [-0.35, 0.35].forEach(dx => { const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.03, 16), toon('#ffffff')); pl.position.set(0, 0, dx); IN.dish.add(pl); const f = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), toon(dish[2])); f.scale.y = 0.45; f.position.set(0, 0.05, dx); IN.dish.add(f); });
+    IN.dish.clear(); [-0.35, 0.35].forEach(dx => { const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.03, 16), toon('#ffffff')); pl.position.set(dx * 1.3, 0, dx * 0.7); IN.dish.add(pl); const f = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), toon(dish[2])); f.scale.y = 0.45; f.position.set(dx * 1.3, 0.05, dx * 0.7); IN.dish.add(f); });
     IN.dish.visible = true; st.dishes++; quest('cook'); addCoins(dish[4]); addLove(dish[5], `${dish[1]} ${dish[0]}完成`); addMemo(dish[1], `${duo() ? '一起' : ''}做了${dish[0]}`);
     msg(`${dish[0]}做好了，放在餐桌上！到餐桌${duo() ? '一起' : ''}吃吧。`); setBtns([{ t: '去餐桌吃飯', main: true, fn: () => { endAct(); actEat(); } }, { t: '再做一道', fn: pickRecipe }]);
   }
@@ -1105,9 +1123,9 @@ function actCook() {
 function actEat() {
   if (!IN.dish.visible) return toast('先去廚房做飯吧');
   const y = 0.47 - HIP;
-  fadeDo(() => { seat(me(), -3.4, y, 1.75, 0); seat(you(), -2.2, y, 3.05, Math.PI); }, 250);
+  const T = FURN.table; fadeDo(() => { seat(me(), T.x - 0.45, y, T.z - 1.0, 0); seat(you(), T.x + 0.45, y, T.z + 1.0, Math.PI); }, 250); // 坐在椅子正中間，頭不會撞到桌子
   beginAct('eat', '🍽️ 吃飯', '開動了！', {
-    focus: () => new THREE.Vector3(-2.8, 1, 2.4), back: [INSPOTS.dining.x + 1.4, INSPOTS.dining.z - 1],
+    focus: () => new THREE.Vector3(FURN.table.x, 0.9, FURN.table.z), back: [INSPOTS.dining.x, INSPOTS.dining.z],
     btns: [{ t: '好好吃！', main: true, fn: () => { me().av.emote('eatseat', 2.2); burst('heart', headPos(me(), 1.3), 2); addLove(1, null, 'eat'); } }, duo() && { t: '餵對方一口', fn: () => { me().av.reach(true); setTimeout(() => { me().av.reach(false); you().av.emote('shy', 1.4); burst('heart', headPos(you(), 1.3), 5); }, 500); addLove(3, '啊～', 'feed2'); } }, { t: '吃飽了', fn: () => { IN.dish.visible = false; addMemo('🍽️', '一起吃了一頓飯'); endAct(); } }],
   });
 }
@@ -1273,10 +1291,11 @@ function camBlocked(x, y, z) {
 function updateCam(dt, snap) {
   const p = me();
   if (scene === 'in') {
-    tmpT.set(clamp(p.x, -3.5, 3.5) * 0.6, 0.9, clamp(p.z, -2.5, 2.5) * 0.4);
+    tmpT.set(clamp(p.x, -5, 5) * 0.65, 0.9, clamp(p.z, -3.5, 3.5) * 0.55);
     if (act?.focus) tmpT.lerp(act.focus(), 0.7);
     const d = view.inDist, yaw = view.inYaw;
-    camP.set(tmpT.x + Math.sin(yaw) * d * 0.8, tmpT.y + d * 0.62, tmpT.z + Math.cos(yaw) * d * 0.8);
+    camP.set(tmpT.x + Math.sin(yaw) * d * 0.78, tmpT.y + d * 0.66, tmpT.z + Math.cos(yaw) * d * 0.78);
+    cutaway(IN, cam.position.x, cam.position.z);
   } else {
     if (act?.focus) tmpT.copy(act.focus()); else tmpT.set(p.av.root.position.x, p.av.root.position.y + 1.2, p.av.root.position.z);
     const nf = act?.near?.(); let d = view.dist * (act?.bigView ? 1.6 : nf ? nf : act ? 1.1 : 1);
@@ -1972,5 +1991,5 @@ async function setupVisit() {
   buildInterior(st.theme || 'muji').then(I => { IN = I; drawDecor(); });
   if (visitParam.length) setupVisit();
   else if (pairParam) setupPairSplash();
-  window.__nest = { get st() { return st; }, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  window.__nest = { get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();
