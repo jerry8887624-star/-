@@ -1,10 +1,10 @@
-// 環境音：海浪、營火、風、海鷗、鳥叫、蟲鳴、青蛙、雨、雨打傘、腳步
+// 環境音：海浪、營火、風、海鷗、鳥叫、蟲鳴、青蛙、雨、雨打傘、腳步、屋內雨打窗、雞叫、划船、門廊風鈴
 // 音檔取自開源專案 Moodist（CC0／Pixabay Content License），剪成 20～30 秒無縫循環，放在 audio/amb/
 // 每一層一個循環的聲音，依「離海多近、白天晚上、天氣、有沒有在走路」調大小聲
 import { audioCtx } from './audio.js';
 
-const NAMES = ['waves', 'campfire', 'wind', 'seagulls', 'birds', 'crickets', 'frog', 'light-rain', 'rain-on-umbrella', 'walk-on-leaves'];
-const MAX = { waves: 0.55, campfire: 0.6, wind: 0.32, seagulls: 0.35, birds: 0.4, crickets: 0.35, frog: 0.25, 'light-rain': 0.6, 'rain-on-umbrella': 0.5, 'walk-on-leaves': 0.45 };
+const NAMES = ['waves', 'campfire', 'wind', 'seagulls', 'birds', 'crickets', 'frog', 'light-rain', 'rain-on-umbrella', 'walk-on-leaves', 'rain-on-window', 'chickens', 'rowing-boat', 'wind-chimes'];
+const MAX = { waves: 0.55, campfire: 0.6, wind: 0.32, seagulls: 0.35, birds: 0.4, crickets: 0.35, frog: 0.25, 'light-rain': 0.6, 'rain-on-umbrella': 0.5, 'walk-on-leaves': 0.45, 'rain-on-window': 0.5, chickens: 0.4, 'rowing-boat': 0.5, 'wind-chimes': 0.22 };
 let bus = null, layers = {}, started = false, on = true;
 
 async function loadLayer(A, n) {
