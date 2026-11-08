@@ -660,8 +660,8 @@ function actSwing() {
 
 // ---------- 吊床 ----------
 function actHammock() {
-  const { x, z } = SPOTS.hammock, y = LAND_Y + 0.42;
-  fadeDo(() => { seat(me(), x + 0.75, y, z - 0.18, Math.PI / 2, 'lie'); seat(you(), x + 0.75, y, z + 0.18, Math.PI / 2, 'lie'); }, 250);
+  const { x, z } = SPOTS.hammock, y = LAND_Y + 0.5; /* 吊床布最低點約在 1.1 公尺 */
+  fadeDo(() => { [me(), you()].forEach(c => { c.av.lieTilt = 0.24; }); seat(me(), x + 0.58, y + 0.04, z - 0.2, Math.PI / 2, 'lie'); seat(you(), x + 0.58, y + 0.04, z + 0.2, Math.PI / 2, 'lie'); }, 250);
   let nap = false, zt = 0;
   beginAct('hammock', '💤 吊床', '兩個人擠在吊床上，搖啊搖。', {
     focus: () => new THREE.Vector3(x, LAND_Y + 1, z), back: [x, z + 1.6],
@@ -669,7 +669,7 @@ function actHammock() {
     update(dt) {
       zt += dt; if (nap) { st.tod += dt * 0.4; if (zt > 1.2) { zt = 0; burst('z', midPos(0.7), 1, 0.2); } if (Math.random() < dt / 8) addLove(1); }
     },
-    end() { if (nap) addMemo('💤', '在吊床上一起睡了午覺'); else addMemo('💤', '一起躺在吊床上聊天'); },
+    end() { [me(), you()].forEach(c => { c.av.lieTilt = 0; }); if (nap) addMemo('💤', '在吊床上一起睡了午覺'); else addMemo('💤', '一起躺在吊床上聊天'); },
   });
 }
 
@@ -1162,8 +1162,8 @@ function makeQuilt(spread) {
   /* 被子：從胸口蓋到床尾，在兩個人身上隆起（卡通角色身體比較厚，所以隆起要夠高才蓋得住） */
   const L = 1.78, g = new THREE.PlaneGeometry(2.02, L, 28, 18); g.rotateX(-Math.PI / 2); const P = g.attributes.position;
   for (let i = 0; i < P.count; i++) {
-    const x = P.getX(i), z = P.getZ(i), t = (z + L / 2) / L, bump = Math.min(1, [-spread, spread].reduce((s_, cx) => s_ + Math.exp(-((x - cx) ** 2) / 0.07), 0));
-    P.setY(i, 0.03 + bump * (0.34 - 0.16 * t) * Math.min(1, (1 - t) * 6 + 0.2) - Math.max(0, Math.abs(x) - 0.9) * 1.6);
+    const x = P.getX(i), z = P.getZ(i), t = (z + L / 2) / L, bump = Math.min(1, [-spread, spread].reduce((s_, cx) => s_ + Math.exp(-((x - cx) ** 2) / 0.16), 0));
+    P.setY(i, 0.03 + bump * (0.38 - 0.06 * t) * Math.min(1, (1 - t) * 6 + 0.2) - Math.max(0, Math.abs(x) - 0.9) * 1.6);
   }
   g.computeVertexNormals();
   const q = new THREE.Group(); q.add(new THREE.Mesh(g, toon('#f7c9d4', { side: THREE.DoubleSide })));
@@ -1179,7 +1179,8 @@ function actBed() {
   const lay = gap => { seat(me(), B.x - gap, y, footZ, 0, 'lie'); seat(you(), B.x + gap, y, footZ, 0, 'lie'); };
   const cover = gap => { if (quilt) IN.S.remove(quilt); quilt = makeQuilt(gap); quilt.position.set(B.x, y, footZ + 0.12); IN.S.add(quilt); };
   fadeDo(() => { [0, 1].forEach(j => { const o = pj(j); if (o !== st.looks[j].outfit) chars[j].av.setLook({ ...st.looks[j], outfit: o }); }); lay(0.42); cover(0.42); }, 250);
-  const snuggle = on => { close = on; lay(on ? 0.24 : 0.42); cover(on ? 0.24 : 0.42); };
+  const snuggle = on => { close = on; lay(on ? 0.24 : 0.42); cover(on ? 0.24 : 0.42); me().av.lieFace = on ? 1 : 0; you().av.lieFace = on ? -1 : 0; }; /* 抱著睡：兩個人側身面對面 */
+  [0, 1].forEach(j => { chars[j].av.covered = true; chars[j].av.lieFace = 0; });
   const btns = () => setBtns([{ t: '晚安', s: '睡到明天早上', main: true, fn: sleep },
     duo() && { t: close ? '躺回來' : '抱著睡', fn: () => { snuggle(!close); if (close) { me().av.emote('hug', 4); burst('heart', midPos(0.7), 6, 0.3); addLove(2, '抱著好溫暖', 'cuddle'); } btns(); } },
     duo() && { t: '親一下', fn: () => { if (!close) snuggle(true); me().av.emote('kiss', 1.6); setTimeout(() => { you().av.emote('shy', 1.6); burst('heart', midPos(0.75), 8, 0.3); }, 500); addLove(3, '晚安吻 😘', 'bedkiss'); btns(); } },
@@ -1187,7 +1188,7 @@ function actBed() {
     duo() && { t: '枕頭大戰', fn: () => { me().av.emote('cheer', 1); you().av.emote('jump', 1); burst('star', midPos(0.6), 6); addLove(2, '哈哈哈', 'pillow'); } }]);
   beginAct('bed', '🛏️ 床', '換上睡衣、蓋好被子，軟綿綿的床，可以一起睡到明天早上。', {
     focus: () => new THREE.Vector3(B.x, 0.8, B.z - 0.2), back: [INSPOTS.bed.x, INSPOTS.bed.z + 0.6],
-    end() { if (quilt) IN.S.remove(quilt); [0, 1].forEach(j => { st.looks[j].outfit = prev[j]; chars[j].av.setLook(st.looks[j]); }); },
+    end() { if (quilt) IN.S.remove(quilt); [0, 1].forEach(j => { chars[j].av.covered = false; chars[j].av.lieFace = 0; }); [0, 1].forEach(j => { st.looks[j].outfit = prev[j]; chars[j].av.setLook(st.looks[j]); }); },
   });
   btns();
   function sleep() {

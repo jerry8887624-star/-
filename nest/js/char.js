@@ -199,10 +199,10 @@ export class Avatar {
   kneel() {} hold() {}
 
   // 把骨頭（到子骨頭的方向）轉向角色空間的某個方向；w = 0..1
-  aim(name, child, dir, w) {
+  aim(name, child, dir, w, fr) {
     if (w < 0.01) return; const b = this.bones[name], c = this.bones[child]; if (!b || !c) return;
     b.getWorldPosition(_v1); c.getWorldPosition(_v2); const cur = _v2.sub(_v1).normalize();
-    this.root.getWorldQuaternion(_q2); const want = dir.clone().normalize().applyQuaternion(_q2);
+    (fr || this.root).getWorldQuaternion(_q2); /* fr：用哪個座標系（躺著時用身體本身，才會沿著身體方向） */ const want = dir.clone().normalize().applyQuaternion(_q2);
     _q.setFromUnitVectors(cur, want);                        // 世界空間的轉動
     b.getWorldQuaternion(_q3); _q3.premultiply(_q);           // 新的世界朝向
     b.parent.getWorldQuaternion(_q2); _q2.invert().multiply(_q3); // 換回父骨頭空間
@@ -264,7 +264,21 @@ export class Avatar {
     this.lieAmt = (this.lieAmt || 0) + ((pose === 'lie' ? 1 : 0) - (this.lieAmt || 0)) * k;
     const seatOff = seated ? HIP_SEAT - hipY : 0; this.seatOff = (this.seatOff || 0) + (seatOff - (this.seatOff || 0)) * k;
     let by = this.seatOff + this.lieAmt * 0.16;
-    this.body.rotation.x = -Math.PI / 2 * this.lieAmt;
+    this.body.rotation.x = (-Math.PI / 2 + (this.lieTilt || 0)) * this.lieAmt; /* lieTilt：頭那端抬高一點（吊床） */
+    /* 躺著的小動作：偶爾翻身側躺、伸懶腰、雙手枕在頭後、曲起一隻腳；抱著睡時固定側身面向對方 */
+    let roll = 0; const LI = this.lieIdle || (this.lieIdle = { k: null, t: 0, dur: 0, wait: 3 + Math.random() * 4, side: 1, e: 0 });
+    if (pose === 'lie' && this.lieAmt > 0.8) {
+      if (LI.k) { LI.t += dt; if (LI.t > LI.dur) { LI.k = null; LI.wait = 5 + Math.random() * 7; } }
+      else if (!this.emoteKind && !this.clipEmote && (LI.wait -= dt) < 0) {
+        const opts = this.lieFace ? ['stretch', 'head'] : ['roll', 'roll', 'stretch', 'head', this.covered ? 'roll' : 'knee'];
+        LI.k = opts[Math.floor(Math.random() * opts.length)]; LI.t = 0; LI.side = Math.random() < 0.5 ? -1 : 1;
+        LI.dur = { roll: 7 + Math.random() * 7, stretch: 2.8, head: 6 + Math.random() * 6, knee: 5 + Math.random() * 4 }[LI.k];
+      }
+      LI.e = LI.k ? Math.max(0, Math.min(1, LI.t / 0.9, (LI.dur - LI.t) / 0.9)) : 0;
+      roll = this.lieFace ? this.lieFace * 0.85 : LI.k === 'roll' ? LI.side * 0.8 : 0;
+    } else { LI.k = null; LI.e = 0; }
+    this.lieRoll = (this.lieRoll || 0) + (roll - (this.lieRoll || 0)) * Math.min(1, dt * 2.2);
+    this.body.rotation.y = this.lieRoll * this.lieAmt;
     if (this.lieAmt > 0.5) by += Math.sin(this.t * 1.6) * 0.006; // 躺著輕輕的呼吸
     this.shadow.visible = this.lieAmt < 0.3 && !seated;
     // 3. 手動姿勢（覆蓋在動作上）
@@ -280,8 +294,17 @@ export class Avatar {
     if ((w = s('legFloor', pose === 'floor'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.12 * sx, 0.02, 1), w); this.aim(l, f, V(0.08 * sx, -0.1, 1), w); });
     if ((w = s('legRecl', pose === 'recline'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.06 * sx, 0.18, 1), w); this.aim(l, f, V(0.04 * sx, -0.35, 1), w); });
     /* 躺平：兩腳伸直、兩手自然放在身體兩側（才不會從被子裡戳出來） */
-    if ((w = s('legLie', pose === 'lie'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.06 * sx, -1, 0), w); this.aim(l, f, V(0.04 * sx, -1, 0), w); });
-    if ((w = s('armLie', pose === 'lie' && !this.emoteKind))) { this.aim(R, RF, V(-0.3, -1, 0.06), w); this.aim(RF, RH, V(-0.12, -1, 0.15), w); this.aim(L, LF, V(0.3, -1, 0.06), w); this.aim(LF, LH, V(0.12, -1, 0.15), w); }
+    const BD = this.body, lk = pose === 'lie' ? this.lieIdle?.k : null, le = this.lieIdle?.e || 0, side = Math.abs(this.lieRoll || 0) > 0.35;
+    if ((w = s('legLie', pose === 'lie'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.06 * sx, -1, 0), w, BD); this.aim(l, f, V(0.04 * sx, -1, 0), w, BD); });
+    if ((w = s('armLie', pose === 'lie' && !this.emoteKind))) { const ax = this.covered ? 0.16 : 0.3, az = this.covered ? -0.12 : 0.06; this.aim(R, RF, V(-ax, -1, az), w, BD); this.aim(RF, RH, V(-0.1, -1, 0.1), w, BD); this.aim(L, LF, V(ax, -1, az), w, BD); this.aim(LF, LH, V(0.1, -1, 0.1), w, BD); }
+    /* 側躺：膝蓋微彎、手往前收 */
+    if ((w = s('lieSide', pose === 'lie' && side, 3))) { LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.05 * sx, -0.72, 0.6), w, BD); this.aim(l, f, V(0.03 * sx, -0.85, -0.45), w, BD); }); if (!this.emoteKind) { this.aim(R, RF, V(-0.15, -0.5, 0.85), w, BD); this.aim(RF, RH, V(0.25, -0.4, 0.85), w, BD); this.aim(L, LF, V(0.15, -0.5, 0.85), w, BD); this.aim(LF, LH, V(-0.25, -0.4, 0.85), w, BD); } }
+    /* 伸懶腰：兩手舉過頭 */
+    if ((w = s('lieStretch', lk === 'stretch' && le > 0.15, 3))) { this.aim(R, RF, V(-0.22, 1, 0.12), w, BD); this.aim(RF, RH, V(-0.08, 1, 0.12), w, BD); this.aim(L, LF, V(0.22, 1, 0.12), w, BD); this.aim(LF, LH, V(0.08, 1, 0.12), w, BD); }
+    /* 雙手枕在頭後 */
+    if ((w = s('lieHead', lk === 'head' && le > 0.15, 3))) { this.aim(R, RF, V(-0.85, 0.5, 0.05), w, BD); this.aim(RF, RH, V(0.7, 0.45, -0.5), w, BD); this.aim(L, LF, V(0.85, 0.5, 0.05), w, BD); this.aim(LF, LH, V(-0.7, 0.45, -0.5), w, BD); }
+    /* 曲起一隻腳 */
+    if ((w = s('lieKnee', lk === 'knee' && le > 0.15, 3))) { const [u, l, f, sx] = LL[this.lieIdle.side > 0 ? 0 : 1]; this.aim(u, l, V(0.08 * sx, -0.45, 0.85), w, BD); this.aim(l, f, V(0.03 * sx, -0.7, -0.7), w, BD); }
     if ((w = s('swing', pose === 'swing'))) { this.aim(R, RF, V(-0.22, 1, 0.12), w); this.aim(RF, RH, V(-0.15, 1, 0.1), w); this.aim(L, LF, V(0.22, 1, 0.12), w); this.aim(LF, LH, V(0.15, 1, 0.1), w); }
     if ((w = s('recline', pose === 'recline'))) this.twist('Spine', V(1, 0, 0), -(this.reclineAng ?? 0.45) * w); // 往後靠的角度（海灘椅比沙發躺得更斜）
     if ((w = s('reach', this.reaching && pose !== 'lie'))) { this.aim(R, RF, V(-0.18, -0.15, 1), w); this.aim(RF, RH, V(-0.05, 0.1, 1), w); this.aim(L, LF, V(0.18, -0.2, 1), w * 0.8); this.aim(LF, LH, V(0.05, 0.05, 1), w * 0.8); }
