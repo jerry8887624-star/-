@@ -28,19 +28,12 @@
   <div class="splash-card">
     <p class="eyebrow">情侶小窩 · 3D 小島</p>
     <h1>我們的小島</h1>
-    <p class="sub">一間小木屋、一片沙灘、一座碼頭，<br>只屬於你們兩個人。</p>
-    <div class="pair">
-      <div class="who" data-i="0">
-        <label><span>我的名字</span><input id="name0" maxlength="8" autocomplete="off" placeholder="例如：小安"></label>
-        <div class="seg"><button type="button" data-g="f">女生</button><button type="button" data-g="m">男生</button><button type="button" class="shuffle" aria-label="換個樣子">🎲 換樣子</button></div>
-      </div>
-      <div class="heart-mid" aria-hidden="true">♥</div>
-      <div class="who" data-i="1">
-        <label><span>另一半的名字</span><input id="name1" maxlength="8" autocomplete="off" placeholder="例如：阿哲"></label>
-        <div class="seg"><button type="button" data-g="f">女生</button><button type="button" data-g="m">男生</button><button type="button" class="shuffle" aria-label="換個樣子">🎲 換樣子</button></div>
-      </div>
+    <p class="sub">一間小木屋、一片沙灘、一座碼頭。<br>另一半上線時，就能一起玩。</p>
+    <div class="who me-row">
+      <label><span>我的名字</span><input id="name0" maxlength="8" autocomplete="off" placeholder="例如：瑋瑋"></label>
+      <div class="seg"><button type="button" data-g="f">女生</button><button type="button" data-g="m">男生</button><button type="button" class="shuffle" aria-label="換個樣子">🎲 換樣子</button></div>
     </div>
-    <label class="anniv"><span>在一起的日子</span><input id="anniv" type="date"></label>
+    <label class="anniv"><span>在一起的日子（可不填）</span><input id="anniv" type="date"></label>
     <button type="button" id="start-btn" class="primary">登島 ♥</button>
     <p id="load-msg" class="load-msg" role="status">小島載入中…</p>
   </div>
@@ -66,7 +59,7 @@
   </header>
   <div id="joy" aria-label="移動"><div id="joy-knob"></div></div>
   <div class="right">
-    <button type="button" id="btn-swap" class="round small" aria-label="換人操作"><span>🔄</span><small id="swap-name">換人</small></button>
+    <button type="button" id="btn-swap" class="round small" aria-label="換人操作" hidden><span>🔄</span><small id="swap-name">換人</small></button>
     <button type="button" id="btn-love" class="round small" aria-label="情侶互動"><span>💕</span><small>互動</small></button>
     <button type="button" id="btn-act" class="round big" hidden><span id="act-icon">🎣</span><small id="act-name">釣魚</small></button>
   </div>
