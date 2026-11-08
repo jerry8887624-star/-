@@ -272,7 +272,7 @@ export class Avatar {
     if ((w = s('legFloor', pose === 'floor'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.12 * sx, 0.02, 1), w); this.aim(l, f, V(0.08 * sx, -0.1, 1), w); });
     if ((w = s('legRecl', pose === 'recline'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.06 * sx, 0.18, 1), w); this.aim(l, f, V(0.04 * sx, -0.35, 1), w); });
     if ((w = s('swing', pose === 'swing'))) { this.aim(R, RF, V(-0.22, 1, 0.12), w); this.aim(RF, RH, V(-0.15, 1, 0.1), w); this.aim(L, LF, V(0.22, 1, 0.12), w); this.aim(LF, LH, V(0.15, 1, 0.1), w); }
-    if ((w = s('recline', pose === 'recline'))) this.twist('Spine', V(1, 0, 0), -0.45 * w);
+    if ((w = s('recline', pose === 'recline'))) this.twist('Spine', V(1, 0, 0), -(this.reclineAng ?? 0.45) * w); // 往後靠的角度（海灘椅比沙發躺得更斜）
     if ((w = s('reach', this.reaching && pose !== 'lie'))) { this.aim(R, RF, V(-0.18, -0.15, 1), w); this.aim(RF, RH, V(-0.05, 0.1, 1), w); this.aim(L, LF, V(0.18, -0.2, 1), w * 0.8); this.aim(LF, LH, V(0.05, 0.05, 1), w * 0.8); }
     if ((w = s('handR', this.handSide < 0 && !seated && pose !== 'lie'))) { this.aim(R, RF, V(-0.42, -0.9, 0.12), w); this.aim(RF, RH, V(-0.35, -0.92, 0.18), w); }
     if ((w = s('handL', this.handSide > 0 && !seated && pose !== 'lie'))) { this.aim(L, LF, V(0.42, -0.9, 0.12), w); this.aim(LF, LH, V(0.35, -0.92, 0.18), w); }

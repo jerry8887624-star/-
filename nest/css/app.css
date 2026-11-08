@@ -307,3 +307,17 @@ body.calm #joy { opacity: .55; transition: opacity 1.2s ease; }
 /* 視窗內容很多時，每一列都保持自己的高度（分頁列有 overflow 會被擠成 0 高，整排看不見） */
 #dlg-body { grid-auto-rows: max-content; align-content: start; }
 #dlg-body .tabs { flex: none; min-height: max-content; }
+
+/* 線條圖示：跟著文字顏色、粗細一致 */
+.ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; display: block; }
+.top .icon { color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.top .icon .n { font-family: var(--font-round); font-weight: 400; font-size: var(--fs-m); }
+.icon.net.on { color: #fff; }
+.chips .chip { gap: 6px; padding: 6px 12px 6px 9px; }
+.chips .chip .ico { width: 17px; height: 17px; color: var(--rose); stroke-width: 2; }
+.chips .chip .n { font-weight: inherit; font-variant-numeric: tabular-nums; }
+.chip.done .ico { color: #fff; }
+.round.small > span { display: grid; place-items: center; }
+.round.small .ico { width: 24px; height: 24px; }
+#btn-run[aria-pressed="true"] .ico, #btn-flash[aria-pressed="true"] .ico { color: #fff; }
+#btn-love .ico { color: var(--rose); fill: rgba(232, 90, 128, .18); }

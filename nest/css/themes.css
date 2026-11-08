@@ -1,4 +1,4 @@
-/* 介面風格（回憶本 → 關於 → 介面風格）：html[data-ui] = cozy 療癒精品（預設）／editorial 時尚雜誌／glass 現代玻璃
+/* 介面風格（回憶本 → 關於 → 介面風格）：html[data-ui] = cozy 療癒精品（預設）／editorial 時尚雜誌
    每一種風格只換字型、顏色、材質與標題樣式，版面和功能都一樣 */
 
 /* 對話框標題：英文小標＋圖示＋中文 */
@@ -52,44 +52,26 @@ html[data-ui="editorial"] #dlg[data-kind="album"] .dlg-head b { color: var(--ink
 html[data-ui="editorial"] #dlg[data-kind="album"] .dlg-head .ghost { color: var(--ink); border-color: var(--line); }
 html[data-ui="editorial"] #dlg[data-kind="letter"] .letter { line-height: 34px; background-image: repeating-linear-gradient(180deg, transparent 0 33px, rgba(176, 122, 104, .22) 33px 34px); }
 
-/* ---------- 現代玻璃：幾何無襯線、毛玻璃、強烈大小對比、全大寫英文小標 ---------- */
-html[data-ui="glass"] {
-  --bg: rgba(255, 255, 255, .62); --card: rgba(255, 255, 255, .5); --ink: #1d2230; --muted: #6b7280; --rose: #ff4f7b; --rose-2: #ff7a9c;
-  --line: rgba(255, 255, 255, .75); --glass: rgba(255, 255, 255, .42); --shadow: 0 8px 30px rgba(20, 30, 60, .14);
-  --font-round: 'Outfit', 'Noto Sans TC', system-ui, sans-serif;
-}
-html[data-ui="glass"] body { font-family: 'Outfit', 'Noto Sans TC', system-ui, sans-serif; }
-html[data-ui="glass"] .t-en { display: block; font-family: 'Outfit', sans-serif; font-weight: 700; letter-spacing: .22em; color: var(--rose); }
-html[data-ui="glass"] .t-ic { display: none; }
-html[data-ui="glass"] :is(.dlg-head b, h1, .chip, .card .names, .lbl, #toast, #ap-title, .round small, .quest b, .memo b, .toggle-row > span, .opts button, .shop button, .cell, .tabs button, .ghost, .primary) { font-family: 'Outfit', 'Noto Sans TC', sans-serif; font-weight: 700; letter-spacing: .01em; }
-html[data-ui="glass"] .dlg-head b { font-size: 24px; font-weight: 800; }
-html[data-ui="glass"] :is(.card, .chip, .icon, .round, .lbl, #toast, .pop, #act-panel) { background: rgba(255, 255, 255, .42); border: 1px solid rgba(255, 255, 255, .8); backdrop-filter: blur(18px) saturate(1.6); -webkit-backdrop-filter: blur(18px) saturate(1.6); box-shadow: 0 8px 28px rgba(20, 30, 60, .12); }
-html[data-ui="glass"] .card .names { font-size: 17px; font-weight: 800; }
-html[data-ui="glass"] .card .days { color: var(--rose); font-weight: 700; }
-html[data-ui="glass"] .card .lv { text-transform: uppercase; letter-spacing: .12em; }
-html[data-ui="glass"] .icon.net.on, html[data-ui="glass"] .lbl.near, html[data-ui="glass"] .tabs button[aria-selected="true"] { background: rgba(255, 79, 123, .88); color: #fff; }
-html[data-ui="glass"] dialog { background: rgba(255, 255, 255, .62); backdrop-filter: blur(26px) saturate(1.7); -webkit-backdrop-filter: blur(26px) saturate(1.7); border: 1px solid rgba(255, 255, 255, .85); border-radius: 28px; }
-html[data-ui="glass"] dialog::backdrop { background: rgba(20, 30, 60, .18); backdrop-filter: blur(6px); }
-html[data-ui="glass"] .primary { background: linear-gradient(135deg, #ff4f7b, #ff8a5c); border-radius: 16px; letter-spacing: .04em; box-shadow: 0 8px 24px rgba(255, 79, 123, .35); }
-html[data-ui="glass"] .ghost { background: rgba(255, 255, 255, .5); border: 1px solid rgba(255, 255, 255, .9); }
-html[data-ui="glass"] .quest, html[data-ui="glass"] .memo { background: rgba(255, 255, 255, .55); border: 1px solid rgba(255, 255, 255, .9); border-radius: 18px; box-shadow: none; }
-html[data-ui="glass"] .quest .q-e { font-size: 0; width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(29, 34, 48, .25); }
-html[data-ui="glass"] .quest.ok .q-e { background: var(--rose); border-color: var(--rose); }
-html[data-ui="glass"] .quest .q-r { color: var(--rose); font-weight: 800; }
-html[data-ui="glass"] .bar { background: rgba(29, 34, 48, .08) !important; }
-html[data-ui="glass"] .bar i { background: linear-gradient(90deg, #ff4f7b, #ff8a5c) !important; }
-html[data-ui="glass"] #dlg[data-kind] { background: rgba(255, 255, 255, .62); }
-html[data-ui="glass"] #dlg[data-kind] #dlg-body { background: none; }
-html[data-ui="glass"] #dlg[data-kind] .dlg-head::before, html[data-ui="glass"] #dlg[data-kind] > .dlg::before { display: none; }
-html[data-ui="glass"] #dlg[data-kind="album"] .dlg-head { background: none; margin: 0; padding: 0 0 8px; }
-html[data-ui="glass"] #dlg[data-kind="album"] .dlg-head b { color: var(--ink); }
-html[data-ui="glass"] #dlg[data-kind="album"] .dlg-head .ghost { color: var(--ink); }
-html[data-ui="glass"] #dlg[data-kind="note"] .quest { background: rgba(255, 255, 255, .55); border: 1px solid rgba(255, 255, 255, .9); border-radius: 18px; }
-html[data-ui="glass"] #dlg[data-kind="letter"] .letter { font-weight: 500; background-image: none; line-height: 1.9; }
-html[data-ui="glass"] .dlg-head { border-bottom: 0; }
 @media (prefers-color-scheme: dark) {
-  html[data-ui="glass"] { --bg: rgba(30, 32, 44, .6); --card: rgba(40, 44, 60, .5); --ink: #f2f4fa; --muted: #a7adbd; --glass: rgba(30, 32, 44, .45); }
-  html[data-ui="glass"] dialog, html[data-ui="glass"] #dlg[data-kind] { background: rgba(30, 32, 44, .62); border-color: rgba(255, 255, 255, .15); }
   html[data-ui="editorial"] { --bg: #221a18; --card: rgba(40, 30, 28, .94); --ink: #f3e8e2; --muted: #b9a398; --glass: rgba(34, 26, 24, .9); }
   html[data-ui="editorial"] .primary, html[data-ui="editorial"] .icon.net.on, html[data-ui="editorial"] .lbl.near { background: #f3e8e2; color: #221a18; }
+}
+
+/* 療癒精品：回憶本的橫幅是透光的琉璃（粉→蜜桃→薰衣草的相近色漸層，上緣一道亮光） */
+html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head {
+  position: relative; overflow: hidden; color: #5a3550;
+  background: linear-gradient(135deg, rgba(255, 186, 210, .82) 0%, rgba(255, 214, 196, .7) 48%, rgba(204, 188, 255, .78) 100%);
+  backdrop-filter: blur(14px) saturate(1.5); -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(255, 255, 255, .45), 0 4px 14px rgba(180, 120, 170, .18); }
+html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head::after { content: ''; position: absolute; inset: 0 0 45% 0; background: linear-gradient(180deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0)); pointer-events: none; }
+html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head b { color: #5a3550; text-shadow: 0 1px 0 rgba(255, 255, 255, .6); position: relative; z-index: 1; }
+html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head .ghost { position: relative; z-index: 1; color: #5a3550; background: rgba(255, 255, 255, .45); border-color: rgba(255, 255, 255, .85); }
+html:not([data-ui="editorial"]) #dlg[data-kind="album"] { background: #fbf6f2; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-ui="editorial"]) #dlg[data-kind="album"] { background: #2a2229; }
+  html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head { color: #fff; background: linear-gradient(135deg, rgba(196, 98, 140, .72) 0%, rgba(190, 120, 110, .6) 48%, rgba(120, 100, 190, .7) 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 14px rgba(0, 0, 0, .3); }
+  html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head::after { background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0)); }
+  html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head b, html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head .ghost { color: #fff; text-shadow: none; }
+  html:not([data-ui="editorial"]) #dlg[data-kind="album"] .dlg-head .ghost { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .35); }
+  html:not([data-ui="editorial"]) #dlg[data-kind="album"] .memo { background: #3a2f37; }
 }

@@ -10,6 +10,7 @@ import { Amb } from './amb.js';
 import { weatherAt, seasonOf, createWeatherFX, umbrellaItem, snowmanMesh, SEASON_DAYS } from './weather.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
 import { Music, sfx, TRACKS } from './audio.js';
+import { icon, skyIcon } from './icons.js';
 import { Net, auth as savedAuth, saveAuth, serverAvailable, createIsland, pairIsland, peekIsland, peekPair } from './net.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
 
@@ -45,6 +46,7 @@ addEventListener('resize', resize); resize();
 const OUT = new THREE.Scene();
 let W = null, IN = null, scene = 'out';
 const TREE = { x: -4.6, z: 4.8 }; // 兩個人一起種的愛情樹
+const WADE = shorePoint(SPOTS.sunbathe.x, SPOTS.sunbathe.z + 1.5); // 曬太陽前面、浪打得到的地方
 const PZ_AT = { x: 0, z: -2.5, y: 0.405 }; // 客廳茶几上
 // 升級解鎖的新地方：Lv3 海邊小屋、Lv5 花園溫室
 const PLACES = { hut: { x: -15, z: 19.3, lv: 3, key: 'beach-hut-fc7649', s: 0.8, ry: 0 }, gh: { x: -18.5, z: 3, lv: 5, key: 'greenhouse-53ab6d', s: 0.75, ry: Math.PI / 2 } };
@@ -139,6 +141,8 @@ function updateHud() {
   $('#btn-music').setAttribute('aria-pressed', String(!!st.music));
 }
 function clockText() { const h = Math.floor(st.tod), m = Math.floor((st.tod - h) * 60); const wi = weatherAt(st.day, st.tod).icon; const ic = wi || (st.tod >= 5.5 && st.tod < 17.8 ? '☀️' : st.tod >= 17.8 && st.tod < 19.3 ? '🌇' : '🌙'); return `${ic} ${String(h).padStart(2, '0')}:${String(Math.floor(m / 10) * 10).padStart(2, '0')}`; }
+// 時鐘標籤：天氣／時間圖示＋時間
+function clockHtml() { const h = Math.floor(st.tod), m = Math.floor((st.tod - h) * 60); return `${icon(skyIcon(weatherAt(st.day, st.tod).icon, st.tod))}<b class="n">${String(h).padStart(2, '0')}:${String(Math.floor(m / 10) * 10).padStart(2, '0')}</b>`; }
 const isNight = () => st.tod >= 19 || st.tod < 5.3;
 
 // ---------- 特效：愛心、音符、睡覺 Z、亮晶晶 ----------
@@ -167,10 +171,20 @@ function burst(kind, pos, n = 6, spread = 0.6) {
     parts.push({ sp, v: new THREE.Vector3(rand(-0.3, 0.3), rand(0.7, 1.4), rand(-0.3, 0.3)), life: 0, max: rand(1.3, 2.1), s, S });
   }
 }
+// 水花：小水珠往上噴、再掉下來（dir：往哪個方向潑）
+function splash(pos, n = 14, dir = null, power = 1) {
+  const S = curS();
+  for (let i = 0; i < n; i++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: i % 3 ? '#e8fbff' : '#9fe3f0', transparent: true, depthWrite: false }));
+    sp.position.copy(pos).add(new THREE.Vector3(rand(-0.15, 0.15), 0.05, rand(-0.15, 0.15))); const s = rand(0.12, 0.26); sp.scale.set(s, s, s); S.add(sp);
+    const v = new THREE.Vector3(rand(-0.9, 0.9), rand(1.6, 3.0) * power, rand(-0.9, 0.9)); if (dir) v.addScaledVector(dir, rand(1.2, 2.4) * power);
+    parts.push({ sp, v, life: 0, max: rand(0.6, 0.95), s, S, g: 1 });
+  }
+}
 function tickParts(dt) {
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i]; p.life += dt; const k = p.life / p.max;
-    p.sp.position.addScaledVector(p.v, dt); p.v.y *= 0.985; p.sp.material.opacity = 1 - k * k; const sc = p.s * (0.6 + Math.min(1, p.life * 4) * 0.4); p.sp.scale.set(sc, sc, sc);
+    p.sp.position.addScaledVector(p.v, dt); if (p.g) p.v.y -= 7.5 * dt; else p.v.y *= 0.985; p.sp.material.opacity = 1 - k * k; const sc = p.s * (0.6 + Math.min(1, p.life * 4) * 0.4); p.sp.scale.set(sc, sc, sc);
     if (k >= 1) { p.S.remove(p.sp); p.sp.material.dispose(); parts.splice(i, 1); }
   }
 }
@@ -459,7 +473,7 @@ function seat(c, x, y, z, ry, pose = 'sit') {
   if (c.remote) { if (lastMeSeat && Math.hypot(c.x - lastMeSeat[0], c.z - lastMeSeat[1]) < 0.4) { lastMeSeat = null; seat(me(), x, y, z, ry, pose); } return; }
   if (c === me()) lastMeSeat = [x, z];
   c.locked = true; c.path = null; c.x = x; c.z = z; c.y = y; c.ry = ry; c.moving = false; c.av.setPose(pose); c.av.holdHand(0); }
-function unseat(c) { if (c.ghost || c.remote) return; c.locked = false; c.y = null; c.tilt = 0; c.moving = false; c.av.setPose('stand'); c.av.reach(false); c.av.lean(0); c.av.setItem(null); }
+function unseat(c) { if (c.ghost || c.remote) return; c.av.reclineAng = null; c.locked = false; c.y = null; c.tilt = 0; c.moving = false; c.av.setPose('stand'); c.av.reach(false); c.av.lean(0); c.av.setItem(null); }
 function setBtns(list) {
   const box = $('#ap-btns'); box.innerHTML = '';
   list.filter(Boolean).forEach(b => {
@@ -505,6 +519,7 @@ const SP = [
   { id: 'campfire', sc: 'out', x: SPOTS.campfire.x - 1.8, z: SPOTS.campfire.z, r: 2.6, icon: '🔥', name: '營火', run: actCampfire },
   { id: 'picnic', sc: 'out', x: SPOTS.picnic.x, z: SPOTS.picnic.z + 1.6, icon: '🧺', name: '野餐', run: actPicnic },
   { id: 'sunbathe', sc: 'out', x: SPOTS.sunbathe.x, z: SPOTS.sunbathe.z - 1.6, icon: '🏖️', name: '曬太陽', run: actSunbathe },
+  { id: 'wade', sc: 'out', x: WADE.x - Math.cos(WADE.a) * 1.2, z: WADE.z - Math.sin(WADE.a) * 1.2, r: 2, icon: '🌊', name: '踩浪花', run: actWade },
   { id: 'sandcastle', sc: 'out', ...SPOTS.sandcastle, icon: '🏰', name: '堆沙堡', run: actSand },
   { id: 'beach', sc: 'out', ...SPOTS.beach, icon: '🪁', name: '放風箏', run: actBeach, dyn: () => isNight() ? ['🎆', '放煙火'] : ['🪁', '放風箏'] },
   { id: 'fishing', sc: 'out', x: SPOTS.fishing.x - 1, z: 0, r: 2.4, icon: '🎣', name: '釣魚', run: actFish },
@@ -710,14 +725,43 @@ function actPicnic() {
 
 // ---------- 曬太陽 ----------
 function actSunbathe() {
-  const { x, z } = SPOTS.sunbathe, cy = standH(x, z + 0.4) + 0.32 - HIP;
-  fadeDo(() => { seat(me(), x - 0.75, cy, z + 0.25, 0, 'recline'); seat(you(), x + 0.75, cy, z + 0.25, 0, 'recline'); }, 250);
+  // 躺在椅布上：屁股在椅子中間偏前、抬高，往後靠得比沙發更斜（側面看過，不會陷進椅子）
+  const { x, z } = SPOTS.sunbathe, cy = standH(x, z + 0.4) + 0.4 - HIP;
+  fadeDo(() => { [[me(), -0.75], [you(), 0.75]].forEach(([c, dx]) => { seat(c, x + dx, cy, z + 0.5, 0, 'recline'); c.av.reclineAng = 0.75; }); }, 250);
   let t = 0;
   beginAct('sunbathe', '🏖️ 曬太陽', '躺在海灘椅上，聽海浪的聲音。', {
     focus: () => new THREE.Vector3(x, 1, z + 1), back: [x, z - 1.6], camYaw: Math.PI - 0.5, camPitch: 0.3,
-    btns: [duo() ? { t: '幫忙擦防曬', main: true, fn: () => { me().av.emote('pat', 1.4); you().av.emote('shy', 1.4); burst('heart', headPos(you(), 1.1), 3); addLove(2, '擦好防曬了', 'sun'); } } : { t: '伸個懶腰', main: true, fn: () => { me().av.emote('cheer', 1.4); addLove(1, '好舒服～', 'sun'); } }, { t: '去踩浪花', fn: () => { endAct(); const p = me(), q = you(); p.x = x - 0.5; p.z = z + 3.2; if (!q.ghost && !q.remote) { q.x = x + 0.5; q.z = z + 3.2; } toast('去踩浪花吧～ 🌊'); } }],
+    btns: [duo() ? { t: '幫忙擦防曬', main: true, fn: () => { me().av.emote('pat', 1.4); you().av.emote('shy', 1.4); burst('heart', headPos(you(), 1.1), 3); addLove(2, '擦好防曬了', 'sun'); } } : { t: '伸個懶腰', main: true, fn: () => { me().av.emote('cheer', 1.4); addLove(1, '好舒服～', 'sun'); } }, { t: '去踩浪花', fn: () => { endAct(); setTimeout(actWade, 450); } }],
     update(dt) { t += dt; if (t > 12) { t = 0; addLove(1); } },
     end() { addMemo('🏖️', '一起在海灘曬太陽'); },
+  });
+}
+
+// ---------- 踩浪花：走到浪打上來的地方，踢水、互相潑水 ----------
+// 從 (x, z) 往海的方向找水深大約 5 公分的地方（浪會打到腳）
+function shorePoint(x, z, depth = -0.05) {
+  const a = Math.atan2(z, x); let r = Math.hypot(x, z);
+  for (let i = 0; i < 200 && groundH(Math.cos(a) * r, Math.sin(a) * r) > depth; i++) r += 0.1;
+  return { x: Math.cos(a) * r, z: Math.sin(a) * r, a };
+}
+function actWade() {
+  const P = shorePoint(me().x, me().z), out = new THREE.Vector3(Math.cos(P.a), 0, Math.sin(P.a)), side = new THREE.Vector3(-out.z, 0, out.x);
+  const face = Math.atan2(out.x, out.z), y0 = standH(P.x, P.z);
+  const place = (c, k) => { c.locked = true; c.path = null; c.moving = false; c.x = P.x + side.x * k; c.z = P.z + side.z * k; c.y = null; c.ry = face; c.av.setPose('stand'); };
+  fadeDo(() => { place(me(), -0.45); if (!you().ghost && !you().remote) place(you(), 0.45); }, 250);
+  let t = 0, next = 2;
+  const kick = c => { c.av.emote('jump', 0.7); setTimeout(() => { const f = c.av.root.position; splash(new THREE.Vector3(f.x + out.x * 0.35, y0 + 0.02, f.z + out.z * 0.35), 16, out, 1); sfx('splash'); }, 180); };
+  beginAct('wade', '🌊 踩浪花', '光著腳站在浪打上來的地方，海水冰冰涼涼的。', {
+    focus: () => new THREE.Vector3(P.x, y0 + 0.7, P.z), back: [P.x - out.x * 2, P.z - out.z * 2], camYaw: face + 0.75, camPitch: 0.3, near: () => 0.7, // 從海那邊斜斜看回來（陸地那邊有陽傘會擋住）
+    btns: [{ t: '踢水花', main: true, fn: () => { kick(me()); addLove(1, pick(['水花好漂亮', '冰冰涼涼的', '哈哈好好玩']), 'wade'); } },
+      duo() ? { t: '潑你水', fn: () => { const a = me().av.root.position, b = you().av.root.position, dir = new THREE.Vector3(b.x - a.x, 0, b.z - a.z).normalize(); me().av.emote('throw', 0.8); setTimeout(() => { splash(new THREE.Vector3(a.x + dir.x * 0.3, y0 + 0.05, a.z + dir.z * 0.3), 22, dir, 1.1); sfx('splash'); you().av.emote('laugh', 1.6); setTimeout(() => kick(you()), 900); }, 250); addLove(3, '互相潑水，笑成一團', 'splashfight'); } }
+        : { t: '追著浪跑', fn: () => { const c = me(); c.locked = false; c.av.emote('cheer', 1); route(c, P.x - out.x * 2.2, P.z - out.z * 2.2); setTimeout(() => { route(c, P.x, P.z); setTimeout(() => { place(c, -0.45); kick(c); }, 1600); }, 1500); addLove(1, '浪追上來了！', 'wadechase'); } }],
+    update(dt) {
+      t += dt; next -= dt;
+      // 浪打到腳邊時，腳邊自己濺起小水花
+      if (next <= 0) { next = rand(2.2, 3.8); [me(), you()].forEach(c => { if (c.ghost || c.remote) return; const f = c.av.root.position; splash(new THREE.Vector3(f.x, y0 + 0.02, f.z), 6, null, 0.45); }); }
+    },
+    end() { addMemo('🌊', duo() ? '一起在海邊踩浪花' : '在海邊踩浪花'); },
   });
 }
 
@@ -1602,8 +1646,8 @@ function netMove(dt, hasInput) {
 }
 function updateNetChip() {
   const el = $('#btn-net'); if (!el) return;
-  if (!MP.on) { el.textContent = '🌐'; el.classList.remove('on'); return; }
-  const n = MP.peers.size + 1; el.textContent = `🌐 ${n}`; el.classList.add('on');
+  if (!MP.on) { el.innerHTML = icon('users'); el.classList.remove('on'); return; }
+  const n = MP.peers.size + 1; el.innerHTML = `${icon('users')}<b class="n">${n}</b>`; el.classList.add('on');
   const g = MP.role === 'g';
   $('#btn-swap').hidden = true;
   if (g) $('#hud-names').textContent = `拜訪 ${nameOf(0)} ♥ ${nameOf(1)} 的小島`;
@@ -1758,8 +1802,8 @@ function checkMilestones() {
 function updateChips() {
   const g = MP.role === 'g'; $('.chips').hidden = g || !started(); if (g) return;
   const list = questsToday(), done = list.filter(q => q.n >= QUESTS.find(x => x[0] === q.k)[2]).length;
-  const qc = $('#quest-chip'); qc.textContent = `📋 今日任務 ${done}/3`; qc.classList.toggle('done', done === 3);
-  $('#coin-chip').textContent = `🪙 ${st.coins || 0}`;
+  const qc = $('#quest-chip'); qc.innerHTML = `${icon('quest')}今日任務 <b class="n">${done}/3</b>`; qc.classList.toggle('done', done === 3);
+  $('#coin-chip').innerHTML = `${icon('coin')}<b class="n">${st.coins || 0}</b>`;
 }
 $('#quest-chip').onclick = () => openQuests();
 $('#coin-chip').onclick = () => openShop();
@@ -2003,7 +2047,7 @@ function frame() {
   // 時間：一小時 = 36 秒
   if (started() && !document.hidden) { st.tod += dt / 36; if (st.tod >= 24) { st.tod -= 24; newDay(); toast(`第 ${st.day} 天了`); } }
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : st.tod, cam.position);
-  W.water.material.uniforms.uTime.value = T;
+  W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
   if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickRemoteBikes(); nightK = k.night; tickFlash();
     // 天黑了提醒一次可以開手電筒
     if (k.night > 0.6 && !st.flash && scene === 'out' && flashTipNight !== st.day && started()) { flashTipNight = st.day; toast('🌙 天黑了，左下角 🔦 可以打開手電筒', 4000); $('#btn-flash').classList.add('glow'); setTimeout(() => $('#btn-flash').classList.remove('glow'), 6000); } }
@@ -2061,7 +2105,7 @@ function frame() {
   tickParts(dt);
   updateCam(dt);
   tickSpots();
-  saveT += dt; if (saveT > 1) { saveT = 0; $('#clock').textContent = clockText(); }
+  saveT += dt; if (saveT > 1) { saveT = 0; $('#clock').innerHTML = clockHtml(); }
   R.render(curS(), cam);
 }
 
@@ -2464,12 +2508,16 @@ setInterval(() => {
   document.body.classList.toggle('calm', on);
 }, 250);
 // 介面風格：療癒精品（預設）／時尚雜誌／現代玻璃；字型用到才下載
-const UI_STYLES = { cozy: ['療癒精品', 'family=Fredoka:wght@500;600'], editorial: ['時尚雜誌', 'family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Noto+Serif+TC:wght@500;600'], glass: ['現代玻璃', 'family=Outfit:wght@400;600;700;800'] };
+const UI_STYLES = { cozy: ['療癒精品', 'family=Fredoka:wght@500;600'], editorial: ['時尚雜誌', 'family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Noto+Serif+TC:wght@500;600'] };
 function applyUI(k) {
   if (!UI_STYLES[k]) k = 'cozy'; document.documentElement.dataset.ui = k;
   const id = 'font-' + k; if (!document.getElementById(id)) { const l = document.createElement('link'); l.id = id; l.rel = 'stylesheet'; l.href = `https://fonts.googleapis.com/css2?${UI_STYLES[k][1]}&display=swap`; document.head.appendChild(l); }
 }
 applyUI(st.ui);
+// 介面圖示
+[['#btn-map', 'map'], ['#btn-book', 'book'], ['#btn-photo', 'camera'], ['#btn-music', 'music']].forEach(([q, n]) => { $(q).innerHTML = icon(n); });
+document.querySelectorAll('[data-ico]').forEach(e => { e.innerHTML = icon(e.dataset.ico); });
+$('#btn-net').innerHTML = icon('users'); $('#clock').innerHTML = clockHtml();
 
 // ---------- 開始 ----------
 (async function boot() {
