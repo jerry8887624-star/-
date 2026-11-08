@@ -218,7 +218,7 @@ function tapAt(x, y) {
     const t = (DOCK.y - ray.ray.origin.y) / ray.ray.direction.y; const pd = t > 0 ? ray.ray.at(t, new THREE.Vector3()) : null;
     if (pd && onDock(pd.x, pd.z)) pt = pd; else { const h = ray.intersectObject(W.ground, false)[0]; if (h) pt = h.point; }
   }
-  if (pt) { me().path = { x: pt.x, z: pt.z }; spawnRing(pt); }
+  if (pt) { route(me(), pt.x, pt.z); spawnRing(pt); }
 }
 let ringM = null;
 function spawnRing(p) {
@@ -232,6 +232,49 @@ function canStand(x, z) {
   if (scene === 'in') { const hw = ROOM.w / 2 - 0.4, hd = ROOM.d / 2 - 0.4; return x > -hw && x < hw && z > -hd && z < hd + 0.3 && !blocked(x, z, R_BODY, [], IN.BOXES); }
   return walkable(x, z) && !blocked(x, z, R_BODY, CIRCLES, BOXES);
 }
+// ---------- 找路（A*）：繞過小木屋、樹、家具，沿著沙灘走上碼頭 ----------
+const grids = {};
+function grid() {
+  if (grids[scene]) return grids[scene];
+  const cell = scene === 'in' ? 0.25 : 0.5, half = scene === 'in' ? 6 : 48, n = Math.round(half * 2 / cell), ok = new Uint8Array(n * n);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) ok[j * n + i] = canStand(-half + (i + 0.5) * cell, -half + (j + 0.5) * cell) ? 1 : 0;
+  return (grids[scene] = { cell, half, n, ok });
+}
+function lineFree(ax, az, bx, bz) { const d = Math.hypot(bx - ax, bz - az), k = Math.ceil(d / 0.2); for (let i = 1; i <= k; i++) { const t = i / k; if (!canStand(ax + (bx - ax) * t, az + (bz - az) * t)) return false; } return true; }
+function findPath(sx, sz, tx, tz) {
+  if (lineFree(sx, sz, tx, tz)) return [[tx, tz]];
+  const G = grid(), { cell, half, n, ok } = G, idx = (x, z) => { const i = Math.floor((x + half) / cell), j = Math.floor((z + half) / cell); return i < 0 || j < 0 || i >= n || j >= n ? -1 : j * n + i; };
+  const nearOK = k => { if (k >= 0 && ok[k]) return k; const i0 = k % n, j0 = Math.floor(k / n); for (let r = 1; r < 12; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue; const i = i0 + di, j = j0 + dj; if (i >= 0 && j >= 0 && i < n && j < n && ok[j * n + i]) return j * n + i; } return -1; };
+  const s0 = nearOK(idx(sx, sz)), g0 = nearOK(idx(tx, tz)); if (s0 < 0 || g0 < 0) return null;
+  const gS = new Float32Array(n * n).fill(1e9), from = new Int32Array(n * n).fill(-1), closed = new Uint8Array(n * n);
+  const heap = [], push = (k, f) => { heap.push([f, k]); let i = heap.length - 1; while (i > 0) { const pa = (i - 1) >> 1; if (heap[pa][0] <= heap[i][0]) break; [heap[pa], heap[i]] = [heap[i], heap[pa]]; i = pa; } };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = i * 2 + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
+  const gi = g0 % n, gj = Math.floor(g0 / n), h = k => Math.hypot(k % n - gi, Math.floor(k / n) - gj);
+  gS[s0] = 0; push(s0, h(s0)); let found = false, guard = 0;
+  while (heap.length && guard++ < 60000) {
+    const [, k] = pop(); if (closed[k]) continue; closed[k] = 1; if (k === g0) { found = true; break; }
+    const i = k % n, j = Math.floor(k / n);
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      if (!di && !dj) continue; const ni = i + di, nj = j + dj; if (ni < 0 || nj < 0 || ni >= n || nj >= n) continue;
+      const nk = nj * n + ni; if (!ok[nk] || closed[nk]) continue; if (di && dj && (!ok[j * n + ni] || !ok[nj * n + i])) continue;
+      const g = gS[k] + (di && dj ? 1.414 : 1); if (g < gS[nk]) { gS[nk] = g; from[nk] = k; push(nk, g + h(nk)); }
+    }
+  }
+  if (!found) return null;
+  const pts = []; for (let k = g0; k >= 0 && k !== s0; k = from[k]) pts.push([-half + (k % n + 0.5) * cell, -half + (Math.floor(k / n) + 0.5) * cell]);
+  pts.reverse(); if (canStand(tx, tz)) pts.push([tx, tz]);
+  // 拉直：看得到的點就直接走過去
+  const out = []; let cx = sx, cz = sz, i = 0;
+  while (i < pts.length) { let j = pts.length - 1; while (j > i && !lineFree(cx, cz, pts[j][0], pts[j][1])) j--; out.push(pts[j]); [cx, cz] = pts[j]; i = j + 1; }
+  return out;
+}
+// 叫角色走到某處（then：到了之後要開始的活動）
+function route(c, x, z, then) {
+  const pts = findPath(c.x, c.z, x, z);
+  if (!pts) { toast('走不過去耶，換個地方試試'); c.path = null; return; }
+  c.path = { x, z, then, pts, i: 0 }; c.stuck = 0;
+}
+
 // 找離 (x, z) 最近、可以站的地方（一圈一圈往外找）
 function freeSpot(x, z) {
   if (canStand(x, z)) return [x, z];
@@ -362,11 +405,13 @@ function beginAct(id, title, text, o = {}) {
   act = { id, t: 0, ...o }; $('#act-panel').hidden = false; $('#ap-title').textContent = title; msg(text); meter(false); setBtns(o.btns || []);
   toggleLoveMenu(false); $('#btn-act').hidden = true; $('#joy').style.visibility = 'hidden';
   // 有些活動要看向特定方向（海、夕陽、煙火）
+  act.camBack = { yaw: view.yaw, pitch: view.pitch };
   if (o.camYaw != null) { view.yaw = o.camYaw; if (o.camPitch != null) view.pitch = o.camPitch; }
 }
 function endAct() {
   if (!act) return; const a = act; act = null;
-  a.end?.(); chars.forEach(unseat); $('#act-panel').hidden = true; $('#joy').style.visibility = '';
+  a.end?.(); chars.forEach(unseat);
+  if (a.camBack && a.camYaw != null) { view.yaw = a.camBack.yaw; view.pitch = a.camBack.pitch; } $('#act-panel').hidden = true; $('#joy').style.visibility = '';
   // 站到活動地點旁邊
   if (a.back) { const [x, z] = a.back; const p = me(), q = you(); [p.x, p.z] = freeSpot(x, z); [q.x, q.z] = freeSpot(p.x + 0.9, p.z + 0.5); }
   chars.forEach(c => { if (!canStand(c.x, c.z)) [c.x, c.z] = freeSpot(c.x, c.z); });
@@ -404,7 +449,7 @@ const SP = [
 SP.forEach(s => {
   s.r = s.r || 2.2;
   const el = document.createElement('button'); el.type = 'button'; el.className = 'lbl'; el.textContent = `${s.icon} ${s.name}`; el.style.display = 'none';
-  el.onclick = () => { if (act || !started()) return; const p = s.pos?.() || s; me().path = { x: p.x, z: p.z, then: s }; sfx('click'); };
+  el.onclick = () => { if (act || !started()) return; const p = s.pos?.() || s; route(me(), p.x, p.z, s); sfx('click'); };
   $('#labels').appendChild(el); s.el = el;
 });
 const nameEls = [0, 1].map(() => { const e = document.createElement('div'); e.className = 'lbl name'; $('#labels').appendChild(e); return e; });
@@ -869,7 +914,7 @@ $('#btn-map').onclick = () => {
   sfx('click');
   const list = SP.filter(s => s.sc === scene && !s.hide?.() && s.id !== 'dog');
   openDlg(scene === 'in' ? '🏠 小木屋裡' : '🗺️ 小島地圖', `<p class="muted">點一下，${esc(nameOf(me().i))} 會走過去。</p><div class="grid3">${list.map(s => `<button type="button" class="cell" data-s="${s.id}" style="border:0"><span class="e">${s.icon}</span>${esc(s.name)}</button>`).join('')}</div>`);
-  $('#dlg-body').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { const s = SP.find(x => x.id === b.dataset.s); $('#dlg').close(); if (act) endAct(); me().path = { x: s.x, z: s.z, then: s }; });
+  $('#dlg-body').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { const s = SP.find(x => x.id === b.dataset.s); $('#dlg').close(); if (act) endAct(); route(me(), s.x, s.z, s); });
 };
 $('#couple-card').onclick = () => openBook('us');
 $('#btn-book').onclick = () => openBook('memo');
@@ -1010,7 +1055,7 @@ function updateCam(dt, snap) {
     if (act?.focus) tmpT.copy(act.focus()); else tmpT.set(p.av.root.position.x, p.av.root.position.y + 1.2, p.av.root.position.z);
     let d = view.dist * (act?.bigView ? 1.6 : act ? 1.1 : 1);
     const yaw = view.yaw, pit = view.pitch;
-    for (let k = 0; k < 12; k++) { camP.set(tmpT.x + Math.sin(yaw) * Math.cos(pit) * d, tmpT.y + Math.sin(pit) * d, tmpT.z + Math.cos(yaw) * Math.cos(pit) * d); if (!camBlocked(camP.x, camP.y, camP.z) || d < 2.5) break; d *= 0.8; }
+    for (let k = 0; k < 12; k++) { camP.set(tmpT.x + Math.sin(yaw) * Math.cos(pit) * d, tmpT.y + Math.sin(pit) * d, tmpT.z + Math.cos(yaw) * Math.cos(pit) * d); if (!camBlocked(camP.x, camP.y, camP.z)) break; if (d < 2.5) { camP.y = Math.max(camP.y, 7.2); break; } d *= 0.8; }
     camP.y = Math.max(camP.y, standH(camP.x, camP.z) + 0.6);
   }
   const k = snap ? 1 : 1 - Math.exp(-dt * 6);
@@ -1053,9 +1098,12 @@ function frame() {
       const dx = fx * -iy + rx * ix, dz = fz * -iy + rz * ix;
       stepChar(p, dx, dz, dt, (st.hand ? 3.4 : 4.2) * mag);
     } else if (p.path) {
-      const dx = p.path.x - p.x, dz = p.path.z - p.z, d = Math.hypot(dx, dz), arrive = p.path.then ? Math.min(1.4, p.path.then.r * 0.6) : 0.15;
-      if (d < arrive) { const then = p.path.then; p.path = null; p.moving = false; if (then && !act) then.run(); }
-      else if (!stepChar(p, dx, dz, dt, st.hand ? 3.4 : 4.2)) { p.stuck += dt; if (p.stuck > 0.8) { p.path = null; p.stuck = 0; } } else p.stuck = 0;
+      const P = p.path, last = P.i >= P.pts.length - 1, [wx, wz] = P.pts[Math.min(P.i, P.pts.length - 1)];
+      const dx = wx - p.x, dz = wz - p.z, d = Math.hypot(dx, dz);
+      const dEnd = Math.hypot(P.x - p.x, P.z - p.z), arrive = P.then ? Math.min(1.4, P.then.r * 0.6) : 0.15;
+      if (dEnd < arrive || (last && d < 0.15)) { const then = P.then; p.path = null; p.moving = false; if (then && !act) then.run(); }
+      else if (!last && d < 0.35) P.i++;
+      else if (!stepChar(p, dx, dz, dt, st.hand ? 3.4 : 4.2)) { p.stuck += dt; if (p.stuck > 0.8) { p.stuck = 0; const re = findPath(p.x, p.z, P.x, P.z); if (re && !P.retried) { P.pts = re; P.i = 0; P.retried = true; } else p.path = null; } } else p.stuck = 0;
     } else p.moving = false;
   }
   if (!act || !you().locked) partnerAI(dt);
