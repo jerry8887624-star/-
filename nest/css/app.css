@@ -145,3 +145,9 @@ dialog[open] { animation: rise .3s cubic-bezier(.2, .9, .3, 1.1) both; }
   #act-panel { left: auto; right: calc(12px + var(--safe-r)); transform: none; width: min(380px, 52vw); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* 連線 */
+.icon.net { width: auto; min-width: 40px; padding: 0 8px; font-size: 15px; font-weight: 700; }
+.icon.net.on { background: var(--rose); color: #fff; }
+.lbl.say { background: #fff; color: #4a3440; font-size: 13.5px; max-width: 60vw; white-space: normal; text-align: center; pointer-events: none; border-radius: 14px; }
+.card { max-width: calc(100vw - 244px - var(--safe-l) - var(--safe-r)); }
