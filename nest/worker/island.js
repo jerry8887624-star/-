@@ -11,7 +11,7 @@ const MAX_GUESTS = 4;
 const PAIR_DAYS = 7;
 const HOUR_MS = 36000; // 遊戲裡一小時 = 36 秒（跟前端一樣）
 // 兩位島主共用的存檔欄位
-const SHARED = ['names', 'looks', 'anniv', 'love', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos'];
+const SHARED = ['names', 'looks', 'anniv', 'love', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
 const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(x => ABC[x % ABC.length]).join(''); };
 const hash = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -31,6 +31,8 @@ function cleanSave(s) {
   if (Array.isArray(o.diary)) o.diary = o.diary.slice(0, 300);
   // 冰箱便利貼：最多 20 張，每張 60 字
   if ('notes' in o) o.notes = (Array.isArray(o.notes) ? o.notes : []).slice(0, 20).filter(n => n && typeof n.text === 'string').map(n => ({ by: n.by === 1 ? 1 : 0, text: n.text.slice(0, 60), ts: num(n.ts, 0, 1e14) }));
+  // 拼圖：圖片只能是小島拍的照片（或空字串＝預設圖）
+  if (o.puzzle && typeof o.puzzle === 'object') { const z = o.puzzle; o.puzzle = { src: typeof z.src === 'string' && z.src.startsWith('data:image/jpeg;base64,') && z.src.length < 30000 ? z.src : '', placed: (Array.isArray(z.placed) ? z.placed : []).slice(0, 12).map(v => v ? 1 : 0), day: int(z.day, 0, 99999), n: [int(z.n?.[0], 0, 99), int(z.n?.[1], 0, 99)], done: int(z.done, 0, 99999) }; }
   // 相片牆：最多 6 張小縮圖
   if ('photos' in o) o.photos = (Array.isArray(o.photos) ? o.photos : []).slice(0, 6).filter(p => p && typeof p.src === 'string' && p.src.startsWith('data:image/jpeg;base64,') && p.src.length < 30000).map(p => ({ src: p.src, d: String(p.d || '').slice(0, 12) }));
   if (JSON.stringify(o).length > 200000) delete o.diary;
