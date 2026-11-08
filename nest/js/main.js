@@ -1157,21 +1157,48 @@ function actDog() {
 }
 
 // ---------- 室內：床、沙發、做飯、吃飯 ----------
+// 床上的被子：從腳蓋到胸口，兩個人的身體把被子撐起一點
+function makeQuilt(spread) {
+  const g = new THREE.PlaneGeometry(1.95, 1.45, 24, 14); g.rotateX(-Math.PI / 2); const P = g.attributes.position;
+  for (let i = 0; i < P.count; i++) { const x = P.getX(i), z = P.getZ(i), bump = [-spread, spread].reduce((t, cx) => t + Math.exp(-((x - cx) ** 2) / 0.05), 0); P.setY(i, 0.04 + Math.min(1, bump) * 0.14 * (1 - Math.abs(z) / 0.9) - Math.max(0, Math.abs(x) - 0.85) * 0.6); }
+  g.computeVertexNormals();
+  const q = new THREE.Group(); q.add(new THREE.Mesh(g, toon('#f2d4dc', { side: THREE.DoubleSide })));
+  const fold = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.06, 0.22), toon('#fffaf6')); fold.position.set(0, 0.17, -0.66); q.add(fold); // 被子上緣翻出來的白色被套
+  return q;
+}
 function actBed() {
-  const y = 0.52;
+  const y = 0.52, B = FURN.bed, footZ = B.z + 1.08;
   // 上床前換上睡衣，起床（離開）時換回原本的衣服
   const prev = [st.looks[0].outfit, st.looks[1].outfit];
   const pj = j => OUTFITS[st.looks[j].outfit]?.kind === 'pj' ? st.looks[j].outfit : OUTFITS.findIndex(o => o.kind === 'pj' && o.name === (st.looks[j].gender === 'f' ? '粉紅睡衣' : '天藍睡衣'));
-  fadeDo(() => { [0, 1].forEach(j => { const o = pj(j); if (o !== st.looks[j].outfit) chars[j].av.setLook({ ...st.looks[j], outfit: o }); }); seat(me(), FURN.bed.x - 0.35, y, FURN.bed.z + 1.0, 0, 'lie'); seat(you(), FURN.bed.x + 0.35, y, FURN.bed.z + 1.0, 0, 'lie'); }, 250);
-  beginAct('bed', '🛏️ 床', '換上睡衣，軟綿綿的床，可以一起睡到明天早上。', {
-    focus: () => new THREE.Vector3(FURN.bed.x, 0.8, FURN.bed.z + 0.5), back: [INSPOTS.bed.x, INSPOTS.bed.z + 0.4],
-    btns: [{ t: '晚安，睡到明天', main: true, fn: sleep }, duo() && { t: '枕頭大戰', fn: () => { me().av.emote('cheer', 1); you().av.emote('jump', 1); burst('star', midPos(0.6), 6); addLove(2, '哈哈哈', 'pillow'); } }],
-    end() { [0, 1].forEach(j => { st.looks[j].outfit = prev[j]; chars[j].av.setLook(st.looks[j]); }); },
+  let quilt = null, close = false;
+  const lay = gap => { seat(me(), B.x - gap, y, footZ, 0, 'lie'); seat(you(), B.x + gap, y, footZ, 0, 'lie'); };
+  const cover = gap => { if (quilt) IN.S.remove(quilt); quilt = makeQuilt(gap); quilt.position.set(B.x, y + 0.02, footZ - 0.62); IN.S.add(quilt); };
+  fadeDo(() => { [0, 1].forEach(j => { const o = pj(j); if (o !== st.looks[j].outfit) chars[j].av.setLook({ ...st.looks[j], outfit: o }); }); lay(0.42); cover(0.42); }, 250);
+  const snuggle = on => { close = on; lay(on ? 0.24 : 0.42); cover(on ? 0.24 : 0.42); };
+  const btns = () => setBtns([{ t: '晚安', s: '睡到明天早上', main: true, fn: sleep },
+    duo() && { t: close ? '躺回來' : '抱著睡', fn: () => { snuggle(!close); if (close) { me().av.emote('hug', 4); burst('heart', midPos(0.7), 6, 0.3); addLove(2, '抱著好溫暖', 'cuddle'); } btns(); } },
+    duo() && { t: '親一下', fn: () => { if (!close) snuggle(true); me().av.emote('kiss', 1.6); setTimeout(() => { you().av.emote('shy', 1.6); burst('heart', midPos(0.75), 8, 0.3); }, 500); addLove(3, '晚安吻 😘', 'bedkiss'); btns(); } },
+    duo() && { t: '甜蜜時光', s: '關燈・拉起被子', fn: () => { sweetNight(true); } },
+    duo() && { t: '枕頭大戰', fn: () => { me().av.emote('cheer', 1); you().av.emote('jump', 1); burst('star', midPos(0.6), 6); addLove(2, '哈哈哈', 'pillow'); } }]);
+  beginAct('bed', '🛏️ 床', '換上睡衣、蓋好被子，軟綿綿的床，可以一起睡到明天早上。', {
+    focus: () => new THREE.Vector3(B.x, 0.8, B.z + 0.4), back: [INSPOTS.bed.x, INSPOTS.bed.z + 0.6],
+    end() { if (quilt) IN.S.remove(quilt); [0, 1].forEach(j => { st.looks[j].outfit = prev[j]; chars[j].av.setLook(st.looks[j]); }); },
   });
+  btns();
   function sleep() {
     msg('晚安 ♥'); setBtns([]); let n = 0; const zz = setInterval(() => { burst('z', midPos(0.6), 1, 0.2); if (++n > 4) clearInterval(zz); }, 350);
     setTimeout(() => fadeDo(() => { st.tod = 7.2; newDay(); endAct(); toast(`早安！第 ${st.day} 天 ☀️`); addLove(3); addMemo('🛏️', '一起睡到自然醒'); }, 1100), 1500);
   }
+}
+// 甜蜜時光：燈慢慢暗下來、畫面淡成深色、只有飄起來的愛心，然後就是早上了（不顯示任何露骨的畫面）
+function sweetNight(mine) {
+  if (mine && MP.on) MP.net.send({ t: 'fx', k: 'sweet' });
+  setBtns([]); msg('關掉燈，拉起被子……');
+  const ov = document.createElement('div'); ov.className = 'sweet-night'; ov.innerHTML = '<div class="sn-h">' + Array.from({ length: 14 }, (_, i) => `<span style="left:${8 + (i * 37) % 84}%;animation-delay:${(i * 0.37) % 2.4}s">${i % 3 ? '♡' : '♥'}</span>`).join('') + '</div><p>🌙</p>';
+  document.body.appendChild(ov); requestAnimationFrame(() => ov.classList.add('on')); sfx('chime');
+  setTimeout(() => { st.tod = 7.4; newDay(); if (act?.id === 'bed') endAct(); if (mine) { addLove(6, null, 'sweet'); addMemo('💞', '度過了甜蜜的夜晚'); } }, 3600);
+  setTimeout(() => { ov.classList.remove('on'); setTimeout(() => ov.remove(), 1200); toast(`早安！第 ${st.day} 天 ☀️ 昨晚睡得特別好`, 3500); }, 4600);
 }
 function actSofa() {
   const y = 0.45 - HIP + 0.02;
@@ -1595,7 +1622,7 @@ function onNet(m) {
   }
   if (m.t === 'pos') { const c = peerChar(m.id); if (!c) return; c.net = m; if (!c.seen) { c.seen = 1; c.x = m.x; c.z = m.z; c.ry = m.ry; } return; }
   if (m.t === 'emo') { const c = peerChar(m.id); if (!c) return; c.av.emote(m.k, m.d); if (m.k === 'kiss' || m.k === 'hug') burst('heart', headPos(c, 1.6), 5, 0.3); return; }
-  if (m.t === 'fx') { if (m.k === 'fw' && scene === 'out') launchFirework(!!m.a, true); return; }
+  if (m.t === 'fx') { if (m.k === 'fw' && scene === 'out') launchFirework(!!m.a, true); if (m.k === 'sweet' && act?.id === 'bed') sweetNight(false); return; }
   if (m.t === 'boat') { if (W?.boat && !MP.driving) { MP.boatT = { x: m.x, z: m.z, ry: m.ry }; if (m.home) { W.boat.position.x = m.x; W.boat.position.z = m.z; W.boat.rotation.y = m.ry; MP.boatT = null; } } MP.boatAway = !m.home; return; }
   if (m.t === 'save') { applySave(m.keys); return; }
   if (m.t === 'memo') { st.diary.unshift(m.m); if (st.diary.length > 300) st.diary.length = 300; save(); return; }

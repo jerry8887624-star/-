@@ -249,7 +249,7 @@ export class Avatar {
     // 1. 選動作
     if (this.emoteKind || this.clipEmote) { this.emoteT += dt; if (this.emoteT > this.emoteDur) { this.emoteKind = null; this.clipEmote = null; } }
     if (seated) this.play('Sitting', 0.3);
-    else if (pose === 'lie') this.play('Arms folded', 0.3);
+    else if (pose === 'lie') this.play('Arms folded', 0.4, 0.04); // 躺著：動作幾乎停住（原本站姿的晃動躺下來會變成一直抖）
     else if (pose === 'crouch') this.play('Crouch', 0.35, 0.25);
     else if (pose === 'hold' && !this.clipEmote) this.play('Idle', 0.35, 0.35);
     else if (this.clipEmote && this.actions[this.clipEmote]) this.play(this.clipEmote, 0.3);
@@ -265,6 +265,7 @@ export class Avatar {
     const seatOff = seated ? HIP_SEAT - hipY : 0; this.seatOff = (this.seatOff || 0) + (seatOff - (this.seatOff || 0)) * k;
     let by = this.seatOff + this.lieAmt * 0.16;
     this.body.rotation.x = -Math.PI / 2 * this.lieAmt;
+    if (this.lieAmt > 0.5) by += Math.sin(this.t * 1.6) * 0.006; // 躺著輕輕的呼吸
     this.shadow.visible = this.lieAmt < 0.3 && !seated;
     // 3. 手動姿勢（覆蓋在動作上）
     const e = this.emoteKind, et = this.emoteT, R = 'RightArm', RF = 'RightForeArm', RH = 'RightHand', L = 'LeftArm', LF = 'LeftForeArm', LH = 'LeftHand';

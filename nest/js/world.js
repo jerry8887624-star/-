@@ -35,7 +35,7 @@ export const INSPOTS = {
 };
 // 家具位置（main.js 的活動也用）
 export const FURN = {
-  bed: { x: -4.6, z: -3.75 }, sofa: { x: 0, z: -0.9 }, tv: { x: 0, z: -4.6 }, cook: { x: 4.5, z: -4.55 },
+  bed: { x: -4.6, z: -3.43, sx: 1.35, sz: 1.3 }, /* 雙人加大床：寬 2 公尺、長 2.9 公尺 */ sofa: { x: 0, z: -0.9 }, tv: { x: 0, z: -4.6 }, cook: { x: 4.5, z: -4.55 },
   table: { x: 4.3, z: 1.6 }, desk: { x: 6.52, z: -1.6, top: 0.75 }, nook: { x: -4.7, z: 2.9 }, beans: [[-5.55, 2.05, Math.PI / 2 + 0.35], [-5.55, 3.75, Math.PI / 2 - 0.35]],
 };
 
@@ -211,7 +211,7 @@ function makePicnic() {
   for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.fillStyle = (i + j) % 2 ? '#f6f0e6' : '#e86a7a'; x.fillRect(i * 8, j * 8, 8, 8); }
   const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.MeshToonMaterial({ map: t }); const mat2 = toon('#c8955a');
-  const cloth = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.04, 2.2), mat); cloth.position.y = 0.02; g.add(cloth);
+  const cloth = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.04, 3.0), mat); // 野餐墊加大：兩個人躺得下 cloth.position.y = 0.02; g.add(cloth);
   const basket = new THREE.Group(); basket.position.set(0.9, 0.04, -0.6); g.add(basket);
   box(0.55, 0.3, 0.38, mat2, 0, 0.15, 0, basket);
   const handle = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.025, 6, 16, Math.PI), mat2); handle.position.y = 0.3; basket.add(handle);
@@ -428,8 +428,8 @@ export async function buildInterior(themeKey = 'muji') {
   const F = FURN, P = Math.PI;
   await Promise.all([
     // 臥室：床頭靠後牆、兩側床頭櫃＋檯燈，衣櫃靠左牆
-    o('bed', F.bed.x, F.bed.z, 0, 1, 0, 'linen'), o('bedside', F.bed.x - 1.05, -4.6, 0, 1, 0, 'wood'), o('bedside', F.bed.x + 1.05, -4.6, 0, 1, 0, 'wood'),
-    o('tableLamp', F.bed.x - 1.05, -4.6, 0, 1, 0.55, null, true), o('tableLamp', F.bed.x + 1.05, -4.6, 0, 1, 0.55, null, true),
+    o('bed', F.bed.x, F.bed.z, 0, 1, 0, 'linen').then(m => { if (m) m.scale.set(F.bed.sx, 1, F.bed.sz); }), o('bedside', F.bed.x - 1.3, -4.6, 0, 1, 0, 'wood'), o('bedside', F.bed.x + 1.3, -4.6, 0, 1, 0, 'wood'),
+    o('tableLamp', F.bed.x - 1.3, -4.6, 0, 1, 0.55, null, true), o('tableLamp', F.bed.x + 1.3, -4.6, 0, 1, 0.55, null, true),
     o('wardrobe', -6.55, -1.2, P / 2, 1, 0, 'wood'), o('plant', -6.4, -3.0, 0, 0.8, 0, 'pot'),
     // 客廳：電視櫃靠後牆、沙發面對電視，中間地毯＋茶几，沙發旁立燈
     o('rug', 0, -2.5, P / 2, 1.05, 0, 'rug'), o('media', F.tv.x, F.tv.z, 0, 1, 0, 'table'), o('tv', F.tv.x, F.tv.z - 0.05, 0, 1, 0.45),
@@ -467,7 +467,7 @@ export async function buildInterior(themeKey = 'muji') {
   applyTheme(I, themeKey);
   // 室內碰撞（相對房間中心）
   I.BOXES = [
-    [-5.4, -4.9, -3.8, -2.6], [-5.9, -4.9, -3.3, -4.3], [-6.9, -1.75, -6.25, -0.65], [-6.85, -3.4, -6.0, -2.6], // 臥室
+    [-5.62, -4.9, -3.58, -1.95], [-6.15, -4.9, -3.05, -4.3], [-6.9, -1.75, -6.25, -0.65], [-6.85, -3.4, -6.0, -2.6], // 臥室
     [-1.0, -4.9, 1.0, -4.3], [-1.0, -1.4, 1.0, -0.4], [-0.6, -2.8, 0.6, -2.2], [1.3, -0.6, 1.7, -0.2], [-1.9, -4.9, -1.3, -4.2], [1.3, -4.9, 1.7, -4.4], // 客廳
     [3.0, -4.9, 6.9, -4.2], // 廚房
     [3.3, 0.45, 5.3, 2.75], [6.0, 3.9, 6.9, 4.9], // 餐廳

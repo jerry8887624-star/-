@@ -455,3 +455,11 @@ body.calm .right .round.small#btn-chat.unread { opacity: 1; } /* 有新訊息時
 #qchat { top: calc(var(--safe-t) + 136px); bottom: auto; }
 /* 聊天室打字時：貼齊鍵盤上方的可見範圍 */
 #chat.kb { top: var(--vvt, 0px); bottom: auto; height: var(--vvh, 100%); border-radius: 0; animation: none; }
+
+/* 甜蜜時光：畫面慢慢淡成深夜，只有愛心飄起來 */
+.sweet-night { position: fixed; inset: 0; z-index: 50; background: radial-gradient(circle at 50% 60%, #3a1d33, #120a14 70%); opacity: 0; transition: opacity 1.2s ease; display: grid; place-items: center; pointer-events: none; }
+.sweet-night.on { opacity: 1; }
+.sweet-night p { font-size: 44px; margin: 0; opacity: .8; }
+.sn-h span { position: absolute; bottom: -30px; color: #ff9ab8; font-size: 22px; opacity: 0; animation: snUp 3.2s ease-in infinite; }
+@keyframes snUp { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .9; } 100% { transform: translateY(-90vh) scale(1.3); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sn-h span { animation: none; } }
