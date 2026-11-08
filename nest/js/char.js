@@ -161,7 +161,7 @@ export class Avatar {
     // 動作
     this.mixer = new THREE.AnimationMixer(model); this.actions = {}; this.cur = null;
     const restY = bones.Hips.position.y;
-    const names = [...ONLINE, 'Sitting', 'Dance', 'Eating', 'Watering', 'Planting', 'Pick up', 'Talking', 'Arms folded'];
+    const names = [...ONLINE, ...LOCAL.filter(n => n !== 'Walk formal' && n !== 'Jog')];
     const raws = await Promise.all(names.map(getRaw)); if (token !== this._tok) return;
     names.forEach((n, i) => { if (raws[i]) this.actions[n] = this.mixer.clipAction(toClip(raws[i], n, bones, restY)); });
     this.play('Idle', 0); this.mixer.update(Math.random() * 3);
@@ -174,8 +174,11 @@ export class Avatar {
 
   // ---- 跟舊版一樣的介面 ----
   emote(kind, dur = 1.6) {
-    const clipMap = { dance: 'Dance', laugh: 'Laughing', eat: 'Eating', water: 'Watering', plant: 'Planting', pickup: 'Pick up', talk: 'Talking' };
-    if (clipMap[kind]) { this.clipEmote = clipMap[kind]; this.emoteKind = null; } else { this.emoteKind = kind; this.clipEmote = null; }
+    const clipMap = { dance: 'Dance', laugh: 'Laughing', eat: 'Eating', water: 'Watering', plant: 'Planting', pickup: 'Pick up', talk: 'Talking', crouch: 'Crouch', interact: 'Interact', harvest: 'Harvesting', phone: 'Phone call', lean_rail: 'Leaning on rail', sittalk: 'Sitting talking', fold: 'Arms folded', agree: 'Agree' };
+    // 動作＋手的姿勢一起：蹲下摸狗
+    const COMBO = { petdog: ['Crouch', 'petdog'] };
+    if (COMBO[kind]) { this.clipEmote = COMBO[kind][0]; this.emoteKind = COMBO[kind][1]; }
+    else if (clipMap[kind]) { this.clipEmote = clipMap[kind]; this.emoteKind = null; } else { this.emoteKind = kind; this.clipEmote = null; }
     this.emoteT = 0; this.emoteDur = dur;
   }
   setPose(p) { this.pose = p || 'stand'; }
@@ -201,7 +204,7 @@ export class Avatar {
     this.root.getWorldQuaternion(_q2); const ax = axis.clone().applyQuaternion(_q2);
     _q.setFromAxisAngle(ax, ang); b.getWorldQuaternion(_q3); _q3.premultiply(_q); b.parent.getWorldQuaternion(_q2); _q2.invert().multiply(_q3); b.quaternion.copy(_q2); b.updateMatrixWorld(true);
   }
-  wt(k, on, dt, speed = 8) { const v = this.w[k] || 0; return (this.w[k] = v + ((on ? 1 : 0) - v) * Math.min(1, dt * speed)); }
+  wt(k, on, dt, speed = 8) { speed = typeof speed === 'number' ? speed : 8; const v = this.w[k] || 0; return (this.w[k] = v + ((on ? 1 : 0) - v) * Math.min(1, dt * speed)); }
 
   update(dt, moving) {
     this.t += dt;
@@ -210,7 +213,7 @@ export class Avatar {
     this.speed += (Math.min(sp, 8) - this.speed) * Math.min(1, dt * 8);
     if (this.halo) { this.halo.rotation.y += dt * 1.2; }
     if (!this.model || !this.actions) return;
-    const pose = this.pose, seated = pose === 'sit' || pose === 'swing' || pose === 'recline';
+    const pose = this.pose, seated = pose === 'sit' || pose === 'swing' || pose === 'recline' || pose === 'floor';
     const k = Math.min(1, dt * 8);
     // 1. 選動作
     if (this.emoteKind || this.clipEmote) { this.emoteT += dt; if (this.emoteT > this.emoteDur) { this.emoteKind = null; this.clipEmote = null; } }
@@ -218,7 +221,7 @@ export class Avatar {
     else if (pose === 'lie') this.play('Arms folded', 0.3);
     else if (this.clipEmote && this.actions[this.clipEmote]) this.play(this.clipEmote, 0.3);
     else if (moving && this.speed > 0.2) { if (this.speed > 3.6 && this.actions.Run) this.play('Run', 0.2, Math.min(1.5, this.speed / 4.6)); else this.play('Walk', 0.2, Math.max(0.6, Math.min(1.8, this.speed / 1.3))); }
-    else this.play(this.reaching || this.handSide ? 'Arms folded' : 'Idle', 0.3);
+    else this.play(this.reaching ? 'Arms folded' : 'Idle', 0.3);
     for (const [b, q0] of this.bind) b.quaternion.copy(q0);
     this.mixer.update(dt);
     this.model.updateMatrixWorld(true);
@@ -232,8 +235,13 @@ export class Avatar {
     this.shadow.visible = this.lieAmt < 0.3 && !seated;
     // 3. 手動姿勢（覆蓋在動作上）
     const e = this.emoteKind, et = this.emoteT, R = 'RightArm', RF = 'RightForeArm', RH = 'RightHand', L = 'LeftArm', LF = 'LeftForeArm', LH = 'LeftHand';
-    const s = (n, on) => this.wt(n, on, dt);
+    const s = (n, on, sp) => this.wt(n, on, dt, sp);
     let w;
+    // 坐著：大腿往前、小腿往下（椅子）；坐地上：腳往前伸；斜躺：腳抬高一點
+    const LL = [['LeftUpLeg', 'LeftLeg', 'LeftFoot', 1], ['RightUpLeg', 'RightLeg', 'RightFoot', -1]];
+    if ((w = s('legChair', pose === 'sit' || pose === 'swing'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.08 * sx, -0.05, 1), w); this.aim(l, f, V(0.03 * sx, -1, 0.12), w); });
+    if ((w = s('legFloor', pose === 'floor'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.12 * sx, 0.02, 1), w); this.aim(l, f, V(0.08 * sx, -0.1, 1), w); });
+    if ((w = s('legRecl', pose === 'recline'))) LL.forEach(([u, l, f, sx]) => { this.aim(u, l, V(0.06 * sx, 0.18, 1), w); this.aim(l, f, V(0.04 * sx, -0.35, 1), w); });
     if ((w = s('swing', pose === 'swing'))) { this.aim(R, RF, V(-0.22, 1, 0.12), w); this.aim(RF, RH, V(-0.15, 1, 0.1), w); this.aim(L, LF, V(0.22, 1, 0.12), w); this.aim(LF, LH, V(0.15, 1, 0.1), w); }
     if ((w = s('recline', pose === 'recline'))) this.twist('Spine', V(1, 0, 0), -0.45 * w);
     if ((w = s('reach', this.reaching && pose !== 'lie'))) { this.aim(R, RF, V(-0.18, -0.15, 1), w); this.aim(RF, RH, V(-0.05, 0.1, 1), w); this.aim(L, LF, V(0.18, -0.2, 1), w * 0.8); this.aim(LF, LH, V(0.05, 0.05, 1), w * 0.8); }
@@ -241,14 +249,22 @@ export class Avatar {
     if ((w = s('handL', this.handSide > 0 && !seated && pose !== 'lie'))) { this.aim(L, LF, V(0.42, -0.9, 0.12), w); this.aim(LF, LH, V(0.35, -0.92, 0.18), w); }
     if ((w = s('lean', !!this.leanSide))) this.twist('Spine1', V(0, 0, 1), -this.leanSide * 0.2 * w);
     const osc = Math.sin(et * 14);
-    if ((w = s('wave', e === 'wave'))) { this.aim(R, RF, V(-0.55, 0.82, 0.15), w); this.aim(RF, RH, V(-0.1 + osc * 0.45, 1, 0.2), w); }
-    if ((w = s('cheer', e === 'cheer' || e === 'jump'))) { this.aim(R, RF, V(-0.45, 0.9, 0.1), w); this.aim(RF, RH, V(-0.3, 1, 0.1), w); this.aim(L, LF, V(0.45, 0.9, 0.1), w); this.aim(LF, LH, V(0.3, 1, 0.1), w); }
+    if ((w = s('wave', e === 'wave'))) { this.aim(R, RF, V(-0.92, 0.38, 0.12), w); this.aim(RF, RH, V(-0.35 + osc * 0.4, 1, 0.25), w); }
+    if ((w = s('cheer', e === 'cheer' || e === 'jump'))) { this.aim(R, RF, V(-0.85, 0.55, 0.1), w); this.aim(RF, RH, V(-0.45, 1, 0.1), w); this.aim(L, LF, V(0.85, 0.55, 0.1), w); this.aim(LF, LH, V(0.45, 1, 0.1), w); }
     if (e === 'jump' || e === 'cheer') by += Math.abs(Math.sin(et * (e === 'jump' ? 7 : 6))) * (e === 'jump' ? 0.3 : 0.15);
     if ((w = s('clap', e === 'clap'))) { const c = 0.35 + Math.sin(et * 18) * 0.25; this.aim(R, RF, V(-0.3, -0.25, 1), w); this.aim(RF, RH, V(c, 0.25, 1), w); this.aim(L, LF, V(0.3, -0.25, 1), w); this.aim(LF, LH, V(-c, 0.25, 1), w); }
     if ((w = s('hug', e === 'hug'))) { this.aim(R, RF, V(-0.5, 0.05, 1), w); this.aim(RF, RH, V(0.85, 0.05, 0.55), w); this.aim(L, LF, V(0.5, 0.05, 1), w); this.aim(LF, LH, V(-0.85, 0.05, 0.55), w); this.twist('Spine1', V(1, 0, 0), 0.12 * w); }
     if ((w = s('kiss', e === 'kiss'))) { this.twist('Spine1', V(1, 0, 0), 0.3 * w * Math.min(1, et * 3)); this.aim(R, RF, V(-0.3, -0.8, -0.5), w); this.aim(L, LF, V(0.3, -0.8, -0.5), w); }
     if ((w = s('pat', e === 'pat'))) { this.aim(R, RF, V(-0.15, 0.65, 0.8), w); this.aim(RF, RH, V(0.15, 0.1 + Math.sin(et * 12) * 0.25, 1), w); }
     if ((w = s('shy', e === 'shy'))) { this.aim(R, RF, V(-0.3, -0.55, 0.75), w); this.aim(RF, RH, V(0.35, 0.92, 0.2), w); this.aim(L, LF, V(0.3, -0.55, 0.75), w); this.aim(LF, LH, V(-0.35, 0.92, 0.2), w); this.twist('Spine1', V(0, 0, 1), Math.sin(et * 3) * 0.12 * w); }
+    // 蹲下摸狗：右手往前下方輕輕摸
+    if ((w = s('petdog', e === 'petdog'))) { this.aim(R, RF, V(-0.15, -0.6, 0.8), w); this.aim(RF, RH, V(0, -0.55 + Math.sin(et * 9) * 0.3, 1), w); }
+    // 丟球：手往後舉 → 往前甩
+    if ((w = s('throw', e === 'throw', 14))) { if (et < 0.35) { this.aim(R, RF, V(-0.3, 0.85, -0.45), w); this.aim(RF, RH, V(-0.1, 1, -0.3), w); } else { this.aim(R, RF, V(-0.2, 0.4, 1), w); this.aim(RF, RH, V(-0.1, 0.25, 1), w); } }
+    // 坐著吃東西：手拿到嘴邊
+    if ((w = s('eatseat', e === 'eatseat'))) { const k = (Math.sin(et * 3.5) + 1) / 2; this.aim(R, RF, V(-0.15, -0.35, 0.9), w); this.aim(RF, RH, V(0.25, 0.3 + k * 0.65, 0.6 - k * 0.3), w); }
+    // 彈吉他：左手扶琴頸、右手撥弦
+    if ((w = s('strum', e === 'strum'))) { this.aim(L, LF, V(0.45, -0.25, 0.85), w); this.aim(LF, LH, V(0.75, 0.25, 0.6), w); this.aim(R, RF, V(-0.2, -0.55, 0.8), w); this.aim(RF, RH, V(0.6, -0.15 + Math.sin(et * 16) * 0.25, 0.6), w); }
     this.body.position.y = by;
     // 4. 手上的東西保持跟身體同方向；頭微微晃
     if (this.item) { this.handSlot.parent.getWorldQuaternion(_q); this.root.getWorldQuaternion(_q2); this.handSlot.quaternion.copy(_q.invert().multiply(_q2)); }

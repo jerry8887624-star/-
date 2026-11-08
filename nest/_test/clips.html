@@ -1,0 +1,21 @@
+<!doctype html><html><head><base href="../"></head><body style="margin:0"><canvas id=c></canvas><script type=module>
+import * as THREE from './vendor/three.module.min.js';
+import { Avatar } from './js/char.js';
+const q=new URLSearchParams(location.search), list=q.get('list').split('|'), tsec=+(q.get('t')||1.2);
+const R=new THREE.WebGLRenderer({canvas:c,antialias:true}); R.setSize(innerWidth,innerHeight); R.outputColorSpace=THREE.SRGBColorSpace;
+const S=new THREE.Scene(); S.background=new THREE.Color('#f4eee6');
+S.add(new THREE.HemisphereLight('#fff','#998',2.0)); const d=new THREE.DirectionalLight('#fff',1.6); d.position.set(3,5,4); S.add(d);
+const g=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.MeshLambertMaterial({color:'#bfe0a0'})); g.rotation.x=-Math.PI/2; S.add(g);
+const cam=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,0.1,100);
+const avs=[], gap=1.5, n=list.length;
+list.forEach((spec,i)=>{ const a=new Avatar({gender:i%2?'m':'f',hair:i%2?0:3,hairColor:1,skin:0,outfit:1,eye:0,mouth:0,cheek:0}); a.root.position.set((i-(n-1)/2)*gap,0,0); a.root.rotation.y=+(q.get('ry')||0.5); S.add(a.root); a.spec=spec; avs.push(a);
+  const dv=document.createElement('div'); dv.textContent=spec; dv.style.cssText='position:absolute;font:13px sans-serif;color:#a03060;transform:translateX(-50%)'; document.body.appendChild(dv); a.dv=dv; });
+const dist=n*gap/(2*Math.tan(15*Math.PI/180)*cam.aspect)+1.2; cam.position.set(0,1.2,dist); cam.lookAt(0,0.6,0);
+await new Promise(r=>{const t=setInterval(()=>{if(avs.every(a=>a.ready)){clearInterval(t);r();}},100);});
+avs.forEach(a=>{ const [kind,arg]=a.spec.split(':');
+  if(kind==='pose') a.setPose(arg); else if(kind==='emote') a.emote(arg,99); else if(kind==='reach') a.reach(true); else if(kind==='hand') a.holdHand(-1); else if (kind==='posereach'){a.setPose(arg);a.reach(true);} });
+for(let k=0;k<Math.round(tsec/0.04);k++) avs.forEach(a=>a.update(0.04,false));
+R.render(S,cam);
+avs.forEach(a=>{const p=a.root.position.clone(); p.y=-0.05; p.project(cam); a.dv.style.left=((p.x+1)/2*innerWidth)+'px'; a.dv.style.top=((1-p.y)/2*innerHeight)+'px';});
+window.done=1;
+</script></body></html>
