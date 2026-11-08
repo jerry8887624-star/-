@@ -245,7 +245,7 @@ export class Island {
         if (!owner || this.gap(s, 'chat', 350)) return send(s, { t: 'err', why: 'slow' });
         const k = m.k === 's' ? 's' : 't', v = k === 's' ? String(m.v || '') : String(m.v || '').replace(/\s+$/g, '').slice(0, 200);
         if (!v.trim() || (k === 's' && !/^[a-z0-9_]{1,16}$/.test(v))) return;
-        const msg = { id: rnd(8), by: s.role, k, v, ts: Date.now(), ch: 'w' }; // 聊天室和悄悄話：只有兩位島主看得到
+        const msg = { id: rnd(8), by: s.role, k, v, ts: Date.now(), ch: 'w', cid: String(m.cid || '').slice(0, 12) }; // 聊天室和悄悄話：只有兩位島主看得到
         this.chat.push(msg); if (this.chat.length > 300) this.chat = this.chat.slice(-300); await this.persist('chat');
         for (const x of this.sessions.values()) if (x.ready && (x.role === 0 || x.role === 1)) send(x, { t: 'chat', m: msg });
         if (m.w) for (const x of this.sessions.values()) if (x.ready && x.role === 'g') send(x, { t: 'say', id: s.id, text: '……', mute: 1 }); // 朋友只看到在講悄悄話
