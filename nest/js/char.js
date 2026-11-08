@@ -137,6 +137,8 @@ export class Avatar {
     const mat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: toonGrad() });
     model.traverse(o => { if (o.isMesh) { o.material = mat; o.frustumCulled = false; o.userData.avatar = this; } });
     const bones = {}; model.traverse(o => { if (o.isBone && !bones[o.name]) bones[o.name] = o; }); this.bones = bones;
+    // 每一格先把骨頭放回原位，再套動作與手動姿勢（不然沒有動畫軌道的骨頭會一直累加轉動）
+    this.bind = Object.values(bones).map(b => [b, b.quaternion.clone()]);
     // 縮放：脖子高度一樣
     model.updateMatrixWorld(true); const hp = bones.Head.getWorldPosition(new THREE.Vector3());
     const sc = NECK_Y / hp.y; model.scale.setScalar(sc); this.modelScale = sc;
@@ -217,6 +219,7 @@ export class Avatar {
     else if (this.clipEmote && this.actions[this.clipEmote]) this.play(this.clipEmote, 0.3);
     else if (moving && this.speed > 0.2) { if (this.speed > 3.6 && this.actions.Run) this.play('Run', 0.2, Math.min(1.5, this.speed / 4.6)); else this.play('Walk', 0.2, Math.max(0.6, Math.min(1.8, this.speed / 1.3))); }
     else this.play(this.reaching || this.handSide ? 'Arms folded' : 'Idle', 0.3);
+    for (const [b, q0] of this.bind) b.quaternion.copy(q0);
     this.mixer.update(dt);
     this.model.updateMatrixWorld(true);
     // 2. 坐下時把屁股對到椅子的高度；躺下時整個人往後倒
