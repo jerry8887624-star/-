@@ -1711,7 +1711,7 @@ function frame() {
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : st.tod, cam.position);
   W.water.material.uniforms.uTime.value = T;
   if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); }
-  if (IN) { IN.winMat.color.copy(k.hor); }
+  if (IN) { IN.winMat.color.copy(k.hor).lerp(new THREE.Color('#ffd9a8'), 0.25); }
   W.sky.clouds.rotation.y += dt * 0.004;
   W.fireL.intensity = (6 + Math.sin(T * 13) * 1.2 + Math.sin(T * 7.3) * 1.0) * (0.5 + k.night * 0.8);
 
