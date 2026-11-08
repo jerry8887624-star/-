@@ -57,9 +57,14 @@ function fadeTo(v, ms, done) {
 function nextIdx() { if (pickI >= 0) return pickI; if (!order.length) order = TRACKS.map((_, i) => i).sort(() => Math.random() - 0.5); return order.shift(); }
 function load(i) { idx = i; el.src = TRACKS[i][2]; el.currentTime = 0; }
 if (el) el.addEventListener('ended', () => { if (!on) return; load(nextIdx()); el.play().catch(() => {}); });
-// 吉他旋律（合成）
-const MEL = [659.3, 587.3, 523.3, 587.3, 659.3, 659.3, 659.3, 0, 587.3, 587.3, 587.3, 0, 659.3, 784, 784, 0];
-let duetT = null, dStep = 0, dNext = 0;
+// 營火彈吉他：隨機播兩首吉他曲（背景音樂先淡出，停下來再接回去）
+export const GUITAR_SONGS = [['雨後の静けさ', 'audio/guitar-ame.mp3'], ['情非得已', 'audio/guitar-qing.mp3']];
+const gel = typeof Audio !== 'undefined' ? new Audio() : null;
+if (gel) { gel.preload = 'none'; gel.volume = 0; gel.setAttribute('playsinline', ''); }
+let gOn = false, gI = -1, gFade = null, bgWas = false;
+function gFadeTo(v, ms, done) { clearInterval(gFade); const from = gel.volume, t0 = performance.now(); gFade = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / ms); gel.volume = from + (v - from) * k; if (k >= 1) { clearInterval(gFade); done?.(); } }, 50); }
+function gNext() { gI = gI < 0 ? Math.floor(Math.random() * GUITAR_SONGS.length) : (gI + 1) % GUITAR_SONGS.length; gel.src = GUITAR_SONGS[gI][1]; gel.currentTime = 0; gel.play().then(() => gFadeTo(0.8, 900)).catch(() => {}); }
+if (gel) gel.addEventListener('ended', () => { if (gOn) gNext(); });
 export const Music = {
   init() {},
   get track() { return pickI; },
@@ -72,13 +77,15 @@ export const Music = {
   stop() { if (!el) return; on = false; fadeTo(0, 600, () => el.pause()); },
   // i = -1 自動輪播
   pick(i) { pickI = i; order = []; if (!el) return; if (!on || el.paused) { load(i >= 0 ? i : nextIdx()); return; } fadeTo(0, 400, () => { load(i >= 0 ? i : nextIdx()); if (on) el.play().then(() => fadeTo(VOL, 900)).catch(() => {}); }); },
+  get guitarSong() { return gOn && gI >= 0 ? GUITAR_SONGS[gI][0] : ''; },
   duet(v) {
-    if (!v) { clearInterval(duetT); duetT = null; return; }
-    if (duetT || !ac()) return; dNext = ctx.currentTime + 0.1;
-    duetT = setInterval(() => { while (dNext < ctx.currentTime + 0.4) { const m = MEL[dStep % 16]; if (m) tone(m, dNext, 0.55, { type: 'triangle', vol: 0.06 }); dNext += 0.32; dStep++; } }, 100);
+    if (!gel || !!v === gOn) return; gOn = !!v;
+    if (gOn) { bgWas = on && !el.paused; if (bgWas) fadeTo(0, 700, () => el.pause()); gI = -1; gNext(); }
+    else { gFadeTo(0, 800, () => gel.pause()); if (bgWas && on) { el.play().then(() => fadeTo(VOL, 1200)).catch(() => {}); } bgWas = false; }
   },
 };
 document.addEventListener('visibilitychange', () => {
   if (ctx) document.hidden ? ctx.suspend() : ctx.resume();
+  if (gel && gOn) { if (document.hidden) gel.pause(); else gel.play().catch(() => {}); return; }
   if (!el || !on) return; if (document.hidden) el.pause(); else el.play().catch(() => {});
 });

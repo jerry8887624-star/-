@@ -236,7 +236,7 @@ export async function buildIsland(S) {
     one(S, 'logBench', SPOTS.campfire.x, SPOTS.campfire.z - 1.9, 0, 1, { col: 0 }),
     one(S, 'logBench', SPOTS.campfire.x, SPOTS.campfire.z + 1.9, Math.PI, 1, { col: 0 }),
     one(S, 'tent', 15.6, 9.2, -0.7, 1, { col: 1.4 }),
-    one(S, 'guitar', 12.6, 4.4, -0.3, 1, { y: LAND_Y + 0.02 }).then(o => { if (o) { o.rotation.x = -1.35; o.position.y = LAND_Y + 0.08; } }),
+    one(S, 'guitar', 12.6, 4.4, -0.3, 1, { y: LAND_Y + 0.02 }).then(o => { if (o) { o.rotation.x = -1.35; o.position.y = LAND_Y + 0.08; W.guitar = o; } }),
     one(S, 'cherry', -12.6, 10.6, 0.4, 1.1, { col: 0.4 }),
     one(S, 'cherry', -13.5, -16.5, 1.2, 1.0, { col: 0.4 }),
     one(S, 'cherry', 7, -7.5, 2.1, 0.9, { col: 0.4 }),

@@ -108,6 +108,8 @@ const NECK_Y = 0.86;      // 脖子（頭骨）離地高度：決定身體大小
 const HEAD_SIZE = 0.6;    // Q 版頭的大小
 const HIP_SEAT = 0.306;   // 坐下時屁股離腳底的高度（main.js 的 HIP）
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const LAP = [-0.02, 0.06, 0.2];                 // 腿上放東西的位置（相對屁股）
+export const GUITAR = { scale: 0.62, tilt: 0.42, neck: [0.34, 0.16] }; // 吉他：大小、琴頸往上翹的角度、左手握的位置
 const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _q3 = new THREE.Quaternion(), _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _m = new THREE.Matrix4();
 
 export class Avatar {
@@ -118,6 +120,7 @@ export class Avatar {
     this.emoteKind = null; this.emoteT = 0; this.emoteDur = 0; this.clipEmote = null; this.ready = false;
     this.w = {}; // 各個手動姿勢的權重（平滑過渡）
     this.handSlot = new THREE.Group(); this.item = null;
+    this.lap = new THREE.Group(); this.root.add(this.lap); this.lapItem = null; // 抱在腿上的東西（吉他）
     this.lastPos = new THREE.Vector3(); this.speed = 0;
     // 影子
     const sh = new THREE.Mesh(new THREE.CircleGeometry(0.36, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22, depthWrite: false }));
@@ -188,6 +191,7 @@ export class Avatar {
   setPose(p) { this.pose = p || 'stand'; }
   holdHand(side) { this.handSide = side | 0; }
   setItem(obj) { if (this.item) this.handSlot.remove(this.item); this.item = obj || null; if (obj) this.handSlot.add(obj); }
+  setLap(obj) { if (this.lapItem) this.lap.remove(this.lapItem); this.lapItem = obj || null; if (obj) this.lap.add(obj); }
   reach(on) { this.reaching = !!on; }
   dig() { this.digT = 0.5; this.emoteT = 0; }
   holdUmbrella(on) { this.umb = !!on; }
@@ -203,6 +207,20 @@ export class Avatar {
     b.getWorldQuaternion(_q3); _q3.premultiply(_q);           // 新的世界朝向
     b.parent.getWorldQuaternion(_q2); _q2.invert().multiply(_q3); // 換回父骨頭空間
     b.quaternion.slerp(_q2, w); b.updateMatrixWorld(true);
+  }
+  // 兩段手臂伸到角色空間的某一點（簡單 IK）；pole：手肘往哪邊彎
+  ik(up, lo, hand, tgt, pole, w) {
+    if (w < 0.01) return; const B = this.bones; if (!B[up] || !B[lo] || !B[hand]) return;
+    const sh = B[up].getWorldPosition(new THREE.Vector3()), el = B[lo].getWorldPosition(new THREE.Vector3()), hd = B[hand].getWorldPosition(new THREE.Vector3());
+    const a = sh.distanceTo(el), b = el.distanceTo(hd), T = this.root.localToWorld(tgt.clone());
+    this.root.getWorldQuaternion(_q2); const iq = _q2.clone().invert();
+    const toT = T.clone().sub(sh); const d = Math.min(toT.length(), (a + b) * 0.995); toT.normalize();
+    const cosA = Math.max(-1, Math.min(1, (a * a + d * d - b * b) / (2 * a * d))), sinA = Math.sqrt(1 - cosA * cosA);
+    const pw = pole.clone().applyQuaternion(_q2); pw.sub(toT.clone().multiplyScalar(pw.dot(toT))).normalize();
+    const elbow = sh.clone().add(toT.clone().multiplyScalar(a * cosA)).add(pw.multiplyScalar(a * sinA));
+    this.aim(up, lo, elbow.clone().sub(sh).applyQuaternion(iq), w);
+    const e2 = B[lo].getWorldPosition(new THREE.Vector3()); const tt = sh.clone().add(toT.multiplyScalar(d));
+    this.aim(lo, hand, tt.sub(e2).applyQuaternion(iq), w);
   }
   // 在角色空間繞某軸轉（彎腰、側靠）
   twist(name, axis, ang) {
@@ -280,8 +298,15 @@ export class Avatar {
     // 坐著吃東西：手拿到嘴邊
     if ((w = s('eatseat', e === 'eatseat'))) { const k = (Math.sin(et * 3.5) + 1) / 2; this.aim(R, RF, V(-0.15, -0.35, 0.9), w); this.aim(RF, RH, V(0.25, 0.3 + k * 0.65, 0.6 - k * 0.3), w); }
     // 彈吉他：左手扶琴頸、右手撥弦
-    if ((w = s('strum', e === 'strum'))) { this.aim(L, LF, V(0.45, -0.25, 0.85), w); this.aim(LF, LH, V(0.75, 0.25, 0.6), w); this.aim(R, RF, V(-0.2, -0.55, 0.8), w); this.aim(RF, RH, V(0.6, -0.15 + Math.sin(et * 16) * 0.25, 0.6), w); }
+    if ((w = s('strum', e === 'strum'))) {
+      // 吉他橫抱在腿上：左手握琴頸（往左伸）、右手在音孔上撥弦，身體微微前傾跟著打拍子
+      const lp = this.lap.position, sw = Math.sin(et * 9);
+      this.twist('Spine', V(1, 0, 0), (0.18 + sw * 0.02) * w); this.twist('Spine1', V(0, 0, 1), -0.06 * w);
+      this.ik(L, LF, LH, V(lp.x + GUITAR.neck[0], lp.y + GUITAR.neck[1], lp.z + 0.1), V(0.3, -1, -0.4), w);
+      this.ik(R, RF, RH, V(lp.x - 0.02, lp.y + 0.08 + sw * 0.04, lp.z + 0.14), V(-0.6, -0.2, -1), w);
+    }
     this.body.position.y = by;
+    if (this.lapItem) { this.bones.Hips.getWorldPosition(_v1); this.root.worldToLocal(_v1); this.lap.position.set(_v1.x + LAP[0], _v1.y + LAP[1], _v1.z + LAP[2]); }
     // 4. 手上的東西保持跟身體同方向；頭微微晃
     if (this.item) { this.handSlot.parent.getWorldQuaternion(_q); this.root.getWorldQuaternion(_q2); this.handSlot.quaternion.copy(_q.invert().multiply(_q2)); }
     if (this.headHolder) this.head.rotation.z = (e === 'shy' ? Math.sin(et * 3) * 0.15 : Math.sin(this.t * 1.3) * 0.03);

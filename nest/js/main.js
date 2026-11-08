@@ -1,6 +1,6 @@
 // 我們的小島：情侶小窩 3D 遊戲
 import * as THREE from '../vendor/three.module.min.js';
-import { Avatar, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
+import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from './terrain.js';
 import { buildIsland, buildInterior, applyTheme, THEMES, setTimeOfDay, SPOTS, INSPOTS, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel } from './models.js';
@@ -620,7 +620,13 @@ function stickItem() {
 }
 // 澆花用的水壺
 function canItem() { const g = new THREE.Group(), m = toon('#6ab0d8'); const b = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.16, 12), m); b.position.set(0, -0.08, 0.1); g.add(b); const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.22, 6), m); sp.position.set(0, -0.04, 0.26); sp.rotation.x = 1.0; g.add(sp); return g; }
-function guitarItem() { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), toon('#c88a4a')); b.scale.set(1, 1.2, 0.45); g.add(b); const n = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.5, 0.03), toon('#5a3a22')); n.position.y = 0.38; g.add(n); g.rotation.set(0.2, 0, 1.2); g.position.set(0.1, 0.1, 0.12); return g; }
+// 營火旁那把吉他（同一個模型），橫抱在腿上：琴身在右腿、琴頸往左上
+function guitarItem() {
+  const g = new THREE.Group(); if (!W.guitar) return g;
+  const m = W.guitar.clone(true); m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.setScalar(GUITAR.scale);
+  const tilt = new THREE.Group(); tilt.rotation.z = -(Math.PI / 2 - GUITAR.tilt); tilt.add(m); m.position.y = -0.22 * GUITAR.scale; // 琴身中心對準腿上
+  g.add(tilt); return g;
+}
 function actCampfire() {
   const { x, z } = SPOTS.campfire, y = LAND_Y + 0.46 - HIP;
   fadeDo(() => sitPair(x, y, z - 1.9, 0, 0.62), 250);
@@ -637,14 +643,14 @@ function actCampfire() {
     if (good) addMemo('🍡', `${nameOf(me().i)} 烤了完美的棉花糖餵 ${nameOf(you().i)}`);
   };
   const player = () => duo() ? you() : me();
-  const toggleGuitar = () => { guitar = !guitar; if (guitar && roast) { me().av.setItem(null); roast = null; me().av.reach(false); } player().av.setItem(guitar ? guitarItem() : null); player().av.emote(guitar ? 'strum' : 'idle', guitar ? 9999 : 0.1); if (guitar) { Music.duet(true); msg(duo() ? `${nameOf(you().i)} 彈起吉他，兩個人一起哼歌 🎶` : '彈起吉他，對著營火唱歌 🎶'); addLove(2, '營火邊唱歌', 'guitar'); addMemo('🎸', '在營火邊一起唱歌'); } else Music.duet(false); roastBtns(); };
+  const toggleGuitar = () => { guitar = !guitar; if (guitar && roast) { me().av.setItem(null); roast = null; me().av.reach(false); } player().av.setLap(guitar ? guitarItem() : null); if (W.guitar) W.guitar.visible = !guitar; player().av.emote(guitar ? 'strum' : 'idle', guitar ? 9999 : 0.1); if (guitar) { Music.duet(true); setTimeout(() => { if (guitar && Music.guitarSong) msg(`🎸 正在彈《${Music.guitarSong}》`); }, 1200); msg(duo() ? `${nameOf(you().i)} 拿起吉他，兩個人一起哼歌 🎶` : '拿起旁邊的吉他，對著營火彈唱 🎶'); addLove(2, '營火邊唱歌', 'guitar'); addMemo('🎸', '在營火邊一起唱歌'); } else Music.duet(false); roastBtns(); };
   beginAct('campfire', '🔥 營火', `按住按鈕烤棉花糖，在粉紅區放開最好吃。`, {
     focus: () => new THREE.Vector3(x, LAND_Y + 0.9, z - 0.6), back: [x - 1.8, z - 2.2],
     update(dt) {
       if (roast?.userData.on) { heat = Math.min(1, heat + dt * 0.28); meter(true, heat, ZONE); const c = new THREE.Color('#ffffff').lerp(new THREE.Color('#e8a040'), clamp(heat / 0.65, 0, 1)).lerp(new THREE.Color('#2a1a10'), clamp((heat - 0.7) / 0.3, 0, 1)); roast.userData.mm.material.color.copy(c); }
       if (guitar) { gt += dt; if (gt > 0.7) { gt = 0; burst('note', headPos(player(), 1.4), 1, 0.3); } }
     },
-    end() { Music.duet(false); player().av.emote('idle', 0.1); },
+    end() { Music.duet(false); player().av.emote('idle', 0.1); player().av.setLap(null); if (W.guitar) W.guitar.visible = true; },
   });
   roastBtns(); meter(true, 0, ZONE);
 }
