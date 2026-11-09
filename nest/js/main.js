@@ -774,7 +774,7 @@ function actWade() {
 
 // ---------- 堆沙堡 ----------
 let castleObjs = [];
-const CASTLE_SPOTS = [[-6.4, 24.6], [-3.8, 24.9], [-5.3, 25.8], [-7.2, 23.3]];
+const CASTLE_SPOTS = [[-4.43, 20.82], [-2.58, 21.46], [-6.27, 20.3], [-3.25, 19.56]]; /* 乾沙上、浪打不到的地方 */
 async function showCastles() {
   castleObjs.forEach(o => OUT.remove(o)); castleObjs = [];
   const g = await load('sandcastle'); if (!g) return;
@@ -1176,8 +1176,9 @@ function actBed() {
   const prev = [st.looks[0].outfit, st.looks[1].outfit];
   const pj = j => OUTFITS[st.looks[j].outfit]?.kind === 'pj' ? st.looks[j].outfit : OUTFITS.findIndex(o => o.kind === 'pj' && o.name === (st.looks[j].gender === 'f' ? '粉紅睡衣' : '天藍睡衣'));
   let quilt = null, close = false;
-  const lay = gap => { seat(me(), B.x - gap, y, footZ, 0, 'lie'); seat(you(), B.x + gap, y, footZ, 0, 'lie'); };
-  const cover = gap => { if (quilt) IN.S.remove(quilt); quilt = makeQuilt(gap); quilt.position.set(B.x, y, footZ + 0.12); IN.S.add(quilt); };
+  const solo = !duo(); /* 另一半不在：一個人睡床中間 */
+  const lay = gap => { if (solo) { seat(me(), B.x, y, footZ, 0, 'lie'); return; } seat(me(), B.x - gap, y, footZ, 0, 'lie'); seat(you(), B.x + gap, y, footZ, 0, 'lie'); };
+  const cover = gap => { if (quilt) IN.S.remove(quilt); quilt = makeQuilt(solo ? 0 : gap); quilt.position.set(B.x, y, footZ + 0.12); IN.S.add(quilt); };
   fadeDo(() => { [0, 1].forEach(j => { const o = pj(j); if (o !== st.looks[j].outfit) chars[j].av.setLook({ ...st.looks[j], outfit: o }); }); lay(0.42); cover(0.42); }, 250);
   const snuggle = on => { close = on; lay(on ? 0.24 : 0.42); cover(on ? 0.24 : 0.42); me().av.lieFace = on ? 1 : 0; you().av.lieFace = on ? -1 : 0; }; /* 抱著睡：兩個人側身面對面 */
   [0, 1].forEach(j => { chars[j].av.covered = true; chars[j].av.lieFace = 0; });
@@ -1286,7 +1287,7 @@ function actCook() {
   const p = me(), q = you(); seat(p, 4.9, 0, FURN.cook.z + 0.75, Math.PI, 'stand'); p.y = null; seat(q, 3.8, 0, FURN.cook.z + 0.75, Math.PI, 'stand'); q.y = null; // 站在流理台前：一個顧爐子、一個在水槽邊洗菜
   let dish = null, prog = 0, cooking = false;
   const pickRecipe = () => {
-    openDlg('🍳 食譜', `<p class="muted">🧊 冰箱：${esc(pantryText())}</p><div class="shop">${RECIPES.map((r, i) => { const need = Object.entries(r[3]).map(([k, n]) => `${FOOD_ICON[k] || ''}${k}×${n}`).join(' ') || '不用食材'; return `<button type="button" data-r="${i}" ${canCook(r) ? '' : 'disabled'}>${r[1]} ${esc(r[0])}<small>${esc(need)}・+${r[4]} 🪙</small></button>`; }).join('')}</div>`);
+    openDlg('🍳 食譜', `<p class="muted">🧊 冰箱：${esc(pantryText())}</p><div class="shop">${RECIPES.map((r, i) => { const need = Object.entries(r[3]).map(([k, n]) => `<span class="nw">${FOOD_ICON[k] || ''}${esc(k)}×${n}</span>`).join(' ') || '不用食材'; return `<button type="button" data-r="${i}" ${canCook(r) ? '' : 'disabled'}>${r[1]} ${esc(r[0])}<small>${need} <span class="nw">+${r[4]} 🪙</span></small></button>`; }).join('')}</div>`);
     $('#dlg-body').querySelectorAll('[data-r]').forEach(b => b.onclick = () => { $('#dlg').close(); start(RECIPES[+b.dataset.r]); });
   };
   beginAct('cook', '🍳 做飯', `冰箱：${pantryText()}`, {
@@ -1856,7 +1857,8 @@ function addCoins(n, why) { if (MP.role === 'g' || !n) return; if (n > 0) sfx('c
 function questsToday() {
   if (MP.role === 'g') return [];
   if (!st.quests || st.quests.day !== st.day) {
-    const season = seasonOf(st.day).k, pool = QUESTS.filter(q => !q[3] || q[3] === season);
+    const season = seasonOf(st.day).k, rainy = [7, 10, 13, 16, 19].some(h => weatherAt(st.day, h).kind === 'rain'); /* 撐傘任務：當天有下雨才會出現 */
+    const pool = QUESTS.filter(q => (!q[3] || q[3] === season) && (q[0] !== 'umbrella' || rainy));
     let s = st.day * 9301 + 49297; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
     const picked = []; while (picked.length < 3) { const q = pool[Math.floor(rnd() * pool.length)]; if (!picked.includes(q)) picked.push(q); }
     st.quests = { day: st.day, list: picked.map(q => ({ k: q[0], n: 0 })), bonus: false };
@@ -2189,7 +2191,7 @@ function flashFor(c) {
 }
 function tickFlash() {
   for (const c of allChars()) {
-    const want = (c === me() ? !!st.flash : !!c.net?.fl) && c.av.root.visible && (c.sc || 'out') === scene;
+    const want = (c === me() ? !!st.flash : !!c.net?.fl) && c.av.root.visible && (c.sc || 'out') === scene && /^(stand|ride)$/.test(c.av.pose || 'stand'); /* 坐著、躺著、蹲著時先收起手電筒 */
     let f = flashes.get(c); if (!want && !f) continue; f = flashFor(c);
     const S = curS();
     if (want && !f.on) { f.on = true; S.add(f.spot); S.add(f.tgt); S.add(f.beam); if (!c.av.item) { c.av.setItem(f.item); c.av.reach(true); } }
@@ -2619,7 +2621,7 @@ function drawPuzzle() {
 function actPuzzle() {
   if (MP.role === 'g') return; const y = 0.06 - HIP;
   fadeDo(() => { seat(me(), PZ_AT.x + 0.85, y, PZ_AT.z, -Math.PI / 2, 'floor'); seat(you(), PZ_AT.x - 0.85, y, PZ_AT.z, Math.PI / 2, 'floor'); }, 250);
-  const prog = () => { const z = puzzle(), n = z.placed.filter(Boolean).length; return `拼圖 ${n}／${z.placed.length}　今天你還能放 ${Math.max(0, pzLeftToday())} 片${z.done ? `　· 已經拼完 ${z.done} 幅` : ''}`; };
+  const prog = () => { const z = puzzle(), n = z.placed.filter(Boolean).length; return `目前拼了 ${n}／${z.placed.length} 片${z.done ? `，已經拼完 ${z.done} 幅` : ''}。`; };
   const complete = () => puzzle().placed.every(Boolean);
   const btns = () => setBtns(complete() ? [{ t: '🖼️ 換一幅新的拼圖', main: true, fn: () => { const d = st.puzzle.done; st.puzzle = null; puzzle().done = d; puzzle().src = st.photos?.[0]?.src || ''; save(); drawPuzzle(); msg('新的拼圖倒在茶几上了。' + prog()); btns(); } }]
     : [{ t: '放一片', s: pzLeftToday() > 0 ? `今天還能放 ${pzLeftToday()} 片` : '明天再一起拼', main: true, dis: pzLeftToday() <= 0, fn: place }]);
@@ -2663,7 +2665,7 @@ function actGreenhouse() {
   const t = st.gh?.day === st.day ? st.gh : (st.gh = { day: st.day, by: [] }), mine = t.by.includes(myIdx());
   const flower = pick([['鬱金香', '🌷'], ['玫瑰', '🌹'], ['滿天星', '💮'], ['向日葵', '🌻'], ['繡球花', '💠']]);
   beginAct('gh', '🌷 花園溫室', mine ? '今天已經摘過一束花了，花明天會再開。' : '溫室裡的花一年四季都開著，每天可以摘一束送給另一半。', {
-    focus: () => new THREE.Vector3(PLACES.gh.x, 1.2, PLACES.gh.z), back: [PLACES.gh.x + 3.2, PLACES.gh.z],
+    focus: () => new THREE.Vector3(PLACES.gh.x + 1.6, 1.1, PLACES.gh.z) /* 溫室和站在門口的人都在畫面裡 */, back: [PLACES.gh.x + 3.2, PLACES.gh.z],
     btns: [{ t: mine ? '今天摘過了' : '摘一束花', s: mine ? '花明天會再開' : `送給 ${partnerName()}`, main: true, dis: mine, fn: () => {
       t.by.push(myIdx()); st.picked = st.picked || {}; st.picked[flower[0]] = (st.picked[flower[0]] || 0) + 1; st.flowersGiven++;
       me().av.emote('pickup', 1.4); burst('heart', headPos(me(), 1.2), 6); addLove(5, `${flower[1]} 一束${flower[0]}`); addMemo('💐', `${nameOf(myIdx())} 從溫室摘了一束${flower[0]}送給 ${partnerName()}`); save();
@@ -2766,7 +2768,7 @@ function onChat(m) {
 }
 // ---- 快速輸入列：打字直接冒在頭上 ----
 const QC = { ch: 'say' };
-function qcLabel() { const w = QC.ch === 'w'; $('#qc-ch').innerHTML = w ? '💗 悄悄話' : '💬 說出來'; $('#qc-ch').classList.toggle('w', w); $('#qc-in').placeholder = w ? `只有 ${nameOf(chatPartner())} 看得到…` : '說點什麼，島上的人都看得到…'; }
+function qcLabel() { const w = QC.ch === 'w'; $('#qc-ch').innerHTML = w ? '💗 悄悄話' : '💬 說出來'; $('#qc-ch').classList.toggle('w', w); $('#qc-in').placeholder = w ? `只給 ${nameOf(chatPartner())} 看…` : '說點什麼…'; }
 function openQuick() {
   if (CHAT.open) return closeChat(); if (MP.role !== 'g' && chatUnread()) return openChat(); // 有未讀：先看訊息
   QC.ch = MP.role === 'g' ? 'say' : (st.qch || 'say'); qcLabel(); $('#qc-ch').hidden = MP.role === 'g'; $('#qc-room').hidden = MP.role === 'g';
