@@ -23,6 +23,7 @@ self.addEventListener('fetch',e=>{
 });
 /* 手機推播：另一半想你、留便利貼 */
 self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(_){d={body:e.data&&e.data.text()}}
-  e.waitUntil(self.registration.showNotification(d.title||'我們的小島',{body:d.body||'',tag:d.tag||'island',renotify:true,icon:'icons/icon-192.png',badge:'icons/icon-192.png',data:{url:'./'}}))});
-self.addEventListener('notificationclick',e=>{e.notification.close();
-  e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{for(const c of cs){if('focus' in c)return c.focus()}return self.clients.openWindow('./')}))});
+  e.waitUntil(self.registration.showNotification(d.title||'我們的小島',{body:d.body||'',tag:d.tag||'island',renotify:true,icon:'icons/icon-192.png',badge:'icons/icon-192.png',data:{go:d.go||''}}))});
+/* 點通知：直接打開對應的地方（問答、聊天室、信箱、便利貼） */
+self.addEventListener('notificationclick',e=>{e.notification.close();const go=(e.notification.data||{}).go||'';
+  e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{for(const c of cs){if('focus' in c){if(go)c.postMessage({go});return c.focus()}}return self.clients.openWindow('./'+(go?'?go='+go:''))}))});

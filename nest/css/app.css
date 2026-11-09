@@ -512,3 +512,16 @@ body.calm .right .round.small#btn-chat.unread { opacity: 1; } /* 有新訊息時
 /* 往上看舊訊息時有新訊息：浮在訊息區下方的「↓ 新訊息」 */
 .ch-new { align-self: center; position: relative; z-index: 2; margin: -46px 0 10px; padding: 7px 14px; border: 0; border-radius: 999px; background: var(--ink, #3a2a30); color: #fff; font-size: var(--fs-s); font-family: var(--font-round); box-shadow: 0 6px 18px rgba(60, 20, 40, .25); animation: rise .2s ease both; }
 #ch-list { overflow-anchor: none; -webkit-overflow-scrolling: touch; }
+/* 可以點的提示：右邊有箭頭，按得到 */
+#toast.go { pointer-events: auto; cursor: pointer; padding-right: 34px; box-shadow: 0 8px 24px rgba(232, 90, 128, .28), inset 0 0 0 1.5px rgba(232, 90, 128, .35); }
+#toast.go .t-go { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 1.3em; color: var(--rose, #e85a80); }
+#toast.go:active { transform: translate(-50%, 0) scale(.97); }
+/* 回憶本：可以點的回憶 */
+.memo.tap { width: 100%; text-align: left; border: 0; font: inherit; color: inherit; cursor: pointer; position: relative; padding-right: 30px; }
+.memo.tap .m-go { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 1.3em; color: var(--rose, #e85a80); opacity: .8; }
+.memo.tap:active { transform: scale(.985); }
+/* 寫信 */
+.ml-in { width: 100%; box-sizing: border-box; padding: 14px 16px; border-radius: 16px; border: 1.5px solid rgba(160, 120, 130, .25); background: #fffdf8; font: inherit; font-size: 16px; line-height: 1.9; resize: none; background-image: repeating-linear-gradient(180deg, transparent 0 calc(1.9em - 1px), rgba(200, 160, 140, .25) calc(1.9em - 1px) 1.9em); background-attachment: local; }
+.ml-in:focus { outline: none; border-color: #e85a80; }
+.ml-n { text-align: right; margin: 4px 2px 10px; }
+.old-letter { margin-bottom: 12px; } .old-letter small { opacity: .6; }
