@@ -11,7 +11,7 @@ const MAX_GUESTS = 4;
 const PAIR_DAYS = 7;
 const HOUR_MS = 36000; // 遊戲裡一小時 = 36 秒（跟前端一樣）
 // 兩位島主共用的存檔欄位
-const SHARED = ['rares', 'rareDay', 'surFound', 'playDays', 'playDay', 'loveDay', 'keepPlaces', 'born', 'rt', 'names', 'looks', 'anniv', 'love', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
+const SHARED = ['letters', 'rares', 'rareDay', 'surFound', 'playDays', 'playDay', 'loveDay', 'keepPlaces', 'born', 'rt', 'names', 'looks', 'anniv', 'love', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
 const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(x => ABC[x % ABC.length]).join(''); };
 const hash = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -45,6 +45,8 @@ function cleanSave(s, withQA) {
   if (o.puzzle && typeof o.puzzle === 'object') { const z = o.puzzle; o.puzzle = { src: typeof z.src === 'string' && z.src.startsWith('data:image/jpeg;base64,') && z.src.length < 30000 ? z.src : '', placed: (Array.isArray(z.placed) ? z.placed : []).slice(0, 12).map(v => v ? 1 : 0), day: int(z.day, 0, 99999), n: [int(z.n?.[0], 0, 99), int(z.n?.[1], 0, 99)], done: int(z.done, 0, 99999) }; }
   // 相片牆：最多 6 張小縮圖
   if ('photos' in o) o.photos = (Array.isArray(o.photos) ? o.photos : []).slice(0, 6).filter(p => p && typeof p.src === 'string' && p.src.startsWith('data:image/jpeg;base64,') && p.src.length < 30000).map(p => ({ src: p.src, d: String(p.d || '').slice(0, 12) }));
+  // 兩個人之間的信：最多 30 封，每封 300 字
+  if ('letters' in o) o.letters = (Array.isArray(o.letters) ? o.letters : []).slice(0, 30).filter(l => l && typeof l.text === 'string').map(l => ({ id: String(l.id || '').slice(0, 12), by: l.by === 1 ? 1 : 0, text: l.text.slice(0, 300), ts: num(l.ts, 0, 1e14), read: [0, 1].map(i => l.read?.[i] ? 1 : 0) }));
   if (JSON.stringify(o).length > 200000) delete o.diary;
   return o;
 }
@@ -260,12 +262,12 @@ export class Island {
         for (const x of this.sessions.values()) if (x.ready && (x.role === 0 || x.role === 1)) send(x, { t: 'save', keys: { qa: { [d]: e } }, qa: 1 });
         const to = 1 - s.role; if (typeof m.a === 'string' && !had[s.role] && ![...this.sessions.values()].some(x => x.ready && x.role === to)) {
           const name = (this.save.names || [])[s.role] || '另一半';
-          await this.push(to, had[to] ? { title: `💌 ${name} 也回答了`, body: '兩個人都答完了，快去看看對方怎麼說', tag: 'qa' } : { title: `💌 ${name} 回答了今天的問題`, body: '換你回答，就看得到彼此的答案', tag: 'qa' });
+          await this.push(to, had[to] ? { title: `💌 ${name} 也回答了`, body: '兩個人都答完了，快去看看對方怎麼說', tag: 'qa', go: 'qa' } : { title: `💌 ${name} 回答了今天的問題`, body: '換你回答，就看得到彼此的答案', tag: 'qa', go: 'qa' });
         }
         break;
       }
       case 'addlove': if (!owner) return; this.save.love = int((this.save.love || 0) + int(m.n, 0, 30), 0, 1e7); await this.persist('save'); this.bcast({ t: 'save', keys: { love: this.save.love } }); break;
-      case 'memo': if (!owner) return; await this.addMemo({ icon: String(m.icon || '').slice(0, 4), text: String(m.text || '').slice(0, 80), d: String(m.d || '').slice(0, 12), day: int(m.day, 1, 99999), by: s.role }, s); break;
+      case 'memo': if (!owner) return; await this.addMemo({ icon: String(m.icon || '').slice(0, 4), text: String(m.text || '').slice(0, 80), d: String(m.d || '').slice(0, 12), day: int(m.day, 1, 99999), by: s.role, go: /^[a-z]{2,8}(:[0-9-]{4,12})?$/.test(String(m.go || '')) ? m.go : '' }, s); break;
       // 推播：這支手機的訂閱（on = false 取消）
       case 'pushsub': {
         if (!owner || this.gap(s, 'pushsub', 2000)) return; const P = this.meta.push || { 0: [], 1: [] }, mine = (P[s.role] || []).filter(x => x.endpoint !== m.sub?.endpoint);
@@ -283,7 +285,7 @@ export class Island {
         if (m.w) for (const x of this.sessions.values()) if (x.ready && x.role === 'g') send(x, { t: 'say', id: s.id, text: '……', mute: 1 }); // 朋友只看到在講悄悄話
         const to = 1 - s.role; if (![...this.sessions.values()].some(x => x.ready && x.role === to)) {
           const name = (this.save.names || [])[s.role] || '另一半';
-          await this.push(to, { title: `💬 ${name}`, body: k === 's' ? '傳了一張貼圖' : v.slice(0, 80), tag: 'chat' });
+          await this.push(to, { title: `💬 ${name}`, body: k === 's' ? '傳了一張貼圖' : v.slice(0, 80), tag: 'chat', go: 'chat' });
         }
         break;
       }
@@ -295,11 +297,11 @@ export class Island {
       case 'typing': if (!owner || this.gap(s, 'typing', 1500)) return; for (const x of this.sessions.values()) if (x.ready && x.role === 1 - s.role) send(x, { t: 'typing', role: s.role }); break;
       // 想你、留便利貼：另一半在線上就直接告訴他，不在就推播到他手機
       case 'nudge': {
-        if (!owner) return; const k = m.k === 'note' ? 'note' : m.k === 'qa' ? 'qa' : 'miss'; if (this.gap(s, 'nudge-' + k, k === 'miss' ? 15000 : k === 'qa' ? 600000 : 5000)) return send(s, { t: 'err', why: 'slow' });
+        if (!owner) return; const k = ['note', 'qa', 'letter'].includes(m.k) ? m.k : 'miss'; if (this.gap(s, 'nudge-' + k, k === 'miss' ? 15000 : k === 'qa' ? 600000 : 5000)) return send(s, { t: 'err', why: 'slow' });
         const to = 1 - s.role, name = (this.save.names || [])[s.role] || '另一半', text = String(m.text || '').slice(0, 60);
         const on = [...this.sessions.values()].filter(x => x.ready && x.role === to);
         if (on.length) { on.forEach(x => send(x, { t: 'nudge', k, from: s.role, text })); return send(s, { t: 'nudged', k, live: 1 }); }
-        const n = await this.push(to, k === 'miss' ? { title: '💗 我們的小島', body: `${name} 想你了`, tag: 'miss' } : k === 'qa' ? { title: '💌 今天的問題等你回答', body: `${name} 想看你的答案`, tag: 'qa' } : { title: '📝 冰箱上多了一張便利貼', body: `${name}：「${text}」`, tag: 'note' });
+        const n = await this.push(to, k === 'miss' ? { title: '💗 我們的小島', body: `${name} 想你了`, tag: 'miss', go: 'chat' } : k === 'qa' ? { title: '💌 今天的問題等你回答', body: `${name} 想看你的答案`, tag: 'qa', go: 'qa' } : k === 'letter' ? { title: `💌 ${name} 寄了一封信給你`, body: '打開小島，到信箱看看', tag: 'letter', go: 'mail' } : { title: '📝 冰箱上多了一張便利貼', body: `${name}：「${text}」`, tag: 'note', go: 'notes' });
         send(s, { t: 'nudged', k, live: 0, pushed: n }); break;
       }
       case 'tod': if (!owner) return; this.clock = { tod: num(m.tod, 0, 23.999), day: int(m.day, 1, 99999), at: Date.now() }; await this.persist('clock'); this.bcast({ t: 'clock', clock: this.clock }, s); break;
@@ -332,7 +334,7 @@ export class Island {
     return n;
   }
   async addMemo(e, except) {
-    const d = new Date(Date.now() + 8 * 3600e3); const memo = { d: e.d || `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`, day: e.day || this.now().day, icon: e.icon || '💗', text: e.text, ts: Date.now(), by: e.by ?? null };
+    const d = new Date(Date.now() + 8 * 3600e3); const memo = { d: e.d || `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`, day: e.day || this.now().day, icon: e.icon || '💗', text: e.text, ts: Date.now(), by: e.by ?? null, ...(e.go ? { go: e.go } : {}) }; /* go：在回憶本點下去會到哪裡 */
     this.save.diary = [memo, ...(this.save.diary || [])].slice(0, 300); await this.persist('save');
     for (const x of this.sessions.values()) if (x !== except && x.ready && (x.role === 0 || x.role === 1)) send(x, { t: 'memo', m: memo });
   }
