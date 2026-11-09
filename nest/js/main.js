@@ -41,7 +41,12 @@ const R = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'h
 const PR = Math.min(devicePixelRatio || 1, 1.75); R.setPixelRatio(PR);
 R.outputColorSpace = THREE.SRGBColorSpace;
 const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 900);
-function resize() { R.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }
+function resize() {
+  R.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight;
+  /* 直式手機畫面很窄：把視角放大（左右至少看得到約 62 度，上下最多 72 度），風箏、牆上的相框才看得到 */
+  const a = cam.aspect; cam.fov = a >= 1 ? 50 : Math.min(72, Math.max(50, 2 * Math.atan(Math.tan(31 * Math.PI / 180) / a) * 180 / Math.PI));
+  cam.updateProjectionMatrix();
+}
 addEventListener('resize', resize); resize();
 const OUT = new THREE.Scene();
 let W = null, IN = null, scene = 'out';
@@ -234,7 +239,7 @@ function spawnMeteor() {
 function tickMeteor(dt) { if (!meteor) return; meteor.t += dt; meteor.sp.position.addScaledVector(meteor.v, dt); meteor.sp.material.opacity = Math.sin(Math.min(1, meteor.t / 1.6) * Math.PI); if (meteor.t > 1.6) { OUT.remove(meteor.sp); meteor = null; } }
 
 // ---------- 輸入：搖桿、鍵盤、拖曳轉鏡頭、雙指縮放、點地板走過去 ----------
-const view = { yaw: 0.5, pitch: 0.5, dist: 11, inYaw: 0, inDist: 14 };
+const view = { yaw: 0.5, pitch: 0.5, dist: 9.5, inYaw: 0, inDist: 10, inPitch: 0.7 }; /* 視角變寬了，預設距離拉近一點 */
 const joy = { x: 0, y: 0, id: null };
 const keys = new Set();
 addEventListener('keydown', e => { if (e.target.closest('input,textarea')) return; keys.add(e.key.toLowerCase()); if (e.key === 'e' || e.key === ' ') { if (!$('#btn-act').hidden) $('#btn-act').click(); } });
@@ -256,14 +261,14 @@ addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
     if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y); zoom(pinch / d); pinch = d; return; }
     if (downAt) downAt.moved += Math.abs(dx) + Math.abs(dy);
     if (build && buildPointer('drag', e, { dx, dy })) return; // 裝潢模式：拖曳的是家具
-    if (scene === 'in') { view.inYaw -= dx * 0.006; return; } // 屋內可以 360 度轉
+    if (scene === 'in') { view.inYaw -= dx * 0.006; view.inPitch = clamp(view.inPitch + dy * 0.004, 0.22, 1.25); return; } /* 屋內可以 360 度轉，上下拖改變俯角（放低就看得到牆上的相框） */
     view.yaw -= dx * 0.006; view.pitch = clamp(view.pitch + dy * 0.004, 0.08, 1.35);
   });
   const up = e => { const was = pts.get(e.pointerId); pts.delete(e.pointerId); if (downAt && was && downAt.moved < 10 && performance.now() - downAt.t < 400) { if (!(build && buildPointer('tap', e))) tapAt(e.clientX, e.clientY); } downAt = null; };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', e => { pts.delete(e.pointerId); downAt = null; });
   canvas.addEventListener('wheel', e => { e.preventDefault(); zoom(1 + Math.sign(e.deltaY) * 0.1); }, { passive: false });
 })();
-function zoom(k) { if (build) { build.dist = clamp(build.dist * k, 4, 18); return; } if (scene === 'in') view.inDist = clamp(view.inDist * k, 5, 20); else view.dist = clamp(view.dist * k, 3.2, 24); }
+function zoom(k) { if (build) { build.dist = clamp(build.dist * k, 4, 18); return; } if (scene === 'in') view.inDist = clamp(view.inDist * k, 4, 26); else view.dist = clamp(view.dist * k, 3.2, 36); }
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 function tapAt(x, y) {
   if (!started() || photo.on) return;
@@ -824,7 +829,7 @@ function actBeach() {
   fadeDo(() => { const y = standH(x, z); [[me(), -0.45], [you(), 0.45]].forEach(([c, dx]) => { if (c.remote || c.ghost) return; c.locked = true; c.x = x + dx; c.z = z; c.y = null; c.ry = 0.1; c.moving = false; }); me().av.reach(true); }, 250);
   quest('kite');
   beginAct('kite', '🪁 放風箏', '海風好大，風箏飛好高！', {
-    focus: () => new THREE.Vector3(x, 3.5, z + 3), back: [x, z - 1], camYaw: Math.PI + 0.3, camPitch: 0.22,
+    focus: () => new THREE.Vector3(x + (kite.position.x - x) * 0.4, standH(x, z) + 1.2 + (kite.position.y - standH(x, z) - 1.2) * 0.4, z + (kite.position.z - z) * 0.4), near: () => Math.max(1.7, (h + 8) * 0.14), back: [x, z - 1], camYaw: Math.PI + 0.3, camPitch: 0.22, /* 人和風箏都在畫面裡 */
     btns: [{ t: '放線（飛高一點）', main: true, fn: () => { want = Math.min(24, want + 3); } }, { t: '收線', fn: () => { want = Math.max(4, want - 3); } }, duo() && { t: '交給對方', fn: () => { const a = me().av.reaching; me().av.reach(!a); you().av.reach(a); you().av.emote('cheer', 1); addLove(1, null, 'kitepass'); } }],
     update(dt) {
       t += dt; h += (want - h) * dt * 0.6;
@@ -1520,7 +1525,7 @@ function updateCam(dt, snap) {
     tmpT.set(clamp(p.x, -5, 5) * 0.65, 0.9, clamp(p.z, -3.5, 3.5) * 0.55);
     if (act?.focus) tmpT.lerp(act.focus(), 0.7);
     const d = view.inDist, yaw = view.inYaw;
-    camP.set(tmpT.x + Math.sin(yaw) * d * 0.78, tmpT.y + d * 0.66, tmpT.z + Math.cos(yaw) * d * 0.78);
+    const ip = view.inPitch; camP.set(tmpT.x + Math.sin(yaw) * d * Math.cos(ip), Math.max(1.2, tmpT.y + d * Math.sin(ip)), tmpT.z + Math.cos(yaw) * d * Math.cos(ip));
     cutaway(IN, cam.position.x, cam.position.z);
   } else {
     if (act?.focus) tmpT.copy(act.focus()); else tmpT.set(p.av.root.position.x, p.av.root.position.y + 1.2, p.av.root.position.z);
