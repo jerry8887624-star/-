@@ -1,0 +1,51 @@
+<!doctype html><meta charset="utf-8"><title>App Icon 3D</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="module">
+// App 圖示：用遊戲裡的 3D 模型做一座漂浮小島，渲染成 1024×1024
+import * as THREE from '../vendor/three.module.min.js';
+import { GLTFLoader } from '../vendor/GLTFLoader.js';
+const S = 1024, R = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+R.setSize(S, S); R.setPixelRatio(1); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
+R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05;
+document.body.appendChild(R.domElement);
+const scene = new THREE.Scene();
+// 背景：夕陽粉→蜜桃漸層，右上一顆柔光太陽
+const bg = document.createElement('canvas'); bg.width = bg.height = 512; const g = bg.getContext('2d');
+const lg = g.createLinearGradient(0, 0, 0, 512); lg.addColorStop(0, '#ff9ec0'); lg.addColorStop(0.55, '#ffc7a8'); lg.addColorStop(1, '#ffe2b8'); g.fillStyle = lg; g.fillRect(0, 0, 512, 512);
+const sg = g.createRadialGradient(390, 120, 0, 390, 120, 150); sg.addColorStop(0, 'rgba(255,250,225,1)'); sg.addColorStop(0.32, 'rgba(255,245,215,.95)'); sg.addColorStop(0.36, 'rgba(255,236,200,.45)'); sg.addColorStop(1, 'rgba(255,230,200,0)'); g.fillStyle = sg; g.fillRect(0, 0, 512, 512);
+const bt = new THREE.CanvasTexture(bg); bt.colorSpace = THREE.SRGBColorSpace; scene.background = bt;
+// 燈光：暖色主光＋天空補光
+scene.add(new THREE.HemisphereLight('#ffe6f0', '#7ab8c8', 1.25));
+const sun = new THREE.DirectionalLight('#fff1dc', 2.6); sun.position.set(4, 8, 5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 30 }); sun.shadow.radius = 6; sun.shadow.bias = -0.0005; scene.add(sun);
+const rim = new THREE.DirectionalLight('#ffb0d0', 1.2); rim.position.set(-5, 3, -4); scene.add(rim);
+const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, ...o });
+// 海：一圈淺綠藍的水，越往外越深
+const water = new THREE.Mesh(new THREE.CircleGeometry(12, 96), mat('#3cb8d2', { roughness: 0.25, metalness: 0.05 })); water.rotation.x = -Math.PI / 2; water.position.y = -0.02; water.receiveShadow = true; scene.add(water);
+const shallow = new THREE.Mesh(new THREE.RingGeometry(1.9, 2.55, 96), mat('#8be3e6', { roughness: 0.3, transparent: true, opacity: 0.85 })); shallow.rotation.x = -Math.PI / 2; shallow.position.y = 0.0; scene.add(shallow);
+const foam = new THREE.Mesh(new THREE.TorusGeometry(2.02, 0.05, 10, 120), mat('#ffffff', { roughness: 0.4 })); foam.rotation.x = Math.PI / 2; foam.position.y = 0.03; scene.add(foam);
+// 小島：圓潤的沙灘＋草地（用 Lathe 做出圓滑邊緣）
+const lathe = (pts, c) => { const m = new THREE.Mesh(new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), 96), mat(c)); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+lathe([[0, -0.2], [2.0, -0.2], [2.0, 0.02], [1.92, 0.12], [1.7, 0.18], [0, 0.18]], '#f6dcae'); // 沙灘
+lathe([[0, 0.15], [1.62, 0.15], [1.66, 0.24], [1.6, 0.32], [1.4, 0.36], [0, 0.37]], '#8fd16a');  // 草地
+const loader = new GLTFLoader(), load = k => new Promise(r => loader.load(`../models/${k}.glb`, x => r(x.scene), undefined, () => r(null)));
+const place = (o, x, y, z, s, ry = 0) => { if (!o) return; o.position.set(x, y, z); o.scale.setScalar(s); o.rotation.y = ry; o.traverse(m => { if (m.isMesh) { m.castShadow = m.receiveShadow = true; const old = m.material; m.material = new THREE.MeshStandardMaterial({ color: old.color, map: old.map || null, vertexColors: !!old.vertexColors, roughness: 0.7 }); } }); scene.add(o); };
+const fit = (o, h) => { const b = new THREE.Box3().setFromObject(o), s = h / (b.max.y - b.min.y); return s; };
+const [cabin, palm, cherry, bush, flower, boat] = await Promise.all(['porch-log-cabin-d2f3ef', 'palm-tree-a307da', 'cherry-blossom-tree-3f7ab7', 'round-bush-cd2ac0', 'flower-bed-708e73', 'rowboat-c42d85'].map(load));
+place(cabin, 0.05, 0.36, -0.25, cabin ? fit(cabin, 1.25) : 1, 0.35);
+place(palm, -1.15, 0.33, 0.15, palm ? fit(palm, 1.75) : 1, 0.6);
+place(cherry, 1.12, 0.35, -0.35, cherry ? fit(cherry, 1.45) : 1, 0.2);
+place(bush, 0.85, 0.35, 0.75, bush ? fit(bush, 0.32) : 1);
+place(bush?.clone(), -0.6, 0.35, 0.95, bush ? fit(bush, 0.26) : 1);
+place(flower, 0.25, 0.36, 0.95, flower ? fit(flower, 0.14) : 1, 0.1);
+place(boat, 1.75, 0.0, 1.55, boat ? fit(boat, 0.32) : 1, -0.9);
+// 一顆亮晶晶的立體愛心，飄在小木屋上方
+const hs = new THREE.Shape(); hs.moveTo(0, -0.35); hs.bezierCurveTo(-0.05, -0.28, -0.45, -0.05, -0.45, 0.17); hs.bezierCurveTo(-0.45, 0.38, -0.22, 0.47, 0, 0.3); hs.bezierCurveTo(0.22, 0.47, 0.45, 0.38, 0.45, 0.17); hs.bezierCurveTo(0.45, -0.05, 0.05, -0.28, 0, -0.35);
+const hg = new THREE.ExtrudeGeometry(hs, { depth: 0.16, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.1, bevelSegments: 10, curveSegments: 32 }); hg.center();
+const heart = new THREE.Mesh(hg, new THREE.MeshPhysicalMaterial({ color: '#ff4f86', roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08, emissive: '#ff2f6a', emissiveIntensity: 0.18 }));
+heart.position.set(0.05, 2.25, 0.1); heart.rotation.set(0.05, -0.35, 0.06); heart.scale.setScalar(1.05); heart.castShadow = true; scene.add(heart);
+const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), r = x.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,170,200,.75)'); r.addColorStop(1, 'rgba(255,170,200,0)'); x.fillStyle = r; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); return t; })(), depthWrite: false }));
+glow.position.copy(heart.position); glow.scale.setScalar(2.1); scene.add(glow);
+const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 100); cam.position.set(4.3, 3.7, 7.9); cam.lookAt(0.05, 1.0, 0); 
+R.render(scene, cam); window.done = true;
+</script>
