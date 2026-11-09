@@ -5,9 +5,9 @@ import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from '.
 import { buildIsland, buildInterior, applyTheme, cutaway, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
-import { levelOf, LEVELS, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS } from './data.js';
+import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS } from './data.js';
 import { Amb } from './amb.js';
-import { weatherAt, seasonOf, createWeatherFX, umbrellaItem, snowmanMesh, SEASON_DAYS } from './weather.js';
+import { weatherAt, seasonOf, createWeatherFX, umbrellaItem, snowmanMesh, SEASON_DAYS, DAY0, dateOfDay } from './weather.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
 import { Music, sfx, TRACKS, setBackgroundPlay } from './audio.js';
 import { icon, skyIcon } from './icons.js';
@@ -54,7 +54,7 @@ const TREE = { x: -4.6, z: 4.8 }; // 兩個人一起種的愛情樹
 const WADE = shorePoint(SPOTS.sunbathe.x, SPOTS.sunbathe.z + 1.5); // 曬太陽前面、浪打得到的地方
 const PZ_AT = { x: 0, z: -2.5, y: 0.405 }; // 客廳茶几上
 // 升級解鎖的新地方：Lv3 海邊小屋、Lv5 花園溫室
-const PLACES = { hut: { x: -15, z: 19.3, lv: 3, key: 'beach-hut-fc7649', s: 0.8, ry: 0 }, gh: { x: -18.5, z: 3, lv: 5, key: 'greenhouse-53ab6d', s: 0.75, ry: Math.PI / 2 } };
+const PLACES = { hut: { x: -15, z: 19.3, lv: 4, key: 'beach-hut-fc7649', s: 0.8, ry: 0 }, gh: { x: -18.5, z: 3, lv: 6, key: 'greenhouse-53ab6d', s: 0.75, ry: Math.PI / 2 } };
 const curS = () => scene === 'in' ? IN.S : OUT;
 
 // ---------- 角色 ----------
@@ -126,29 +126,77 @@ function addMemo(icon, text) {
 }
 function daysTogether() { if (!st.anniv) return null; const a = new Date(st.anniv + 'T00:00:00'), n = new Date(); n.setHours(0, 0, 0, 0); return Math.max(1, Math.round((n - a) / 864e5) + 1); }
 const loveCD = {};
+/* 等級：甜蜜值＋一起玩的天數都到了才升級 */
+const LV = () => levelOf(st.love, st.playDays || 1);
+const FREE_LOVE = ['qa', 'fest', 'anniv', 'quest', 'rare']; /* 不算在每日上限裡的 */
 function addLove(n, why, key) {
   if (key) { const now = performance.now(); if (loveCD[key] && now - loveCD[key] < 45e3) { n = Math.ceil(n / 4); } loveCD[key] = now; }
   if (MP.role === 'g') { if (why) toast(why); return; }
-  const before = levelOf(st.love).lv; st.love += n; const after = levelOf(st.love);
+  if (!FREE_LOVE.includes(key)) { /* 每天的甜蜜值有上限：慢慢培養，不是一天衝完 */
+    const L = st.loveDay?.d === st.day ? st.loveDay : (st.loveDay = { d: st.day, n: 0 }), room = Math.max(0, LOVE_CAP + (surpriseIs('sweetday') ? 20 : 0) - L.n);
+    if (room <= 0) { if (why) toast(why); if (st.capToast !== st.day) { st.capToast = st.day; setTimeout(() => toast('💗 今天的甜蜜值已經滿了，明天再一起來累積吧', 3500), 900); } return; }
+    n = Math.min(n, room); L.n += n;
+  }
+  const before = LV().lv; st.love += n; const after = LV();
   if (MP.on) { MP.net.send({ t: 'addlove', n }); MP.sent && (MP.sent.love = JSON.stringify(st.love)); }
   updateHud();
-  if (after.lv > before) {
-    sfx('chime'); setTimeout(() => toast(`💗 升到 Lv${after.lv}「${after.title}」！${UNLOCKS[after.lv] ? '解鎖：' + UNLOCKS[after.lv] : ''}`, 4500), 400);
-    addMemo('💗', `我們的關係升級成「${after.title}」`); if (after.lv >= 6) drawTree(); drawPlaces(); const np = Object.entries(PLACES).find(([, P]) => P.lv === after.lv); if (np) setTimeout(() => toast(`🗺️ 新地點開放了：${np[0] === 'hut' ? '🏖️ 海邊小屋（沙灘西邊）' : '🌷 花園溫室（菜園西邊）'}`, 4500), 5200);
-    burst('heart', me().av.root.position.clone().add(new THREE.Vector3(0, 1.8, 0)), 14);
-    if (after.lv === 2 && !st.looks.some(l => l.acc)) { /* 只解鎖，不自動戴 */ }
-  } else if (why) toast(`${why}　+${n} 甜蜜`);
+  if (!levelUp(before) && why) toast(`${why}　+${n} 甜蜜`);
+}
+// 升級：甜蜜值或天數到了都會檢查；每一級都有解鎖或禮物
+function levelUp(before) {
+  const after = LV(); if (after.lv <= before) return false;
+  for (let lv = before + 1; lv <= after.lv; lv++) {
+    (LEVEL_GIFTS[lv] || []).forEach(([id, n]) => { st.inv = st.inv || {}; st.inv[id] = (st.inv[id] || 0) + n; });
+    addCoins(lv * 20); addMemo('💗', `我們的關係升級成「${LEVELS[lv - 1][2]}」`);
+  }
+  save(); sfx('chime'); updateHud(); drawTree(); drawPlaces();
+  const L = LEVELS[after.lv - 1];
+  setTimeout(() => { openDlg('💗 升級了', `<div class="fest-card"><span>💗</span><b>Lv${after.lv}「${esc(L[2])}」</b><p>${esc(L[3])}</p></div><p class="muted">升級禮物：🪙 ${after.lv * 20}${LEVEL_GIFTS[after.lv] ? '，擺設已經放進裝潢的包包裡' : ''}</p><button type="button" class="primary" id="lv-ok">好 ♥</button>`); $('#lv-ok').onclick = () => $('#dlg').close(); }, 600);
+  burst('heart', me().av.root.position.clone().add(new THREE.Vector3(0, 1.8, 0)), 14);
+  return true;
+}
+/* 一起玩的天數：每個真實的一天，有人上島就 +1（升級要用） */
+function countPlayDay() {
+  if (MP.role === 'g' || st.playDay === st.day) return; const before = LV().lv;
+  st.playDay = st.day; st.playDays = (st.playDays || 0) + 1; save(); updateHud(); levelUp(before);
 }
 function updateHud() {
   $('#hud-names').textContent = `${nameOf(myIdx())} ♥ ${nameOf(1 - myIdx())}`;
-  const d = daysTogether(), se = seasonOf(st.day); $('#hud-days').textContent = (d ? `在一起第 ${d} 天` : `小島第 ${st.day} 天`) + ` ${se.icon}`;
-  const L = levelOf(st.love); $('#hud-lv').textContent = `Lv${L.lv} ${L.title}`; $('#love-bar').style.width = (L.pct * 100).toFixed(1) + '%';
+  const d = daysTogether(), se = seasonOf(st.day), fe = festToday(); $('#hud-days').textContent = (d ? `在一起第 ${d} 天` : `小島第 ${islandDays()} 天`) + ` ${fe ? fe.icon : se.icon}`;
+  const L = LV(); if (W) W.rainbow = L.lv >= 7; $('#hud-lv').textContent = `Lv${L.lv} ${L.title}`; $('#love-bar').style.width = (L.pct * 100).toFixed(1) + '%';
   $('#btn-music').setAttribute('aria-pressed', String(!!st.music));
 }
 function clockText() { const h = Math.floor(st.tod), m = Math.floor((st.tod - h) * 60); const wi = weatherAt(st.day, st.tod).icon; const ic = wi || (st.tod >= 5.5 && st.tod < 17.8 ? '☀️' : st.tod >= 17.8 && st.tod < 19.3 ? '🌇' : '🌙'); return `${ic} ${String(h).padStart(2, '0')}:${String(Math.floor(m / 10) * 10).padStart(2, '0')}`; }
 // 時鐘標籤：天氣／時間圖示＋時間
 function clockHtml() { const h = Math.floor(st.tod), m = Math.floor((st.tod - h) * 60); return `${icon(skyIcon(weatherAt(st.day, st.tod).icon, st.tod))}<b class="n">${String(h).padStart(2, '0')}:${String(Math.floor(m / 10) * 10).padStart(2, '0')}</b>`; }
 const isNight = () => st.tod >= 19 || st.tod < 5.3;
+/* ===== 真實時間：島上的時間就是台灣時間；每天的任務、驚喜、問答都跟著真實的一天 ===== */
+const TW_OFF = 8 * 3600e3, WEEK = '日一二三四五六';
+let dbgTod = (() => { const v = new URLSearchParams(location.search).get('tod'); return v == null || v === '' || isNaN(+v) ? null : +v; })(); /* 測試畫面用：?tod=21 固定時間 */
+const realDay = () => Math.floor((Date.now() + TW_OFF - DAY0) / 864e5) + 1;
+const realTod = () => dbgTod != null ? dbgTod : ((Date.now() + TW_OFF) % 864e5) / 3600e3;
+const islandDays = () => Math.max(1, st.day - (st.born || st.day) + 1);
+const dayDate = (d = st.day) => dateOfDay(d).toISOString().slice(0, 10);
+const festOf = d => { const k = dayDate(d); return FESTIVALS.find(f => f.d.includes(k) || f.d.includes(k.slice(5))) || null; };
+const festToday = () => festOf(st.day);
+function syncClock() { st.tod = realTod(); const d = realDay(); if (st.day !== d) { const old = st.day; st.day = d; if (old && started()) newDay(old); } }
+/* 舊存檔（島上一天只有 14 分鐘的那個版本）：把記著「第幾天」的欄位換成真實日期，小島的第一天用最早的一筆回憶 */
+function migrateRT(oldDay, sharedOnly) {
+  const nd = realDay(), dayOfTs = ts => Math.floor((ts + TW_OFF - DAY0) / 864e5) + 1;
+  /* 用最新一筆回憶的「舊天數」和「真實寫下的日期」算出差多少天（舊版伺服器的天數沒人在時也會一直跑，不能拿來算） */
+  const ref = (st.diary || []).find(m => typeof m.day === 'number' && m.ts);
+  const off = ref ? dayOfTs(ref.ts) - ref.day : nd - (oldDay || nd), sh = (o, k) => { if (o && typeof o[k] === 'number') o[k] = Math.min(nd, o[k] + off); };
+  if (off) {
+    sh(st, 'fedDay'); sh(st, 'letterDay'); sh(st.snowman, 'day'); sh(st.eggs, 'day'); sh(st.quests, 'day'); sh(st.surprise, 'day');
+    sh(st.tree, 'last'); sh(st.tree?.fruit, 'day'); sh(st.tree?.care, 'day'); sh(st.puzzle, 'day'); sh(st.gh, 'day'); (st.diary || []).forEach(m => sh(m, 'day'));
+    if (!sharedOnly) sh(st, 'lastDayHere');
+  }
+  const first = Math.min(Date.now(), ...(st.diary || []).map(m => m.ts || Date.now()));
+  st.born = Math.min(st.born || nd, Math.floor((first + TW_OFF - DAY0) / 864e5) + 1); st.rt = 1; st.day = nd;
+}
+if (!st.rt) migrateRT(st.day, false);
+if (st.playDays == null && st.started) { const ds = new Set((st.diary || []).map(m => Math.floor(((m.ts || Date.now()) + TW_OFF) / 864e5))); ds.add(Math.floor((Date.now() + TW_OFF) / 864e5)); st.playDays = ds.size; st.playDay = realDay(); st.keepPlaces = st.love >= 380 ? ['hut', 'gh'] : st.love >= 90 ? ['hut'] : []; }
+st.tod = realTod(); st.day = realDay();
 
 // ---------- 特效：愛心、音符、睡覺 Z、亮晶晶 ----------
 const texCache = {};
@@ -542,7 +590,7 @@ const SP = [
   { id: 'bike', sc: 'out', x: 0, z: 0, r: 1.8, icon: '🚲', name: '腳踏車', run: () => actBike(), pos: () => W.bike?.position, hide: () => act?.id === 'bike' },
   { id: 'snowman', sc: 'out', x: 3.5, z: 12.4, icon: '⛄', name: '堆雪人', run: () => actSnowman(), hide: () => seasonOf(st.day).k !== 'winter' },
   { id: 'tree', sc: 'out', x: TREE.x, z: TREE.z + 1.3, icon: '🌳', name: '愛情樹', run: actTree, badge: () => !treeCaredByMe(), dyn: () => treeLonely() ? ['🥺', '小樹想你們了'] : ['🌳', '愛情樹'] },
-  { id: 'treebench', sc: 'out', x: TREE.x + 1.7, z: TREE.z + 1.3, r: 1.4, icon: '🪵', name: '樹下長椅', run: actTreeBench, hide: () => levelOf(st.love).lv < 6 },
+  { id: 'treebench', sc: 'out', x: TREE.x + 1.7, z: TREE.z + 1.3, r: 1.4, icon: '🪵', name: '樹下長椅', run: actTreeBench, hide: () => LV().lv < 8 },
   { id: 'surprise', sc: 'out', x: 0, z: 0, r: 1.8, icon: '🎁', name: '驚喜', run: actSurprise, pos: () => SUR.obj?.position || { x: 999, z: 999 }, hide: () => !SUR.obj || surpriseDone(), dyn: () => [surpriseToday().icon, surpriseToday().name] },
   { id: 'hut', sc: 'out', x: PLACES.hut.x, z: PLACES.hut.z + 3.0, icon: '🏖️', name: '海邊小屋', run: actHut, dyn: () => placeOpen('hut') ? ['🏖️', '海邊小屋'] : ['🔒', '海邊小屋（Lv3 解鎖）'] },
   { id: 'gh', sc: 'out', x: PLACES.gh.x + 3.2, z: PLACES.gh.z, icon: '🌷', name: '花園溫室', run: actGreenhouse, dyn: () => placeOpen('gh') ? ['🌷', '花園溫室'] : ['🔒', '花園溫室（Lv5 解鎖）'] },
@@ -678,9 +726,9 @@ function actHammock() {
   let nap = false, zt = 0;
   beginAct('hammock', '💤 吊床', '兩個人擠在吊床上，搖啊搖。', {
     focus: () => new THREE.Vector3(x, LAND_Y + 1, z), back: [x, z + 1.6],
-    btns: [{ t: duo() ? '一起睡午覺' : '睡個午覺', main: true, fn: () => { nap = true; msg('呼…呼…（時間過得特別快）'); } }, duo() && { t: '說悄悄話', fn: () => { you().av.emote('shy', 1.6); burst('heart', midPos(0.6), 4); addLove(2, pick(['「我好喜歡你」', '「今天也謝謝你」', '「下次一起去看海」']), 'whisper'); } }],
+    btns: [{ t: duo() ? '一起睡午覺' : '睡個午覺', main: true, fn: () => { nap = true; msg('呼…呼…海風好舒服。'); } }, duo() && { t: '說悄悄話', fn: () => { you().av.emote('shy', 1.6); burst('heart', midPos(0.6), 4); addLove(2, pick(['「我好喜歡你」', '「今天也謝謝你」', '「下次一起去看海」']), 'whisper'); } }],
     update(dt) {
-      zt += dt; if (nap) { st.tod += dt * 0.4; if (zt > 1.2) { zt = 0; burst('z', midPos(0.7), 1, 0.2); } if (Math.random() < dt / 8) addLove(1); }
+      zt += dt; if (nap) { if (zt > 1.2) { zt = 0; burst('z', midPos(0.7), 1, 0.2); } if (Math.random() < dt / 8) addLove(1); }
     },
     end() { [me(), you()].forEach(c => { c.av.lieTilt = 0; }); if (nap) addMemo('💤', '在吊床上一起睡了午覺'); else addMemo('💤', '一起躺在吊床上聊天'); },
   });
@@ -716,7 +764,7 @@ function actCampfire() {
     if (good) addMemo('🍡', `${nameOf(me().i)} 烤了完美的棉花糖餵 ${nameOf(you().i)}`);
   };
   const player = () => me(); // 誰按「彈吉他」就是誰彈
-  const toggleGuitar = () => { guitar = !guitar; if (guitar && roast) { me().av.setItem(null); roast = null; me().av.reach(false); } player().av.setLap(guitar ? guitarItem() : null); if (W.guitar) W.guitar.visible = !guitar; player().av.emote(guitar ? 'strum' : 'idle', guitar ? 9999 : 0.1); if (guitar) { Music.duet(true); setTimeout(() => { if (guitar && Music.guitarSong) msg(`🎸 正在彈《${Music.guitarSong}》`); }, 1200); msg(duo() ? `拿起吉他彈給 ${nameOf(you().i)} 聽，兩個人一起哼歌 🎶` : '拿起旁邊的吉他，對著營火彈唱 🎶'); addLove(2, '營火邊唱歌', 'guitar'); addMemo('🎸', '在營火邊一起唱歌'); } else Music.duet(false); roastBtns(); };
+  const toggleGuitar = () => { guitar = !guitar; if (guitar && roast) { me().av.setItem(null); roast = null; me().av.reach(false); } player().av.setLap(guitar ? guitarItem() : null); if (W.guitar) W.guitar.visible = !guitar; player().av.emote(guitar ? 'strum' : 'idle', guitar ? 9999 : 0.1); if (guitar) { Music.duet(true); setTimeout(() => { if (guitar && Music.guitarSong) msg(`🎸 正在彈《${Music.guitarSong}》`); }, 1200); msg(duo() ? `拿起吉他彈給 ${nameOf(you().i)} 聽，兩個人一起哼歌 🎶` : '拿起旁邊的吉他，對著營火彈唱 🎶'); addLove(surpriseIs('concert') && isNight() ? 4 : 2, '營火邊唱歌', 'guitar'); addMemo('🎸', '在營火邊一起唱歌'); } else Music.duet(false); roastBtns(); };
   beginAct('campfire', '🔥 營火', `按住按鈕烤棉花糖，在粉紅區放開最好吃。`, {
     focus: () => new THREE.Vector3(x, LAND_Y + 0.9, z - 0.6), back: [x - 1.8, z - 2.2],
     update(dt) {
@@ -826,7 +874,7 @@ function actBeach() {
     let n = 0;
     beginAct('fireworks', '🎆 放煙火', '坐在沙灘上看煙火在海上綻放。', {
       focus: () => new THREE.Vector3(x, 4.2, z + 4), back: [x, z - 1], camYaw: Math.PI, camPitch: 0.14,
-      btns: [{ t: '點煙火！', main: true, fn: () => { launchFirework(levelOf(st.love).lv >= 3 && Math.random() < 0.35); n++; st.fireworks++; if (n % 3 === 0) { addLove(2, '好漂亮！', 'fw'); you().av.lean(-1); me().av.lean(1); } } }, { t: '連發 ×5', fn: () => { for (let i = 0; i < 5; i++) setTimeout(() => launchFirework(levelOf(st.love).lv >= 3 && i === 4), i * 420); n += 5; st.fireworks += 5; addLove(3, '煙火大會', 'fw5'); } }],
+      btns: [{ t: '點煙火！', main: true, fn: () => { launchFirework(LV().lv >= 3 && Math.random() < 0.35); n++; st.fireworks++; if (n % 3 === 0) { addLove(2, '好漂亮！', 'fw'); you().av.lean(-1); me().av.lean(1); } } }, { t: '連發 ×5', fn: () => { for (let i = 0; i < 5; i++) setTimeout(() => launchFirework(LV().lv >= 3 && i === 4), i * 420); n += 5; st.fireworks += 5; addLove(3, '煙火大會', 'fw5'); } }],
       end() { if (n) addMemo('🎆', `在海邊放了 ${n} 發煙火`); },
     });
     return;
@@ -838,7 +886,7 @@ function actBeach() {
   quest('kite');
   beginAct('kite', '🪁 放風箏', '海風好大，風箏飛好高！', {
     focus: () => new THREE.Vector3(x + (kite.position.x - x) * 0.4, standH(x, z) + 1.2 + (kite.position.y - standH(x, z) - 1.2) * 0.4, z + (kite.position.z - z) * 0.4), near: () => Math.max(1.7, (h + 8) * 0.14), back: [x, z - 1], camYaw: Math.PI + 0.3, camPitch: 0.22, /* 人和風箏都在畫面裡 */
-    btns: [{ t: '放線（飛高一點）', main: true, fn: () => { want = Math.min(24, want + 3); } }, { t: '收線', fn: () => { want = Math.max(4, want - 3); } }, duo() && { t: '交給對方', fn: () => { const a = me().av.reaching; me().av.reach(!a); you().av.reach(a); you().av.emote('cheer', 1); addLove(1, null, 'kitepass'); } }],
+    btns: [{ t: '放線（飛高一點）', main: true, fn: () => { want = Math.min(surpriseIs('breeze') ? 32 : 24, want + 3); } }, { t: '收線', fn: () => { want = Math.max(4, want - 3); } }, duo() && { t: '交給對方', fn: () => { const a = me().av.reaching; me().av.reach(!a); you().av.reach(a); you().av.emote('cheer', 1); addLove(1, null, 'kitepass'); } }],
     update(dt) {
       t += dt; h += (want - h) * dt * 0.6;
       const kx = x + Math.sin(t * 0.7) * 2.5, kz = z + 6 + h * 0.9, ky = standH(x, z) + 1.5 + h;
@@ -858,7 +906,7 @@ function rodItem() {
   const reel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 10), toon('#c8c8d0')); reel.rotation.z = Math.PI / 2; reel.position.set(0.04, 0.15, 0); g.add(reel);
   const tip = new THREE.Object3D(); tip.position.y = 1.75; g.add(tip); g.userData.tip = tip; g.rotation.x = 0.9; return g;
 }
-function pickFish() { const tot = FISH.reduce((s, f) => s + f[2], 0); let r = Math.random() * tot; for (const f of FISH) { r -= f[2]; if (r <= 0) return f; } return FISH[0]; }
+function pickFish() { const lucky = surpriseIs('lucky'), w = f => f[2] < 6 && lucky ? f[2] * 3 : f[2]; /* 幸運日：稀有的魚機率三倍 */ const tot = FISH.reduce((s, f) => s + w(f), 0); let r = Math.random() * tot; for (const f of FISH) { r -= w(f); if (r <= 0) return f; } return FISH[0]; }
 // 釣上來的東西（3D）：魚用 Polyfork 的魚上色；章魚、靴子、瓶子用程式做
 const FISH_TINT = { 小丑魚: '#ff8a3a', 藍色倒吊: '#3a7ae0', 黃金鯛: '#f2c33a', 鮪魚: '#6a7ea0', 愛心魚: '#ff6a9a' };
 async function catchModel(f, size) {
@@ -1074,7 +1122,7 @@ function actSunset() {
   fadeDo(() => { sitPair(x + 0.3, y, z, ry, 0.62); me().av.lean(1); }, 250);
   let warp = 0, mt = rand(3, 8), wished = false;
   const btns = () => setBtns([
-    { t: isNight() ? '等流星…' : '等夕陽', main: true, id: 'ss-main', fn: () => { if (!isNight()) { warp = 17.9; msg('時間慢慢流過去…'); } } },
+    { t: isNight() ? '等流星…' : '等夕陽', main: true, id: 'ss-main', fn: () => { if (!isNight()) { warp = 17.9; msg('靠在一起，等太陽慢慢落到海裡…'); } } },
     { t: '🌠 許願', id: 'ss-wish', dis: !meteor, fn: wish },
   ]);
   const wish = () => {
@@ -1085,7 +1133,7 @@ function actSunset() {
   beginAct('sunset', isNight() ? '🌠 看星星' : '🌅 看夕陽', isNight() ? '滿天星星，等等看會不會有流星。' : '燈塔旁的長椅，最適合看夕陽。', {
     focus: () => new THREE.Vector3(x - 1.5, 2.2, z - 0.6), back: [x + 1.6, z + 0.6], camYaw: ry + Math.PI, camPitch: 0.1,
     update(dt) {
-      if (warp) { st.tod += dt * 1.6; if (st.tod >= warp) { warp = 0; msg('夕陽好美。' + (Math.random() < 0.5 ? `${nameOf(you().i)} 偷偷看了你一眼。` : '天空變成粉紅色了。')); addLove(4, '一起看夕陽'); addMemo('🌅', '在燈塔旁一起看夕陽'); quest('sunset'); btns(); } }
+      if (warp) { act.tod = (act.tod ?? st.tod) + dt * 1.6; if (act.tod >= warp) { warp = 0; msg('夕陽好美。' + (Math.random() < 0.5 ? `${nameOf(you().i)} 偷偷看了你一眼。` : '天空變成粉紅色了。')); addLove(4, '一起看夕陽'); addMemo('🌅', '在燈塔旁一起看夕陽'); quest('sunset'); btns(); } }
       if (isNight()) { mt -= dt; if (mt <= 0 && !meteor) { spawnMeteor(); mt = surpriseIs('meteor') ? rand(1.5, 3.5) : rand(5, 11); act.metT = 3; msg('流星！快許願！'); sfx('chime'); } }
       if (act.metT > 0) { act.metT -= dt; const b = $('#ss-wish'); if (b) b.disabled = false; } else { const b = $('#ss-wish'); if (b && !b.disabled) b.disabled = true; }
     },
@@ -1195,20 +1243,26 @@ function actBed() {
   fadeDo(() => { [0, 1].forEach(j => { const o = pj(j); if (o !== st.looks[j].outfit) chars[j].av.setLook({ ...st.looks[j], outfit: o }); }); lay(0.42); cover(0.42); }, 250);
   const snuggle = on => { close = on; lay(on ? 0.24 : 0.42); cover(on ? 0.24 : 0.42); me().av.lieFace = on ? 1 : 0; you().av.lieFace = on ? -1 : 0; }; /* 抱著睡：兩個人側身面對面 */
   [0, 1].forEach(j => { chars[j].av.covered = true; chars[j].av.lieFace = 0; });
-  const btns = () => setBtns([{ t: '晚安', s: '睡到明天早上', main: true, fn: sleep },
+  const btns = () => setBtns([{ t: '晚安', s: '一起睡一下', main: true, fn: sleep },
     duo() && { t: close ? '躺回來' : '抱著睡', fn: () => { snuggle(!close); if (close) { me().av.emote('hug', 4); burst('heart', midPos(0.7), 6, 0.3); addLove(2, '抱著好溫暖', 'cuddle'); } btns(); } },
     duo() && { t: '親一下', fn: () => { if (!close) snuggle(true); me().av.emote('kiss', 1.6); setTimeout(() => { you().av.emote('shy', 1.6); burst('heart', midPos(0.75), 8, 0.3); }, 500); addLove(3, '晚安吻 😘', 'bedkiss'); btns(); } },
     duo() && { t: '甜蜜時光', s: '關燈・拉起被子', fn: () => { sweetNight(true); } },
     duo() && { t: '枕頭大戰', fn: () => { me().av.emote('cheer', 1); you().av.emote('jump', 1); burst('star', midPos(0.6), 6); addLove(2, '哈哈哈', 'pillow'); } }]);
-  beginAct('bed', '🛏️ 床', '換上睡衣、蓋好被子，軟綿綿的床，可以一起睡到明天早上。', {
+  beginAct('bed', '🛏️ 床', '換上睡衣、蓋好被子，軟綿綿的床，最適合窩在一起。', {
     focus: () => new THREE.Vector3(B.x, 0.8, B.z - 0.2), back: [INSPOTS.bed.x, INSPOTS.bed.z + 0.6],
     end() { if (quilt) IN.S.remove(quilt); [0, 1].forEach(j => { chars[j].av.covered = false; chars[j].av.lieFace = 0; }); [0, 1].forEach(j => { st.looks[j].outfit = prev[j]; chars[j].av.setLook(st.looks[j]); }); },
   });
   btns();
   function sleep() {
     msg('晚安 ♥'); setBtns([]); let n = 0; const zz = setInterval(() => { burst('z', midPos(0.6), 1, 0.2); if (++n > 4) clearInterval(zz); }, 350);
-    setTimeout(() => fadeDo(() => { st.tod = 7.2; newDay(); endAct(); toast(`早安！第 ${st.day} 天 ☀️`); addLove(3); addMemo('🛏️', '一起睡到自然醒'); }, 1100), 1500);
+    setTimeout(() => restScreen('💤', '晚安，做個好夢', () => { endAct(); toast('睡了一會兒，精神好多了 ☀️', 3000); if (st.sleptDay !== st.day) { st.sleptDay = st.day; addLove(3); addMemo('🛏️', duo() ? '兩個人一起睡了一覺' : '在小木屋好好睡了一覺'); } }), 1500);
   }
+}
+// 休息一下：畫面暗下來幾秒（不會跳過時間，島上時間跟真實時間一樣）
+function restScreen(icon, text, done) {
+  const ov = document.createElement('div'); ov.className = 'sweet-night'; ov.innerHTML = `<p>${icon}</p><b class="sn-t">${esc(text)}</b>`;
+  document.body.appendChild(ov); requestAnimationFrame(() => ov.classList.add('on'));
+  setTimeout(() => { done?.(); ov.classList.remove('on'); setTimeout(() => ov.remove(), 1200); }, 3200);
 }
 // 甜蜜時光：燈慢慢暗下來、畫面淡成深色、只有飄起來的愛心，然後就是早上了（不顯示任何露骨的畫面）
 function sweetNight(mine) {
@@ -1216,8 +1270,8 @@ function sweetNight(mine) {
   setBtns([]); msg('關掉燈，拉起被子……');
   const ov = document.createElement('div'); ov.className = 'sweet-night'; ov.innerHTML = '<div class="sn-h">' + Array.from({ length: 14 }, (_, i) => `<span style="left:${8 + (i * 37) % 84}%;animation-delay:${(i * 0.37) % 2.4}s">${i % 3 ? '♡' : '♥'}</span>`).join('') + '</div><p>🌙</p>';
   document.body.appendChild(ov); requestAnimationFrame(() => ov.classList.add('on')); sfx('chime');
-  setTimeout(() => { st.tod = 7.4; newDay(); if (act?.id === 'bed') endAct(); if (mine) { addLove(6, null, 'sweet'); addMemo('💞', '度過了甜蜜的夜晚'); } }, 3600);
-  setTimeout(() => { ov.classList.remove('on'); setTimeout(() => ov.remove(), 1200); toast(`早安！第 ${st.day} 天 ☀️ 昨晚睡得特別好`, 3500); }, 4600);
+  setTimeout(() => { if (act?.id === 'bed') endAct(); if (mine && st.sweetDay !== st.day) { st.sweetDay = st.day; addLove(6, null, 'sweet'); addMemo('💞', '度過了甜蜜的時光'); } }, 3600);
+  setTimeout(() => { ov.classList.remove('on'); setTimeout(() => ov.remove(), 1200); toast('窩在一起好溫暖 💞', 3500); }, 4600);
 }
 function actSofa() {
   const y = 0.45 - HIP + 0.02;
@@ -1316,7 +1370,7 @@ function actCook() {
   function start(r) { if (!canCook(r)) return; useIngredients(r); dish = r; cooking = true; prog = 0; me().av.emote('interact', 4.2); you().av.emote('interact', 4.2); msg(duo() ? `${nameOf(me().i)} 切菜、${nameOf(you().i)} 掌廚，做${dish[0]}中…` : `做${dish[0]}中…`); setBtns([]); sfx('sizzle'); }
   function serve() {
     IN.dish.clear(); [-0.35, 0.35].forEach(dx => { const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.03, 16), toon('#ffffff')); pl.position.set(dx * 1.3, 0, dx * 0.7); IN.dish.add(pl); const f = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), toon(dish[2])); f.scale.y = 0.45; f.position.set(dx * 1.3, 0.05, dx * 0.7); IN.dish.add(f); });
-    IN.dish.visible = true; st.dishes++; st.cooked = st.cooked || {}; st.cooked[dish[0]] = (st.cooked[dish[0]] || 0) + 1; quest('cook'); addCoins(dish[4]); addLove(dish[5], `${dish[1]} ${dish[0]}完成`); addMemo(dish[1], `${duo() ? '一起' : ''}做了${dish[0]}`);
+    IN.dish.visible = true; st.dishes++; st.cooked = st.cooked || {}; st.cooked[dish[0]] = (st.cooked[dish[0]] || 0) + 1; quest('cook'); addCoins(dish[4] * (surpriseIs('chef') ? 2 : 1)); addLove(dish[5], `${dish[1]} ${dish[0]}完成`); addMemo(dish[1], `${duo() ? '一起' : ''}做了${dish[0]}`);
     msg(`${dish[0]}做好了，放在餐桌上！到餐桌${duo() ? '一起' : ''}吃吧。`); setBtns([{ t: '去餐桌吃飯', main: true, fn: () => { endAct(); actEat(); } }, { t: '再做一道', fn: pickRecipe }]);
   }
 }
@@ -1354,15 +1408,15 @@ $('#btn-net').onclick = () => openNet();
 function openBook(tab = 'memo') {
   sfx('click');
   const tabs = [['memo', '回憶'], ['col', '收藏'], ['us', '我們'], ['about', '關於']];
-  const L = levelOf(st.love), d = daysTogether();
+  const L = LV(), d = daysTogether();
   const body = {
-    memo: () => st.diary.length ? st.diary.slice(0, 120).map(m => `<div class="memo"><span class="ic">${m.icon}</span><b>${esc(m.text)}</b><small>${esc(m.d)} · 小島第 ${m.day} 天</small></div>`).join('') : '<p class="muted">還沒有回憶，去小島上走走吧。</p>',
-    col: () => `<b>🎣 釣到的東西</b><div class="grid3">${FISH.map(f => `<div class="cell ${st.fish[f[0]] ? '' : 'no'}"><span class="e">${f[1]}</span>${st.fish[f[0]] ? esc(f[0]) : '？？？'}<small>${st.fish[f[0]] ? '×' + st.fish[f[0]] + (st.fishMax?.[f[0]] ? `・最大 ${st.fishMax[f[0]]} 公分` : '') : '還沒釣到'}</small></div>`).join('')}</div>
+    memo: () => st.diary.length ? st.diary.slice(0, 120).map(m => `<div class="memo"><span class="ic">${m.icon}</span><b>${esc(m.text)}</b><small>${esc(m.d)}${m.day && st.born && m.day >= st.born ? ` · 小島第 ${m.day - st.born + 1} 天` : ''}</small></div>`).join('') : '<p class="muted">還沒有回憶，去小島上走走吧。</p>',
+    col: () => `<b>✨ 稀有事件</b><div class="grid3">${RARE.map(r => `<div class="cell ${st.rares?.[r.k] ? '' : 'no'}"><span class="e">${st.rares?.[r.k] ? r.icon : '❔'}</span>${st.rares?.[r.k] ? esc(r.name) : '？？？'}<small>${st.rares?.[r.k] ? `看過 ${st.rares[r.k]} 次` : '還沒遇過'}</small></div>`).join('')}</div><p class="muted">已經找到 ${st.surFound || 0} 個每日驚喜</p><b>🎣 釣到的東西</b><div class="grid3">${FISH.map(f => `<div class="cell ${st.fish[f[0]] ? '' : 'no'}"><span class="e">${f[1]}</span>${st.fish[f[0]] ? esc(f[0]) : '？？？'}<small>${st.fish[f[0]] ? '×' + st.fish[f[0]] + (st.fishMax?.[f[0]] ? `・最大 ${st.fishMax[f[0]]} 公分` : '') : '還沒釣到'}</small></div>`).join('')}</div>
       <b>🍳 一起做過的料理</b><div class="grid3">${RECIPES.map(r => `<div class="cell ${st.cooked?.[r[0]] ? '' : 'no'}"><span class="e">${r[1]}</span>${st.cooked?.[r[0]] ? esc(r[0]) : '？？？'}<small>×${st.cooked?.[r[0]] || 0}</small></div>`).join('')}</div>
       <b>💐 送過的花</b><div class="grid3">${[['鬱金香', '🌷'], ['玫瑰', '🌹'], ['滿天星', '💮'], ['向日葵', '🌻'], ['繡球花', '💠']].map(([n, e]) => `<div class="cell ${st.picked?.[n] ? '' : 'no'}"><span class="e">${e}</span>${st.picked?.[n] ? n : '？？？'}<small>×${st.picked?.[n] || 0}</small></div>`).join('')}</div>
       <b>🐚 海邊撿到的</b><div class="grid3">${SHELLS.map(s => `<div class="cell ${st.shells[s[0]] ? '' : 'no'}"><span class="e">${s[1]}</span>${esc(s[0])}<small>×${st.shells[s[0]] || 0}</small></div>`).join('')}</div>
       <p class="muted">沙堡 ${st.castles} 座 · 送花 ${st.flowersGiven} 次 · 做飯 ${st.dishes} 次 · 煙火 ${st.fireworks} 發 · 繞島 ${st.laps} 圈 · 許願 ${st.wishes} 次</p>`,
-    us: () => `<div class="memo"><span class="ic">💗</span><b>${esc(nameOf(0))} ♥ ${esc(nameOf(1))}</b><small>${d ? `在一起第 ${d} 天 · ` : ''}甜蜜值 ${st.love} · Lv${L.lv} ${L.title} · 你來小島 ${st.visitDays || 1} 天了${L.next ? `（再 ${L.next - st.love} 升級）` : ''}</small></div>
+    us: () => `<div class="memo"><span class="ic">💗</span><b>${esc(nameOf(0))} ♥ ${esc(nameOf(1))}</b><small>${d ? `在一起第 ${d} 天 · ` : ''}甜蜜值 ${st.love} · Lv${L.lv} ${L.title} · 一起玩了 ${st.playDays || 1} 天${L.next ? `（升級還要${[L.needLove ? `甜蜜值 ${L.needLove}` : '', L.needDays ? `一起玩 ${L.needDays} 天` : ''].filter(Boolean).join('、')}）` : ''}</small></div>
       <label class="anniv"><span>我的名字</span><input id="ed-n0" maxlength="8" value="${esc(st.myName || '')}"></label>
       <label class="anniv"><span>在一起的日子</span><input id="ed-an" type="date" value="${esc(st.anniv)}"></label>
       <button type="button" class="ghost" id="ed-look0">👗 我的造型</button>
@@ -1393,10 +1447,10 @@ function openBook(tab = 'memo') {
   }
 }
 function openLooks(i = me().i) {
-  const L = st.looks[i], lvl = levelOf(st.love).lv;
+  const L = st.looks[i], lvl = LV().lv;
   // 換裝：面板從下面升起來，上半部看得到自己（可以轉身看背面）
   const c = chars[i]; if (!lookCam) { c.path = null; const ry0 = c.ry; lookCam = { c, back: false, a: scene === 'in' ? Math.atan2(-c.x, -c.z) : c.ry }; $('#dlg').addEventListener('close', () => { c.ry = ry0; lookCam = null; delete $('#dlg').dataset.sheet; }, { once: true }); } // 屋內：鏡頭從房間中央那一側看（不會被家具擋住）
-  const accOK = a => a === 0 || (a === 2 && lvl >= 2) || (a === 1 && lvl >= 4);
+  const accOK = a => a === 0 || (a === 2 && lvl >= 2) || (a === 1 && lvl >= 5);
   const rows = [['髮型', 'hair', HAIRS], ['髮色', 'hairColor', HAIR_COLORS.map((c, k) => `色 ${k + 1}`)], ['膚色', 'skin', SKINS.map((c, k) => `膚 ${k + 1}`)], ['衣服', 'outfit', OUTFITS.map(o => o.name)], ['頭型', 'head', HEADS], ['眼睛', 'eye', EYES], ['嘴巴', 'mouth', MOUTHS], ['配件', 'acc', ACCS]];
   openDlg(`👗 ${nameOf(i)} 的造型`, `<p class="muted">改了馬上就看得到。${lvl < 4 ? '配件「小花」Lv2、「愛心光環」Lv4 解鎖。' : ''}</p>${rows.map(([n, k, arr]) => `<div class="look-row" data-k="${k}" data-n="${arr.length}"><span>${n}</span><span id="lv-${k}">${esc(arr[(L[k] | 0) % arr.length])}</span><button type="button" data-d="-1" aria-label="上一個">‹</button><button type="button" data-d="1" aria-label="下一個">›</button></div>`).join('')}
     <button type="button" class="ghost" id="lk-couple">👫 兩個人一起換情侶裝</button>
@@ -1424,7 +1478,7 @@ function openLooks(i = me().i) {
 let shellObjs = [];
 function spawnShells() {
   shellObjs.forEach(s => OUT.remove(s.o)); shellObjs = [];
-  for (let k = 0; k < 7; k++) {
+  for (let k = 0, N = surpriseIs('shellday') ? 15 : 7; k < N; k++) {
     let x, z, g = 0; do { const a = Math.random() * Math.PI * 2, R = shoreR(Math.cos(a), Math.sin(a)) - rand(5.2, 7.5); x = Math.cos(a) * R; z = Math.sin(a) * R; } while (g++ < 30 && (!walkable(x, z) || x > 24 && Math.abs(z) < 3));
     const t = Math.floor(Math.random() * SHELLS.length), col = ['#ffb0c0', '#ffa040', '#f0e0d0', '#7ad8c8', '#e8c8a0', '#ffffff'][t];
     const o = new THREE.Group(); const m = t === 1 ? new THREE.Mesh(new THREE.OctahedronGeometry(0.14), toon(col)) : t === 4 ? new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.2, 8), toon(col)) : new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), toon(col, t === 3 ? { transparent: true, opacity: 0.75 } : {}));
@@ -1447,9 +1501,10 @@ function tickShells(t) {
 }
 
 // ---------- 新的一天 ----------
-function newDay() {
-  st.day++; spawnShells(); save(); updateHud(); updateChips(); drawSnowman(); drawEggs(); setupSurprise(); drawTree(); setTimeout(announceSurprise, 1500);
-  const s0 = seasonOf(st.day - 1), s1 = seasonOf(st.day); if (s0 !== s1) setTimeout(() => toast(`${s1.icon} ${s1.name}來了！`, 3500), 1200);
+function newDay(old) {
+  spawnShells(); save(); updateHud(); updateChips(); drawSnowman(); drawEggs(); setupSurprise(); drawTree(); setTimeout(announceSurprise, 1500);
+  const s0 = seasonOf(old || st.day - 1), s1 = seasonOf(st.day); if (s0 !== s1) setTimeout(() => toast(`${s1.icon} ${s1.name}來了！`, 3500), 1200); else setTimeout(() => toast(`新的一天 ☀️ ${dateOfDay(st.day).getUTCMonth() + 1} 月 ${dateOfDay(st.day).getUTCDate()} 日`, 3000), 1200);
+  setTimeout(() => { countPlayDay(); festivalCheck(); }, 4000);
 }
 
 // ---------- 拍照 ----------
@@ -1541,17 +1596,25 @@ function updateCam(dt, snap) {
     const yaw = view.yaw, pit = view.pitch;
     for (let k = 0; k < 12; k++) { camP.set(tmpT.x + Math.sin(yaw) * Math.cos(pit) * d, tmpT.y + Math.sin(pit) * d, tmpT.z + Math.cos(yaw) * Math.cos(pit) * d); if (!camBlocked(camP.x, camP.y, camP.z)) break; if (d < 2.5) { camP.y = Math.max(camP.y, 7.2); break; } d *= 0.8; }
     camP.y = Math.max(camP.y, standH(camP.x, camP.z) + 0.6);
+    /* 稀有事件：鏡頭轉向它幾秒，人和鯨魚／極光一起入鏡 */
+    if (RAREFX.o && RAREFX.focus && RAREFX.t < RAREFX.camDur && !act) {
+      const f = RAREFX.focus(), pp = p.av.root.position, dx = f.x - pp.x, dz = f.z - pp.z, L = Math.hypot(dx, dz) || 1;
+      if (RAREFX.k === 'bluetears') { tmpT.copy(f); camP.set(f.x - dx / L * 9, 6.5, f.z - dz / L * 9); } /* 藍眼淚：從上面往下看浪打上來的地方 */
+      else { tmpT.set(pp.x + dx * 0.55, Math.min(f.y, 14) * 0.6 + pp.y * 0.4, pp.z + dz * 0.55); camP.set(pp.x - dx / L * 6.5, pp.y + 3, pp.z - dz / L * 6.5); } camP.y = Math.max(camP.y, standH(camP.x, camP.z) + 0.8);
+    }
   }
-  const k = snap ? 1 : 1 - Math.exp(-dt * (act?.camSpeed?.() || 6));
+  const k = snap ? 1 : 1 - Math.exp(-dt * (act?.camSpeed?.() || (RAREFX.o && RAREFX.t < RAREFX.camDur ? 1.6 : 6)));
   camT.lerp(tmpT, k); cam.position.lerp(camP, k); cam.lookAt(camT);
 }
 
 // ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
-const SHARED = ['names', 'looks', 'anniv', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
+const SHARED = ['rares', 'rareDay', 'surFound', 'playDays', 'playDay', 'loveDay', 'keepPlaces', 'names', 'looks', 'anniv', 'born', 'rt', 'theme', 'pantry', 'eggs', 'fedDay', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
 const LOVE_WORD = { hand: '牽你的手', hug: '抱抱你', kiss: '親親你', pat: '摸摸你的頭' };
 function newChar(look) { const c = { i: 'g', av: new Avatar(look), x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }; OUT.add(c.av.root); hookEmote(c); return c; }
 function hookEmote(c) { const orig = c.av.emote.bind(c.av); c.av.emote = (k, d) => { orig(k, d); if (MP.on && c === me()) MP.net.send({ t: 'emo', k, d }); }; }
 // 畫面上所有角色（看得到的）
+/* 保險：角色的身體沒載入成功（變成透明人）就自動重新載一次 */
+setInterval(() => { for (const c of allChars()) { const a = c.av; if (a && !a.model && a.look && performance.now() - (a._lookAt || 0) > 5000) a.setLook(a.look); } }, 2500);
 function allChars() { const a = [...chars]; if (guestChar) a.push(guestChar); for (const p of MP.peers.values()) if (p.role === 'g' && p.c) a.push(p.c); return a; }
 // 這支手機在控制的角色
 function localChars() { if (!MP.on) return chars; const a = [me()]; if (partnerLocal()) a.push(you()); return a; }
@@ -1585,10 +1648,6 @@ function netTick(dt) {
   const c = me();
   MP.net.pos({ x: +c.x.toFixed(2), z: +c.z.toFixed(2), ry: +c.ry.toFixed(2), y: c.y == null ? null : +c.y.toFixed(2), sc: scene, pose: c.av.pose || 'stand', mv: c.moving ? 1 : 0, act: act?.id || '', hand: MP.lead ? 'L' : MP.led ? 'F' : '', fl: st.flash ? 1 : 0, tilt: +(c.tilt || 0).toFixed(2) });
   if (MP.role === 'g') return;
-  if (MP.expTod == null) MP.expTod = st.tod;
-  MP.expTod += dt / 36; if (MP.expTod >= 24) MP.expTod -= 24;
-  let diff = Math.abs(st.tod - MP.expTod); diff = Math.min(diff, 24 - diff);
-  if (diff > 0.05) { MP.net.send({ t: 'tod', tod: st.tod, day: st.day }); MP.expTod = st.tod; }
 }
 // 存檔有變化的欄位送給另一位島主
 function shareSave() {
@@ -1599,10 +1658,10 @@ function shareSave() {
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
-const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic', 'qch'];
+const MINE = ['miniDay', 'capToast', 'sleptDay', 'sweetDay', 'festSeen', 'myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic', 'qch'];
 function applySave(keys, first) {
   const qaBefore = keys.qa || (first && st.qa) ? JSON.parse(JSON.stringify(st.qa || {})) : null;
-  for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; if (k === 'qa') { st.qa = { ...(st.qa || {}), ...(v || {}) }; continue; } st[k] = v; }
+  for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k) || k === 'day') continue; if (k === 'qa') { st.qa = { ...(st.qa || {}), ...(v || {}) }; continue; } st[k] = v; }
   if (qaBefore) qaAfterSync(qaBefore, keys.qa || {}, first);
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
   if ('castles' in keys) showCastles();
@@ -1627,7 +1686,8 @@ function onNet(m) {
       const mc = chars[i], oc = chars[1 - i]; if (!mc.seenMe) { mc.x = oc.x; mc.z = oc.z; mc.ry = oc.ry; mc.sc = oc.sc || scene; mc.seenMe = 1; }
       save(); updateHud(); refreshPush(); setTimeout(() => { if (!act && !$('#dlg').open) checkAway(); else st.awaySeen = Date.now(); MP.awayChecked = true; }, 1500);
     }
-    st.tod = m.clock.tod; st.day = m.clock.day; MP.expTod = st.tod;
+    if (m.role !== 'g' && !m.save.rt) { migrateRT(m.clock?.day || st.day, true); save(); } /* 伺服器上還是舊的天數：換成真實日期 */
+    st.tod = realTod(); st.day = realDay();
     for (const p of MP.peers.values()) if (p.c && p.role === 'g') OUT.remove(p.c.av.root);
     MP.peers.clear(); chars.forEach(c => { if (c.remote) c.remote = false; });
     m.peers.forEach(p => addPeer(p, true));
@@ -1643,11 +1703,11 @@ function onNet(m) {
   }
   if (m.t === 'pos') { const c = peerChar(m.id); if (!c) return; c.net = m; if (!c.seen) { c.seen = 1; c.x = m.x; c.z = m.z; c.ry = m.ry; } return; }
   if (m.t === 'emo') { const c = peerChar(m.id); if (!c) return; c.av.emote(m.k, m.d); if (m.k === 'kiss' || m.k === 'hug') burst('heart', headPos(c, 1.6), 5, 0.3); return; }
-  if (m.t === 'fx') { if (m.k === 'fw' && scene === 'out') launchFirework(!!m.a, true); if (m.k === 'sweet' && act?.id === 'bed') sweetNight(false); return; }
+  if (m.t === 'fx') { if (m.k === 'fw' && scene === 'out') launchFirework(!!m.a, true); if (m.k === 'sweet' && act?.id === 'bed') sweetNight(false); if (m.k === 'rare' && scene === 'out' && RARE[m.a]) rareStart(RARE[m.a].k, false); return; }
   if (m.t === 'boat') { if (W?.boat && !MP.driving) { MP.boatT = { x: m.x, z: m.z, ry: m.ry }; if (m.home) { W.boat.position.x = m.x; W.boat.position.z = m.z; W.boat.rotation.y = m.ry; MP.boatT = null; } } MP.boatAway = !m.home; return; }
   if (m.t === 'save') { applySave(m.keys); return; }
   if (m.t === 'memo') { st.diary.unshift(m.m); if (st.diary.length > 300) st.diary.length = 300; save(); return; }
-  if (m.t === 'clock') { st.tod = m.clock.tod; st.day = m.clock.day; MP.expTod = st.tod; updateHud(); return; }
+  if (m.t === 'clock') return; /* 島上時間＝台灣時間，不用伺服器的時鐘 */
   if (m.t === 'owner') { MP.owner = m.owner; if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
   if (m.t === 'paired') { if (MP.owner) { MP.owner.paired = true; MP.owner.pair = ''; } /* 邀請碼已經用掉了，不能當重新登入碼 */ toast('另一半加入小島了 ❤', 3500); burst('heart', headPos(me(), 1.6), 10); if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
   if (m.t === 'book') { if (MP.owner) MP.owner.book = [m.e, ...(MP.owner.book || [])]; if (MP.role !== 'g') toast(`📝 ${m.e.n}：${m.e.text}`, 4000); return; }
@@ -1833,6 +1893,7 @@ let WX = null, wNow = null, ambT = 0;
 function tickWeather(dt, k) {
   if (!WX) return;
   wNow = weatherAt(st.day, st.tod);
+  if (festToday()?.fx === 'snow') wNow = { ...wNow, kind: 'snow', icon: '❄️', name: '下雪' }; /* 平安夜、聖誕節、冬至：下雪 */
   WX.update(dt, wNow, me().av.root.position, k.night, scene === 'out', scene === 'out' ? W : null);
   if (IN) IN.winMat.color.lerp(new THREE.Color('#8a96a2'), WX.st.rain * 0.5);
   // 下雨：在屋外走動的人自己撐傘
@@ -1868,7 +1929,7 @@ function tickWeather(dt, k) {
 let umbT = 0, stepT = 0;
 
 // ---------- 小島幣、每日任務、收藏獎勵 ----------
-function addCoins(n, why) { if (MP.role === 'g' || !n) return; if (n > 0) sfx('coin'); st.coins = (st.coins || 0) + n; save(); updateChips(); if (why) toast(`${why}　+${n} 🪙`); }
+function addCoins(n, why) { if (MP.role === 'g' || !n) return; if (n > 0 && surpriseNow().k === 'golden') n *= 2; /* 金色時光：下午拿到的小島幣加倍 */ if (n > 0) sfx('coin'); st.coins = (st.coins || 0) + n; save(); updateChips(); if (why) toast(`${why}　+${n} 🪙`); }
 function questsToday() {
   if (MP.role === 'g') return [];
   if (!st.quests || st.quests.day !== st.day) {
@@ -1888,7 +1949,7 @@ function quest(k, n = 1) {
   if (!st.quests.bonus && list.every(x => x.n >= QUESTS.find(y => y[0] === x.k)[2])) {
     st.quests.bonus = true; st.questDays = (st.questDays || 0) + 1; addCoins(QUEST_BONUS);
     setTimeout(() => { toast(`🎉 今天的任務全部完成！+${QUEST_BONUS} 🪙`, 3500); burst('star', headPos(me(), 1.6), 10); }, 1500);
-    addLove(5); addMemo('📋', `完成了第 ${st.questDays} 天的每日任務`);
+    addLove(5, null, 'quest'); addMemo('📋', `完成了第 ${st.questDays} 天的每日任務`);
   }
   save(); updateChips(); checkMilestones();
 }
@@ -1914,7 +1975,7 @@ function openQuests() {
   sfx('click'); const list = questsToday(), s = seasonOf(st.day), w = weatherAt(st.day, st.tod);
   const rows = list.map(q => { const d = QUESTS.find(x => x[0] === q.k), ok = q.n >= d[2]; return `<div class="quest ${ok ? 'ok' : ''}"><span class="q-e">${ok ? '✅' : '⬜'}</span><b>${esc(d[1])}</b><span class="q-r">+${QUEST_COIN} 🪙</span><small>${q.n}/${d[2]}</small><div class="bar"><i style="width:${q.n / d[2] * 100}%"></i></div></div>`; }).join('');
   const ms = MILESTONES.map(([k, text, ok, coins, item]) => `<div class="quest ${st.rewards?.[k] ? 'ok' : ''}"><span class="q-e">${st.rewards?.[k] ? '🏆' : '🔒'}</span><b>${esc(text)}</b><span class="q-r">+${coins} 🪙</span><small>送「${esc(DECOR.find(d => d[0] === item)?.[1] || '')}」</small></div>`).join('');
-  openDlg('📋 今日任務', `${MP.role === 'g' ? '' : `<button type="button" class="memo qa-entry${qaTodo() ? ' todo' : ''}" id="q-qa"><span class="ic">💞</span><b>今日問答${qaTodo() ? '' : ' ✓'}</b><small>${esc(qaQ(twDate())[1])}</small></button>`}<div class="memo"><span class="ic">${surpriseToday().icon}</span><b>今日驚喜：${esc(surpriseToday().name)}${surpriseDone() ? ' ✓' : ''}</b><small>${esc(surpriseToday().tip)}</small></div><p class="muted"><span class="nw">小島第 ${st.day} 天</span>・<span class="nw">${s.icon} ${s.name}</span>・<span class="nw">${w.icon || '☀️'} ${w.name}</span></p>${rows}<p class="muted">三個都完成再加 ${QUEST_BONUS} 🪙 和甜蜜值，明天會換新的任務。</p><b>🏆 收藏獎勵</b>${ms}<button type="button" class="primary" id="q-shop">🪙 ${st.coins || 0} → 去買擺設</button>`);
+  openDlg('📋 今日任務', `${MP.role === 'g' ? '' : `<button type="button" class="memo qa-entry${qaTodo() ? ' todo' : ''}" id="q-qa"><span class="ic">💞</span><b>今日問答${qaTodo() ? '' : ' ✓'}</b><small>${esc(qaQ(twDate())[1])}</small></button>`}<b class="sur-h">今天的驚喜</b>${surpriseListHtml()}<p class="muted"><span class="nw">${dateOfDay(st.day).getUTCMonth() + 1} 月 ${dateOfDay(st.day).getUTCDate()} 日 週${WEEK[dateOfDay(st.day).getUTCDay()]}</span>・<span class="nw">小島第 ${islandDays()} 天</span>・${festToday() ? `<span class="nw">${festToday().icon} ${festToday().name}</span>・` : ''}<span class="nw">${s.icon} ${s.name}</span>・<span class="nw">${w.icon || '☀️'} ${w.name}</span></p>${rows}<p class="muted">三個都完成再加 ${QUEST_BONUS} 🪙 和甜蜜值，明天會換新的任務。</p><b>🏆 收藏獎勵</b>${ms}<button type="button" class="primary" id="q-shop">🪙 ${st.coins || 0} → 去買擺設</button>`);
   $('#q-shop').onclick = openShop; $('#q-qa')?.addEventListener('click', () => openQA());
 }
 
@@ -2238,8 +2299,8 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  if (started() && !document.hidden) { st.tod += dt / 36; if (st.tod >= 24) { st.tod -= 24; newDay(); toast(`第 ${st.day} 天了`); } }
-  const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : st.tod, cam.position);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
   if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickRemoteBikes(); tickBoatSync(dt); chars[0].av.mate = chars[1].av; chars[1].av.mate = chars[0].av; /* 情侶動作要知道對方身體在哪 */ nightK = k.night; tickFlash();
     // 天黑了提醒一次可以開手電筒
@@ -2406,7 +2467,7 @@ const qaTodo = () => MP.role !== 'g' && !st.qa?.[twDate()]?.a?.[myIdx()];
 function qaBadge() { const b = $('#quest-chip'); if (b) b.classList.toggle('dot', qaTodo()); }
 function qaReward(d) {
   const q = qaQ(d), n = qaStreak();
-  addLove(5, n > 1 ? `默契連續 ${n} 天 💞` : '兩個人都回答了 💞'); addCoins(15 + Math.min(5, n) * 2, '今日問答');
+  addLove(5, n > 1 ? `默契連續 ${n} 天 💞` : '兩個人都回答了 💞', 'qa'); addCoins(15 + Math.min(5, n) * 2, '今日問答');
   addMemo('💞', `一起回答了「${q[1].slice(0, 24)}${q[1].length > 24 ? '…' : ''}」`); burst('heart', headPos(me(), 1.4), 10, 0.4); sfx('chime');
 }
 function qaAnswer(text) {
@@ -2492,53 +2553,345 @@ function checkAway() {
 }
 
 // ================= 每日驚喜 =================
-const SURPRISES = [
-  { k: 'bunny', icon: '🐰', name: '迷路的小兔子', tip: '有隻小兔子迷路到小島上了，去找找牠吧', animal: 'rabbit', at: [[-6, 10], [6, 9], [-14, -5], [15, 1], [-3, 15]] },
-  { k: 'fish', icon: '🐟', name: '魚群日', tip: '今天碼頭魚群很多，魚比較快上鉤' },
-  { k: 'bottle', icon: '🍾', name: '海邊的瓶中信', tip: '沙灘上漂來一個瓶子，裡面好像有信', at: [[0, 26], [-8, 25.5], [12, 25], [5, 26.5]] },
-  { k: 'egg', icon: '🥚', name: '母雞好心情', tip: '母雞們今天心情很好，多下了兩顆蛋' },
-  { k: 'duck', icon: '🦆', name: '小鴨來散步', tip: '一隻小鴨子跑來島上散步', animal: 'duck', at: [[-8, 3], [-12, 4], [7, 12], [-2, 9]] },
-  { k: 'meteor', icon: '🌠', name: '流星雨之夜', tip: '今晚燈塔那邊會有很多流星' },
-  { k: 'gift', icon: '🎁', name: '門口的小包裹', tip: '小木屋門口多了一個包裹', at: [[1.6, -2.1]] },
-];
 const BOTTLE2 = ['「給撿到這封信的戀人：\n要記得常常說謝謝，也要常常說我愛你。」', '「我們在一起五十年了。\n秘訣是：吵架不過夜，早餐輪流做。」', '「今天的海很藍，\n希望你們的每一天也一樣。」', '「如果有一天迷路了，\n就回到最初牽手的地方。」', '「願你們把平凡的日子，\n過成想珍藏的回憶。」'];
+// ================= 每日驚喜：一天三個（早上 5–12、下午 12–18、晚上 18–5），兩個人看到的一樣 =================
+// kind：find＝島上多了東西或動物要去找；buff＝今天的好運（自動生效）。at：出現在哪一帶。r：獎勵
+// slot：m 早上、a 下午、e 晚上可以出現；season／wx：只在某個季節、天氣
+const SURPRISES = [
+  { k: 'gift', icon: '🎁', name: '門口的小包裹', tip: '小木屋門口多了一個包裹', obj: 'gift', at: 'door', slot: 'mae', r: { c: 15, l: 2, item: 'cheap' }, memo: '收到一個小包裹' },
+  { k: 'bottle', icon: '🍾', name: '海邊的瓶中信', tip: '沙灘上漂來一個瓶子，裡面好像有信', obj: 'bottle', at: 'beach', slot: 'ma', r: { c: 8, l: 2, letter: 'bottle' }, memo: '在沙灘撿到一封瓶中信' },
+  { k: 'loveletter', icon: '💌', name: '信箱旁的情書', tip: '信箱旁邊掉了一封粉紅色的信', obj: 'letter', at: 'mailbox', slot: 'mae', r: { c: 10, l: 3, letter: 'love' }, memo: '撿到一封沒有署名的情書' },
+  { k: 'bouquet', icon: '💐', name: '野花花束', tip: '菜園旁邊有人留了一束野花', obj: 'bouquet', at: 'garden', slot: 'ma', r: { c: 10, l: 3 }, open: '一束剛摘的野花，綁著緞帶。拿回家插在餐桌上吧。', memo: '收到一束野花' },
+  { k: 'chest', icon: '🧰', name: '沙灘上的寶箱', tip: '退潮後沙灘上露出一個小寶箱', obj: 'chest', at: 'beach', slot: 'a', r: { c: [30, 70], l: 2 }, open: '寶箱打開，裡面是閃閃發亮的小島幣！', memo: '在沙灘挖到寶箱' },
+  { k: 'balloon', icon: '🎈', name: '飄來的愛心氣球', tip: '一顆愛心氣球卡在鞦韆上', obj: 'balloon', at: 'swing', slot: 'a', r: { c: 10, l: 4 }, open: '氣球上寫著：「要一直一直在一起喔」', memo: '抓到一顆愛心氣球' },
+  { k: 'cake', icon: '🍰', name: '野餐墊上的小蛋糕', tip: '野餐墊上不知道誰放了兩塊小蛋糕', obj: 'cake', at: 'picnic', slot: 'a', r: { c: 8, l: 4 }, open: '剛好兩塊，一人一塊。是草莓口味的！', memo: '一起分吃了小蛋糕' },
+  { k: 'berries', icon: '🍓', name: '一籃草莓', tip: '菜園邊多了一籃新鮮草莓', obj: 'basket', at: 'garden', slot: 'm', r: { c: 15, l: 2 }, open: '紅通通的草莓，甜到心裡。', memo: '收到一籃草莓' },
+  { k: 'glowshell', icon: '🐚', name: '發光的貝殼', tip: '沙灘上有一顆貝殼在晚上發著光', obj: 'shell', at: 'beach', slot: 'e', r: { c: 25, l: 3 }, open: '貝殼裡面藏著一點點星光。放在耳邊，聽得到海浪聲。', memo: '撿到會發光的貝殼' },
+  { k: 'seeds', icon: '🌱', name: '神秘的種子', tip: '菜園邊多了一包沒寫名字的種子', obj: 'seed', at: 'garden', slot: 'm', r: { c: 5, l: 2, item: 'sunflower' }, open: '種下去，長出來的是一朵向日葵！已經放進擺設裡了。', memo: '種出了神秘的向日葵' },
+  { k: 'strawhat', icon: '👒', name: '被風吹來的草帽', tip: '海風把一頂草帽吹到沙灘上', obj: 'hat', at: 'beach', slot: 'a', r: { c: 12, l: 2 }, open: '帽簷上別著一朵小花，好像是誰的夏天回憶。', memo: '撿到一頂草帽' },
+  { k: 'lantern', icon: '🏮', name: '漂來的小燈籠', tip: '海邊漂來一盞亮著的小燈籠', obj: 'lantern', at: 'beach', slot: 'e', r: { c: 10, l: 4 }, open: '燈籠上寫著：「願你們平安喜樂」。', memo: '撿到一盞漂來的燈籠' },
+  { k: 'camera', icon: '📷', name: '燈塔下的舊相機', tip: '燈塔下面有一台舊底片相機', obj: 'camera', at: 'lighthouse', slot: 'a', r: { c: 20, l: 2 }, open: '還剩一張底片。用它拍下今天的你們吧。', memo: '撿到一台舊相機' },
+  { k: 'fallenstar', icon: '⭐', name: '掉下來的星星', tip: '燈塔那邊的山坡上，有一顆星星掉下來了', obj: 'star', at: 'lighthouse', slot: 'e', r: { c: 30, l: 5 }, open: '星星暖暖的，握在手心會發光。許個願吧。', memo: '撿到一顆掉下來的星星' },
+  { k: 'clover', icon: '🍀', name: '四葉草', tip: '草地上長了一株四葉草，找找看', obj: 'clover', at: 'grass', slot: 'm', r: { c: 20, l: 3 }, open: '找到了！聽說找到四葉草的人，今天會特別幸運。', memo: '找到一株四葉草' },
+  { k: 'cookie', icon: '🍪', name: '狗狗叼來的餅乾', tip: '狗狗好像藏了一塊餅乾要給你', obj: 'cookie', at: 'door', slot: 'm', r: { c: 5, l: 3 }, open: '狗狗把餅乾推到你腳邊，尾巴搖個不停。', memo: '狗狗送了一塊餅乾' },
+  { k: 'umbrella', icon: '☂️', name: '被忘記的傘', tip: '路邊有一把被忘記的傘', obj: 'umbrella', at: 'grass', slot: 'mae', wx: 'rain', r: { c: 15, l: 3 }, open: '傘柄上綁著紙條：「下雨天，要撐同一把傘」。', memo: '撿到一把傘' },
+  { k: 'kite', icon: '🪁', name: '卡在樹上的風箏', tip: '愛情樹旁邊卡著一只風箏', obj: 'kite', at: 'tree', slot: 'a', r: { c: 12, l: 2 }, open: '把風箏拿下來，尾巴上寫著兩個名字的縮寫。', memo: '救下一只卡住的風箏' },
+  { k: 'cocoa', icon: '☕', name: '冒著熱氣的可可', tip: '門口放了兩杯熱可可，還在冒煙', obj: 'mug', at: 'door', slot: 'm', season: ['autumn', 'winter'], r: { c: 8, l: 4 }, open: '兩杯熱可可，上面還有棉花糖。一起喝吧。', memo: '一起喝了門口的熱可可' },
+  { k: 'moonstone', icon: '🌙', name: '月光石', tip: '月光照到的地方，有一顆石頭在發光', obj: 'stone', at: 'grass', slot: 'e', r: { c: 40, l: 2 }, open: '月光石摸起來涼涼的，只在晚上發光。', memo: '撿到一顆月光石' },
+  { k: 'bracelet', icon: '📿', name: '沙灘上的手環', tip: '沙灘上有兩條一樣的手環', obj: 'ring', at: 'beach', slot: 'a', r: { c: 10, l: 5 }, open: '剛好兩條，一人一條，就是情侶手環了。', memo: '撿到一對情侶手環' },
+  { k: 'snowglobe', icon: '🔮', name: '雪花球', tip: '門口有一顆雪花球，裡面是我們的小島', obj: 'globe', at: 'door', slot: 'mae', season: ['winter'], r: { c: 15, l: 4 }, open: '搖一搖，小島上下起了雪。', memo: '收到一顆雪花球' },
+  { k: 'pinecone', icon: '🌰', name: '松果', tip: '秋天的樹下掉了一顆大松果', obj: 'cone', at: 'tree', slot: 'ma', season: ['autumn'], r: { c: 15, l: 2 }, open: '圓滾滾的松果，可以放在窗台當裝飾。', memo: '撿到一顆大松果' },
+  { k: 'seaglass', icon: '💎', name: '海玻璃', tip: '浪退的地方有一片藍綠色的海玻璃', obj: 'glass', at: 'beach', slot: 'm', r: { c: 18, l: 2 }, open: '被海浪磨了很多年，摸起來圓圓的。', memo: '撿到一片海玻璃' },
+  { k: 'postcard', icon: '🪧', name: '遠方的明信片', tip: '信箱裡多了一張明信片', obj: 'postcard', at: 'mailbox', slot: 'm', r: { c: 10, l: 2, letter: 'postcard' }, memo: '收到一張遠方的明信片' },
+  { k: 'wishjar', icon: '🫙', name: '星星許願瓶', tip: '燈塔旁有一個裝滿小星星的瓶子', obj: 'jar', at: 'lighthouse', slot: 'e', r: { c: 10, l: 4, wish: true }, memo: '在許願瓶裡放了一個願望' },
+  { k: 'sandheart', icon: '❤️', name: '沙灘上的愛心', tip: '有人在沙灘上畫了一個大愛心', obj: 'sandheart', at: 'beach', slot: 'm', r: { c: 5, l: 5 }, open: '大大的愛心裡面，寫著你們兩個的名字。', memo: '在沙灘上發現一顆大愛心' },
+  { k: 'butterfly', icon: '🦋', name: '停在花上的蝴蝶', tip: '菜園的花上停了一隻藍色的蝴蝶', obj: 'butterfly', at: 'garden', slot: 'a', season: ['spring', 'summer'], r: { c: 8, l: 3 }, open: '蝴蝶繞著你飛了一圈，才飛走。', memo: '遇到一隻藍色的蝴蝶' },
+  { k: 'feather', icon: '🪶', name: '海鷗的羽毛', tip: '碼頭上掉了一根白色的羽毛', obj: 'feather', at: 'dock', slot: 'a', r: { c: 8, l: 2 }, open: '輕輕的羽毛。夾在回憶本裡當書籤吧。', memo: '撿到一根海鷗羽毛' },
+  { k: 'musicbox', icon: '🎼', name: '音樂盒', tip: '營火旁邊放著一個小音樂盒', obj: 'musicbox', at: 'campfire', slot: 'e', r: { c: 12, l: 4 }, open: '打開音樂盒，響起一首很溫柔的曲子。一起聽完它吧。', memo: '一起聽了音樂盒的曲子' },
+  { k: 'basketpicnic', icon: '🧺', name: '準備好的野餐籃', tip: '櫻花樹下有一個準備好的野餐籃', obj: 'basket', at: 'picnic', slot: 'a', r: { c: 15, l: 3, food: ['雞蛋', 2] }, open: '裡面有三明治、水果，還有兩顆雞蛋（已經放進冰箱）。', memo: '收到一個野餐籃' },
+  { k: 'future', icon: '✉️', name: '未來寄來的信', tip: '信箱裡有一封日期寫著「一年後」的信', obj: 'letter', at: 'mailbox', slot: 'm', r: { c: 10, l: 4, letter: 'future' }, memo: '收到一封未來寄來的信' },
+  { k: 'rose', icon: '🌹', name: '門口的一朵玫瑰', tip: '小木屋門口放著一朵玫瑰', obj: 'rose', at: 'door', slot: 'e', r: { c: 8, l: 5 }, open: '玫瑰上的小卡片寫著：「今天也很喜歡你」。', memo: '門口出現一朵玫瑰' },
+  { k: 'compass', icon: '🧭', name: '舊羅盤', tip: '碼頭的木板縫裡卡著一個舊羅盤', obj: 'compass', at: 'dock', slot: 'a', r: { c: 25, l: 2 }, open: '羅盤的指針沒有指北，一直指著小木屋的方向。', memo: '撿到一個奇怪的羅盤' },
+  { k: 'float', icon: '🔵', name: '漂來的玻璃浮球', tip: '碼頭邊漂來一顆藍色的玻璃浮球', obj: 'float', at: 'dock', slot: 'm', r: { c: 20, l: 2 }, open: '老漁夫用的玻璃浮球，在陽光下好漂亮。', memo: '撿到一顆玻璃浮球' },
+  { k: 'candles', icon: '🕯️', name: '沙灘上的蠟燭愛心', tip: '沙灘上有人用蠟燭排了一個愛心', obj: 'candles', at: 'beach', slot: 'e', r: { c: 10, l: 6 }, open: '蠟燭排成的愛心在海風裡搖曳。坐下來待一會兒吧。', memo: '在蠟燭愛心旁邊待了一會兒' },
+  { k: 'crane', icon: '🕊️', name: '紙鶴', tip: '吊床上停著一隻紙鶴', obj: 'crane', at: 'hammock', slot: 'a', r: { c: 10, l: 3 }, open: '紙鶴的翅膀內側寫著：「謝謝你出現在我的生命裡」。', memo: '在吊床上發現一隻紙鶴' },
+  { k: 'honey', icon: '🍯', name: '蜂蜜罐', tip: '雞舍旁邊多了一罐蜂蜜', obj: 'honey', at: 'coop', slot: 'm', r: { c: 15, l: 2 }, open: '金黃色的蜂蜜，抹在鬆餅上一定很好吃。', memo: '收到一罐蜂蜜' },
+  { k: 'bunny', icon: '🐰', name: '迷路的小兔子', tip: '有隻小兔子迷路到小島上了，去找找牠吧', animal: 'rabbit', at: 'grass', slot: 'ma', r: { c: 10, l: 3 }, memo: '摸了迷路的小兔子' },
+  { k: 'duck', icon: '🦆', name: '小鴨來散步', tip: '一隻小鴨子跑來島上散步', animal: 'duck', at: 'grass', slot: 'ma', r: { c: 10, l: 3 }, memo: '遇到來散步的小鴨子' },
+  { k: 'kitty', icon: '🐈', name: '流浪貓來拜訪', tip: '一隻橘貓跑來島上，好像在找人', animal: 'cat-base', at: 'grass', slot: 'ae', r: { c: 10, l: 3 }, memo: '摸到來拜訪的橘貓' },
+  { k: 'crabs', icon: '🦀', name: '寄居蟹搬家', tip: '沙灘上有一隻寄居蟹正在找新家', animal: 'hermit-crab-base', at: 'beach', slot: 'a', r: { c: 12, l: 2 }, memo: '幫寄居蟹找到新家' },
+  { k: 'chick', icon: '🐔', name: '逃家的母雞', tip: '有一隻母雞跑出雞舍了，把牠找回來', animal: 'chicken-base', at: 'grass', slot: 'm', r: { c: 12, l: 2, food: ['雞蛋', 1] }, memo: '把逃家的母雞帶回來' },
+  { k: 'gullmail', icon: '🐦', name: '送信的海鷗', tip: '一隻海鷗叼著信停在碼頭', animal: 'herring-gull-base', at: 'dock', slot: 'm', r: { c: 10, l: 2, letter: 'postcard' }, memo: '海鷗送來一封信' },
+  { k: 'fish', icon: '🐟', name: '魚群日', tip: '今天碼頭魚群很多，魚比較快上鉤', buff: 1, slot: 'm' },
+  { k: 'egg', icon: '🥚', name: '母雞好心情', tip: '母雞們今天心情很好，多下了兩顆蛋', buff: 1, slot: 'm' },
+  { k: 'meteor', icon: '🌠', name: '流星雨之夜', tip: '今晚燈塔那邊會有很多流星', buff: 1, slot: 'e' },
+  { k: 'golden', icon: '✨', name: '金色時光', tip: '這段時間做事拿到的小島幣加倍', buff: 1, slot: 'a' },
+  { k: 'shellday', icon: '🐚', name: '貝殼大潮', tip: '大潮過後，沙灘上的貝殼特別多', buff: 1, slot: 'm' },
+  { k: 'lucky', icon: '🍀', name: '幸運日', tip: '今天特別幸運，比較容易釣到稀有的魚', buff: 1, slot: 'ma' },
+  { k: 'sweetday', icon: '💗', name: '甜蜜加倍', tip: '今天的甜蜜值上限多 20', buff: 1, slot: 'e' },
+  { k: 'breeze', icon: '🌬️', name: '好風日', tip: '海風剛剛好，風箏可以飛到最高', buff: 1, slot: 'a' },
+  { k: 'concert', icon: '🎶', name: '營火音樂會', tip: '今晚在營火邊彈吉他，甜蜜值多一點', buff: 1, slot: 'e' },
+  { k: 'chef', icon: '🍳', name: '主廚日', tip: '今天做料理拿到的小島幣加倍', buff: 1, slot: 'ma' },
+  { k: 'heartcloud', icon: '☁️', name: '愛心雲', tip: '抬頭看看天空，有一朵愛心形狀的雲', buff: 1, slot: 'ma', sky: 'heart' },
+  { k: 'fireflies', icon: '✨', name: '螢火蟲之夜', tip: '今晚螢火蟲特別多，去草地看看', buff: 1, slot: 'e', season: ['spring', 'summer'] },
+  { k: 'starry', icon: '🌌', name: '銀河之夜', tip: '今晚的星星特別多，抬頭就看得到銀河', buff: 1, slot: 'e', wx: 'clear' },
+];
+const LETTERS2 = {
+  bottle: () => BOTTLE2,
+  love: () => ['「每次看到你笑，\n我就覺得這座島是對的地方。」', '「你不知道，\n你說晚安的聲音，是我一天最期待的。」', '「如果可以，\n我想跟你一起看完每一個季節。」', '「謝謝你，\n讓平凡的日子都變成了紀念日。」'],
+  postcard: () => ['「這裡的雪好大，\n但我想起你們島上的夏天就不冷了。—— 北海道」', '「看到一對老夫妻牽手散步，\n祝你們也一樣。—— 京都」', '「夕陽好美，\n可惜身邊少了一個人。—— 巴黎」', '「海是同一片海，\n祝你們每天都好。—— 墾丁」'],
+  future: () => ['「一年後的你們：\n還是每天說早安晚安嗎？我猜是的。」', '「嘿，一年後的我們，\n記得今天的你們有多喜歡彼此。」', '「給未來的我們：\n不管發生什麼，都要一起回到這座島。」'],
+};
 const dayHash = d => { let x = (d * 2654435761) >>> 0; x ^= x >>> 13; return (x * 1274126177) >>> 0; };
-const surpriseToday = () => SURPRISES[dayHash(st.day) % SURPRISES.length];
-const surpriseDone = () => st.surprise?.day === st.day && !!st.surprise.done;
-const surpriseIs = k => surpriseToday().k === k;
-const SUR = { obj: null, a: null, day: 0 };
+const SLOT_NAMES = ['早上', '下午', '晚上'], SLOT_KEY = 'mae';
+const slotNow = () => st.tod >= 5 && st.tod < 12 ? 0 : st.tod >= 12 && st.tod < 18 ? 1 : 2;
+const surDay = () => st.tod < 5 ? st.day - 1 : st.day; /* 半夜 0–5 點還算前一天的晚上 */
+/* 某一天某個時段的驚喜：依季節、天氣挑，兩支手機算出來一樣，同一天三個不重複 */
+function surpriseAt(day, slot) {
+  const s = seasonOf(day).k, used = [];
+  for (let i = 0; i <= slot; i++) {
+    const wx = weatherAt(day, i === 0 ? 8 : i === 1 ? 14 : 20).kind;
+    const pool = SURPRISES.filter(x => x.slot.includes(SLOT_KEY[i]) && (!x.season || x.season.includes(s)) && (!x.wx || x.wx === wx) && !used.includes(x));
+    used.push(pool[dayHash(day * 3 + i + 11) % pool.length]);
+  }
+  return used[slot];
+}
+const surpriseNow = () => surpriseAt(surDay(), slotNow());
+const surpriseToday = surpriseNow;
+const surDone = slot => st.surprise?.day === surDay() && !!st.surprise.done?.[slot];
+const surpriseDone = () => surDone(slotNow());
+/* buff：今天已經到了的時段裡有這個好運就生效 */
+const surpriseIs = k => [0, 1, 2].some(i => i <= slotNow() && surpriseAt(surDay(), i).k === k);
+const SUR = { obj: null, a: null, day: 0, slot: -1, sky: null };
 function clearSurprise() { if (SUR.a) { OUT.remove(SUR.a.o); const i = animals.indexOf(SUR.a); if (i >= 0) animals.splice(i, 1); } else if (SUR.obj) OUT.remove(SUR.obj); SUR.obj = SUR.a = null; }
+/* 驚喜出現的地方 */
+function surSpot(at, seed) {
+  const R = n => (dayHash(seed + n) % 1000) / 1000;
+  const near = (p, r = 1.6) => [p.x + (R(1) - 0.5) * r * 2, p.z + (R(2) - 0.5) * r * 2];
+  let x, z;
+  if (at === 'beach') { const a = R(3) * Math.PI * 2, rr = shoreR(Math.cos(a), Math.sin(a)) - 9.4; x = Math.cos(a) * rr; z = Math.sin(a) * rr; if (x > 24 && Math.abs(z) < 4) { x = -x; } }
+  else if (at === 'grass') { const a = R(3) * Math.PI * 2, rr = 5 + R(4) * 12; x = Math.cos(a) * rr; z = Math.sin(a) * rr; }
+  else if (at === 'dock') { x = SPOTS.fishing.x - 4 - R(5) * 6; z = (R(6) - 0.5) * 1.2; }
+  else if (at === 'tree') [x, z] = near({ x: TREE.x, z: TREE.z + 1.6 }, 1.2);
+  else if (at === 'lighthouse') [x, z] = near({ x: SPOTS.sunset.x + 1.6, z: SPOTS.sunset.z + 1 }, 1.4);
+  else if (at === 'door') [x, z] = near({ x: SPOTS.door.x + 1.4, z: SPOTS.door.z + 0.8 }, 0.8);
+  else { const P = SPOTS[at] || SPOTS.door; [x, z] = near({ x: P.x, z: P.z + 1.4 }, 1.4); }
+  if (!onDock(x, z) && !walkable(x, z)) [x, z] = freeSpot(x, z); else if (!onDock(x, z)) [x, z] = freeSpot(x, z);
+  return [x, z];
+}
+/* 驚喜的小東西：用簡單的形狀拼出來，頭上有一顆閃亮的星星提示 */
+function surObj(type) {
+  const g = new THREE.Group(), M = c => toon(c), add = (geo, c, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, e) => { const m = new THREE.Mesh(geo, e ? new THREE.MeshBasicMaterial({ color: c }) : M(c)); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); g.add(m); return m; };
+  const B = (w, h, d) => new THREE.BoxGeometry(w, h, d), S = r => new THREE.SphereGeometry(r, 14, 10), C = (r1, r2, h, n = 12) => new THREE.CylinderGeometry(r1, r2, h, n);
+  switch (type) {
+    case 'gift': add(B(0.42, 0.34, 0.42), '#ff9ab8', 0, 0.17); add(B(0.44, 0.35, 0.08), '#fff6d6', 0, 0.17); add(B(0.08, 0.35, 0.44), '#fff6d6', 0, 0.17); add(S(0.08), '#fff6d6', 0, 0.38); break;
+    case 'bottle': add(C(0.09, 0.11, 0.42), '#9fd6c8', 0, 0.09, 0, 0, 0, Math.PI / 2 - 0.25); add(C(0.04, 0.04, 0.08, 8), '#a0703e', 0.24, 0.13, 0, 0, 0, Math.PI / 2 - 0.25); break;
+    case 'letter': case 'postcard': add(B(0.42, 0.03, 0.3), type === 'letter' ? '#ffe4ec' : '#fff6e0', 0, 0.03); add(B(0.1, 0.035, 0.1), '#e8506a', 0, 0.05, 0, 0, Math.PI / 4); break;
+    case 'bouquet': add(C(0.05, 0.03, 0.36, 8), '#5a9a4a', 0, 0.18, 0, 0, 0, 0.3); ['#ff8aa8', '#ffd25a', '#ffffff', '#c89aff', '#ff6a6a'].forEach((c, i) => add(S(0.08), c, -0.12 + Math.cos(i) * 0.1, 0.38 + Math.sin(i * 2) * 0.05, Math.sin(i) * 0.1)); add(B(0.14, 0.06, 0.14), '#ff9ab8', -0.04, 0.22); g.rotation.z = -0.3; break;
+    case 'chest': add(B(0.5, 0.3, 0.34), '#a0683a', 0, 0.15); add(C(0.17, 0.17, 0.5, 12), '#b8784a', 0, 0.3, 0, 0, 0, Math.PI / 2); add(B(0.08, 0.12, 0.04), '#ffd25a', 0, 0.28, 0.18); break;
+    case 'balloon': { add(C(0.004, 0.004, 1.4, 4), '#ffffff', 0, 0.7); const h = add(S(0.22), '#ff5d88', 0, 1.55); h.scale.set(1, 1.15, 0.9); break; }
+    case 'cake': [-0.14, 0.14].forEach(x => { add(C(0.12, 0.12, 0.14, 3), '#fff1d8', x, 0.07); add(S(0.04), '#ff4060', x, 0.17); }); add(C(0.32, 0.32, 0.02, 20), '#ffffff', 0, 0.01); break;
+    case 'basket': add(C(0.2, 0.15, 0.2, 12), '#c8945a', 0, 0.1); for (let i = 0; i < 6; i++) add(S(0.06), i % 2 ? '#ff3a4a' : '#ff6a6a', Math.cos(i) * 0.1, 0.22, Math.sin(i) * 0.1); add(new THREE.TorusGeometry(0.17, 0.015, 6, 16, Math.PI), '#a0703e', 0, 0.2); break;
+    case 'shell': add(S(0.13), '#ffe6f4', 0, 0.06).scale.y = 0.45; add(S(0.05), '#bff4ff', 0, 0.1, 0, 0, 0, 0, true); break;
+    case 'seed': add(B(0.22, 0.3, 0.03), '#e8d0a0', 0, 0.15); add(S(0.05), '#5a9a4a', 0, 0.2, 0.02); break;
+    case 'hat': add(C(0.3, 0.3, 0.02, 20), '#f2d48a', 0, 0.02); add(C(0.14, 0.16, 0.14, 16), '#f2d48a', 0, 0.09); add(C(0.165, 0.165, 0.04, 16), '#ff8aa8', 0, 0.05); break;
+    case 'lantern': add(C(0.14, 0.12, 0.3, 10), '#ffb35c', 0, 0.2, 0, 0, 0, 0, true); add(C(0.15, 0.15, 0.03, 10), '#8a4a2a', 0, 0.36); add(C(0.13, 0.13, 0.03, 10), '#8a4a2a', 0, 0.05); break;
+    case 'camera': add(B(0.3, 0.18, 0.12), '#3a3a40', 0, 0.09); add(C(0.06, 0.06, 0.08, 14), '#c8c8d0', 0, 0.09, 0.09, Math.PI / 2); add(B(0.08, 0.04, 0.06), '#c8c8d0', -0.08, 0.2); break;
+    case 'star': { const s = add(new THREE.OctahedronGeometry(0.2), '#fff2a0', 0, 0.3, 0, 0, 0, 0, true); s.scale.set(1, 1, 0.5); break; }
+    case 'clover': add(C(0.01, 0.01, 0.18, 4), '#4a8a3a', 0, 0.09); [0, 1, 2, 3].forEach(i => add(S(0.06), '#5ac85a', Math.cos(i * Math.PI / 2) * 0.06, 0.19, Math.sin(i * Math.PI / 2) * 0.06).scale.y = 0.3); break;
+    case 'cookie': add(C(0.12, 0.12, 0.04, 16), '#d8a060', 0, 0.02); [0, 1, 2].forEach(i => add(S(0.02), '#5a3020', Math.cos(i * 2) * 0.06, 0.045, Math.sin(i * 2) * 0.06)); break;
+    case 'umbrella': add(C(0.01, 0.01, 0.9, 6), '#5a4030', 0.1, 0.12, 0, 0, 0, 1.2); add(new THREE.SphereGeometry(0.4, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), '#7ab8ff', -0.25, 0.22, 0, 0, 0, 1.2); break;
+    case 'mug': [-0.1, 0.1].forEach(x => { add(C(0.07, 0.06, 0.14, 12), '#fff6ea', x, 0.07); add(C(0.06, 0.06, 0.01, 12), '#7a4a2a', x, 0.14); }); break;
+    case 'stone': add(new THREE.IcosahedronGeometry(0.13, 0), '#bfe8ff', 0, 0.1, 0, 0, 0, 0, true); break;
+    case 'ring': [-0.08, 0.08].forEach(x => add(new THREE.TorusGeometry(0.09, 0.02, 8, 18), '#ff9ab8', x, 0.02, 0, Math.PI / 2)); break;
+    case 'globe': add(S(0.16), '#cfefff', 0, 0.22); add(C(0.14, 0.16, 0.08, 14), '#8a5a3a', 0, 0.04); break;
+    case 'cone': add(new THREE.ConeGeometry(0.1, 0.24, 8), '#8a5a3a', 0, 0.12); break;
+    case 'glass': add(new THREE.DodecahedronGeometry(0.09), '#7ad8c8', 0, 0.05).scale.y = 0.4; break;
+    case 'jar': add(C(0.12, 0.12, 0.26, 14), '#d8f0ff', 0, 0.13); add(C(0.08, 0.08, 0.05, 12), '#a0703e', 0, 0.28); for (let i = 0; i < 5; i++) add(S(0.03), '#fff2a0', Math.cos(i) * 0.05, 0.08 + i * 0.03, Math.sin(i) * 0.05, 0, 0, 0, true); break;
+    case 'sandheart': { const sh = new THREE.Shape(); sh.moveTo(0, -0.7); sh.bezierCurveTo(-0.1, -0.56, -0.9, -0.1, -0.9, 0.34); sh.bezierCurveTo(-0.9, 0.76, -0.44, 0.94, 0, 0.6); sh.bezierCurveTo(0.44, 0.94, 0.9, 0.76, 0.9, 0.34); sh.bezierCurveTo(0.9, -0.1, 0.1, -0.56, 0, -0.7);
+      const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({ color: '#d8b888' })); m.rotation.x = -Math.PI / 2; m.position.y = 0.03; g.add(m); const m2 = m.clone(); m2.material = new THREE.MeshBasicMaterial({ color: '#f2dcb4' }); m2.scale.setScalar(0.82); m2.position.y = 0.035; g.add(m2); break; }
+    case 'butterfly': add(C(0.01, 0.01, 0.4, 4), '#4a8a3a', 0, 0.2); add(S(0.07), '#ffd25a', 0, 0.42); [-1, 1].forEach(s => add(B(0.12, 0.01, 0.1), '#5aa8ff', s * 0.07, 0.5, 0, 0, 0, s * 0.5)); break;
+    case 'feather': add(B(0.06, 0.01, 0.34), '#ffffff', 0, 0.02, 0, 0, 0.6); break;
+    case 'musicbox': add(B(0.28, 0.16, 0.2), '#c8784a', 0, 0.08); add(B(0.28, 0.02, 0.2), '#ffd25a', 0, 0.17); break;
+    case 'rose': add(C(0.01, 0.01, 0.4, 4), '#3a7a3a', 0, 0.2, 0, 0, 0, 1.3); add(S(0.07), '#e8203a', 0.2, 0.06); break;
+    case 'compass': add(C(0.12, 0.12, 0.04, 18), '#c8a04a', 0, 0.02); add(C(0.1, 0.1, 0.01, 18), '#fff6e0', 0, 0.045); add(B(0.02, 0.01, 0.16), '#e8203a', 0, 0.05); break;
+    case 'float': add(S(0.16), '#5aa8e8', 0, 0.14); break;
+    case 'candles': for (let i = 0; i < 14; i++) { const t = i / 14 * Math.PI * 2, x = 16 * Math.sin(t) ** 3 * 0.045, z = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * 0.045; add(C(0.03, 0.03, 0.1, 8), '#fff6ea', x, 0.05, z); add(S(0.025), '#ffcc55', x, 0.12, z, 0, 0, 0, true); } break;
+    case 'crane': add(new THREE.ConeGeometry(0.08, 0.2, 4), '#ff9ab8', 0, 0.1, 0, Math.PI / 2); [-1, 1].forEach(s => add(B(0.2, 0.01, 0.08), '#ffb8cc', s * 0.1, 0.12, 0, 0, 0, s * 0.4)); break;
+    case 'honey': add(C(0.1, 0.11, 0.18, 12), '#f2b030', 0, 0.09); add(C(0.11, 0.11, 0.04, 12), '#e86a8a', 0, 0.2); break;
+    case 'kite': add(new THREE.OctahedronGeometry(0.3, 0), '#ff7aa8', 0, 1.4, 0, 0, 0, 0).scale.set(1, 1.2, 0.08); break;
+    default: add(B(0.3, 0.3, 0.3), '#ff9ab8', 0, 0.15);
+  }
+  const sp = new THREE.Mesh(new THREE.OctahedronGeometry(0.07), new THREE.MeshBasicMaterial({ color: '#fff6a0' })); sp.position.y = type === 'kite' ? 2 : type === 'balloon' ? 2 : 0.8; sp.userData.spark = 1; g.add(sp); /* 頭上閃亮的提示 */
+  return g;
+}
 async function setupSurprise() {
-  if (!W) return; const s = surpriseToday();
-  if (SUR.day === st.day && (SUR.obj || SUR.a) && !surpriseDone()) return;
-  clearSurprise(); SUR.day = st.day; if (!s.at || surpriseDone()) return;
-  let [x, z] = s.at[dayHash(st.day + 3) % s.at.length]; if (!walkable(x, z)) [x, z] = freeSpot(x, z);
-  if (s.animal) { const a = await animal(OUT, s.animal, x, z, { s: s.animal === 'duck' ? 0.9 : 1, roam: 1.5, speed: 0.45 }); if (!a || SUR.day !== st.day) { if (a) { OUT.remove(a.o); animals.splice(animals.indexOf(a), 1); } return; } SUR.a = a; SUR.obj = a.o; return; }
-  const g = new THREE.Group(); g.position.set(x, standH(x, z), z); OUT.add(g); SUR.obj = g;
-  if (s.k === 'bottle') { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.42, 12), toon('#9fd6c8', { transparent: true, opacity: 0.85 })); b.rotation.z = Math.PI / 2 - 0.25; b.position.y = 0.09; g.add(b); const c = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.08, 8), toon('#a0703e')); c.rotation.z = Math.PI / 2 - 0.25; c.position.set(0.25, 0.14, 0); g.add(c); const paper = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.24, 8), toon('#fbf3e4')); paper.rotation.z = b.rotation.z; paper.position.y = 0.09; g.add(paper); }
-  if (s.k === 'gift') { const b = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.34, 0.42), toon('#ff9ab8')); b.position.y = 0.17; g.add(b); const r1 = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.35, 0.08), toon('#fff6d6')); r1.position.y = 0.17; g.add(r1); const r2 = r1.clone(); r2.rotation.y = Math.PI / 2; g.add(r2); const bow = heartMesh(0.09, toon('#fff6d6')); bow.position.y = 0.4; g.add(bow); }
+  if (!W) return; const slot = slotNow(), s = surpriseNow();
+  if (SUR.day === surDay() && SUR.slot === slot && (SUR.obj || SUR.a || s.buff) && !surDone(slot)) return;
+  clearSurprise(); SUR.day = surDay(); SUR.slot = slot; drawSurSky();
+  if (s.buff || surDone(slot)) return;
+  const [x, z] = surSpot(s.at, surDay() * 7 + slot);
+  if (s.animal) { const a = await animal(OUT, s.animal, x, z, { s: s.animal === 'duck' ? 0.9 : 1, roam: 1.5, speed: 0.45 }); if (!a || SUR.day !== surDay() || SUR.slot !== slot) { if (a) { OUT.remove(a.o); animals.splice(animals.indexOf(a), 1); } return; } SUR.a = a; SUR.obj = a.o; return; }
+  const g = surObj(s.obj); g.position.set(x, onDock(x, z) ? DOCK.y : standH(x, z), z); g.rotation.y = (dayHash(surDay() + slot) % 628) / 100; OUT.add(g); SUR.obj = g;
+}
+/* 天上的驚喜：愛心雲、銀河 */
+function drawSurSky() {
+  if (SUR.sky) { OUT.remove(SUR.sky); SUR.sky = null; }
+  if (![0, 1, 2].some(i => i <= slotNow() && surpriseAt(surDay(), i).sky === 'heart')) return;
+  const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.92, fog: false });
+  for (let i = 0; i < 26; i++) { const t = i / 26 * Math.PI * 2, x = 16 * Math.sin(t) ** 3, y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t); const b = new THREE.Mesh(new THREE.SphereGeometry(2.2, 10, 8), m); b.position.set(x * 0.55, y * 0.55, 0); g.add(b); }
+  g.position.set(-10, 34, -60); g.lookAt(0, 20, 0); OUT.add(g); SUR.sky = g;
+}
+/* 換時段時：換下一個驚喜、提醒一次 */
+let surTick = 0;
+function tickSurprise(dt) {
+  if (!started() || MP.role === 'g') return; surTick += dt; if (surTick < 1.5) return; surTick = 0;
+  if (SUR.slot !== slotNow() || SUR.day !== surDay()) { setupSurprise(); announceSurprise(); }
+  if (SUR.obj) SUR.obj.traverse(o => { if (o.userData.spark) { o.rotation.y += 0.4; o.position.y += Math.sin(performance.now() / 300) * 0.01; } });
 }
 function announceSurprise() {
-  if (MP.role === 'g' || st.surpriseSeen === st.day) return; st.surpriseSeen = st.day;
-  const s = surpriseToday(); setTimeout(() => toast(`${s.icon} 今日驚喜：${s.tip}`, 5500), 3200);
+  if (MP.role === 'g' || !started()) return; const key = `${surDay()}-${slotNow()}`; if (st.surpriseSeen === key) return; st.surpriseSeen = key;
+  const s = surpriseNow(); setTimeout(() => toast(`${s.icon} ${SLOT_NAMES[slotNow()]}的驚喜：${s.tip}`, 5500), 3200);
 }
-function finishSurprise() { st.surprise = { day: st.day, done: true }; save(); }
+function finishSurprise() { const slot = slotNow(); if (st.surprise?.day !== surDay() || !Array.isArray(st.surprise.done)) st.surprise = { day: surDay(), done: [false, false, false] }; st.surprise.done[slot] = true; st.surFound = (st.surFound || 0) + 1; save(); }
+function surReward(s) {
+  const r = s.r || {}, c = Array.isArray(r.c) ? Math.round(rand(r.c[0], r.c[1])) : r.c || 0; let extra = '';
+  if (r.item) { const pool = r.item === 'cheap' ? DECOR.filter(d => d[2] <= 60) : null, it = pool ? pool[dayHash(surDay() + 5) % pool.length] : DECOR.find(d => d[0] === r.item); if (it) { st.inv = st.inv || {}; st.inv[it[0]] = (st.inv[it[0]] || 0) + 1; extra = `「${it[1]}」已經放進擺設裡（點 🪙 就能擺）。`; } }
+  if (r.food) { st.pantry = st.pantry || {}; st.pantry[r.food[0]] = (st.pantry[r.food[0]] || 0) + r.food[1]; }
+  if (c) addCoins(c, `${s.icon} ${s.name}`); if (r.l) addLove(r.l); addMemo(s.icon, `${nameOf(myIdx())} ${s.memo || s.name}`);
+  return extra;
+}
 function actSurprise() {
-  const s = surpriseToday(); if (surpriseDone()) return;
+  const s = surpriseNow(); if (surpriseDone() || s.buff) return;
   if (s.animal) {
     const a = SUR.a; if (a) a.hold = 3; me().av.emote('petdog', 1.8); burst('heart', a ? a.o.position.clone().add(new THREE.Vector3(0, 0.6, 0)) : headPos(me(), 1), 8);
-    addLove(3, s.k === 'bunny' ? '摸摸迷路的小兔子' : '小鴨子跟著你走了一段路'); addCoins(10, '今日驚喜'); addMemo(s.icon, s.k === 'bunny' ? `${nameOf(myIdx())} 摸了迷路的小兔子` : `${nameOf(myIdx())} 遇到來散步的小鴨子`);
-    finishSurprise(); setTimeout(() => { if (a) { a.hold = 0; a.tx = a.o.position.x + 14; a.tz = a.o.position.z + 8; a.speed = 1.6; } setTimeout(() => { if (SUR.a === a) clearSurprise(); }, 6000); }, 2600);
-  } else if (s.k === 'bottle') {
-    me().av.emote('pickup', 1.4); const text = BOTTLE2[dayHash(st.day + 9) % BOTTLE2.length];
-    setTimeout(() => { clearSurprise(); openDlg('🍾 瓶中信', `<p class="letter">${esc(text).replace(/\n/g, '<br>')}</p><p class="muted">不知道是誰寫的，從海的另一邊漂過來。</p>`); }, 700);
-    addLove(2); addCoins(8, '撿到瓶中信'); addMemo('🍾', `在沙灘撿到一封瓶中信`); finishSurprise();
-  } else if (s.k === 'gift') {
-    me().av.emote('pickup', 1.4); const cheap = DECOR.filter(d => d[2] <= 60), it = cheap[dayHash(st.day + 5) % cheap.length];
-    st.inv = st.inv || {}; st.inv[it[0]] = (st.inv[it[0]] || 0) + 1;
-    setTimeout(() => { clearSurprise(); openDlg('🎁 門口的小包裹', `<p>打開一看，是一個「<b>${esc(it[1])}</b>」！</p><p class="muted">已經放進你們的擺設裡，到 🪙 → 擺設 就能擺出來。</p>`); burst('star', headPos(me(), 1.2), 10); }, 700);
-    addLove(2); addCoins(15, '小包裹'); addMemo('🎁', `收到一個小包裹：${it[1]}`); finishSurprise();
+    finishSurprise(); surReward(s);
+    if (s.r?.letter) setTimeout(() => surLetter(s), 900);
+    setTimeout(() => { if (a) { a.hold = 0; a.tx = a.o.position.x + 14; a.tz = a.o.position.z + 8; a.speed = 1.6; } setTimeout(() => { if (SUR.a === a) clearSurprise(); }, 6000); }, 2600);
+    return;
   }
+  me().av.emote('pickup', 1.4); finishSurprise(); const extra = surReward(s);
+  setTimeout(() => {
+    clearSurprise(); burst('star', headPos(me(), 1.2), 10); sfx('chime');
+    if (s.r?.letter) return surLetter(s);
+    if (s.r?.wish) return surWish(s);
+    openDlg(`${s.icon} ${s.name}`, `<p>${esc(s.open || '')}</p>${extra ? `<p class="muted">${esc(extra)}</p>` : ''}<button type="button" class="primary" id="sur-ok">收下 ♥</button>`); $('#sur-ok').onclick = () => $('#dlg').close();
+  }, 700);
+}
+function surLetter(s) {
+  const pool = LETTERS2[s.r.letter](), text = pool[dayHash(surDay() + 9 + slotNow()) % pool.length];
+  openDlg(`${s.icon} ${s.name}`, `<p class="letter">${esc(text).replace(/\n/g, '<br>')}</p><button type="button" class="primary" id="sur-ok">收進回憶本</button>`); $('#sur-ok').onclick = () => $('#dlg').close();
+}
+function surWish(s) {
+  openDlg(`${s.icon} ${s.name}`, `<p class="muted">寫一個願望放進瓶子裡，它會留在你們的回憶本。</p><label class="anniv"><span>願望</span><input id="wish-in" maxlength="40" placeholder="例如：明年一起去看雪"></label><button type="button" class="primary" id="wish-ok">放進瓶子</button>`);
+  $('#wish-ok').onclick = () => { const w = $('#wish-in').value.trim(); $('#dlg').close(); if (w) addMemo('🫙', `在許願瓶裡寫下：「${w}」`); burst('star', headPos(me(), 1.4), 12); };
+}
+/* 今日任務視窗裡的三個驚喜（還沒到的時段先保密） */
+function surpriseListHtml() {
+  return [0, 1, 2].map(i => { const s = surpriseAt(surDay(), i), now = slotNow(), done = surDone(i), open = i <= now;
+    return `<div class="memo sur-row${open ? '' : ' locked'}${i === now ? ' now' : ''}"><span class="ic">${open ? s.icon : '🔒'}</span><b>${SLOT_NAMES[i]}・${open ? esc(s.name) + (done || s.buff ? ' ✓' : '') : '還沒揭曉'}</b><small>${open ? esc(s.tip) : i === 1 ? '12:00 揭曉' : '18:00 揭曉'}</small></div>`; }).join('');
+}
+
+/* 夜晚的好運：螢火蟲、銀河 */
+function tickSurNight(dt) {
+  const out = scene === 'out' && started() && isNight();
+  const wantF = out && surpriseIs('fireflies'), wantS = out && surpriseIs('starry');
+  if (wantF && !SUR.flies) {
+    const n = 220, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(); for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, r = rand(3, 22); pos.set([Math.cos(a) * r, rand(0.8, 3.2), Math.sin(a) * r], i * 3); }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); SUR.flies = new THREE.Points(geo, new THREE.PointsMaterial({ color: '#fff59a', size: 0.22, transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); OUT.add(SUR.flies);
+  }
+  if (!wantF && SUR.flies) { OUT.remove(SUR.flies); SUR.flies = null; }
+  if (SUR.flies) { const P = SUR.flies.geometry.attributes.position, t = performance.now() / 1000; for (let i = 0; i < P.count; i++) { P.setY(i, P.getY(i) + Math.sin(t * 1.3 + i) * dt * 0.25); P.setX(i, P.getX(i) + Math.cos(t * 0.7 + i * 2) * dt * 0.2); } P.needsUpdate = true; SUR.flies.material.opacity = 0.6 + Math.sin(t * 3) * 0.35; }
+  if (wantS && !SUR.milky) {
+    const n = 2600, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry();
+    for (let i = 0; i < n; i++) { const t = Math.random() * Math.PI, spread = (Math.random() - 0.5) * (Math.random() < 0.7 ? 0.18 : 0.5), r = 260; const v = new THREE.Vector3(Math.cos(t) * r, Math.sin(t) * r * 0.75 + 20, spread * r); v.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.6); pos.set([v.x, v.y, v.z], i * 3); }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); SUR.milky = new THREE.Points(geo, new THREE.PointsMaterial({ color: '#dfe8ff', size: 1.3, sizeAttenuation: true, transparent: true, opacity: 0.85, depthWrite: false, fog: false })); OUT.add(SUR.milky);
+  }
+  if (!wantS && SUR.milky) { OUT.remove(SUR.milky); SUR.milky = null; }
+}
+
+// ================= 隨手撿到的小驚喜：在屋外走一走，地上會冒出閃亮的東西 =================
+const MINI = { o: null, t: 40 };
+const MINI_REWARDS = [
+  [30, '🪙', '幾枚小島幣', () => addCoins(Math.round(rand(3, 10)))], [12, '🐚', '一個漂亮的貝殼', () => { addCoins(5); st.shells = st.shells || {}; const n = pick(SHELLS)[0]; st.shells[n] = (st.shells[n] || 0) + 1; }],
+  [10, '🥚', '一顆雞蛋', () => { st.pantry = st.pantry || {}; st.pantry['雞蛋'] = (st.pantry['雞蛋'] || 0) + 1; }], [10, '💗', '一點點甜蜜', () => addLove(1)],
+  [8, '🌸', '一片花瓣', () => addCoins(3)], [6, '💰', '一小袋小島幣', () => addCoins(Math.round(rand(15, 30)))], [4, '🎁', '一個小擺設', () => { const pool = DECOR.filter(d => d[2] <= 40), it = pick(pool); st.inv = st.inv || {}; st.inv[it[0]] = (st.inv[it[0]] || 0) + 1; return `「${it[1]}」`; }],
+  [2, '🍀', '一株四葉草（幸運）', () => addCoins(25)],
+];
+function tickMini(dt) {
+  if (!started() || MP.role === 'g' || scene !== 'out' || act || photo.on) return;
+  if (st.miniDay?.d !== st.day) st.miniDay = { d: st.day, n: 0 };
+  if (MINI.o) {
+    const p = me(), d = Math.hypot(MINI.o.position.x - p.x, MINI.o.position.z - p.z); MINI.o.rotation.y += dt * 2; MINI.o.children[0].position.y = 0.35 + Math.sin(performance.now() / 260) * 0.06;
+    if (d < 1.1) { /* 走過去就撿起來 */
+      OUT.remove(MINI.o); MINI.o = null; st.miniDay.n++; const tot = MINI_REWARDS.reduce((s, r) => s + r[0], 0); let r = Math.random() * tot, R = MINI_REWARDS[0]; for (const x of MINI_REWARDS) { r -= x[0]; if (r <= 0) { R = x; break; } }
+      const extra = R[3](); me().av.emote('pickup', 1); burst('star', headPos(me(), 1.1), 8); sfx('coin'); toast(`✨ 撿到${R[2]}${extra ? '：' + extra : ''}`, 2600); save();
+    } else if (d > 40) { OUT.remove(MINI.o); MINI.o = null; }
+    return;
+  }
+  if (st.miniDay.n >= 10) return; MINI.t -= dt; if (MINI.t > 0) return; MINI.t = rand(70, 150);
+  const p = me(); for (let k = 0; k < 20; k++) { const a = Math.random() * 6.28, r = rand(4, 10), x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r; if (!walkable(x, z) || !canStand(x, z)) continue;
+    const g = new THREE.Group(), s = new THREE.Mesh(new THREE.OctahedronGeometry(0.12), new THREE.MeshBasicMaterial({ color: '#fff3a0' })); s.position.y = 0.35; g.add(s);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.18, 0.26, 20), new THREE.MeshBasicMaterial({ color: '#fff6c8', transparent: true, opacity: 0.6, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03; g.add(ring);
+    g.position.set(x, standH(x, z), z); OUT.add(g); MINI.o = g; break; }
+}
+
+// ================= 稀有事件：很少很少才會遇到，遇到時全螢幕慶祝，記進回憶本的「稀有事件」 =================
+const RARE = [
+  { k: 'whale', icon: '🐋', name: '鯨魚躍出海面', when: 'day', text: '遠方的海面上，一隻大鯨魚整個躍出水面！' },
+  { k: 'dolphins', icon: '🐬', name: '海豚群經過', when: 'day', text: '一群海豚在小島旁邊跳來跳去，好像在打招呼。' },
+  { k: 'rainbow2', icon: '🌈', name: '雙彩虹', when: 'day', text: '天上出現了兩道彩虹，聽說看到的人會一直幸福。' },
+  { k: 'aurora', icon: '🌌', name: '極光', when: 'night', text: '夜空中出現了極光，綠色和粉紅色的光在跳舞。' },
+  { k: 'bluetears', icon: '💙', name: '藍眼淚', when: 'night', text: '海浪打上岸的地方發出藍色的光，是藍眼淚！' },
+  { k: 'heartcomet', icon: '💫', name: '愛心彗星', when: 'night', text: '一顆拖著粉紅色尾巴的愛心彗星劃過夜空！' },
+];
+const RAREFX = { o: null, t: 0, k: null, check: 30 };
+function tickRare(dt) {
+  if (RAREFX.o) { RAREFX.t += dt; rareAnim(dt); if (RAREFX.t > RAREFX.dur) { OUT.remove(RAREFX.o); RAREFX.o = null; } return; }
+  if (!started() || MP.role === 'g' || scene !== 'out' || photo.on) return;
+  RAREFX.check -= dt; if (RAREFX.check > 0) return; RAREFX.check = 60;
+  if (st.rareDay === st.day) return; /* 一天最多一次 */
+  if (Math.random() > 0.012) return; /* 每分鐘 1.2%：平均玩一個多小時才會遇到一次 */
+  const pool = RARE.filter(r => r.when === (isNight() ? 'night' : 'day')); rareStart(pick(pool).k, true);
+}
+function rareStart(k, mine) {
+  const R = RARE.find(r => r.k === k); if (!R || RAREFX.o) return;
+  if (mine) { st.rareDay = st.day; if (MP.on) MP.net.send({ t: 'fx', k: 'rare', a: RARE.indexOf(R) }); }
+  RAREFX.k = k; RAREFX.t = 0; RAREFX.dur = k === 'aurora' || k === 'bluetears' || k === 'rainbow2' ? 40 : 14; RAREFX.o = rareBuild(k); OUT.add(RAREFX.o); RAREFX.camDur = k === 'heartcomet' ? 13 : 10; RAREFX.focus = rareFocus(k);
+  const ov = document.createElement('div'); ov.className = 'rare-banner'; ov.innerHTML = `<small>✨ 稀有事件 ✨</small><span>${R.icon}</span><b>${esc(R.name)}</b><p>${esc(R.text)}</p>`; document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('on')); setTimeout(() => { ov.classList.remove('on'); setTimeout(() => ov.remove(), 800); }, 4200); sfx('chime');
+  st.rares = st.rares || {}; const first = !st.rares[k]; st.rares[k] = (st.rares[k] || 0) + 1;
+  addLove(first ? 10 : 4, null, 'rare'); addCoins(first ? 80 : 30); addMemo(R.icon, `${duo() ? '兩個人一起' : ''}看到了「${R.name}」`); save();
+}
+function rareBuild(k) {
+  const g = new THREE.Group(), p = me();
+  const seaDir = Math.atan2(p.z, p.x), far = 48, sx = Math.cos(seaDir) * far, sz = Math.sin(seaDir) * far; /* 往人面前的海那一邊 */
+  if (k === 'whale') {
+    const w = new THREE.Group(), body = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), toon('#3e5f86')); body.scale.set(4.2, 1.6, 1.7); w.add(body);
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), toon('#dfe8f0')); belly.scale.set(3.6, 1.1, 1.3); belly.position.y = -0.45; w.add(belly);
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(1.6, 0.3, 3), toon('#3e5f86')); tail.rotation.z = Math.PI / 2; tail.position.x = -4.6; w.add(tail);
+    const fin = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.8, 3), toon('#3e5f86')); fin.rotation.x = 1.2; fin.position.set(1, -0.5, 1.4); w.add(fin);
+    w.position.set(sx, -6, sz); w.rotation.y = -seaDir + Math.PI / 2; g.add(w); g.userData.w = w;
+  } else if (k === 'dolphins') {
+    for (let i = 0; i < 6; i++) { const d = new THREE.Group(), b = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), toon('#7f9cc4')); b.scale.set(1.3, 0.38, 0.38); d.add(b); d.scale.setScalar(1.8); const f = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 3), toon('#8aa6c8')); f.position.y = 0.4; d.add(f); d.userData.ph = i * 0.7; d.userData.off = (i - 2) * 2.4; g.add(d); }
+    g.userData.dir = seaDir; g.userData.r = 34;
+  } else if (k === 'rainbow2') {
+    [[60, 0], [72, 1]].forEach(([r, j]) => { ['#ff5a5a', '#ffa64a', '#ffe85a', '#6ad86a', '#5aa8ff', '#9a6aff'].forEach((c, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r - i * 1.4, 0.75, 6, 60, Math.PI), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: j ? 0.38 : 0.62, fog: false, depthWrite: false })); m.userData.op = j ? 0.38 : 0.62; g.add(m); }); });
+    g.position.set(sx * 1.5, -6, sz * 1.5); g.lookAt(0, -6, 0); /* 彩虹正面對著小島 */
+  } else if (k === 'aurora') {
+    /* 極光：一片片直立的光簾，上下都淡掉，顏色綠到粉紅 */
+    const tex = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 128; const x = c.getContext('2d'), gr = x.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.35, 'rgba(255,255,255,.9)'); gr.addColorStop(0.75, 'rgba(255,255,255,.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 4, 128); return new THREE.CanvasTexture(c); })();
+    for (let i = 0; i < 7; i++) { const geo = new THREE.PlaneGeometry(70, 30, 40, 1), m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, color: ['#4affa8', '#6affd0', '#ff7ad8', '#4affa8', '#a07aff', '#4affa8', '#ff9ae8'][i], transparent: true, opacity: 0, side: THREE.DoubleSide, fog: false, depthWrite: false, blending: THREE.AdditiveBlending }));
+      m.position.set((i - 3) * 16, 34 + (i % 3) * 5, -70 - (i % 2) * 14); m.rotation.y = (i - 3) * 0.12; m.userData.base = geo.attributes.position.array.slice(); g.add(m); }
+    g.rotation.y = Math.atan2(-Math.cos(seaDir), -Math.sin(seaDir)); /* 掛在人面前的天空 */
+  } else if (k === 'bluetears') {
+    const n = 3200, pos = new Float32Array(n * 3), geo = new THREE.BufferGeometry(), a0 = Math.atan2(p.z, p.x); for (let i = 0; i < n; i++) { const a = a0 + (Math.random() - 0.5) * 1.6, R = shoreR(Math.cos(a), Math.sin(a)) - rand(1.8, 5.2), X = Math.cos(a) * R, Z = Math.sin(a) * R; pos.set([X, Math.max(groundH(X, Z), 0) + 0.32, Z], i * 3); } /* 浪打上岸的那一帶，貼在沙和水面上 */
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.renderOrder = 20; g.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: '#19c8ff', size: 0.42, transparent: true, opacity: 0.95, depthWrite: false, fog: false, map: (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d'), r = x.createRadialGradient(16, 16, 0, 16, 16, 16); r.addColorStop(0, 'rgba(220,255,255,1)'); r.addColorStop(0.4, 'rgba(60,210,255,.9)'); r.addColorStop(1, 'rgba(0,120,255,0)'); x.fillStyle = r; x.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })() }))); g.children[0].renderOrder = 20; /* 畫在海面之後，才不會被半透明的海蓋住 */
+  } else if (k === 'heartcomet') {
+    const sh = new THREE.Shape(); sh.moveTo(0, -0.7); sh.bezierCurveTo(-0.1, -0.56, -0.9, -0.1, -0.9, 0.34); sh.bezierCurveTo(-0.9, 0.76, -0.44, 0.94, 0, 0.6); sh.bezierCurveTo(0.44, 0.94, 0.9, 0.76, 0.9, 0.34); sh.bezierCurveTo(0.9, -0.1, 0.1, -0.56, 0, -0.7);
+    const h = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({ color: '#ff8ac8', fog: false })); h.scale.setScalar(3); g.add(h); g.userData.h = h;
+    for (let i = 0; i < 24; i++) { const t = new THREE.Mesh(new THREE.SphereGeometry(1.2 - i * 0.045, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffc8e8', transparent: true, opacity: 0.7 - i * 0.028, fog: false })); g.add(t); }
+    g.userData.dir = seaDir;
+  }
+  return g;
+}
+function rareFocus(k) {
+  const g = RAREFX.o, v = new THREE.Vector3();
+  if (k === 'whale') return () => g.userData.w.position.clone().setY(4);
+  if (k === 'dolphins') return () => g.children[2].position.clone().setY(1);
+  if (k === 'rainbow2') return () => v.copy(g.position).setY(22);
+  if (k === 'aurora') return () => g.children[0].getWorldPosition(v).setY(40);
+  if (k === 'heartcomet') return () => g.children[0].position.clone();
+  if (k === 'bluetears') { const P = shorePoint(me().x, me().z, -0.05); return () => v.set(P.x, 0.3, P.z); }
+  return null;
+}
+function rareAnim(dt) {
+  const g = RAREFX.o, t = RAREFX.t, k = RAREFX.k;
+  if (k === 'whale') { const w = g.userData.w, ph = Math.min(1, t / 5); w.position.y = -6 + Math.sin(ph * Math.PI) * 13; w.rotation.z = (0.5 - ph) * 1.6; if (t > 4.6 && t < 5.2) burst('star', w.position.clone().setY(0.5), 20, 4); }
+  else if (k === 'dolphins') g.children.forEach(d => { const a = g.userData.dir + (t * 0.06) + d.userData.off * 0.02, r = g.userData.r + d.userData.off; const ph = (t * 1.4 + d.userData.ph) % 2; d.position.set(Math.cos(a) * r, ph < 1 ? Math.sin(ph * Math.PI) * 2.2 - 0.3 : -2, Math.sin(a) * r); d.rotation.set(0, -a, ph < 1 ? (0.5 - ph) * 1.6 : 0); });
+  else if (k === 'rainbow2' || k === 'bluetears') g.children.forEach(m => { if (m.material) m.material.opacity = (m.userData.op || 0.95) * Math.max(0, Math.min(1, t / 2.5, (RAREFX.dur - t) / 3)) * (k === 'bluetears' ? 0.75 + Math.sin(performance.now() / 250) * 0.25 : 1); });
+  else if (k === 'aurora') g.children.forEach((m, i) => { const P = m.geometry.attributes.position, b = m.userData.base; for (let j = 0; j < P.count; j++) { P.setZ(j, b[j * 3 + 2] + Math.sin(b[j * 3] * 0.08 + t * 0.5 + i) * 6); P.setY(j, b[j * 3 + 1] + Math.sin(b[j * 3] * 0.04 + t * 0.3 + i * 2) * 3); } P.needsUpdate = true; m.material.opacity = (0.55 + Math.sin(t * 0.8 + i) * 0.2) * Math.max(0, Math.min(1, t / 3, (RAREFX.dur - t) / 4)); });
+  else if (k === 'heartcomet') { const a = g.userData.dir, u = t / RAREFX.dur, x = -80 + u * 160; const base = new THREE.Vector3(x, 60 - u * 25, -70).applyAxisAngle(new THREE.Vector3(0, 1, 0), -a - Math.PI / 2); g.children.forEach((c, i) => { const d = new THREE.Vector3(-i * 2.2, i * 0.7, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), -a - Math.PI / 2); c.position.copy(base).add(d); if (i === 0) c.lookAt(cam.position); }); }
 }
 
 // ================= 一起養的愛情樹 =================
@@ -2565,7 +2918,7 @@ function drawTree() {
     if (s >= 5) for (let i = 0; i < treeFruits(); i++) { const h = heartMesh(0.13, toon('#ff5a8a')); const a = i * 2.1 + 0.5; h.position.set(Math.cos(a) * R * 1.25, H - R * 0.15, Math.sin(a) * R * 1.25); h.lookAt(0, h.position.y, 0); h.rotateY(Math.PI); g.add(h); const st_ = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.18, 4), bark); st_.position.set(h.position.x, h.position.y + 0.17, h.position.z); g.add(st_); }
   }
   // Lv6：樹下長椅
-  if (levelOf(st.love).lv >= 6 && !W.treeBench) one(OUT, 'logBench', x + 1.7, z + 0.2, -Math.PI / 2, 1, { col: 0 }).then(o => { W.treeBench = o; });
+  if (LV().lv >= 8 && !W.treeBench) one(OUT, 'logBench', x + 1.7, z + 0.2, -Math.PI / 2, 1, { col: 0 }).then(o => { W.treeBench = o; });
 }
 function actTree() {
   if (MP.role === 'g') return toast('這是島主一起照顧的樹喔');
@@ -2608,7 +2961,7 @@ function makeHeartStars() {
   const m = new THREE.Points(g, new THREE.PointsMaterial({ color: '#ffd6e4', size: 3.2, sizeAttenuation: false, transparent: true, opacity: 0.9, fog: false, depthWrite: false })); m.visible = false; OUT.add(m); return m;
 }
 let heartStars = null;
-setInterval(() => { if (!W) return; const on = isNight() && levelOf(st.love).lv >= 7; if (on && !heartStars) heartStars = makeHeartStars(); if (heartStars) heartStars.visible = on; }, 2000);
+setInterval(() => { if (!W) return; const on = isNight() && LV().lv >= 9; if (on && !heartStars) heartStars = makeHeartStars(); if (heartStars) heartStars.visible = on; }, 2000);
 
 // ================= 紀念日、相片牆、成長解鎖 =================
 const ANNIV = [30, 50, 100, 200, 300, 365, 500, 520, 730, 1000, 1314];
@@ -2642,13 +2995,47 @@ function drawPhotos() {
     const pic = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.42), new THREE.MeshBasicMaterial({ map: tex })); pic.position.set(x, y, 0.15); g.add(pic);
   });
 }
-const UNLOCKS = { 2: '頭上小花（配件）', 3: '🏖️ 海邊小屋、愛心煙火', 4: '愛心光環（配件）', 5: '🌷 花園溫室、燈串會變色', 6: '愛情樹下的長椅', 7: '夜空出現愛心星座', 8: '（秘密）' };
 function unlockHtml() {
-  const lv = levelOf(st.love).lv;
-  return `<b>💗 成長解鎖</b>${LEVELS.map(([n, title], i) => { const L = i + 1, ok = lv >= L; return `<div class="quest ${ok ? 'ok' : ''}"><span class="q-e">${ok ? '✅' : '🔒'}</span><b>Lv${L} ${esc(title)}</b><span class="q-r">${n}</span><small>${esc(UNLOCKS[L] || '開始一起生活')}</small></div>`; }).join('')}`;
+  const lv = LV().lv;
+  return `<b>💗 成長解鎖</b><p class="muted">每一級都要「一起玩的天數」和甜蜜值都到了才會升級；甜蜜值每天最多累積 ${LOVE_CAP}（問答、節日、紀念日不算在內）。</p>${LEVELS.map(([days, love, title, what], i) => { const L = i + 1, ok = lv >= L; return `<div class="quest ${ok ? 'ok' : ''}"><span class="q-e">${ok ? '✅' : '🔒'}</span><b>Lv${L} ${esc(title)}</b><span class="q-r">${days ? `${days} 天・` : ''}${love}</span><small>${esc(what)}</small></div>`; }).join('')}`;
 }
 // 每天第一次打開：紀念日 → 今日驚喜
-function dailyCheck() { if (MP.role === 'g') return; if (!annivCheck()) announceSurprise(); }
+function dailyCheck() { if (MP.role === 'g') return; countPlayDay(); if (!annivCheck() && !festivalCheck()) announceSurprise(); }
+// ================= 節日與月記念：當天第一次上島時送上祝福和禮物，島上也會有節日的樣子 =================
+function monthAnniv() {
+  if (!st.anniv) return null; const a = new Date(st.anniv + 'T00:00:00'), t = dateOfDay(st.day);
+  if (a.getDate() !== t.getUTCDate()) return null;
+  const m = (t.getUTCFullYear() - a.getFullYear()) * 12 + t.getUTCMonth() - a.getMonth(); return m > 0 && m % 12 ? m : null;
+}
+function festivalCheck() {
+  if (MP.role === 'g' || !started()) return false; const key = dayDate(), f = festToday(), mm = monthAnniv();
+  if (st.festSeen === key || (!f && !mm)) return false; st.festSeen = key;
+  const title = f ? `${f.name}快樂！` : `在一起 ${mm} 個月了`, text = f ? f.msg : `${mm} 個月前的今天，你們在一起了。謝謝你一直在。`;
+  addCoins(f ? 60 : 40); addLove(f ? 8 : 5, null, 'fest'); addMemo(f ? f.icon : '💗', f ? `一起過了${f.name}` : `在一起 ${mm} 個月`); save();
+  openDlg(f ? `🎉 ${f.name}` : '💗 月記念', `<div class="fest-card"><span>${f ? f.icon : '💗'}</span><b>${esc(title)}</b><p>${esc(text)}</p></div><p class="muted">節日禮物：🪙 ${f ? 60 : 40}、甜蜜值 +${f ? 8 : 5}</p><button type="button" class="primary" id="fest-ok">好 ♥</button>`);
+  $('#fest-ok').onclick = () => $('#dlg').close(); heartRain(); sfx('chime'); return true;
+}
+// 節日的樣子：晚上放煙火、天燈、南瓜燈（每支手機自己放，不用連線同步）
+const FEST = { t: 0, lanterns: null, pumpkins: null };
+function tickFestival(dt) {
+  const f = started() && scene === 'out' ? festToday() : null, night = isNight() || st.tod >= 18;
+  if (f?.fx === 'fw' && night) { FEST.t -= dt; if (FEST.t <= 0) { FEST.t = rand(2.5, 6); launchFirework(Math.random() < 0.3, true); } }
+  const wantL = f?.fx === 'lantern' && night;
+  if (wantL && !FEST.lanterns) {
+    FEST.lanterns = new THREE.Group(); const m = new THREE.MeshBasicMaterial({ color: '#ffb35c', transparent: true, opacity: 0.92 });
+    for (let i = 0; i < 48; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.32, 0.8, 8), m); const a = Math.random() * 6.28, r = rand(4, 24); l.position.set(Math.cos(a) * r, rand(1.5, 18), Math.sin(a) * r); l.userData.v = rand(0.3, 0.7); FEST.lanterns.add(l); }
+    OUT.add(FEST.lanterns);
+  }
+  if (!wantL && FEST.lanterns) { OUT.remove(FEST.lanterns); FEST.lanterns = null; }
+  if (FEST.lanterns) FEST.lanterns.children.forEach(l => { l.position.y += l.userData.v * dt; l.position.x += Math.sin(l.position.y * 0.3) * dt * 0.2; if (l.position.y > 22) l.position.y = 1.5; });
+  const wantP = f?.fx === 'pumpkin';
+  if (wantP && !FEST.pumpkins) {
+    FEST.pumpkins = new THREE.Group(); const pm = new THREE.MeshStandardMaterial({ color: '#f08a24', emissive: '#ff7a00', emissiveIntensity: 0.6, roughness: 0.6 });
+    [[2.4, 3.2], [-2.6, 3.4], [6, 5], [-7, 6], [0.5, 9]].forEach(([x, z]) => { const p = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), pm); p.scale.y = 0.8; p.position.set(x, standH(x, z) + 0.2, z); const st_ = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 6), toon('#5a7a2a')); st_.position.y = 0.26; p.add(st_); FEST.pumpkins.add(p); });
+    OUT.add(FEST.pumpkins);
+  }
+  if (!wantP && FEST.pumpkins) { OUT.remove(FEST.pumpkins); FEST.pumpkins = null; }
+}
 
 // ================= 回來時狗狗撲過來（不歸零的「來小島的天數」） =================
 function dogWelcome() {
@@ -2710,7 +3097,7 @@ function actPuzzle() {
 }
 
 // ================= 升級解鎖的新地方：Lv3 海邊小屋、Lv5 花園溫室 =================
-const placeOpen = k => levelOf(st.love).lv >= PLACES[k].lv;
+const placeOpen = k => LV().lv >= PLACES[k].lv || (st.keepPlaces || []).includes(k); /* 改等級制度前就已經開放的地點不會再鎖回去 */
 function drawPlaces() {
   if (!W) return;
   for (const [k, P] of Object.entries(PLACES)) {
@@ -2924,5 +3311,5 @@ if (window.visualViewport) {
   if (visitParam.length) setupVisit();
   else if (pairParam) setupPairSplash();
   window.__booted = true;
-  window.__nest = { CHAT, build: () => build, buildSet: (x, z) => { build.x = x; build.z = z; buildCheck(); return [build.top, build.ok]; }, canStand: (x, z) => canStand(x, z), bond: { setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  window.__nest = { CHAT, build: () => build, buildSet: (x, z) => { build.x = x; build.z = z; buildCheck(); return [build.top, build.ok]; }, canStand: (x, z) => canStand(x, z), bond: { addLove, countPlayDay, festivalCheck, surpriseAt, surpriseNow, rareStart, MINI, RAREFX, setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();

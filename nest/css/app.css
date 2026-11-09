@@ -494,3 +494,18 @@ body.calm .right .round.small#btn-chat.unread { opacity: 1; } /* 有新訊息時
 .qa-old small { opacity: .6; } .qa-old b { display: block; margin: 2px 0 6px; }
 .qa-old p { margin: 2px 0; line-height: 1.55; } .qa-old p span { display: inline-block; min-width: 3.2em; margin-right: 6px; font-size: var(--fs-s, 13px); opacity: .6; }
 @media (prefers-color-scheme: dark) { #qa-in, .qa-ans, .qa-heart { background: #2e2430; color: inherit; } .qa-ans.you { background: #3a2a36; } }
+.sweet-night { grid-auto-flow: row; align-content: center; gap: 14px; }
+.sweet-night .sn-t { color: #fde6ef; font-size: var(--fs-l, 18px); letter-spacing: .08em; text-align: center; }
+.fest-card { text-align: center; padding: 22px 16px 18px; margin-bottom: 10px; border-radius: 22px; background: linear-gradient(150deg, #ffe3ec, #fff3e2); }
+.fest-card span { display: block; font-size: 54px; line-height: 1.1; }
+.fest-card b { display: block; margin: 8px 0 6px; font-size: 1.25em; }
+.fest-card p { margin: 0; line-height: 1.7; opacity: .8; }
+.rare-banner { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 8px); z-index: 60; transform: translate(-50%, -10px) scale(.92); opacity: 0; transition: opacity .6s, transform .6s cubic-bezier(.2, 1.4, .4, 1); pointer-events: none; text-align: center; width: min(86vw, 360px); padding: 18px 20px 20px; border-radius: 26px; color: #fff; background: linear-gradient(150deg, rgba(255, 110, 160, .92), rgba(120, 110, 255, .9)); box-shadow: 0 18px 50px rgba(80, 40, 120, .45); }
+.rare-banner.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.rare-banner small { letter-spacing: .2em; opacity: .9; }
+.rare-banner span { display: block; font-size: 56px; line-height: 1.2; margin-top: 4px; }
+.rare-banner b { display: block; font-size: 1.3em; margin: 4px 0 6px; }
+.rare-banner p { margin: 0; line-height: 1.6; opacity: .95; }
+.sur-h { display: block; margin: 12px 2px 6px; }
+.sur-row.now { box-shadow: inset 0 0 0 1.5px rgba(232, 90, 128, .45); }
+.sur-row.locked { opacity: .55; }

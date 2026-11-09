@@ -36,6 +36,7 @@ async function applyUpdate() {
     const w = r?.installing || r?.waiting;
     if (w) await new Promise(res => { const t = setTimeout(res, 6000); w.addEventListener('statechange', () => { if (w.state === 'activated') { clearTimeout(t); res(); } }); });
   } catch (e) {}
+  await new Promise(r => setTimeout(r, 600)); /* 讓新版的離線快取切換完成，再重新開，避免載到一半的檔案失敗（人物變透明） */
   location.replace(location.pathname + (location.search ? location.search + '&' : '?') + 'u=' + Date.now());
 }
 

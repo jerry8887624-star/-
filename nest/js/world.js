@@ -353,7 +353,8 @@ export function setTimeOfDay(W, S, t, camPos) {
   W.water.material.uniforms.uDark.value = k.night * 0.85; if (W.surf) W.surf.material.uniforms.uDark.value = k.night * 0.85; W.water.material.uniforms.uSky.value.copy(k.hor);
   const lamp = Math.max(0, Math.min(1, (k.night - 0.15) * 2));
   W.porchL.intensity = lamp * 14; W.dockL.intensity = lamp * 10;
-  [W.lights, W.lights2].forEach(l => l.userData.mats.forEach((m, i) => m.color.set(['#ffd27a', '#ff9ab8', '#9ad8ff', '#c8ff9a'][i]).multiplyScalar(0.35 + lamp * 0.9)));
+  const hueT = performance.now() / 1000; /* W.rainbow：升級解鎖後燈串會慢慢變色 */
+  [W.lights, W.lights2].forEach(l => l.userData.mats.forEach((m, i) => { if (W.rainbow) m.color.setHSL((hueT * 0.08 + i * 0.25) % 1, 0.85, 0.65); else m.color.set(['#ffd27a', '#ff9ab8', '#9ad8ff', '#c8ff9a'][i]); m.color.multiplyScalar(0.35 + lamp * 0.9); }));
   return k;
 }
 
