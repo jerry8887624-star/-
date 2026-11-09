@@ -3170,11 +3170,20 @@ function chatBadge() {
 }
 const hhmm = ts => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 function chatTime(ts) { const d = new Date(ts), n = new Date(); const same = d.toDateString() === n.toDateString(), y = new Date(n - 864e5).toDateString() === d.toDateString(); return `${same ? '今天' : y ? '昨天' : `${d.getMonth() + 1}/${d.getDate()}`} ${hhmm(ts)}`; }
+/* 聊天室捲動：像通訊軟體一樣「黏在最新訊息」。只要沒有自己往上捲，打字、鍵盤彈出收起、送出、收到訊息都會停在最下面；
+   往上看舊訊息時收到新訊息，不會被拉下去，改成出現「↓ 新訊息」 */
+CHAT.stick = true;
+function chatStick(smooth) {
+  const box = $('#ch-list'); if (!box) return;
+  if (!CHAT.stick) return;
+  const go = () => { box.scrollTo({ top: box.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }); };
+  go(); requestAnimationFrame(() => { go(); requestAnimationFrame(go); }); /* 版面算好之後再對齊一次 */
+}
 function renderChat() {
   if (!CHAT.open) return;
   const me_ = myIdx(), other = chatPartner(), online = !!chars[other]?.remote;
   $('#ch-name').textContent = nameOf(other); $('#ch-status').textContent = online ? '在島上' : '不在島上・訊息會等對方回來看'; $('#ch-dot').classList.toggle('on', online);
-  const box = $('#ch-list'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  const box = $('#ch-list');
   const warn = CHAT.old ? '<div class="ch-warn">⚠️ 伺服器還是舊版，訊息送不出去：請到 Cloudflare 重新部署一次（Deployments → Retry deployment）。</div>' : !MP.net?.alive ? '<div class="ch-warn">連線中斷了，重新連上後才送得出去…</div>' : '';
   if (!CHAT.list.length && !CHAT.pend.length) { box.innerHTML = warn + `<div class="ch-empty"><span>💬</span><p>這裡是只有你們兩個人看得到的聊天室。<br>傳一句話給 ${esc(nameOf(other))} 吧。</p></div>`; return; }
   const lastMineRead = [...CHAT.list].reverse().find(m => m.by === me_ && m.ts <= (CHAT.read[other] || 0));
@@ -3189,7 +3198,7 @@ function renderChat() {
     prev = m;
   }
   box.innerHTML = warn + html;
-  box.querySelectorAll('.ch-retry').forEach(b => b.onclick = () => { const p_ = CHAT.pend.find(x => x.cid === b.dataset.cid); if (!p_) return; CHAT.pend = CHAT.pend.filter(x => x !== p_); chatSend(p_.k, p_.v, p_.w); }); if (atBottom || box.dataset.first !== '1') { box.scrollTop = box.scrollHeight; box.dataset.first = '1'; }
+  box.querySelectorAll('.ch-retry').forEach(b => b.onclick = () => { const p_ = CHAT.pend.find(x => x.cid === b.dataset.cid); if (!p_) return; CHAT.pend = CHAT.pend.filter(x => x !== p_); chatSend(p_.k, p_.v, p_.w); }); chatStick();
 }
 function chatMarkRead() {
   const last = [...CHAT.list].reverse().find(m => m.by === chatPartner()); if (!last || last.ts <= (CHAT.read[myIdx()] || 0)) return;
@@ -3198,14 +3207,14 @@ function chatMarkRead() {
 function openChat() {
   if (MP.role === 'g') return;
   if (!MP.on) { toast('先在 🌐 跟另一半連線，就能聊天了', 3500); return openNet(); }
-  CHAT.open = true; $('#chat').hidden = false; $('#ch-list').dataset.first = ''; toggleLoveMenu(false); sfx('click');
+  CHAT.open = true; CHAT.stick = true; $('#ch-new').hidden = true; $('#chat').hidden = false; toggleLoveMenu(false); sfx('click');
   renderChat(); chatMarkRead(); chatBadge();
 }
 function closeChat() { CHAT.open = false; $('#chat').hidden = true; $('#ch-stickers').hidden = true; $('#ch-stk').setAttribute('aria-pressed', 'false'); $('#ch-in').blur(); chatBadge(); }
 function chatSend(k, v, w = 0) {
   if (!MP.on || !v) return; const cid = Math.random().toString(36).slice(2, 10);
   // 先顯示在聊天室（傳送中），伺服器收到才變成正式訊息；5 秒沒回應就標「沒有送出」
-  const p_ = { cid, by: myIdx(), k, v, w, ts: Date.now(), ch: 'w', pend: 1 }; CHAT.pend.push(p_); renderChat();
+  const p_ = { cid, by: myIdx(), k, v, w, ts: Date.now(), ch: 'w', pend: 1 }; CHAT.pend.push(p_); CHAT.stick = true; $('#ch-new').hidden = true; renderChat(); chatStick(true); /* 自己送出：一定滑到最下面 */
   if (!MP.net?.alive) p_.fail = 1; else MP.net.send({ t: 'chat', k, v, w, cid });
   setTimeout(() => { if (CHAT.pend.includes(p_)) { p_.fail = 1; renderChat(); if (!CHAT.open) toast('訊息沒有送出，打開聊天室可以重送', 3500); } }, 5000);
   sfx('pop');
@@ -3221,7 +3230,7 @@ function onChat(m) {
     if (c?.remote) { showSay(c, text.length > 24 ? text.slice(0, 24) + '…' : text, 'w'); if (Math.hypot(c.x - me().x, c.z - me().z) < 2.2 && c.sc === scene) setTimeout(() => { me().av.emote('shy', 1.4); burst('heart', headPos(me(), 1.4), 3, 0.3); }, 700); }
     if (CHAT.open) chatMarkRead(); else { sfx('pop'); toast(`💬 ${nameOf(m.by)}：${text.length > 30 ? text.slice(0, 30) + '…' : text}`, 3500); }
   }
-  renderChat(); chatBadge();
+  renderChat(); chatBadge(); if (CHAT.open && !CHAT.stick && fromPartner) $('#ch-new').hidden = false; /* 正在看舊訊息：用按鈕提示有新訊息 */
 }
 // ---- 快速輸入列：打字直接冒在頭上 ----
 const QC = { ch: 'say' };
@@ -3279,9 +3288,18 @@ chIn.addEventListener('input', () => {
   chIn.style.height = 'auto'; chIn.style.height = Math.min(110, chIn.scrollHeight) + 'px';
   if (MP.on && performance.now() - CHAT.sentTyping > 1600 && chIn.value.trim()) { CHAT.sentTyping = performance.now(); MP.net.send({ t: 'typing' }); }
 });
-chIn.addEventListener('focus', () => { $('#ch-stickers').hidden = true; $('#ch-stk').setAttribute('aria-pressed', 'false'); });
+chIn.addEventListener('focus', () => { CHAT.stick = true; chatStick(); $('#ch-stickers').hidden = true; $('#ch-stk').setAttribute('aria-pressed', 'false'); });
 chIn.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); const f = $('#ch-form'); if (f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true })); } e.stopPropagation(); });
 $('#ch-form').onsubmit = e => { e.preventDefault(); const v = chIn.value.trim(); if (!v) return; chatSend('t', v); chIn.value = ''; chIn.style.height = 'auto'; };
+// 只有使用者自己滑動時才判斷「是不是在最下面」（程式捲動、鍵盤造成的大小變化都不算）
+(() => {
+  const box = $('#ch-list'); let userT = 0; const mark = () => { userT = performance.now(); };
+  ['touchstart', 'touchmove', 'wheel', 'pointerdown'].forEach(ev => box.addEventListener(ev, mark, { passive: true }));
+  box.addEventListener('scroll', () => { if (performance.now() - userT > 900) return; const near = box.scrollHeight - box.scrollTop - box.clientHeight < 80; CHAT.stick = near; if (near) $('#ch-new').hidden = true; }, { passive: true });
+  /* 鍵盤彈出／收起、貼圖面板、「正在輸入」讓訊息區變大變小：黏在最下面的就繼續黏著 */
+  if (window.ResizeObserver) new ResizeObserver(() => { if (CHAT.open && CHAT.stick) chatStick(); }).observe(box);
+  $('#ch-new').onclick = () => { CHAT.stick = true; $('#ch-new').hidden = true; chatStick(true); };
+})();
 // 鍵盤打開時：面板跟著往上（iPhone 的鍵盤會蓋住畫面下方）
 if (window.visualViewport) {
   const vv = window.visualViewport, R_ = document.documentElement.style, fit = () => { R_.setProperty('--kb', Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px'); R_.setProperty('--vvt', vv.offsetTop + 'px'); R_.setProperty('--vvh', vv.height + 'px'); };

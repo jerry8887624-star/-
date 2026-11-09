@@ -509,3 +509,6 @@ body.calm .right .round.small#btn-chat.unread { opacity: 1; } /* 有新訊息時
 .sur-h { display: block; margin: 12px 2px 6px; }
 .sur-row.now { box-shadow: inset 0 0 0 1.5px rgba(232, 90, 128, .45); }
 .sur-row.locked { opacity: .55; }
+/* 往上看舊訊息時有新訊息：浮在訊息區下方的「↓ 新訊息」 */
+.ch-new { align-self: center; position: relative; z-index: 2; margin: -46px 0 10px; padding: 7px 14px; border: 0; border-radius: 999px; background: var(--ink, #3a2a30); color: #fff; font-size: var(--fs-s); font-family: var(--font-round); box-shadow: 0 6px 18px rgba(60, 20, 40, .25); animation: rise .2s ease both; }
+#ch-list { overflow-anchor: none; -webkit-overflow-scrolling: touch; }
