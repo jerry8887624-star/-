@@ -74,6 +74,7 @@ export const QUESTS = [
   ['photo', '拍一張照片', 1], ['snowman', '堆一個雪人', 1, 'winter'], ['umbrella', '下雨天撐傘散步', 1],
   ['egg', '撿 2 顆雞蛋', 2], ['feed', '餵雞', 1], ['bike', '騎腳踏車', 1], ['takefish', '把魚帶回家', 1],
 ];
+export const XMAS_DECOR = ['xmas-fir-tree', 'garland-lamp-post-af02f0', 'candy-cane-path-markers-2310e4', 'gingerbread-house-8b9049', 'gingerbread-man-4766ed', 'candy-cane-eb113b', 'snow-laden-spruce-36716e', 'wooden-toboggan-940bbc', 'snow-capped-log-pile-8719e7'];
 export const QUEST_COIN = 20, QUEST_BONUS = 30;
 
 // 裝潢：[代號, 名字, 價錢, 放哪裡（out 屋外／in 屋內／any）, 大小, 碰撞半徑]
@@ -99,6 +100,10 @@ export const DECOR = [
   // 戶外
   ['split-rail-fence-run-87da39', '木柵欄', 40, 'out', 1, 0], ['round-path-stone-4130f3', '圓踏腳石', 10, 'out', 1, 0], ['slab-path-stone-e526f7', '石板步道', 15, 'out', 1, 0],
   ['paper-bag-luminaria-0e8a1a', '紙袋燈', 15, 'out', 1, 0.1, 's'], ['globe-lamp-346cb6', '庭院球燈', 70, 'out', 0.5, 0.25],
+  // 聖誕限定（12/1 到 1/6 在商店上架；買了永久保留）
+  ['xmas-fir-tree', '聖誕樹', 180, 'any', 0.85, 0.55], ['garland-lamp-post-af02f0', '聖誕路燈', 120, 'out', 0.7, 0.25], ['candy-cane-path-markers-2310e4', '拐杖糖步道', 40, 'out', 1, 0.15],
+  ['gingerbread-house-8b9049', '薑餅屋', 60, 'any', 1, 0.3, 's'], ['gingerbread-man-4766ed', '薑餅人', 15, 'any', 1.8, 0.1, 's'], ['candy-cane-eb113b', '拐杖糖', 10, 'any', 2, 0.1, 's'],
+  ['snow-laden-spruce-36716e', '積雪雲杉', 150, 'out', 0.45, 0.7], ['wooden-toboggan-940bbc', '木雪橇', 80, 'any', 1, 0.5], ['snow-capped-log-pile-8719e7', '積雪柴堆', 60, 'out', 0.7, 0.6],
 ];
 // 收藏獎勵：[代號, 說明, 條件, 送的小島幣, 送的擺設]
 export const MILESTONES = [

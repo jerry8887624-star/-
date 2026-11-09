@@ -5,7 +5,7 @@ import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from '.
 import { buildIsland, buildInterior, applyTheme, cutaway, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
-import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS } from './data.js';
+import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
 import { Amb } from './amb.js';
 import { weatherAt, seasonOf, createWeatherFX, umbrellaItem, snowmanMesh, SEASON_DAYS, DAY0, dateOfDay } from './weather.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
@@ -617,6 +617,7 @@ const SP = [
   { id: 'guitarIn', sc: 'in', x: 1.5, z: -4.0, r: 1.1, icon: '🎸', name: '彈吉他', run: () => useGuitar({ x: 1.5, z: -4.65 }, 0) },
   ...[[-6.45, 4.5], [1.5, -0.4], [-5.9, -4.6], [-3.3, -4.6]].map(([x, z], i) => ({ id: 'lampIn' + i, sc: 'in', x: x + (x < -6 ? 0.6 : 0), z: z + (z < -4 ? 0.6 : 0.3), r: 0.9, icon: '💡', name: '開關燈', run: () => useThing({ t: 'lamp' }, { x, z, sc: 'in' }) })),
   ...[[-1.6, -4.5, '大盆栽'], [-6.4, -3.0, '大盆栽'], [6.4, 4.3, '大盆栽'], [2.4, 4.3, '姑婆芋'], [2.45, -4.4, '朱蕉'], [-6.35, 0.25, '蕨類']].map(([x, z, n], i) => ({ id: 'plantIn' + i, sc: 'in', x: x + (x > 0 ? -0.5 : 0.5), z: z + (z > 0 ? -0.5 : 0.5), r: 0.9, icon: '🌿', name: '澆花', run: () => useThing({ t: 'plant' }, { x, z, sc: 'in', name: n }) })),
+  { id: 'santa', sc: 'out', x: 0, z: 0, r: 1.8, icon: '🎅', name: '聖誕老公公', run: santaGift, pos: () => SEASON.santa?.o.position || { x: 999, z: 999 }, hide: () => !SEASON.santa },
   { id: 'wardrobe', sc: 'in', x: -5.7, z: -1.2, icon: '👗', name: '衣櫃', run: () => openLooks() },
 ];
 SP.forEach(s => {
@@ -691,7 +692,7 @@ async function enterHouse(at) {
     const p = me(), q = you(); p.x = INSPOTS.exit.x - 0.4; p.z = INSPOTS.exit.z - 0.6; p.ry = Math.PI; if (partnerLocal()) { q.x = p.x - 0.8; q.z = p.z + 0.2; q.ry = Math.PI; }
     view.inYaw = 0; nearSpot = null;
     if (at && Number.isFinite(at.x)) { [p.x, p.z] = freeSpot(at.x, at.z); p.ry = at.ry || 0; view.inYaw = at.yaw || 0; }
-    applyLamps(); updateCam(0, true);
+    applyLamps(); updateCam(0, true); if (xmasSeason() && !SEASON.in) seasonIn();
   });
   sfx('door-open');
 }
@@ -1675,7 +1676,7 @@ function updateCam(dt, snap) {
 }
 
 // ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
-const SHARED = ['lampsOff', 'letters', 'rares', 'rareDay', 'surFound', 'playDays', 'playDay', 'loveDay', 'keepPlaces', 'names', 'looks', 'anniv', 'born', 'rt', 'theme', 'pantry', 'eggs', 'fedDay', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
+const SHARED = ['santaGot', 'lampsOff', 'letters', 'rares', 'rareDay', 'surFound', 'playDays', 'playDay', 'loveDay', 'keepPlaces', 'names', 'looks', 'anniv', 'born', 'rt', 'theme', 'pantry', 'eggs', 'fedDay', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
 const LOVE_WORD = { hand: '牽你的手', hug: '抱抱你', kiss: '親親你', pat: '摸摸你的頭' };
 function newChar(look) { const c = { i: 'g', av: new Avatar(look), x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }; OUT.add(c.av.root); hookEmote(c); return c; }
 function hookEmote(c) { const orig = c.av.emote.bind(c.av); c.av.emote = (k, d) => { orig(k, d); if (MP.on && c === me()) MP.net.send({ t: 'emo', k, d }); }; }
@@ -2065,12 +2066,13 @@ function openShop() {
   if (MP.role === 'g') return; sfx('click'); st.inv = st.inv || {}; st.decor = st.decor || [];
   const here = scene, can = d => d[3] === 'any' || d[3] === here;
   const thumb = k => `<img class="th" src="models/thumbs/${k}.webp" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
-  const items = DECOR.filter(can).map(d => `<button type="button" class="item" data-buy="${d[0]}" ${(st.coins || 0) < d[2] ? 'disabled' : ''}>${thumb(d[0])}${d[6] === 's' ? '<i class="tag">可放桌上</i>' : ''}<b>${esc(d[1])}</b><small>🪙 ${d[2]}${st.inv[d[0]] ? ` · 有 ${st.inv[d[0]]}` : ''}</small></button>`).join('');
+  const shopRow = d => `<button type="button" class="item" data-buy="${d[0]}" ${(st.coins || 0) < d[2] ? 'disabled' : ''}>${thumb(d[0])}${d[6] === 's' ? '<i class="tag">可放桌上</i>' : ''}<b>${esc(d[1])}</b><small>🪙 ${d[2]}${st.inv[d[0]] ? ` · 有 ${st.inv[d[0]]}` : ''}</small></button>`;
+  const items = DECOR.filter(can).filter(d => !XMAS_DECOR.includes(d[0])).map(shopRow).join(''), xItems = xmasSeason() ? DECOR.filter(can).filter(d => XMAS_DECOR.includes(d[0])).map(shopRow).join('') : '';
   const inv = Object.entries(st.inv).filter(([k, n]) => n > 0 && can(DECOR.find(d => d[0] === k) || [0, 0, 0, 'none'])).map(([k, n]) => `<button type="button" class="item" data-place="${k}">${thumb(k)}<b>${esc(DECOR.find(d => d[0] === k)[1])}</b><small>×${n}・點一下擺放</small></button>`).join('');
   const placed = (st.decor || []).map((d, i) => d.sc === here ? `<button type="button" data-take="${i}">${esc(DECOR.find(x => x[0] === d.id)?.[1] || '')}<small>收起來（放回包包）</small></button>` : '').join('');
   openDlg(`🛠️ 裝潢${here === 'in' ? '小木屋' : '小島'}`, `<p class="muted">🪙 ${st.coins || 0} 小島幣（做每日任務、釣魚、撿貝殼、堆沙堡可以賺）${here === 'in' ? '' : '　想裝潢小木屋就進屋再打開'}</p>
     ${here === 'in' ? `<b>🏠 屋內風格</b><div class="shop">${Object.entries(THEMES).map(([k, t]) => `<button type="button" data-theme="${k}" aria-pressed="${(st.theme || 'muji') === k}">${k === 'muji' ? '🤍' : '🪵'} ${esc(t.name)}<small>${k === 'muji' ? '淺色原木、米白、亞麻灰' : '原木牆、深木地板、暖黃光'}</small></button>`).join('')}</div>` : ''}
-    ${inv ? `<b>🎒 包包裡</b><div class="shop items">${inv}</div>` : ''}<b>🛒 商店</b><div class="shop items">${items}</div>${placed ? `<b>📍 已經擺好的</b><button type="button" class="ghost" id="arrange-go">移動、轉向或收起已經擺好的擺設</button><div class="shop">${placed}</div>` : ''}`);
+    ${inv ? `<b>🎒 包包裡</b><div class="shop items">${inv}</div>` : ''}${xItems ? `<b>🎄 聖誕限定・1/6 下架</b><div class="shop items xmas">${xItems}</div>` : ''}<b>🛒 商店</b><div class="shop items">${items}</div>${placed ? `<b>📍 已經擺好的</b><button type="button" class="ghost" id="arrange-go">移動、轉向或收起已經擺好的擺設</button><div class="shop">${placed}</div>` : ''}`);
   $('#arrange-go')?.addEventListener('click', startArrange);
   $('#dlg-body').querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const d = DECOR.find(x => x[0] === b.dataset.buy); if ((st.coins || 0) < d[2]) return; st.coins -= d[2]; st.inv[d[0]] = (st.inv[d[0]] || 0) + 1; save(); updateChips(); sfx('chime'); toast(`買了「${d[1]}」`); startPlace(d[0]); });
   $('#dlg-body').querySelectorAll('[data-place]').forEach(b => b.onclick = () => startPlace(b.dataset.place));
@@ -2368,7 +2370,7 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
   if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickRemoteBikes(); tickBoatSync(dt); chars[0].av.mate = chars[1].av; chars[1].av.mate = chars[0].av; /* 情侶動作要知道對方身體在哪 */ nightK = k.night; tickFlash();
@@ -2988,10 +2990,11 @@ const USE = {
   'potted-cactus-855c1d': { t: 'plant' }, plant: { t: 'plant' }, cherry: { t: 'plant', shake: 1 }, sapling: { t: 'plant' }, bush: { t: 'plant' }, 'table-herb-pot-3c0cf4': { t: 'plant' },
   'basil-pot-125949': { t: 'plant' }, 'fern-plant-1559b8': { t: 'plant' }, 'ti-plant-a7ad06': { t: 'plant' }, 'taro-plant-8c0493': { t: 'plant' },
   guitar: { t: 'guitar' }, 'classroom-globe-16a96e': { t: 'globe' }, 'coffee-cup-90be67': { t: 'cup' }, 'birdhouse-post-66d6c1': { t: 'bird' }, 'garden-birdbath-9671de': { t: 'bird' },
+  'xmas-fir-tree': { t: 'xtree' }, 'garland-lamp-post-af02f0': { t: 'lamp' }, 'wooden-toboggan-940bbc': { t: 'seat', y: 0.24, name: '木雪橇' }, 'gingerbread-house-8b9049': { t: 'treat' }, 'gingerbread-man-4766ed': { t: 'treat' }, 'candy-cane-eb113b': { t: 'treat' }, 'snow-laden-spruce-36716e': { t: 'plant', shake: 1 }, 'candy-cane-path-markers-2310e4': { t: 'treat' },
   'frontyard-gnome-997876': { t: 'gnome' }, bike: { t: 'bell' }, cushion: { t: 'hug' }, rug: { t: 'lie' }, parasol: { t: 'shade' }, 'windsock-d5df79': { t: 'wind' },
 };
-const USE_ICON = { seat: '🪑', lamp: '💡', read: '📖', plant: '🌿', guitar: '🎸', globe: '🌍', cup: '☕', bird: '🐦', gnome: '🧙', bell: '🔔', hug: '🧸', lie: '🛋️', shade: '⛱️', wind: '🌬️', desk: '✍️' };
-const USE_VERB = { seat: '坐一下', lamp: '開關燈', read: '看書', plant: '澆水', guitar: '彈吉他', globe: '轉地球儀', cup: '喝一口', bird: '看小鳥', gnome: '跟小矮人說話', bell: '按鈴', hug: '抱抱枕', lie: '躺一下', shade: '乘涼', wind: '看風', desk: '寫信' };
+const USE_ICON = { xtree: '🎄', treat: '🍬', seat: '🪑', lamp: '💡', read: '📖', plant: '🌿', guitar: '🎸', globe: '🌍', cup: '☕', bird: '🐦', gnome: '🧙', bell: '🔔', hug: '🧸', lie: '🛋️', shade: '⛱️', wind: '🌬️', desk: '✍️' };
+const USE_VERB = { xtree: '看聖誕樹', treat: '嚐一口', seat: '坐一下', lamp: '開關燈', read: '看書', plant: '澆水', guitar: '彈吉他', globe: '轉地球儀', cup: '喝一口', bird: '看小鳥', gnome: '跟小矮人說話', bell: '按鈴', hug: '抱抱枕', lie: '躺一下', shade: '乘涼', wind: '看風', desk: '寫信' };
 const DSP = []; /* 擺設變成的地點（跟 SP 一樣用） */
 function rebuildDecorSpots() {
   DSP.forEach(s => s.el?.remove()); DSP.length = 0;
@@ -3030,6 +3033,8 @@ function useThing(u, o) {
     case 'shade': me().av.emote('cheer', 1); toast('⛱️ 陽傘下好涼快'); return;
     case 'wind': toast(`🌬️ 風向袋${WX?.st?.rain > 0.3 ? '飄得很用力，風好大' : '輕輕飄著，今天適合放風箏'}`); return;
     case 'desk': return useDesk(o, gy);
+    case 'xtree': me().av.emote('cheer', 1.2); burst('star', new THREE.Vector3(o.x, gy + 2.4, o.z), 14, 0.8); sfx('chime'); toast(`🎄 ${pick(['樹上的星星閃了一下', '聖誕球映著你們兩個的臉', '許一個聖誕願望吧'])}`); if (daily('xtree')) addLove(1); return;
+    case 'treat': me().av.emote('eat', 1.4); toast(`🍬 ${pick(['甜甜的，是聖誕節的味道', '捨不得吃，只咬了一小口', '分一半給另一半'])}`); if (daily('treat')) addLove(1); return;
   }
 }
 /* 坐下：可以一直坐著發呆；搖椅會慢慢搖 */
@@ -3121,6 +3126,49 @@ function shakeTree(x, z) {
   burst('heart', new THREE.Vector3(x, y + 2.6, z), 14, 1.6);
   const k = 'tree' + x; st.useDay = st.useDay?.d === st.day ? st.useDay : { d: st.day, k: [] };
   if (!st.useDay.k.includes(k)) { st.useDay.k.push(k); const r = Math.random(); if (r < 0.35) { addCoins(8); toast('🌸 花瓣飄下來，還掉下幾枚小島幣！'); } else toast('🌸 櫻花瓣像雪一樣飄下來'); addLove(1); } else toast('🌸 花瓣輕輕飄落');
+}
+
+// ================= 聖誕季（12/1–1/6）：小島自動換上聖誕裝、商店聖誕限定、平安夜和聖誕節聖誕老公公來訪 =================
+const xmasSeason = (d = st.day) => { const t = dateOfDay(d), m = t.getUTCMonth() + 1, day = t.getUTCDate(); return m === 12 || (m === 1 && day <= 6); };
+const santaDay = () => { const t = dateOfDay(st.day); return t.getUTCMonth() === 11 && (t.getUTCDate() === 24 || t.getUTCDate() === 25); };
+const SEASON = { on: null, out: null, in: null, santa: null, elf: null, loading: false };
+/* 小木屋門口：一棵掛滿聖誕球的樹、兩支花圈路燈、拐杖糖步道；屋裡茶几上一間薑餅屋、角落一棵小聖誕樹 */
+async function drawSeason() {
+  if (!W || SEASON.loading) return; const want = xmasSeason();
+  if (SEASON.on === want && (!want || SEASON.out)) { if (want && IN && !SEASON.in) await seasonIn(); return; }
+  SEASON.loading = true; SEASON.on = want;
+  [SEASON.out, SEASON.in].forEach(g => g?.parent?.remove(g)); SEASON.out = SEASON.in = null;
+  if (want) {
+    const g = new THREE.Group(), put = async (k, x, z, ry = 0, s = 1) => { const m = await load(k); if (!m) return; const o = cloneModel(m); o.position.set(x, standH(x, z), z); o.rotation.y = ry; o.scale.setScalar(s); g.add(o); return o; };
+    await Promise.all([put('xmas-fir-tree', -4.6, -2.3, 0.4, 1), put('garland-lamp-post-af02f0', -1.5, -2.2, 0, 0.7), put('garland-lamp-post-af02f0', 1.5, -2.2, 0, 0.7), put('candy-cane-path-markers-2310e4', -1.1, 0.4, Math.PI / 2), put('candy-cane-path-markers-2310e4', 1.1, 0.4, Math.PI / 2)]);
+    OUT.add(g); SEASON.out = g; if (IN) await seasonIn();
+  }
+  SEASON.loading = false; tickSanta(0, true);
+}
+async function seasonIn() {
+  const g = new THREE.Group(), put = async (k, x, y, z, ry = 0, s = 1) => { const m = await load(k); if (!m) return; const o = cloneModel(m); o.position.set(x, y, z); o.rotation.y = ry; o.scale.setScalar(s); g.add(o); };
+  await Promise.all([put('xmas-fir-tree', 3.3, 0, -1.1, 0.3, 0.68), put('gingerbread-house-8b9049', 0.15, 0.43, -2.5, 0.5, 0.8), put('candy-cane-eb113b', -0.35, 0.44, -2.35, 1.2, 2)]);
+  if (IN && xmasSeason()) { IN.S.add(g); SEASON.in = g; }
+}
+/* 聖誕老公公（平安夜、聖誕節）和精靈（整個十二月）在小木屋附近走來走去 */
+let santaT = 0;
+async function tickSanta(dt, force) {
+  santaT -= dt; if (santaT > 0 && !force) return; santaT = 5;
+  const wantS = santaDay() && started(), wantE = xmasSeason() && dateOfDay(st.day).getUTCMonth() === 11 && started();
+  const spawn = async (key, x, z) => { const a = await animal(OUT, key, x, z, { s: 1, roam: 3, speed: 0.5 }); return a; };
+  const drop = a => { if (!a) return; OUT.remove(a.o); const i = animals.indexOf(a); if (i >= 0) animals.splice(i, 1); };
+  if (wantS && !SEASON.santa) SEASON.santa = await spawn('santa-0e0332', -3.2, 0.2); else if (!wantS && SEASON.santa) { drop(SEASON.santa); SEASON.santa = null; }
+  if (wantE && !SEASON.elf) SEASON.elf = await spawn('elf-carrying-presents-d2dda9', -5.6, -0.6); else if (!wantE && SEASON.elf) { drop(SEASON.elf); SEASON.elf = null; }
+}
+function santaGift() {
+  const a = SEASON.santa; if (a) { a.hold = 4; a.o.rotation.y = Math.atan2(me().x - a.o.position.x, me().z - a.o.position.z); }
+  me().av.emote('wave', 1.2); const key = 'santa' + dateOfDay(st.day).getUTCFullYear(), got = st.santaGot?.[key]?.includes(myIdx());
+  if (got) { toast('🎅 聖誕老公公：「Ho ho ho！明年再見囉，要一直相親相愛喔！」', 4500); return; }
+  const it = DECOR.find(d => d[0] === pick(['xmas-fir-tree', 'garland-lamp-post-af02f0', 'snow-laden-spruce-36716e', 'wooden-toboggan-940bbc', 'gingerbread-house-8b9049']));
+  st.inv = st.inv || {}; st.inv[it[0]] = (st.inv[it[0]] || 0) + 1; st.santaGot = st.santaGot || {}; st.santaGot[key] = [...(st.santaGot[key] || []), myIdx()];
+  addCoins(100); addLove(8, null, 'fest'); addMemo('🎅', `聖誕老公公送了 ${nameOf(myIdx())} 一份禮物：${it[1]}`); save(); burst('star', headPos(me(), 1.3), 16, 0.6); sfx('chime');
+  openDlg('🎅 聖誕老公公的禮物', `<div class="fest-card"><span>🎁</span><b>Ho ho ho！聖誕快樂！</b><p>「這是給你們小島的禮物——<b class="nw">${esc(it[1])}</b><br>今年也要一直相親相愛喔。」</p></div><p class="muted">禮物已經放進裝潢的包包裡，還有 🪙 100。</p><button type="button" class="primary" id="sg-ok">謝謝聖誕老公公 ♥</button>`);
+  $('#sg-ok').onclick = () => $('#dlg').close();
 }
 
 // ================= 一起養的愛情樹 =================
@@ -3258,10 +3306,9 @@ function tickFestival(dt) {
   if (!wantL && FEST.lanterns) { OUT.remove(FEST.lanterns); FEST.lanterns = null; }
   if (FEST.lanterns) FEST.lanterns.children.forEach(l => { l.position.y += l.userData.v * dt; l.position.x += Math.sin(l.position.y * 0.3) * dt * 0.2; if (l.position.y > 22) l.position.y = 1.5; });
   const wantP = f?.fx === 'pumpkin';
-  if (wantP && !FEST.pumpkins) {
-    FEST.pumpkins = new THREE.Group(); const pm = new THREE.MeshStandardMaterial({ color: '#f08a24', emissive: '#ff7a00', emissiveIntensity: 0.6, roughness: 0.6 });
-    [[2.4, 3.2], [-2.6, 3.4], [6, 5], [-7, 6], [0.5, 9]].forEach(([x, z]) => { const p = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), pm); p.scale.y = 0.8; p.position.set(x, standH(x, z) + 0.2, z); const st_ = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.12, 6), toon('#5a7a2a')); st_.position.y = 0.26; p.add(st_); FEST.pumpkins.add(p); });
-    OUT.add(FEST.pumpkins);
+  if (wantP && !FEST.pumpkins) { /* 萬聖節：真的南瓜燈（雕了臉、會發光） */
+    FEST.pumpkins = new THREE.Group(); OUT.add(FEST.pumpkins);
+    load('jack-o-lantern-0b1ddb').then(m => { if (!m || !FEST.pumpkins) return; [[2.4, 3.2, 0.3], [-2.6, 3.4, -0.4], [6, 5, 1], [-7, 6, -1], [0.5, 9, 0.2], [-1.4, -2.6, 0], [1.4, -2.6, 0]].forEach(([x, z, r]) => { const o = cloneModel(m); o.position.set(x, standH(x, z), z); o.rotation.y = Math.PI + r; FEST.pumpkins.add(o); const l = new THREE.PointLight('#ff8a2a', 0.8, 3, 2); l.position.set(x, standH(x, z) + 0.3, z); if (FEST.pumpkins.children.length < 6) FEST.pumpkins.add(l); }); });
   }
   if (!wantP && FEST.pumpkins) { OUT.remove(FEST.pumpkins); FEST.pumpkins = null; }
 }
