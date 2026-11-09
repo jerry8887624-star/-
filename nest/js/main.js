@@ -3276,7 +3276,7 @@ function chatMarkRead() {
 function openChat() {
   if (MP.role === 'g') return;
   if (!MP.on) { toast('先在 🌐 跟另一半連線，就能聊天了', 3500); return openNet(); }
-  CHAT.open = true; CHAT.stick = true; $('#ch-new').hidden = true; $('#chat').hidden = false; toggleLoveMenu(false); sfx('click');
+  CHAT.open = true; CHAT.stick = true; $('#ch-new').hidden = true; const ch_ = $('#chat'); ch_.hidden = false; ch_.classList.remove('enter'); void ch_.offsetWidth; ch_.classList.add('enter'); ch_.addEventListener('animationend', () => ch_.classList.remove('enter'), { once: true }); toggleLoveMenu(false); sfx('click');
   renderChat(); chatMarkRead(); chatBadge();
 }
 function closeChat() { CHAT.open = false; $('#chat').hidden = true; $('#ch-stickers').hidden = true; $('#ch-stk').setAttribute('aria-pressed', 'false'); $('#ch-in').blur(); chatBadge(); }
@@ -3369,6 +3369,8 @@ $('#ch-form').onsubmit = e => { e.preventDefault(); const v = chIn.value.trim();
   if (window.ResizeObserver) new ResizeObserver(() => { if (CHAT.open && CHAT.stick) chatStick(); }).observe(box);
   $('#ch-new').onclick = () => { CHAT.stick = true; $('#ch-new').hidden = true; chatStick(true); };
 })();
+/* 按送出不會讓鍵盤收起來（跟 iMessage 一樣可以一直打字；鍵盤收起來會讓整個畫面重新排版） */
+['#ch-send', '#qc-send'].forEach(q => { const b_ = $(q); if (b_) ['pointerdown', 'mousedown'].forEach(ev => b_.addEventListener(ev, e => e.preventDefault())); });
 // 鍵盤打開時：面板跟著往上（iPhone 的鍵盤會蓋住畫面下方）
 if (window.visualViewport) {
   const vv = window.visualViewport, R_ = document.documentElement.style, fit = () => { R_.setProperty('--kb', Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px'); R_.setProperty('--vvt', vv.offsetTop + 'px'); R_.setProperty('--vvh', vv.height + 'px'); };
