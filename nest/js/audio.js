@@ -26,12 +26,13 @@ const SAMPLES = {
   wood: [['wood-0', 'wood-1', 'wood-2', 'wood-3'], 0.16], whoosh: [['whoosh'], 0.5], plop: [['plop'], 0.55], splash: [['splash'], 0.6],
   water: [['water'], 0.4], sand: [['sand-0', 'sand-1'], 0.45], sizzle: [['sizzle'], 0.45], boom: [['boom'], 0.55], book: [['book'], 0.55],
   bite: [['bite-0'], 0.6], bite2: [['bite-1'], 0.6],
+  bell: [['bell'], 0.7], /* 腳踏車鈴（錄音；沒有就用下面合成的） */
 };
 const bufs = {}; let loading = false;
 function loadSamples() {
   if (loading || !ctx) return; loading = true;
   const names = new Set(Object.values(SAMPLES).flatMap(v => v[0]));
-  names.forEach(n => fetch(`audio/sfx/${n}.mp3`).then(r => r.arrayBuffer()).then(b => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej))).then(d => { bufs[n] = d; }).catch(() => {}));
+  names.forEach(n => fetch(`audio/sfx/${n}.mp3`).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then(b => ctx.decodeAudioData(b)).then(d => { bufs[n] = d; }).catch(() => {})); /* 沒有這個檔案就用合成音 */
 }
 function playSample(name, delay = 0) {
   const S = SAMPLES[name]; if (!S) return false; const list = S[0].filter(n => bufs[n]); if (!list.length) return false;
@@ -47,6 +48,7 @@ export function sfx(name) {
   if (playSample(name)) return;
   switch (name) {
     case 'click': tone(880, t, 0.06, { type: 'triangle', vol: 0.06 }); break;
+    case 'bell': [0, 0.16].forEach(d => [[2350, 0.07], [3170, 0.045], [4890, 0.025], [6400, 0.015]].forEach(([f, v]) => tone(f, t + d, 1.3, { type: 'sine', vol: v }))); break; /* 叮叮：金屬鈴的泛音（不是整數倍） */
     case 'pop': tone(660, t, 0.12, { vol: 0.12, bend: 1.6 }); tone(990, t + 0.06, 0.14, { vol: 0.08 }); break;
     case 'chime': [1047, 1319, 1568].forEach((f, i) => tone(f, t + i * 0.08, 0.6, { type: 'triangle', vol: 0.07 })); break;
     case 'whoosh': noise(t, 0.35, { vol: 0.25, freq: 900, q: 0.6 }); break;

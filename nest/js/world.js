@@ -296,7 +296,7 @@ export async function buildIsland(S) {
     one(S, 'parasol', SPOTS.sunbathe.x, SPOTS.sunbathe.z - 0.6, 0, 1, { col: 0.15 }),
     one(S, 'deckChair', SPOTS.sunbathe.x - 0.75, SPOTS.sunbathe.z + 0.4, 0, 1),
     one(S, 'deckChair', SPOTS.sunbathe.x + 0.75, SPOTS.sunbathe.z + 0.4, 0, 1),
-    one(S, 'ball', SPOTS.sunbathe.x + 3.2, SPOTS.sunbathe.z + 1.2, 0, 1),
+    one(S, 'ball', SPOTS.sunbathe.x + 3.2, SPOTS.sunbathe.z + 1.2, 0, 1).then(o => { if (o) W.ball = o; }), /* 海灘球可以踢 */
     one(S, 'bucket', SPOTS.sandcastle.x + 1.1, SPOTS.sandcastle.z + 0.6, 0.6, 1),
     one(S, 'lighthouse', HILL.x, HILL.z, 0.8, 0.62, { col: 3.0 }),
     one(S, 'logBench', SPOTS.sunset.x + 0.3, SPOTS.sunset.z, -Math.PI / 2 - 0.35, 1),
