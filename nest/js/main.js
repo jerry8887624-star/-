@@ -1681,6 +1681,7 @@ const peerName = id => { const p = MP.peers.get(id); return p ? (p.role === 'g' 
 function charName(c) { if (c === guestChar) return MP.guest?.name || '我'; if (c.i === 'g') { for (const p of MP.peers.values()) if (p.c === c) return p.name; return '朋友'; } return nameOf(c.i); }
 // 每一格：每個角色放到他所在的場景，看不到的藏起來；別人的角色平滑移動到收到的位置
 function placeRoots(dt) {
+  { const m = me(); if (m && !m.remote && !m.ghost && m.sc !== scene) m.sc = scene; } /* 保險：自己的角色一定在你正在看的那個場景，不會變成透明人 */
   for (const c of allChars()) {
     let show = true;
     if (c === chars[0] || c === chars[1]) show = (MP.role !== 'g' && c.i === myIdx()) || !!c.remote;
@@ -1741,7 +1742,7 @@ function onNet(m) {
       if (st.adopt) { delete st.adopt; if (st.names[i]) st.myName = st.names[i]; if (st.looks[i]) st.myLook = st.looks[i]; } // 重新登入的新手機：沿用原本的自己
       if (st.myName) st.names[i] = st.myName; if (st.myLook) st.looks[i] = st.myLook;
       chars[i].av.setLook(st.looks[i]); if (st.looks[1 - i]) chars[1 - i].av.setLook(st.looks[1 - i]);
-      const mc = chars[i], oc = chars[1 - i]; if (!mc.seenMe) { mc.x = oc.x; mc.z = oc.z; mc.ry = oc.ry; mc.sc = oc.sc || scene; mc.seenMe = 1; }
+      const mc = chars[i], oc = chars[1 - i]; if (!mc.seenMe) { if (oc.remote && (oc.sc || 'out') === scene) { mc.x = oc.x + 0.8; mc.z = oc.z + 0.6; mc.ry = oc.ry; } mc.seenMe = 1; } /* 另一半在線上、又在同一個地方，才把我放到他旁邊；不然位置和場景都不動（以前會把我丟到屋外，在屋裡就變成透明人） */
       save(); updateHud(); refreshPush(); setTimeout(() => { if (!act && !$('#dlg').open) checkAway(); else st.awaySeen = Date.now(); MP.awayChecked = true; }, 1500);
     }
     if (m.role !== 'g' && !m.save.rt) { migrateRT(m.clock?.day || st.day, true); save(); } /* 伺服器上還是舊的天數：換成真實日期 */
