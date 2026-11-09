@@ -47,7 +47,12 @@ export function randomLook(gender) {
 
 // ---------- 載入 ----------
 const loader = new GLTFLoader(), bodyCache = new Map();
-function loadBody(id) { if (!bodyCache.has(id)) bodyCache.set(id, loader.loadAsync(`models/chars/${id}.glb`)); return bodyCache.get(id); }
+/* 下載失敗會重試（iPhone 更新完的那一刻，離線快取正在切換，偶爾會拿不到檔案）；失敗不會被記住，下次再要時重新下載 */
+const retry = (fn, n = 4, wait = 700) => fn().catch(e => n > 1 ? new Promise(r => setTimeout(r, wait)).then(() => retry(fn, n - 1, wait * 2)) : Promise.reject(e));
+function loadBody(id) {
+  if (!bodyCache.has(id)) bodyCache.set(id, retry(() => loader.loadAsync(`models/chars/${id}.glb`)).catch(e => { bodyCache.delete(id); throw e; }));
+  return bodyCache.get(id);
+}
 export function preloadBodies(looks) { return Promise.all(looks.map(l => loadBody(BODIES[OUTFITS[l.outfit % OUTFITS.length].body].id).catch(() => null))); }
 
 // 動作：本機的（CC0）與線上的（Polyfork）
@@ -59,8 +64,8 @@ const rawCache = new Map();
 function getRaw(name) {
   if (!rawCache.has(name)) {
     const url = LOCAL.includes(name) ? `anims/anim-${slug(name)}.json` : `https://polyfork.dev/cdn/anim-${slug(name)}.json`;
-    rawCache.set(name, fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .catch(() => FALLBACK[name] ? getRaw(FALLBACK[name]) : null));
+    rawCache.set(name, retry(() => fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }), LOCAL.includes(name) ? 4 : 2)
+      .catch(() => { if (LOCAL.includes(name)) rawCache.delete(name); return FALLBACK[name] ? getRaw(FALLBACK[name]) : null; }));
   }
   return rawCache.get(name);
 }
@@ -129,7 +134,7 @@ export class Avatar {
   }
 
   async setLook(look) {
-    this.look = { ...look }; const token = this._tok = Symbol();
+    this.look = { ...look }; const token = this._tok = Symbol(); this._lookAt = performance.now();
     const out = OUTFITS[(look.outfit | 0) % OUTFITS.length], spec = BODIES[out.body];
     const g = await loadBody(spec.id).catch(() => null); if (!g || token !== this._tok) return;
     // 換掉舊的身體

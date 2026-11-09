@@ -1,14 +1,17 @@
-// 天氣與季節：小島上每 7 天換一季（春→夏→秋→冬），天氣依「第幾天、幾點」決定（兩支手機算出來一樣）
+// 天氣與季節：跟台灣真實的季節一樣，天氣依「哪一天、幾點」決定（兩支手機算出來一樣）
 import * as THREE from '../vendor/three.module.min.js';
 
 export const SEASONS = [
   { k: 'spring', name: '春天', icon: '🌸', rain: 0.22, cloudy: 0.2, snow: 0 },
   { k: 'summer', name: '夏天', icon: '☀️', rain: 0.2, cloudy: 0.15, snow: 0 },
   { k: 'autumn', name: '秋天', icon: '🍂', rain: 0.15, cloudy: 0.3, snow: 0 },
-  { k: 'winter', name: '冬天', icon: '❄️', rain: 0.05, cloudy: 0.3, snow: 0.45 },
+  { k: 'winter', name: '冬天', icon: '❄️', rain: 0.08, cloudy: 0.32, snow: 0.3 },
 ];
-export const SEASON_DAYS = 7;
-export const seasonOf = day => SEASONS[Math.floor((Math.max(1, day) - 1) / SEASON_DAYS) % 4];
+export const SEASON_DAYS = 7; /* 雪人可以放幾天 */
+/* 真實時間：第 1 天＝2026/1/1（台灣日期），季節跟著台灣真實的月份：3–5 月春、6–8 月夏、9–11 月秋、12–2 月冬 */
+export const DAY0 = Date.UTC(2026, 0, 1);
+export const dateOfDay = d => new Date(DAY0 + (d - 1) * 864e5);
+export const seasonOf = day => { const m = dateOfDay(Math.max(1, day)).getUTCMonth() + 1; return SEASONS[m >= 3 && m <= 5 ? 0 : m >= 6 && m <= 8 ? 1 : m >= 9 && m <= 11 ? 2 : 3]; };
 const hash = n => { n = (n ^ 61) ^ (n >>> 16); n = n + (n << 3); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return (n >>> 0) / 4294967295; };
 function kindAt(day, block) {
   const s = seasonOf(day), r = hash(hash(day * 7919 + 17) * 1e9 + block * 104729 | 0);
