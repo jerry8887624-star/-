@@ -12,6 +12,8 @@
 - **不要在一行程式中間寫 `//` 註解**（後面的程式會被吃掉，已經出過好幾次 bug），用 `/* */`。
 - 新增要兩人同步的存檔欄位：client（main.js 的 SHARED）和 worker（island.js）兩邊都要加。
 
+- **不要再更換 App 圖示**（icons/）：iPhone 加到主畫面後圖示不會自己更新，Apple 不允許網站更換，已安裝的人只能刪掉重加。
+
 ## 溝通
 - 一律用繁體中文回覆，結尾附上 👉 https://our-island.geso1214.workers.dev
 - 要做選擇時用選擇題討論。
