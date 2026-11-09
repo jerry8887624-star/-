@@ -163,7 +163,7 @@ export class Island {
       }
       const role = this.meta.keys[0] ? 1 : 0;
       const key = rnd(32); this.meta.keys[role] = await hash(key); this.meta.pair = null; await this.persist('meta');
-      this.bcast({ t: 'paired' });
+      this.bcast({ t: 'paired' }); this.ownersSend({ t: 'owner', owner: this.ownerView() });
       return json({ key, role });
     }
     if (url.pathname === '/owner') { const n = this.save.names || ['', '']; const re = this.meta.pair?.role; return json({ names: n, paired: !!(this.meta.keys[0] && this.meta.keys[1]), relogin: re === 0 || re === 1 ? re : null }); }
@@ -317,7 +317,7 @@ export class Island {
         if (!owner) return; const paired = !!(this.meta.keys[0] && this.meta.keys[1]);
         const reg = this.env.REGISTRY.get(this.env.REGISTRY.idFromName('registry'));
         const p = await (await reg.fetch('https://x/new', { method: 'POST', body: JSON.stringify({ island: this.meta.island }) })).json();
-        this.meta.pair = { code: p.code, exp: p.exp, role: paired ? 1 - s.role : null }; // 已配對：給另一半重新登入用 await this.persist('meta'); this.ownersSend({ t: 'owner', owner: this.ownerView() }); break;
+        this.meta.pair = { code: p.code, exp: p.exp, role: paired ? 1 - s.role : null }; /* 已配對：給另一半重新登入用 */ await this.persist('meta'); this.ownersSend({ t: 'owner', owner: this.ownerView() }); break;
       }
     }
   }

@@ -583,13 +583,20 @@ function tickSpots() {
     const d = Math.hypot(pp.x - p.x, pp.z - p.z);
     if (s.dyn) { const [ic, nm] = s.dyn(); if (s.icon !== ic) { s.icon = ic; s.name = nm; s.el.textContent = `${ic} ${nm}`; } }
     if (show && !act && d < s.r && d < bd) { bd = d; best = s; }
-    const vis = show && !act && d < (scene === 'in' ? 30 : 20);
-    if (!vis) { if (s.el.style.display !== 'none') s.el.style.display = 'none'; continue; }
+    /* 標籤只在走近時才淡淡出現（屋內約 2.8 公尺、屋外 7 公尺；有新東西的地點遠一點就看得到） */
+    const R = (scene === 'in' ? 2.8 : 7) * (s.badge?.() ? 1.8 : 1), fade = Math.min(1, (R - d) / (R * 0.35));
+    s.lblK = show && !act ? fade : 0; s.lblD = d;
+  }
+  /* 最多同時顯示 3 個最近的；已經出現在右下角按鈕的那個不重複顯示 */
+  const cand = SP.filter(s => s.lblK > 0 && s !== best).sort((a, b) => a.lblD - b.lblD).slice(0, 3);
+  for (const s of SP) {
+    const pp = s.pos?.() || s;
+    if (!cand.includes(s)) { if (s.el.style.display !== 'none') s.el.style.display = 'none'; continue; }
     const y = scene === 'in' ? 2.1 : (s.id === 'dog' ? pp.y + 1.2 : standH(pp.x, pp.z) + 2.0);
     v3.set(pp.x, y, pp.z).project(cam);
     if (v3.z > 1) { s.el.style.display = 'none'; continue; }
     s.el.style.display = ''; s.el.style.left = ((v3.x + 1) / 2 * innerWidth) + 'px'; s.el.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px';
-    s.el.style.opacity = d < 10 ? 1 : d < 16 ? 0.8 : 0.6; s.el.style.setProperty('--k', d < 10 ? 1 : d < 16 ? 0.9 : 0.8); // 遠的地點標籤小一點、淡一點 s.el.classList.toggle('near', s === best);
+    s.el.style.opacity = s.lblK.toFixed(2); s.el.style.setProperty('--k', (0.86 + 0.14 * s.lblK).toFixed(3));
     if (s.badge) s.el.textContent = `${s.icon} ${s.name}${s.badge() ? ' ●' : ''}`;
   }
   tickSay();
@@ -598,7 +605,7 @@ function tickSpots() {
   for (const c of allChars()) {
     let e = nameEls.get(c); if (!e) { e = document.createElement('div'); e.className = 'lbl name'; $('#labels').appendChild(e); nameEls.set(c, e); }
     seen.add(c);
-    if (!started() || photo.on || build || !c.av.root.visible) { e.style.display = 'none'; continue; }
+    if (!started() || photo.on || build || !c.av.root.visible || (c === me() && !MP.peers.size)) { e.style.display = 'none'; continue; } /* 只有自己在島上時，不用在頭上標自己的名字 */
     tagPos(c, v3); v3.project(cam);
     if (v3.z > 1) { e.style.display = 'none'; continue; }
     const tag = c.i === 'g' ? '🎈 ' : c.remote ? '💗 ' : '';
@@ -1642,7 +1649,7 @@ function onNet(m) {
   if (m.t === 'memo') { st.diary.unshift(m.m); if (st.diary.length > 300) st.diary.length = 300; save(); return; }
   if (m.t === 'clock') { st.tod = m.clock.tod; st.day = m.clock.day; MP.expTod = st.tod; updateHud(); return; }
   if (m.t === 'owner') { MP.owner = m.owner; if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
-  if (m.t === 'paired') { if (MP.owner) MP.owner.paired = true; toast('另一半加入小島了 ❤', 3500); burst('heart', headPos(me(), 1.6), 10); if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
+  if (m.t === 'paired') { if (MP.owner) { MP.owner.paired = true; MP.owner.pair = ''; } /* 邀請碼已經用掉了，不能當重新登入碼 */ toast('另一半加入小島了 ❤', 3500); burst('heart', headPos(me(), 1.6), 10); if ($('#dlg').open && $('#dlg').dataset.net) openNet(); return; }
   if (m.t === 'book') { if (MP.owner) MP.owner.book = [m.e, ...(MP.owner.book || [])]; if (MP.role !== 'g') toast(`📝 ${m.e.n}：${m.e.text}`, 4000); return; }
   if (m.t === 'say') { const c = peerChar(m.id) || (m.id === MP.id ? me() : null); if (c) showSay(c, m.text, m.mute ? 'mute' : 'say'); return; }
   if (m.t === 'err') { toast(m.why === 'slow' ? '留言太快了，等一下再寫' : CHAT_WHY[m.why] || '沒有送出'); return; }

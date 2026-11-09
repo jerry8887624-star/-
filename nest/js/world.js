@@ -453,6 +453,11 @@ export async function buildInterior(themeKey = 'muji') {
     o('fern-plant-1559b8', -6.35, 0.25, 0.4, 0.75, 0, 'pot'), o('ti-plant-a7ad06', 2.45, -4.4, 0.6, 0.55, 0, 'pot'), o('taro-plant-8c0493', 2.4, 4.3, 2.2, 0.8, 0, 'pot'),
     o('table-herb-pot-3c0cf4', 5.85, F.cook.z, 0.4, 1, 1.0), o('basil-pot-125949', F.table.x + 0.62, F.table.z - 0.1, 0, 0.8, 0.75),
   ]);
+  /* 靠牆的高家具（衣櫃、書櫃、冰箱…）跟著牆一起：牆因為擋到鏡頭被隱藏時，這些家具也一起隱藏 */
+  for (const [m] of I.furn) {
+    const b = new THREE.Box3().setFromObject(m); if (b.isEmpty() || b.max.y < 1.15) continue; const c = b.getCenter(new THREE.Vector3());
+    for (const [k, dd] of [['left', c.x + w / 2], ['right', w / 2 - c.x], ['back', c.z + d / 2], ['front', d / 2 - c.z]]) if (dd < 1.1) (I[k + 'Wall'].userData.tall ||= []).push(m);
+  }
   // 流理台下面的櫃子、水槽、水龍頭、牆上的開放層板（放罐子）
   const cab = mat('cabinet'), steel = mat('steel'), K = F.cook;
   box(3.0, 0.85, 0.56, cab, 4.5, 0.425, K.z, S); [3.0, 3.5, 4.0, 4.5, 5.0, 5.5].forEach(x => box(0.02, 0.7, 0.02, trimM, x + 0.25, 0.45, K.z + 0.29, S));
@@ -484,6 +489,8 @@ export async function buildInterior(themeKey = 'muji') {
 export function cutaway(I, camX, camZ) {
   const L = Math.hypot(camX, camZ) || 1;
   for (const G of I.walls) { const [nx, nz] = G.userData.n; G.visible = (nx * camX + nz * camZ) / L < 0.35; }
+  for (const G of I.walls) for (const t of G.userData.tall || []) t.visible = true;
+  for (const G of I.walls) if (!G.visible) for (const t of G.userData.tall || []) t.visible = false;
 }
 // 換屋內風格
 export function applyTheme(I, key) {
