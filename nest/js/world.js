@@ -13,7 +13,7 @@ export const SPOTS = {
   campfire: { x: 11, z: 6 },
   picnic: { x: -10, z: 8 },
   sunbathe: { x: 2, z: 23 },
-  sandcastle: { x: -5, z: 23.5 },
+  sandcastle: { x: -4.8, z: 18.4 },
   beach: { x: 8.5, z: 23.5 },
   fishing: { x: 41.6, z: 0 },
   boat: { x: 33.5, z: 1.6, boatX: 35.5, boatZ: 2.4 },
@@ -211,7 +211,7 @@ function makePicnic() {
   for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.fillStyle = (i + j) % 2 ? '#f6f0e6' : '#e86a7a'; x.fillRect(i * 8, j * 8, 8, 8); }
   const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.MeshToonMaterial({ map: t }); const mat2 = toon('#c8955a');
-  const cloth = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.04, 3.0), mat); // 野餐墊加大：兩個人躺得下 cloth.position.y = 0.02; g.add(cloth);
+  const cloth = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.04, 3.0), mat); /* 野餐墊加大：兩個人躺得下 */ cloth.position.y = 0.02; g.add(cloth);
   const basket = new THREE.Group(); basket.position.set(0.9, 0.04, -0.6); g.add(basket);
   box(0.55, 0.3, 0.38, mat2, 0, 0.15, 0, basket);
   const handle = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.025, 6, 16, Math.PI), mat2); handle.position.y = 0.3; basket.add(handle);
