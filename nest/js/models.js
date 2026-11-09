@@ -33,9 +33,11 @@ const loader = new GLTFLoader(), cache = new Map();
 let pending = 0, done = 0; export const progress = { get pending() { return pending; }, get done() { return done; } };
 // 複製模型：有骨架（會動）的模型要連骨架一起複製，不然會畫在原點（陽傘的布曾經跑到地圖中間）
 export function cloneModel(g) { let skinned = false; g.scene.traverse(o => { if (o.isSkinnedMesh) skinned = true; }); return skinned ? SkeletonUtils.clone(g.scene) : g.scene.clone(true); }
+/* 有些模型（Polyfork 生成的變化版）沒有法線，打光會變全黑：自己算一份（低多邊形用面法線，看起來一樣是一面一面的） */
+function fixNormals(root) { root.traverse(o => { if (!o.isMesh || o.isSkinnedMesh || o.geometry.attributes.normal) return; let g = o.geometry; if (g.index) g = g.toNonIndexed(); g.computeVertexNormals(); o.geometry = g; }); }
 export function load(key) {
   const id = M[key] || key;
-  if (!cache.has(id)) { pending++; cache.set(id, loader.loadAsync(`models/${id}.glb`).then(g => { toonify(g.scene); g.scene.updateMatrixWorld(true); done++; return g; }).catch(e => { done++; console.warn('模型載入失敗', id, e); return null; })); }
+  if (!cache.has(id)) { pending++; cache.set(id, loader.loadAsync(`models/${id}.glb`).then(g => { fixNormals(g.scene); toonify(g.scene); g.scene.updateMatrixWorld(true); done++; return g; }).catch(e => { done++; console.warn('模型載入失敗', id, e); return null; })); }
   return cache.get(id);
 }
 
