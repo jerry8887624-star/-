@@ -5,7 +5,7 @@ import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from '.
 import { buildIsland, buildInterior, applyTheme, cutaway, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
-import { levelOf, LEVELS, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES } from './data.js';
+import { levelOf, LEVELS, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS } from './data.js';
 import { Amb } from './amb.js';
 import { weatherAt, seasonOf, createWeatherFX, umbrellaItem, snowmanMesh, SEASON_DAYS } from './weather.js';
 import { initUpdates, showNewsOnce, APP_VER } from './update.js';
@@ -422,6 +422,7 @@ function loveAction(kind) {
   sfx('click');
   if (kind === 'miss') return sendMiss();
   if (kind === 'note') return openNotes();
+  if (kind === 'qa') return openQA();
   if (MP.role === 'g' || you().ghost) { // 朋友、或另一半不在：只能做自己的動作
     const solo = { dance: 'dance', jump: 'jump', spin: 'cheer', wave: 'wave' }[kind];
     if (solo) { me().av.emote(solo, solo === 'dance' ? 6 : 1.5); burst(kind === 'dance' ? 'note' : 'star', headPos(me(), 1.3), 4, 0.3); }
@@ -1325,14 +1326,14 @@ function actEat() {
 // ---------- 對話框：地圖、回憶本、造型 ----------
 // 視窗的樣子跟著內容走：任務＝手帳、信＝信紙、回憶本＝相簿、便利貼＝軟木板
 const dlgKind = t => /^📋/.test(t) ? 'note' : /^📔/.test(t) ? 'album' : /^📝 冰箱|留給你的/.test(t) ? 'cork' : /信|^🎉|^🍾/.test(t) ? 'letter' : '';
-const DLG_EN = { '📋': 'Daily Quest', '📔': 'Memories', '💌': 'Letter', '🌐': 'Connect', '🗺️': 'Island Map', '🎵': 'Music', '📝': 'Notes', '🍾': 'Message in a Bottle', '🎁': 'Gift', '🎉': 'Anniversary', '🛍️': 'Shop', '🪙': 'Shop', '👗': 'Wardrobe', '🍳': 'Recipes', '🌱': 'Garden', '📳': 'Notifications', '🏆': 'Rewards' };
+const DLG_EN = { '💞': 'Daily Question', '📋': 'Daily Quest', '📔': 'Memories', '💌': 'Letter', '🌐': 'Connect', '🗺️': 'Island Map', '🎵': 'Music', '📝': 'Notes', '🍾': 'Message in a Bottle', '🎁': 'Gift', '🎉': 'Anniversary', '🛍️': 'Shop', '🪙': 'Shop', '👗': 'Wardrobe', '🍳': 'Recipes', '🌱': 'Garden', '📳': 'Notifications', '🏆': 'Rewards' };
 function setDlgTitle(title) {
   // 標題都是「圖示＋空白＋文字」；不用 \p{…} 正規表示式（舊版 iPhone 不支援，整支程式會載不起來）
   const sp = title.indexOf(' '), head = sp > 0 && sp <= 3 ? title.slice(0, sp) : '', isIc = head && !/[\u4e00-\u9fffA-Za-z0-9]/.test(head);
   const ic = isIc ? head : '', tx = isIc ? title.slice(sp + 1) : title, en = DLG_EN[ic] || '';
   $('#dlg-title').innerHTML = `${en ? `<small class="t-en">${esc(en)}</small>` : ''}${ic ? `<span class="t-ic">${ic}</span>` : ''}<span class="t-tx">${esc(tx)}</span>`;
 }
-function openDlg(title, html) { setDlgTitle(title); $('#dlg-body').innerHTML = html; const d = $('#dlg'); const k = dlgKind(title); if (k) d.dataset.kind = k; else delete d.dataset.kind; d.querySelector('#dlg-body').scrollTop = 0; if (!d.open) d.showModal(); }
+function openDlg(title, html) { delete $('#dlg').dataset.qa; setDlgTitle(title); $('#dlg-body').innerHTML = html; const d = $('#dlg'); const k = dlgKind(title); if (k) d.dataset.kind = k; else delete d.dataset.kind; d.querySelector('#dlg-body').scrollTop = 0; if (!d.open) d.showModal(); }
 $('#btn-map').onclick = () => {
   sfx('click');
   const cell = s => `<button type="button" class="cell" data-s="${s.id}" style="border:0"><span class="e">${s.icon}</span>${esc(s.name)}</button>`;
@@ -1593,7 +1594,9 @@ function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.st
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
 const MINE = ['myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic', 'qch'];
 function applySave(keys, first) {
-  for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; st[k] = v; }
+  const qaBefore = keys.qa || (first && st.qa) ? JSON.parse(JSON.stringify(st.qa || {})) : null;
+  for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k)) continue; if (k === 'qa') { st.qa = { ...(st.qa || {}), ...(v || {}) }; continue; } st[k] = v; }
+  if (qaBefore) qaAfterSync(qaBefore, keys.qa || {}, first);
   if (keys.looks) [0, 1].forEach(i => { if (st.looks[i]) chars[i].av.setLook(st.looks[i]); });
   if ('castles' in keys) showCastles();
   if (keys.garden) st.garden.forEach((_, i) => drawPlant(i));
@@ -1895,7 +1898,7 @@ function checkMilestones() {
 function updateChips() {
   const g = MP.role === 'g'; $('.chips').hidden = g || !started(); if (g) return;
   const list = questsToday(), done = list.filter(q => q.n >= QUESTS.find(x => x[0] === q.k)[2]).length;
-  const qc = $('#quest-chip'); qc.innerHTML = `${icon('quest')}今日任務 <b class="n">${done}/3</b>`; qc.classList.toggle('done', done === 3);
+  const qc = $('#quest-chip'); qc.innerHTML = `${icon('quest')}今日任務 <b class="n">${done}/3</b>`; qc.classList.toggle('done', done === 3); qaBadge();
   $('#coin-chip').innerHTML = `${icon('coin')}<b class="n">${st.coins || 0}</b>`;
 }
 $('#quest-chip').onclick = () => openQuests();
@@ -1904,8 +1907,8 @@ function openQuests() {
   sfx('click'); const list = questsToday(), s = seasonOf(st.day), w = weatherAt(st.day, st.tod);
   const rows = list.map(q => { const d = QUESTS.find(x => x[0] === q.k), ok = q.n >= d[2]; return `<div class="quest ${ok ? 'ok' : ''}"><span class="q-e">${ok ? '✅' : '⬜'}</span><b>${esc(d[1])}</b><span class="q-r">+${QUEST_COIN} 🪙</span><small>${q.n}/${d[2]}</small><div class="bar"><i style="width:${q.n / d[2] * 100}%"></i></div></div>`; }).join('');
   const ms = MILESTONES.map(([k, text, ok, coins, item]) => `<div class="quest ${st.rewards?.[k] ? 'ok' : ''}"><span class="q-e">${st.rewards?.[k] ? '🏆' : '🔒'}</span><b>${esc(text)}</b><span class="q-r">+${coins} 🪙</span><small>送「${esc(DECOR.find(d => d[0] === item)?.[1] || '')}」</small></div>`).join('');
-  openDlg('📋 今日任務', `<div class="memo"><span class="ic">${surpriseToday().icon}</span><b>今日驚喜：${esc(surpriseToday().name)}${surpriseDone() ? ' ✓' : ''}</b><small>${esc(surpriseToday().tip)}</small></div><p class="muted">小島第 ${st.day} 天 · ${s.icon} ${s.name}（每 7 天換季）· 今天 ${w.icon || '☀️'} ${w.name}</p>${rows}<p class="muted">三個都完成再加 ${QUEST_BONUS} 🪙 和甜蜜值，明天會換新的任務。</p><b>🏆 收藏獎勵</b>${ms}<button type="button" class="primary" id="q-shop">🪙 ${st.coins || 0} → 去買擺設</button>`);
-  $('#q-shop').onclick = openShop;
+  openDlg('📋 今日任務', `${MP.role === 'g' ? '' : `<button type="button" class="memo qa-entry${qaTodo() ? ' todo' : ''}" id="q-qa"><span class="ic">💞</span><b>今日問答${qaTodo() ? '' : ' ✓'}</b><small>${esc(qaQ(twDate())[1])}</small></button>`}<div class="memo"><span class="ic">${surpriseToday().icon}</span><b>今日驚喜：${esc(surpriseToday().name)}${surpriseDone() ? ' ✓' : ''}</b><small>${esc(surpriseToday().tip)}</small></div><p class="muted"><span class="nw">小島第 ${st.day} 天</span>・<span class="nw">${s.icon} ${s.name}</span>・<span class="nw">${w.icon || '☀️'} ${w.name}</span></p>${rows}<p class="muted">三個都完成再加 ${QUEST_BONUS} 🪙 和甜蜜值，明天會換新的任務。</p><b>🏆 收藏獎勵</b>${ms}<button type="button" class="primary" id="q-shop">🪙 ${st.coins || 0} → 去買擺設</button>`);
+  $('#q-shop').onclick = openShop; $('#q-qa')?.addEventListener('click', () => openQA());
 }
 
 // ---------- 裝潢：買擺設、擺在屋外或小木屋裡 ----------
@@ -2378,13 +2381,68 @@ function heartRain() {
 function onNudge(m) {
   const who = nameOf(m.from);
   if (m.k === 'miss') { heartRain(); toast(`💗 ${who} 想你了`, 4000); sfx('chime'); const c = chars[m.from]; if (c?.remote) burst('heart', headPos(c, 1.4), 8); }
+  else if (m.k === 'qa') { toast(`💞 ${who} 想看你今天的答案，點 💕 互動 → 今日問答`, 5000); sfx('pop'); }
   else { toast(`📝 ${who} 在冰箱貼了便利貼：「${m.text}」`, 5500); sfx('pop'); st.noteSeen = Date.now(); }
 }
 function onNudged(m) {
-  if (m.live) toast(m.k === 'miss' ? `愛心飛到 ${partnerName()} 那邊了 💗` : '便利貼貼好了，對方馬上就看得到');
+  if (m.live) toast(m.k === 'miss' ? `愛心飛到 ${partnerName()} 那邊了 💗` : m.k === 'qa' ? `已經提醒 ${partnerName()} 了` : '便利貼貼好了，對方馬上就看得到');
   else if (m.pushed) toast(`已經傳到 ${partnerName()} 的手機了 📳`);
   else toast(`${partnerName()} 現在不在，下次打開小島就會看到${m.k === 'miss' ? '你的想念' : ''}`, 3500);
 }
+// ================= 情侶每日問答：每天一題（台灣日期），兩個人都答了才看得到對方的答案 =================
+const twDate = (off = 0) => new Date(Date.now() + 8 * 3600e3 + off * 864e5).toISOString().slice(0, 10);
+const qaIdx = d => (Math.floor(Date.parse(d + 'T00:00:00Z') / 864e5) * 47) % QUESTIONS.length;
+const qaQ = d => QUESTIONS[st.qa?.[d]?.q ?? qaIdx(d)] || QUESTIONS[0];
+const qaBoth = e => !!(e?.a?.[0] && e?.a?.[1]);
+function qaStreak() { let n = 0; for (let k = 0; k < 400; k++) { const e = st.qa?.[twDate(-k)]; if (qaBoth(e)) n++; else if (k > 0) break; } return n; }
+const qaTodo = () => MP.role !== 'g' && !st.qa?.[twDate()]?.a?.[myIdx()];
+function qaBadge() { const b = $('#quest-chip'); if (b) b.classList.toggle('dot', qaTodo()); }
+function qaReward(d) {
+  const q = qaQ(d), n = qaStreak();
+  addLove(5, n > 1 ? `默契連續 ${n} 天 💞` : '兩個人都回答了 💞'); addCoins(15 + Math.min(5, n) * 2, '今日問答');
+  addMemo('💞', `一起回答了「${q[1].slice(0, 24)}${q[1].length > 24 ? '…' : ''}」`); burst('heart', headPos(me(), 1.4), 10, 0.4); sfx('chime');
+}
+function qaAnswer(text) {
+  const d = twDate(), i = myIdx(); st.qa = st.qa || {};
+  const e = st.qa[d] || (st.qa[d] = { q: qaIdx(d), a: ['', ''], ts: [0, 0], h: [0, 0] }), first = !e.a[i];
+  e.a[i] = text; e.ts[i] = Date.now(); save(); qaBadge();
+  if (MP.on && MP.role !== 'g') MP.net.send({ t: 'qa', d, q: e.q, a: text });
+  if (first && e.a[1 - i]) qaReward(d); else if (first) { addLove(1); toast(`答好了！等 ${partnerName()} 也回答，就能看到彼此的答案 💌`, 3500); }
+}
+// 收到伺服器的問答：對方剛回答就提醒；自己離線時答的補送上去
+function qaAfterSync(before, got, first) {
+  const i = myIdx(), j = 1 - i;
+  if (first) { for (const [d, e] of Object.entries(before)) if (e?.a?.[i] && !got[d]?.a?.[i] && MP.on) { st.qa[d] = { ...(st.qa[d] || e), a: [0, 1].map(k => k === i ? e.a[i] : (got[d]?.a?.[k] || '')) }; MP.net.send({ t: 'qa', d, q: e.q, a: e.a[i] }); } }
+  else for (const [d, e] of Object.entries(got)) {
+    if (d !== twDate() || !e?.a?.[j] || before[d]?.a?.[j]) continue;
+    sfx('pop'); toast(e.a[i] ? `💞 ${partnerName()} 也回答了！快去看看` : `💌 ${partnerName()} 回答了今天的問題，換你囉`, 4500);
+  }
+  qaBadge(); if ($('#dlg').open && $('#dlg').dataset.qa) openQA(true);
+}
+function openQA(keep) {
+  if (MP.role === 'g') return; if (!keep) sfx('click');
+  const d = twDate(), i = myIdx(), j = 1 - i, e = st.qa?.[d], q = qaQ(d), cat = QA_CATS[q[0]] || QA_CATS.s, pn = esc(partnerName());
+  const mine = e?.a?.[i] || '', theirs = e?.a?.[j] || '', streak = qaStreak();
+  let html = `<div class="qa-card" style="--qc:${cat[1]}"><span class="qa-cat">${cat[0]}</span><p class="qa-q">${esc(q[1])}</p><small>${Number(d.slice(5, 7))} 月 ${Number(d.slice(8))} 日${streak ? `・默契連續 <b>${streak}</b> 天` : ''}</small></div>`;
+  if (!mine || keep === 'edit') html += `<label class="qa-lbl" for="qa-in">${mine ? '修改你的答案' : '你的答案'}</label><textarea id="qa-in" maxlength="140" rows="3" placeholder="想到什麼就寫什麼…">${esc(mine)}</textarea>
+    <p class="qa-hint">${theirs ? `🔒 ${pn} 已經回答了，你答完就看得到` : `答完後，等 ${pn} 也回答，就能看到彼此的答案`}</p><button type="button" class="primary" id="qa-send">${mine ? '儲存' : '送出答案'}</button>`;
+  else if (!theirs) html += `<div class="qa-ans me"><b>你</b><p>${esc(mine)}</p></div><div class="qa-ans lock"><b>${pn}</b><p>🔒 還沒回答，等 ${pn} 答完就看得到</p></div>
+    <div class="qa-row">${MP.on ? `<button type="button" class="ghost" id="qa-poke">提醒 ${pn}</button>` : ''}<button type="button" class="ghost" id="qa-edit">修改答案</button></div>`;
+  else html += `<div class="qa-ans me"><b>你</b><p>${esc(mine)}</p>${e.h?.[j] ? `<em>💗 ${pn} 喜歡你的答案</em>` : ''}</div>
+    <div class="qa-ans you"><b>${pn}</b><p>${esc(theirs)}</p><button type="button" class="qa-heart${e.h?.[i] ? ' on' : ''}" id="qa-heart" aria-pressed="${!!e.h?.[i]}" aria-label="喜歡這個答案">♥</button></div>
+    <p class="qa-hint">明天會有新的問題 ✨</p>`;
+  const past = Object.keys(st.qa || {}).filter(k => k !== d && qaBoth(st.qa[k])).sort().reverse().slice(0, 40);
+  if (past.length) html += `<details class="qa-hist"><summary>我們的問答紀錄（${past.length}）</summary>${past.map(k => { const x = st.qa[k], qq = QUESTIONS[x.q] || QUESTIONS[0]; return `<div class="qa-old"><small>${Number(k.slice(5, 7))}/${Number(k.slice(8))}・${esc((QA_CATS[qq[0]] || QA_CATS.s)[0])}</small><b>${esc(qq[1])}</b><p><span>${esc(nameOf(0))}</span>${esc(x.a[0])}</p><p><span>${esc(nameOf(1))}</span>${esc(x.a[1])}</p></div>`; }).join('')}</details>`;
+  openDlg('💞 今日問答', html); $('#dlg').dataset.qa = '1';
+  const inp = $('#qa-in'); if (inp && !keep) setTimeout(() => inp.focus({ preventScroll: true }), 250);
+  $('#qa-send')?.addEventListener('click', () => { const t = inp.value.trim(); if (!t) { inp.focus(); toast('寫點什麼再送出吧'); return; } qaAnswer(t); openQA(true); });
+  $('#qa-edit')?.addEventListener('click', () => openQA('edit'));
+  $('#qa-poke')?.addEventListener('click', () => { MP.net.send({ t: 'nudge', k: 'qa' }); $('#qa-poke').disabled = true; });
+  $('#qa-heart')?.addEventListener('click', () => { const on = !e.h?.[i]; e.h = e.h || [0, 0]; e.h[i] = on ? 1 : 0; save(); if (MP.on) MP.net.send({ t: 'qa', d, q: e.q, h: on ? 1 : 0 }); if (on) { burst('heart', headPos(me(), 1.4), 6, 0.3); sfx('pop'); } openQA(true); });
+}
+// 每天第一次打開小島：還沒回答就輕輕提醒一次
+let qaNagged = ''; setInterval(() => qaNag(), 15000);
+function qaNag() { const d = twDate(); if (qaNagged === d || !qaTodo() || !started() || act || $('#dlg').open || !$('#coach').hidden) return; qaNagged = d; toast(`💞 今日問答：「${qaQ(d)[1].slice(0, 18)}…」點右下角 💕 互動就能回答`, 5000); }
 // 手機通知（推播）
 function b64toU8(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
 function iosPushGuide() {
