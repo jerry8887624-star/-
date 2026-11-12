@@ -40,6 +40,7 @@ const canvas = $('#stage');
 const R = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 const PR = Math.min(devicePixelRatio || 1, 1.75); R.setPixelRatio(PR);
 R.outputColorSpace = THREE.SRGBColorSpace;
+R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
 const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 900);
 function resize() {
   R.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight;
@@ -149,7 +150,7 @@ function addLove(n, why, key) {
     if (room <= 0) { if (why) toast(why); if (st.capToast !== st.day) { st.capToast = st.day; setTimeout(() => toast('💗 今天的甜蜜值已經滿了，明天再一起來累積吧', 3500), 900); } return; }
     n = Math.min(n, room); L.n += n;
   }
-  const before = LV().lv; st.love += n; const after = LV();
+  const before = LV().lv; st.love += n; const after = LV(); if (n > 0) flyTo('💗', '#love-bar', Math.min(5, n));
   if (MP.on) { MP.net.send({ t: 'addlove', n }); MP.sent && (MP.sent.love = JSON.stringify(st.love)); }
   updateHud();
   if (!levelUp(before) && why) toast(`${why}　+${n} 甜蜜`);
@@ -1460,7 +1461,26 @@ function setDlgTitle(title) {
   const ic = isIc ? head : '', tx = isIc ? title.slice(sp + 1) : title, en = DLG_EN[ic] || '';
   $('#dlg-title').innerHTML = `${en ? `<small class="t-en">${esc(en)}</small>` : ''}${ic ? `<span class="t-ic">${ic}</span>` : ''}<span class="t-tx">${esc(tx)}</span>`;
 }
-function openDlg(title, html) { delete $('#dlg').dataset.qa; setDlgTitle(title); $('#dlg-body').innerHTML = html; const d = $('#dlg'); const k = dlgKind(title); if (k) d.dataset.kind = k; else delete d.dataset.kind; d.querySelector('#dlg-body').scrollTop = 0; if (!d.open) d.showModal(); }
+/* 視窗關閉動畫：縮小淡出 140ms 再真的關；期間如果又開新視窗就取消 */
+(() => { const d = $('#dlg'), close0 = d.close.bind(d); let t = 0;
+  d.close = () => { if (!d.open || t) return; d.classList.add('closing'); t = setTimeout(() => { t = 0; d.classList.remove('closing'); close0(); }, 140); };
+  d.cancelClose = () => { if (t) { clearTimeout(t); t = 0; d.classList.remove('closing'); } }; })();
+/* 數字跳動：小島幣從舊數字滾到新數字 */
+function rollNum(el, to) {
+  const from = +(el.dataset.v ?? to); el.dataset.v = to; if (from === to || !started()) { el.textContent = to; return; }
+  const t0 = performance.now(), dur = Math.min(900, 250 + Math.abs(to - from) * 12); cancelAnimationFrame(el._raf);
+  const f = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - (1 - k) ** 3; el.textContent = Math.round(from + (to - from) * e); if (k < 1) el._raf = requestAnimationFrame(f); }; el._raf = requestAnimationFrame(f);
+  const chip = el.closest('.chip'); if (chip && to > from) { chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump'); }
+}
+/* 獎勵飛進去：小島幣飛到上面的錢幣數字、愛心飛到甜蜜值 */
+function flyTo(emoji, target, n = 5) {
+  const T = $(target); if (!T || !started() || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return; const tr = T.getBoundingClientRect();
+  tagPos(me(), v3); v3.project(cam); const sx = clamp((v3.x + 1) / 2 * innerWidth, 30, innerWidth - 30), sy = clamp((1 - v3.y) / 2 * innerHeight, 120, innerHeight - 200);
+  for (let i = 0; i < Math.min(n, 7); i++) { const e = document.createElement('i'); e.className = 'fly'; e.textContent = emoji; document.body.appendChild(e);
+    const ox = (Math.random() - 0.5) * 70, oy = (Math.random() - 0.5) * 50 - 20, tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2;
+    e.animate([{ transform: `translate(${sx}px, ${sy}px) scale(.4)`, opacity: 0 }, { transform: `translate(${sx + ox}px, ${sy + oy}px) scale(1.15)`, opacity: 1, offset: 0.25 }, { transform: `translate(${tx}px, ${ty}px) scale(.55)`, opacity: 0.9 }], { duration: 750 + i * 70, delay: i * 55, easing: 'cubic-bezier(.5, 0, .3, 1)', fill: 'both' }).onfinish = () => e.remove(); }
+}
+function openDlg(title, html) { $('#dlg').cancelClose(); delete $('#dlg').dataset.qa; setDlgTitle(title); $('#dlg-body').innerHTML = html; const d = $('#dlg'); const k = dlgKind(title); if (k) d.dataset.kind = k; else delete d.dataset.kind; d.querySelector('#dlg-body').scrollTop = 0; if (!d.open) d.showModal(); }
 $('#btn-map').onclick = () => {
   sfx('click');
   const cell = s => `<button type="button" class="cell" data-s="${s.id}" style="border:0"><span class="e">${s.icon}</span>${esc(s.name)}</button>`;
@@ -2016,7 +2036,7 @@ function tickWeather(dt, k) {
 let umbT = 0, stepT = 0;
 
 // ---------- 小島幣、每日任務、收藏獎勵 ----------
-function addCoins(n, why) { if (MP.role === 'g' || !n) return; if (n > 0 && surpriseNow().k === 'golden') n *= 2; /* 金色時光：下午拿到的小島幣加倍 */ if (n > 0) sfx('coin'); st.coins = (st.coins || 0) + n; save(); updateChips(); if (why) toast(`${why}　+${n} 🪙`); }
+function addCoins(n, why) { if (MP.role === 'g' || !n) return; if (n > 0) flyTo('🪙', '#coin-chip', Math.ceil(n / 8) + 2); if (n > 0 && surpriseNow().k === 'golden') n *= 2; /* 金色時光：下午拿到的小島幣加倍 */ if (n > 0) sfx('coin'); st.coins = (st.coins || 0) + n; save(); updateChips(); if (why) toast(`${why}　+${n} 🪙`); }
 function questsToday() {
   if (MP.role === 'g') return [];
   if (!st.quests || st.quests.day !== st.day) {
@@ -2054,7 +2074,7 @@ function updateChips() {
   const g = MP.role === 'g'; $('.chips').hidden = g || !started(); if (g) return;
   const list = questsToday(), done = list.filter(q => q.n >= QUESTS.find(x => x[0] === q.k)[2]).length;
   const qc = $('#quest-chip'); qc.innerHTML = `${icon('quest')}今日任務 <b class="n">${done}/3</b>`; qc.classList.toggle('done', done === 3); qaBadge();
-  $('#coin-chip').innerHTML = `${icon('coin')}<b class="n">${st.coins || 0}</b>`;
+  const cc = $('#coin-chip'); if (!cc.querySelector('.n')) cc.innerHTML = `${icon('coin')}<b class="n"></b>`; rollNum(cc.querySelector('.n'), st.coins || 0);
 }
 $('#quest-chip').onclick = () => openQuests();
 $('#coin-chip').onclick = () => openShop();
@@ -2252,7 +2272,14 @@ $('#coach-next').onclick = tutorialNext;
 function tickTutorial(dt) { if (tutorial.step === 0 && me().moving) { tutorial.moved += dt; if (tutorial.moved > 1.2) tutorialNext(); } }
 
 // ---------- 省電模式 ----------
-function applyLow() { R.setPixelRatio(st.low ? 1 : PR); resize(); }
+function applyLow() { R.setPixelRatio(st.low ? 1 : PR); resize(); shadowSweep(); }
+/* 陰影：屋外的東西都會在地上投影（省電模式關掉）。每隔幾秒把新出現的模型也設成會投影 */
+function shadowSweep() {
+  if (!W?.sunL) return; const on = !st.low; W.sunL.castShadow = on;
+  OUT.traverse(o => { if (!o.isMesh || o === W.ground || o.userData.shOK === on) return; o.userData.shOK = on; const m = o.material; const solid = m && m.isMeshToonMaterial && !m.transparent; o.castShadow = on && solid; o.receiveShadow = on && solid; });
+  W.ground.receiveShadow = on; allChars().forEach(c => { c.av.noBlob = on && (c.sc || 'out') === 'out'; });
+}
+setInterval(shadowSweep, 2500);
 let fpsT = 0, fpsN = 0, lowAsked = false;
 function tickFps(dt) {
   if (st.low || lowAsked || !started() || navigator.webdriver) return; fpsT += dt; fpsN++;
@@ -2390,6 +2417,7 @@ function frame() {
   // 時間：一小時 = 36 秒
   syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
+  { const pp = me().av.root.position; W.sunL.target.position.set(pp.x, 0, pp.z); W.sunL.position.x += pp.x; W.sunL.position.z += pp.z; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
   if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickRemoteBikes(); tickBoatSync(dt); chars[0].av.mate = chars[1].av; chars[1].av.mate = chars[0].av; /* 情侶動作要知道對方身體在哪 */ nightK = k.night; tickFlash();
     // 天黑了提醒一次可以開手電筒

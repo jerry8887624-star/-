@@ -285,7 +285,7 @@ export class Avatar {
     this.lieRoll = (this.lieRoll || 0) + (roll - (this.lieRoll || 0)) * Math.min(1, dt * 2.2);
     this.body.rotation.y = this.lieRoll * this.lieAmt;
     if (this.lieAmt > 0.5) by += Math.sin(this.t * 1.6) * 0.006; // 躺著輕輕的呼吸
-    this.shadow.visible = this.lieAmt < 0.3 && !seated;
+    this.shadow.visible = this.lieAmt < 0.3 && !seated && !this.noBlob; /* noBlob：屋外有真實陰影時不用地上的圓影 */
     // 3. 手動姿勢（覆蓋在動作上）
     const e = this.emoteKind, et = this.emoteT, R = 'RightArm', RF = 'RightForeArm', RH = 'RightHand', L = 'LeftArm', LF = 'LeftForeArm', LH = 'LeftHand';
     const s = (n, on, sp) => this.wt(n, on, dt, sp);
