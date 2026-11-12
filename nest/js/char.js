@@ -56,7 +56,7 @@ function loadBody(id) {
 export function preloadBodies(looks) { return Promise.all(looks.map(l => loadBody(BODIES[OUTFITS[l.outfit % OUTFITS.length].body].id).catch(() => null))); }
 
 // 動作：本機的（CC0）與線上的（Polyfork）
-const LOCAL = ['Sitting', 'Sitting talking', 'Talking', 'Arms folded', 'Interact', 'Pick up', 'Crouch', 'Eating', 'Planting', 'Watering', 'Walk formal', 'Jog', 'Dance', 'Leaning on rail', 'Phone call', 'Harvesting'];
+const LOCAL = ['Sitting', 'Sitting talking', 'Talking', 'Arms folded', 'Interact', 'Pick up', 'Crouch', 'Eating', 'Planting', 'Watering', 'Walk formal', 'Jog', 'Dance', 'Leaning on rail', 'Phone call', 'Harvesting', 'Idle', 'Walk', 'Run', 'Laughing', 'Agree']; /* 走路、待機也放在自己這邊：以前要連到 polyfork.dev 才有，連不到時會換成「雙手抱胸」的動作，看起來駝背、怪怪的 */
 const ONLINE = ['Idle', 'Walk', 'Run', 'Laughing', 'Agree'];
 const FALLBACK = { Idle: 'Arms folded', Walk: 'Walk formal', Run: 'Jog', Laughing: 'Talking', Agree: 'Talking' };
 const slug = n => n.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -311,13 +311,15 @@ export class Avatar {
     /* 曲起一隻腳 */
     if ((w = s('lieKnee', lk === 'knee' && le > 0.15, 3))) { const [u, l, f, sx] = LL[this.lieIdle.side > 0 ? 0 : 1]; this.aim(u, l, V(0.08 * sx, -0.45, 0.85), w, BD); this.aim(l, f, V(0.03 * sx, -0.7, -0.7), w, BD); }
     if ((w = s('swing', pose === 'swing'))) { this.aim(R, RF, V(-0.22, 1, 0.12), w); this.aim(RF, RH, V(-0.15, 1, 0.1), w); this.aim(L, LF, V(0.22, 1, 0.12), w); this.aim(LF, LH, V(0.15, 1, 0.1), w); }
+    /* 站姿挺直一點：原本的待機和走路動作上半身往前傾，配上大頭看起來像駝背 */
+    if ((w = s('upright', pose === 'stand' || pose === 'hold'))) { this.twist('Spine1', V(1, 0, 0), -0.11 * w); this.twist('Neck', V(1, 0, 0), 0.03 * w); }
     if ((w = s('recline', pose === 'recline'))) this.twist('Spine', V(1, 0, 0), -(this.reclineAng ?? 0.45) * w); // 往後靠的角度（海灘椅比沙發躺得更斜）
     if ((w = s('reach', this.reaching && pose !== 'lie'))) { this.aim(R, RF, V(-0.18, -0.15, 1), w); this.aim(RF, RH, V(-0.05, 0.1, 1), w); this.aim(L, LF, V(0.18, -0.2, 1), w * 0.8); this.aim(LF, LH, V(0.05, 0.05, 1), w * 0.8); }
     // 牽手：靠近對方的那隻手伸到兩個人中間，跟對方的手碰在一起
     const mate = this.mate && this.mate.bones && this.mate.root.visible && this.mate.root.position.distanceTo(this.root.position) < 1.4 ? this.mate : null;
     let mateSide = 0; if (mate) { _v1.copy(mate.root.position); this.root.worldToLocal(_v1); mateSide = _v1.x > 0 ? 1 : -1; }
     const holding = this.handSide !== 0 && !seated && pose !== 'lie';
-    if ((w = s('handM', holding && !!mate))) {
+    if ((w = s('handM', holding && !!mate)) && mate) { /* && mate：對方走遠的那幾格，手還在慢慢放下，這時 mate 已經是空的（以前會出錯，整格畫面壞掉） */
       const a = this.bones.Hips.getWorldPosition(new THREE.Vector3()), b = mate.bones.Hips.getWorldPosition(new THREE.Vector3()), mid = a.add(b).multiplyScalar(0.5); mid.y -= 0.12;
       this.root.getWorldQuaternion(_q); mid.add(V(0, 0, 0.06).applyQuaternion(_q));
       if (mateSide > 0) this.reachTo(L, LF, LH, mid, V(1, -0.6, -0.3), w); else this.reachTo(R, RF, RH, mid, V(-1, -0.6, -0.3), w);
