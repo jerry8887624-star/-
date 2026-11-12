@@ -1859,38 +1859,46 @@ function tickSay() {
 }
 // 情侶互動（連線）：問對方 → 對方答應才開始
 let loveAsk = null, approach = null;
+/* 連線時的親親、抱抱、摸頭、牽手：不用問對方，直接走過去做；對方的角色會自然回應 */
+const LOVE_PTS = { hug: 2, kiss: 3, pat: 2 };
 function requestLove(k) {
-  const q = you(); const pid = [...MP.peers.values()].find(p => p.role === 1 - MP.role)?.id; if (!pid) return;
-  if (k === 'hand' && (MP.lead || MP.led)) { MP.net.send({ t: 'love', to: pid, k: 'unhand' }); MP.lead = false; MP.led = null; toast('放開手了'); return; }
-  MP.net.send({ t: 'love', to: pid, k }); toast(`問問 ${nameOf(q.i)}…`);
+  const q = you(), pid = [...MP.peers.values()].find(p => p.role === 1 - MP.role)?.id; if (!pid) return;
+  if (k === 'hand') {
+    if (MP.lead || MP.led) { MP.net.send({ t: 'love', to: pid, k: 'unhand' }); MP.lead = false; MP.led = null; toast('放開手了'); return; }
+    if ((q.sc || 'out') !== scene || Math.hypot(q.x - me().x, q.z - me().z) > 8) return toast(`走到 ${nameOf(q.i)} 身邊再牽手吧`);
+    MP.net.send({ t: 'love', to: pid, k }); MP.lead = true; toast(`牽起 ${nameOf(q.i)} 的手 🤝`); addLove(2, null, 'hand'); burst('heart', midPos(1.3), 3); return;
+  }
+  if ((q.sc || 'out') !== scene) return toast(`${nameOf(q.i)} 在${(q.sc || 'out') === 'in' ? '小木屋裡' : '屋外'}，先去找他吧`);
+  const d = Math.hypot(q.x - me().x, q.z - me().z);
+  if (act) { if (d > 2.2) endAct(); else return loveNow(k, pid); } /* 坐在一起時就地做；離得遠就先站起來走過去 */
+  if (d > 14) return toast(`${nameOf(q.i)} 離得有點遠，走近一點吧`);
+  approach = { c: q, k, t: 0, mine: pid, max: d / 3 + 1.5 }; me().path = null;
+}
+/* 到對方身邊了：做動作，同時告訴對方 */
+function loveNow(k, pid) {
+  const p = me(), q = you(); if (!p.locked) p.ry = Math.atan2(q.x - p.x, q.z - p.z);
+  MP.net.send({ t: 'love', to: pid, k });
+  if (k === 'hug') { p.av.emote('hug', 2.4); setTimeout(() => burst('heart', midPos(1.3), 7, 0.4), 300); }
+  if (k === 'kiss') { p.av.emote('kiss', 1.8); setTimeout(() => burst('heart', midPos(1.55), 10, 0.4), 500); }
+  if (k === 'pat') { p.av.emote('pat', 1.8); setTimeout(() => burst('heart', headPos(q, 1.8), 4, 0.3), 400); }
+  sfx('pop'); addLove(LOVE_PTS[k] || 1, null, k);
 }
 function onLoveReq(from, k) {
-  if (k === 'unhand') { MP.lead = false; MP.led = null; toast(`${peerName(from)} 放開手了`); return; }
-  if (!LOVE_WORD[k]) return;
-  loveAsk = { from, k };
-  openDlg('💕', `<p style="font-size:var(--fs-l);font-weight:700;text-align:center">${esc(peerName(from))} 想${LOVE_WORD[k]} ❤</p><div class="row"><button type="button" class="ghost" id="lv-no">等一下</button><button type="button" class="primary" id="lv-ok">好呀</button></div>`);
-  sfx('chime');
-  $('#lv-no').onclick = () => { MP.net.send({ t: 'loveok', to: from, k, ok: 0 }); $('#dlg').close(); };
-  $('#lv-ok').onclick = () => {
-    $('#dlg').close(); MP.net.send({ t: 'loveok', to: from, k, ok: 1 });
-    const c = peerChar(from); if (!c) return;
-    if (act) endAct();
-    if (k === 'hand') { MP.led = c; toast(`${peerName(from)} 牽著你走 🤝（推搖桿就會放開）`); return; }
-    approach = { c, k, t: 0 };
-  };
-}
-function onLoveOk(from, k, ok) {
   const c = peerChar(from); if (!c) return;
-  if (!ok) { toast(`${peerName(from)} 說等一下`); return; }
-  if (k === 'hand') { MP.lead = true; toast(`牽起 ${peerName(from)} 的手 🤝`); addLove(2, null, 'hand'); return; }
-  setTimeout(() => {
-    const p = me(); p.ry = Math.atan2(c.x - p.x, c.z - p.z);
-    if (k === 'hug') { p.av.emote('hug', 1.8); toast(`抱住了 ${peerName(from)} 🤗`); }
-    if (k === 'kiss') { p.av.emote('kiss', 1.5); toast('啾 😘'); }
-    if (k === 'pat') { p.av.emote('pat', 1.6); }
-    burst('heart', headPos(p, 1.6), k === 'kiss' ? 10 : 6, 0.4); sfx('pop'); addLove({ hug: 2, kiss: 3, pat: 2 }[k] || 1, null, k);
-  }, 900);
+  if (k === 'unhand') { MP.lead = false; MP.led = null; toast(`${peerName(from)} 放開手了`); return; }
+  if (k === 'hand') {
+    if (act && !act.free) { MP.net.send({ t: 'loveok', to: from, k, ok: 0 }); return; } /* 正在釣魚、做飯：不會被拉走 */
+    if (act) endAct(); MP.led = c; toast(`${peerName(from)} 牽起你的手 🤝（推搖桿就會放開）`); burst('heart', headPos(me(), 1.4), 3); return;
+  }
+  if (!LOVE_PTS[k]) return;
+  /* 對方走過來抱你、親你、摸你的頭：轉向他、自然回應（不跳視窗、不打斷你正在做的事） */
+  const p = me(); if (!p.locked) { p.path = null; p.ry = Math.atan2(c.x - p.x, c.z - p.z); }
+  if (k === 'hug') { p.av.emote('hug', 2.4); toast(`${peerName(from)} 抱住了你 🤗`, 2200); }
+  if (k === 'kiss') { setTimeout(() => p.av.emote('shy', 1.8), 450); toast(`${peerName(from)} 親了你一下 😘`, 2200); }
+  if (k === 'pat') { setTimeout(() => p.av.emote('shy', 1.6), 300); toast(`${peerName(from)} 摸摸你的頭`, 2200); }
+  setTimeout(() => burst('heart', headPos(p, 1.6), k === 'kiss' ? 8 : 5, 0.35), 400); sfx('pop');
 }
+function onLoveOk(from, k, ok) { if (k === 'hand' && !ok) { MP.lead = false; toast(`${peerName(from)} 正在忙，等一下再牽`); } }
 // 這支手機的角色被牽著走、或走過去讓對方抱
 function netMove(dt, hasInput) {
   const p = me();
@@ -1898,7 +1906,8 @@ function netMove(dt, hasInput) {
     const c = approach.c, yw = scene === 'in' ? view.inYaw : view.yaw, gap = approach.k === 'hug' ? 0.46 : approach.k === 'kiss' ? 0.66 : 0.62; // 抱抱貼近、親親留給往前傾的距離、摸頭剛好伸手搆得到
     let tx = c.x + Math.cos(yw) * gap, tz = c.z - Math.sin(yw) * gap; if (!canStand(tx, tz)) { tx = c.x - Math.cos(yw) * gap; tz = c.z + Math.sin(yw) * gap; }
     approach.t += dt; const d = Math.hypot(tx - p.x, tz - p.z);
-    if (d < 0.12 || approach.t > 2) { if (d >= 0.12) { p.x = tx; p.z = tz; } p.ry = Math.atan2(c.x - p.x, c.z - p.z); const k = approach.k; p.av.emote(k === 'hug' ? 'hug' : 'shy', 1.8); burst('heart', headPos(p, 1.6), 4, 0.3); approach = null; loveHold = 2; }
+    if (hasInput && approach.t > 0.4) { approach = null; return false; } /* 自己推搖桿就取消 */
+    if (d < 0.14 || approach.t > (approach.max || 2)) { if (d >= 0.14 && d < 1.2) { p.x = tx; p.z = tz; } const k = approach.k, pid = approach.mine; approach = null; p.moving = false; if (d < 1.2) loveNow(k, pid); }
     else stepChar(p, tx - p.x, tz - p.z, dt, 3.2);
     return true;
   }
