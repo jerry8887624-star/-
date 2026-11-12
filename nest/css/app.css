@@ -530,3 +530,12 @@ body.calm .right .round.small#btn-chat.unread { opacity: 1; } /* 有新訊息時
 .old-letter { margin-bottom: 12px; } .old-letter small { opacity: .6; }
 /* 「說出來」的泡泡：透明底＋深色字；時尚雜誌風格「我的泡泡是深色」的規則不能蓋過它（不然變成深色底配深色字，看起來是空白泡泡） */
 html[data-ui] .ch-msg.said .ch-bubble { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+/* 無縫生活動作：面板變成角色旁邊的小按鈕 */
+#act-panel.free { left: 0; top: 0; bottom: auto; width: auto; max-width: 168px; transform: translate(var(--fx, 60vw), var(--fy, 40vh)); padding: 0; background: transparent; box-shadow: none; border: 0; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none; pointer-events: none; transition: transform .12s linear; }
+#act-panel.free .ap-head, #act-panel.free #ap-meter { display: none; }
+#act-panel.free #ap-msg { margin: 0 0 6px; min-height: 0; padding: 6px 10px; border-radius: 12px; background: var(--glass); color: var(--ink); font-size: var(--fs-xs); line-height: 1.45; box-shadow: var(--shadow); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#act-panel.free #ap-msg:empty { display: none; }
+#act-panel.free #ap-btns { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: auto; }
+#act-panel.free #ap-btns button { flex: none; min-height: 0; padding: 8px 14px; border-radius: 999px; background: var(--glass); color: var(--ink); box-shadow: var(--shadow); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#act-panel.free #ap-btns button.main { background: linear-gradient(135deg, #ff7a9c, #ff9a6a); color: #fff; }
+#act-panel.free #ap-btns .bl { font-size: var(--fs-s); } #act-panel.free #ap-btns .bs { display: none; }
