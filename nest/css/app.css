@@ -539,3 +539,38 @@ html[data-ui] .ch-msg.said .ch-bubble { background: transparent; color: var(--in
 #act-panel.free #ap-btns button { flex: none; min-height: 0; padding: 8px 14px; border-radius: 999px; background: var(--glass); color: var(--ink); box-shadow: var(--shadow); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 #act-panel.free #ap-btns button.main { background: linear-gradient(135deg, #ff7a9c, #ff9a6a); color: #fff; }
 #act-panel.free #ap-btns .bl { font-size: var(--fs-s); } #act-panel.free #ap-btns .bs { display: none; }
+
+/* ===== 質感與動效（0.18） ===== */
+:root { --spring: cubic-bezier(.34, 1.56, .64, 1); --out: cubic-bezier(.2, .8, .2, 1); }
+/* 畫面四周微微壓暗，視線集中在中間（像相機的暗角） */
+#vig { position: fixed; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse at 50% 45%, transparent 58%, rgba(52, 26, 40, .2) 100%); }
+/* 按鈕：按下去縮一點，放開彈回來 */
+button { transition: transform .22s var(--spring), opacity .25s, background-color .2s, box-shadow .2s; }
+button:active:not(:disabled) { transform: scale(.94); transition-duration: .06s; }
+/* 視窗：彈出來、縮回去 */
+@keyframes dlgIn { from { transform: translateY(18px) scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes dlgOut { to { transform: translateY(10px) scale(.96); opacity: 0; } }
+@keyframes bdIn { from { opacity: 0; } }
+dialog[open] { animation: dlgIn .32s var(--spring) both; }
+dialog[open]::backdrop { animation: bdIn .25s ease both; }
+dialog.closing { animation: dlgOut .14s ease-in both; }
+dialog.closing::backdrop { opacity: 0; transition: opacity .14s; }
+/* 視窗裡的內容一項一項浮上來 */
+@keyframes itemUp { from { transform: translateY(8px); opacity: 0; } }
+#dlg-body > * { animation: itemUp .3s var(--out) both; }
+#dlg-body > *:nth-child(2) { animation-delay: .03s; } #dlg-body > *:nth-child(3) { animation-delay: .06s; } #dlg-body > *:nth-child(4) { animation-delay: .09s; } #dlg-body > *:nth-child(n+5) { animation-delay: .12s; }
+/* 提示、標籤、活動按鈕：彈出來 */
+#toast { transition: opacity .25s, transform .35s var(--spring); }
+@keyframes popIn { from { transform: scale(.6); opacity: 0; } }
+#btn-act:not([hidden]) { animation: popIn .3s var(--spring) both; }
+#act-panel.free #ap-btns button { animation: popIn .28s var(--spring) both; } #act-panel.free #ap-btns button:nth-child(2) { animation-delay: .05s; } #act-panel.free #ap-btns button:nth-child(n+3) { animation-delay: .1s; }
+/* 數字增加時彈一下、進度條滑順 */
+@keyframes bump { 35% { transform: scale(1.14); } }
+.chip.bump { animation: bump .4s var(--spring); }
+#love-bar { transition: width .6s var(--out); }
+.bar > i { transition: width .5s var(--out); }
+/* 飛進去的獎勵 */
+.fly { position: fixed; left: -12px; top: -12px; z-index: 40; font-style: normal; font-size: 22px; pointer-events: none; will-change: transform; }
+/* 分頁切換 */
+#book-body { animation: itemUp .25s var(--out) both; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

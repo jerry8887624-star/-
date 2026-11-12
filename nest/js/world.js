@@ -256,6 +256,9 @@ export async function buildIsland(S) {
   W.sky = makeSky(); S.add(W.sky.g);
   W.hemi = new THREE.HemisphereLight('#dff2ff', '#a89a70', 1); S.add(W.hemi);
   W.sunL = new THREE.DirectionalLight('#ffffff', 1.8); W.sunL.position.set(30, 60, 20); S.add(W.sunL); S.add(W.sunL.target);
+  /* 真實陰影：太陽的影子框跟著玩家走（main.js 每格更新位置） */
+  { const sh = W.sunL.shadow; sh.mapSize.set(2048, 2048); sh.camera.left = sh.camera.bottom = -24; sh.camera.right = sh.camera.top = 24; sh.camera.near = 1; sh.camera.far = 160; sh.bias = -0.0005; sh.normalBias = 0.05; sh.radius = 3; sh.camera.updateProjectionMatrix(); }
+  W.ground.receiveShadow = true;
   S.fog = new THREE.Fog('#cde8f7', 90, 330);
   // 夜晚的暖光：小屋門口、營火、碼頭
   W.porchL = new THREE.PointLight('#ffb870', 0, 14, 1.6); W.porchL.position.set(0, 3, -3.6); S.add(W.porchL);
