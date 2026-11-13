@@ -1,6 +1,6 @@
 // 小島場景：地形、海、天空（白天黑夜）、擺設、小屋室內
 import * as THREE from '../vendor/three.module.min.js';
-import { groundH, standH, shoreR, sandAmt, walkable, DOCK, HILL, LAND_Y } from './terrain.js';
+import { groundH, standH, shoreR, sandAmt, walkable, DOCK, HILL, LAND_Y, YOGA } from './terrain.js';
 import { M, load, one, scatter, animal, toon, CIRCLES, BOXES, animals, mixers } from './models.js';
 
 // 各個活動的位置（main.js 用）
@@ -249,9 +249,46 @@ function makeLights(points) {
 }
 
 // ---------- 建立整個小島 ----------
+/* 海邊瑜伽亭：木棧平台＋四根柱子＋木格屋頂＋白色紗簾＋兩張瑜伽墊（面向海） */
+function buildYoga(S) {
+  const g = new THREE.Group(), Y = YOGA, ca = Math.cos(Y.a), sa = Math.sin(Y.a);
+  g.position.set(Y.x, 0, Y.z); g.rotation.y = Math.atan2(ca, sa); /* 這個群組的 +z ＝ 往海的方向、+x ＝ 側邊 */
+  const wood = toon('#c9a27a'), dark = toon('#9a7350'), light = toon('#e2c7a3'), white = new THREE.MeshToonMaterial({ color: '#fffaf2', transparent: true, opacity: 0.82, side: THREE.DoubleSide });
+  const B = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); g.add(o); return o; };
+  const W = Y.hv * 2, D = Y.hu * 2, top = Y.y;
+  const gy = (lx, lz) => groundH(Y.x + lx * sa + lz * ca, Y.z - lx * ca + lz * sa); /* 群組座標（+x 側邊、+z 往海）→ 地面高度 */
+  for (let i = 0; i < 12; i++) B(W, 0.06, D / 12 - 0.02, i % 2 ? wood : light, 0, top - 0.03, -D / 2 + (i + 0.5) * D / 12); /* 木板 */
+  B(W + 0.1, 0.12, 0.12, dark, 0, top - 0.1, -D / 2); B(W + 0.1, 0.12, 0.12, dark, 0, top - 0.1, D / 2); B(0.12, 0.12, D, dark, -W / 2, top - 0.1, 0); B(0.12, 0.12, D, dark, W / 2, top - 0.1, 0);
+  for (const lx of [-W / 2, 0, W / 2]) for (const lz of [-D / 2, 0, D / 2]) { const h = Math.max(0.05, top - gy(lx, lz) + 0.4); B(0.14, h, 0.14, dark, lx, top - h / 2, lz); } /* 木樁插進沙裡 */
+  /* 往海那邊下去的三階木梯 */
+  for (let i = 0; i < 3; i++) B(1.2, 0.06, 0.32, i % 2 ? light : wood, 0, top - 0.18 * (i + 1), D / 2 + 0.2 + i * 0.3);
+  /* 柱子與屋頂 */
+  const H = 2.7; for (const lx of [-W / 2 + 0.15, W / 2 - 0.15]) for (const lz of [-D / 2 + 0.15, D / 2 - 0.15]) B(0.16, H, 0.16, wood, lx, top + H / 2, lz);
+  B(W + 0.4, 0.14, 0.18, dark, 0, top + H, -D / 2 + 0.15); B(W + 0.4, 0.14, 0.18, dark, 0, top + H, D / 2 - 0.15);
+  for (let i = 0; i < 9; i++) B(0.1, 0.1, D + 0.4, light, -W / 2 + (i + 0.5) * W / 9, top + H + 0.12, 0); /* 木格 */
+  const can = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.2, D - 0.2, 10, 6), white); can.rotation.x = -Math.PI / 2; can.position.y = top + H + 0.2; g.add(can); /* 遮陽的白布 */
+  /* 紗簾：四個角綁起來的白紗，隨風輕輕飄 */
+  const curtains = [];
+  for (const lx of [-W / 2 + 0.15, W / 2 - 0.15]) for (const lz of [-D / 2 + 0.15, D / 2 - 0.15]) {
+    const geo = new THREE.PlaneGeometry(0.9, H - 0.1, 6, 10); geo.translate(0, -(H - 0.1) / 2, 0);
+    const c = new THREE.Mesh(geo, white); c.position.set(lx + (lx < 0 ? 0.48 : -0.48), top + H - 0.05, lz + (lz < 0 ? 0.1 : -0.1)); c.userData.base = geo.attributes.position.array.slice(); c.userData.ph = curtains.length; g.add(c); curtains.push(c);
+  }
+  /* 兩張瑜伽墊（粉、藍）、坐墊、香氛燈 */
+  const MATS = [[-0.75, '#f3a6b8'], [0.75, '#8fc3e6']];
+  MATS.forEach(([lx, col]) => { B(0.66, 0.025, 1.8, toon(col), lx, top + 0.013, 0.55); });
+  B(0.36, 0.1, 0.36, toon('#e8d6c0'), -2.2, top + 0.05, -1.4); B(0.36, 0.1, 0.36, toon('#e8d6c0'), -2.2, top + 0.05, -0.9);
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.22, 10), new THREE.MeshBasicMaterial({ color: '#ffe1a8' })); lamp.position.set(2.3, top + 0.12, -1.5); g.add(lamp);
+  g.traverse(o => { if (o.isMesh) { o.castShadow = o.material !== white; o.receiveShadow = true; o.userData.shOK = true; } });
+  S.add(g);
+  const mat = lx => new THREE.Vector3(lx, 0, 0.55).applyMatrix4(g.matrixWorld);
+  g.updateMatrixWorld(true);
+  return { g, curtains, face: g.rotation.y, mats: MATS.map(([lx]) => mat(lx)), enter: new THREE.Vector3(0, 0, -D / 2 - 0.9).applyMatrix4(g.matrixWorld) };
+}
+export function tickYoga(W, t) { if (!W?.yoga) return; W.yoga.curtains.forEach(c => { const P = c.geometry.attributes.position, b = c.userData.base; for (let i = 0; i < P.count; i++) { const y = b[i * 3 + 1], k = Math.min(1, -y / 2.4); P.setZ(i, b[i * 3 + 2] + Math.sin(t * 1.3 + c.userData.ph + b[i * 3] * 2) * 0.14 * k * k); } P.needsUpdate = true; }); }
 export async function buildIsland(S) {
   const W = {};
   W.ground = makeIsland(); S.add(W.ground);
+  W.yoga = buildYoga(S); window.__yoga = W.yoga;
   W.water = makeWater(); S.add(W.water); W.surf = makeSurf(); S.add(W.surf);
   W.sky = makeSky(); S.add(W.sky.g);
   W.hemi = new THREE.HemisphereLight('#dff2ff', '#a89a70', 1); S.add(W.hemi);
@@ -277,7 +314,7 @@ export async function buildIsland(S) {
 
   // 碰撞：小屋（含前廊）、碼頭兩側是海（walkable 會擋）
   BOXES.push([-4.1, -12.2, 4.1, -4.1]);
-  const r = seeded(42), near = (x, z, d) => Object.values(SPOTS).some(s => Math.hypot(s.x - x, s.z - z) < d) || (Math.abs(x) < 6 && z > -13 && z < 2) || (x > 24 && Math.abs(z) < 4);
+  const r = seeded(42), near = (x, z, d) => Object.values(SPOTS).some(s => Math.hypot(s.x - x, s.z - z) < d) || (Math.abs(x) < 6 && z > -13 && z < 2) || (x > 24 && Math.abs(z) < 4) || Math.hypot(x - YOGA.x, z - YOGA.z) < 5.5; /* 瑜伽木棧旁不長樹，鏡頭不被擋 */
   const ring = (n, rmin, rmax, avoid, f) => { const out = []; let k = 0; while (out.length < n && k++ < n * 40) { const a = r() * Math.PI * 2, R = shoreR(Math.cos(a), Math.sin(a)), d = R - rmin - r() * (rmax - rmin), x = Math.cos(a) * d, z = Math.sin(a) * d; if (!near(x, z, avoid) && walkable(x, z) && groundH(x, z) > 0.05) out.push(f(x, z, r())); } return out; };
   const inland = (n, avoid, f) => { const out = []; let k = 0; while (out.length < n && k++ < n * 50) { const x = (r() - 0.5) * 44, z = (r() - 0.5) * 44, R = shoreR(x, z); if (Math.hypot(x, z) < R - 12 && !near(x, z, avoid)) out.push(f(x, z, r())); } return out; };
 

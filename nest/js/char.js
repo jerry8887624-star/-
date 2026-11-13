@@ -254,6 +254,7 @@ export class Avatar {
     // 1. 選動作
     if (this.emoteKind || this.clipEmote) { this.emoteT += dt; if (this.emoteT > this.emoteDur) { this.emoteKind = null; this.clipEmote = null; } }
     if (seated) this.play('Sitting', 0.3);
+    else if (this.yoga) this.play('Arms folded', 0.4, 0.04); /* 瑜伽：身體不要跟著待機動作晃 */
     else if (pose === 'lie') this.play('Arms folded', 0.4, 0.04); // 躺著：動作幾乎停住（原本站姿的晃動躺下來會變成一直抖）
     else if (pose === 'crouch') this.play('Crouch', 0.35, 0.25);
     else if (pose === 'hold' && !this.clipEmote) this.play('Idle', 0.35, 0.35);
@@ -312,7 +313,7 @@ export class Avatar {
     if ((w = s('lieKnee', lk === 'knee' && le > 0.15, 3))) { const [u, l, f, sx] = LL[this.lieIdle.side > 0 ? 0 : 1]; this.aim(u, l, V(0.08 * sx, -0.45, 0.85), w, BD); this.aim(l, f, V(0.03 * sx, -0.7, -0.7), w, BD); }
     if ((w = s('swing', pose === 'swing'))) { this.aim(R, RF, V(-0.22, 1, 0.12), w); this.aim(RF, RH, V(-0.15, 1, 0.1), w); this.aim(L, LF, V(0.22, 1, 0.12), w); this.aim(LF, LH, V(0.15, 1, 0.1), w); }
     /* 站姿挺直一點：原本的待機和走路動作上半身往前傾，配上大頭看起來像駝背 */
-    if ((w = s('upright', pose === 'stand' || pose === 'hold'))) { this.twist('Spine1', V(1, 0, 0), -0.11 * w); this.twist('Neck', V(1, 0, 0), 0.03 * w); }
+    if ((w = s('upright', (pose === 'stand' || pose === 'hold') && !this.yoga))) { this.twist('Spine1', V(1, 0, 0), -0.11 * w); this.twist('Neck', V(1, 0, 0), 0.03 * w); }
     if ((w = s('recline', pose === 'recline'))) this.twist('Spine', V(1, 0, 0), -(this.reclineAng ?? 0.45) * w); // 往後靠的角度（海灘椅比沙發躺得更斜）
     if ((w = s('reach', this.reaching && pose !== 'lie'))) { this.aim(R, RF, V(-0.18, -0.15, 1), w); this.aim(RF, RH, V(-0.05, 0.1, 1), w); this.aim(L, LF, V(0.18, -0.2, 1), w * 0.8); this.aim(LF, LH, V(0.05, 0.05, 1), w * 0.8); }
     // 牽手：靠近對方的那隻手伸到兩個人中間，跟對方的手碰在一起
@@ -369,6 +370,21 @@ export class Avatar {
       this.twist('Spine', V(1, 0, 0), lean * 1.1 * w); this.twist('Spine1', V(1, 0, 0), lean * 0.5 * w);
       this.ik(L, LF, LH, Lp, V(1, -0.7, -0.5), w); this.ik(R, RF, RH, Rp, V(-1, -0.7, -0.5), w);
     }
+    /* ===== 瑜伽姿勢：骨盆轉、四肢指向固定方向，最後把最低的手腳貼到地上 ===== */
+    let yw = 0; const Y = this.yoga, br = Y ? Math.sin(this.t * 1.57) : 0; /* br：呼吸（4 秒一次） */
+    const legs = (uL, lL, uR, lR, ww) => { const [a, b] = LL; this.aim(a[0], a[1], uL, ww); this.aim(a[1], a[2], lL, ww); this.aim(b[0], b[1], uR, ww); this.aim(b[1], b[2], lR, ww); };
+    const arms = (uL, lL, uR, lR, ww) => { this.aim(L, LF, uL, ww); this.aim(LF, LH, lL, ww); this.aim(R, RF, uR, ww); this.aim(RF, RH, lR, ww); };
+    if ((w = s('yMountain', Y === 'mountain', 3))) { yw = Math.max(yw, w); legs(V(0.06, -1, 0), V(0.04, -1, 0), V(-0.06, -1, 0), V(-0.04, -1, 0), w); const up = 0.85 + br * 0.2; arms(V(0.55, up, 0.05), V(0.35, 1, 0.05), V(-0.55, up, 0.05), V(-0.35, 1, 0.05), w); /* 雙手往上打開成 V，大頭才擋不住 */ }
+    if ((w = s('yTree', Y === 'tree', 3))) { yw = Math.max(yw, w); legs(V(0.8, -0.3, 0.45), V(-0.75, -0.6, 0.1), V(-0.03, -1, 0), V(-0.02, -1, 0), w); arms(V(0.5, 0.85, 0.1), V(0.2, 1, 0.1), V(-0.5, 0.85, 0.1), V(-0.2, 1, 0.1), w); this.twist('Hips', V(0, 0, 1), Math.sin(this.t * 0.9) * 0.02 * w); }
+    if ((w = s('yWarrior', Y === 'warrior', 3))) { yw = Math.max(yw, w); legs(V(0.12, -0.55, 0.85), V(0.03, -1, 0.05), V(-0.12, -0.75, -0.7), V(-0.05, -0.75, -0.7), w); arms(V(1, 0.08, 0.15), V(1, 0.05, 0.15), V(-1, 0.08, -0.15), V(-1, 0.05, -0.15), w); this.twist('Spine1', V(0, 1, 0), 0.25 * w); }
+    if ((w = s('yDog', Y === 'dog', 3))) { yw = Math.max(yw, w); this.twist('Hips', V(1, 0, 0), (2.3 + br * 0.04) * w); legs(V(0.1, -1, -0.5), V(0.06, -1, -0.5), V(-0.1, -1, -0.5), V(-0.06, -1, -0.5), w); arms(V(0.18, -0.85, 0.6), V(0.15, -0.85, 0.6), V(-0.18, -0.85, 0.6), V(-0.15, -0.85, 0.6), w); } /* 屁股是最高點，身體和手臂一直線往前下撐地 */
+    if ((w = s('yCat', Y === 'cat', 3))) { yw = Math.max(yw, w); this.twist('Hips', V(1, 0, 0), 1.57 * w); this.twist('Spine1', V(1, 0, 0), br * 0.32 * w); legs(V(0.12, -1, 0.02), V(0.08, 0, -1), V(-0.12, -1, 0.02), V(-0.08, 0, -1), w); arms(V(0.22, -1, 0.05), V(0.16, -1, 0.05), V(-0.22, -1, 0.05), V(-0.16, -1, 0.05), w); }
+    if ((w = s('yChild', Y === 'child', 3))) { yw = Math.max(yw, w); this.twist('Hips', V(1, 0, 0), (2.25 + br * 0.04) * w); legs(V(0.18, -0.6, 0.8), V(0.08, -0.05, -1), V(-0.18, -0.6, 0.8), V(-0.08, -0.05, -1), w); arms(V(0.25, -0.3, 1), V(0.2, -0.15, 1), V(-0.25, -0.3, 1), V(-0.2, -0.15, 1), w); } /* 跪坐：膝蓋在前、小腿平貼、屁股坐在腳跟上，上身往前趴 */
+    if (yw > 0.01) { /* 最低的手、腳、膝蓋貼地 */
+      const ry = this.root.getWorldPosition(_v2).y, cur = this.body.position.y; let low = 1e9;
+      for (const [bn, pad] of [['LeftFoot', 0.07], ['RightFoot', 0.07], ['LeftLeg', 0.06], ['RightLeg', 0.06], ['LeftHand', 0.04], ['RightHand', 0.04], ['LeftToeBase', 0.03], ['RightToeBase', 0.03]]) { const b = this.bones[bn]; if (!b) continue; low = Math.min(low, b.getWorldPosition(_v1).y - ry - cur - pad); }
+      if (low < 1e8) { this.yogaBy = (this.yogaBy ?? -low) + (-low - (this.yogaBy ?? -low)) * Math.min(1, dt * 5); by = by * (1 - yw) + this.yogaBy * yw; }
+    } else this.yogaBy = null;
     this.body.position.y = by;
     if (this.lapItem) { this.bones.Hips.getWorldPosition(_v1); this.root.worldToLocal(_v1); this.lap.position.set(_v1.x + LAP[0], _v1.y + LAP[1], _v1.z + LAP[2]); }
     // 4. 手上的東西保持跟身體同方向；頭微微晃
