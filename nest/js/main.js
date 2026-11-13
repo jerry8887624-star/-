@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -126,10 +126,40 @@ function toast(msg, ms = 2600, go) {
   t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms);
 }
 /* 開始活動：畫面不變暗，角色從原本站的地方滑到位置上（0.45 秒） */
+/* 開始活動：角色沿著路慢慢走到定點，到了才坐下／躺下／做動作（不會瞬間飛過去） */
 function actGo(fn) {
-  const cs = localChars().filter(c => c.av?.root), from = cs.map(c => c.av.root.position.clone());
+  const cs = localChars().filter(c => c.av?.root && !c.ghost), from = cs.map(c => ({ x: c.x, z: c.z, sc: c.sc, p: c.av.root.position.clone() }));
   fn();
-  cs.forEach((c, i) => { const to = { x: c.x, y: groundY(c), z: c.z }, f = from[i]; if (Math.hypot(f.x - to.x, f.y - to.y, f.z - to.z) < 12) c.glide = { dx: f.x - to.x, dy: f.y - to.y, dz: f.z - to.z, t: 0 }; });
+  cs.forEach((c, i) => {
+    const f = from[i], d = Math.hypot(f.p.x - c.x, f.p.z - c.z);
+    if (c.locked && c.sc === f.sc && d > 0.6 && d < 60) {
+      const to = { x: c.x, z: c.z, y: c.y, ry: c.ry, pose: c.av.pose || 'stand' }, fx = Math.sin(to.ry), fz = Math.cos(to.ry);
+      /* 先走到位置正前方（或正後方）0.6 公尺，再一步跨進去：不會從旁邊那個人身上擦過去 */
+      const [ax, az] = [[to.x + fx * 0.6, to.z + fz * 0.6], [to.x - fx * 0.6, to.z - fz * 0.6]].find(([x, z]) => canStand(x, z)) || freeSpot(to.x, to.z);
+      const pts = [...(findPath(f.x, f.z, ax, az) || []), [ax, az], [to.x, to.z]], len = pts.reduce((a, q, k) => a + Math.hypot(q[0] - (k ? pts[k - 1][0] : f.x), q[1] - (k ? pts[k - 1][1] : f.z)), 0);
+      c.x = f.x; c.z = f.z; c.y = null; c.glide = null; c.av.setPose('stand'); c.walkIn = { pts, i: 0, to, t: 0, x0: f.x, z0: f.z, speed: len > 10 ? WALK.run : WALK.walk };
+    } else { const y = groundY(c); if (Math.hypot(f.p.x - c.x, f.p.y - y, f.p.z - c.z) < 12) c.glide = { dx: f.p.x - c.x, dy: f.p.y - y, dz: f.p.z - c.z, t: 0 }; }
+  });
+  walkPanel();
+}
+const walkingIn = () => localChars().some(c => c.walkIn);
+function walkPanel() { $('#act-panel').classList.toggle('walking', walkingIn()); }
+function tickWalkIn(dt) {
+  let any = false;
+  localChars().forEach(c => { const Wk = c.walkIn; if (!Wk) return; any = true; Wk.t += dt;
+    let step = Wk.speed * dt;
+    /* 兩個人走同一條路：各走路的一邊（左右錯開 0.3 公尺），不會疊在一起 */
+    const side = duo() || localChars().filter(q => q.walkIn).length > 1 ? (pairSlot(localChars().indexOf(c)) ? 0.3 : -0.3) : 0;
+    while (step > 0 && Wk.i < Wk.pts.length) { let [wx, wz] = Wk.pts[Wk.i]; const lastOne = Wk.i >= Wk.pts.length - 1;
+      if (side && !lastOne) { const [px, pz] = Wk.i ? Wk.pts[Wk.i - 1] : [Wk.x0, Wk.z0], sx = wx - px, sz = wz - pz, sl = Math.hypot(sx, sz) || 1; wx += -sz / sl * side; wz += sx / sl * side; }
+      const dx = wx - c.x, dz = wz - c.z, d = Math.hypot(dx, dz);
+      if (d <= step) { c.x = wx; c.z = wz; step -= d; Wk.i++; } else { c.x += dx / d * step; c.z += dz / d * step; step = 0; let a = Math.atan2(dx, dz) - c.ry; a = Math.atan2(Math.sin(a), Math.cos(a)); c.ry += a * Math.min(1, dt * 10); } }
+    c.moving = true;
+    if (Wk.i >= Wk.pts.length || Wk.t > 30) { /* 到了：轉向、坐下（高度慢慢降下去） */
+      const T = Wk.to, y0 = groundY(c); c.walkIn = null; c.x = T.x; c.z = T.z; c.y = T.y; c.av.setPose(T.pose); c.moving = false;
+      let a = T.ry - c.ry; a = Math.atan2(Math.sin(a), Math.cos(a)); c.ry = T.ry; c.spinBack = a; const y1 = groundY(c); if (Math.abs(y0 - y1) > 0.01) c.glide = { dx: 0, dy: y0 - y1, dz: 0, t: 0 };
+    } });
+  if (any) walkPanel();
 }
 function fadeDo(fn, hold = 380) { const f = $('#fade'); f.classList.add('on'); return new Promise(r => setTimeout(() => { fn(); setTimeout(() => { f.classList.remove('on'); r(); }, 120); }, hold)); }
 function dateStr() { const d = new Date(); return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`; }
@@ -424,7 +454,8 @@ function syncAv(c, dt) {
   const r = c.av.root; r.position.set(c.x, groundY(c), c.z);
   if (c.glide) { c.glide.t += dt / 0.45; const k = 1 - Math.min(1, c.glide.t), e = k * k * (3 - 2 * k); r.position.x += c.glide.dx * e; r.position.y += c.glide.dy * e; r.position.z += c.glide.dz * e; if (k <= 0) c.glide = null; }
   if (c.spinT > 0) { c.spinT -= dt; c.ry += dt * 11; }
-  r.rotation.set(c.tilt || 0, c.ry, 0, 'YXZ');
+  if (c.spinBack) { const k = Math.min(1, dt * 8); c.spinBack *= 1 - k; if (Math.abs(c.spinBack) < 0.01) c.spinBack = 0; }
+  r.rotation.set(c.tilt || 0, c.ry - (c.spinBack || 0), 0, 'YXZ');
   c.av.update(dt, c.moving);
 }
 
@@ -544,7 +575,7 @@ function seat(c, x, y, z, ry, pose = 'sit') {
     if (lastMeSeat && (onMine || (!onTheirs && myIdx() === 1))) { lastMeSeat = null; seat(me(), x, y, z, ry, pose); } return; }
   if (c === me()) lastMeSeat = [x, z];
   c.locked = true; c.path = null; c.x = x; c.z = z; c.y = y; c.ry = ry; c.moving = false; c.av.setPose(pose); c.av.holdHand(0); }
-function unseat(c) { if (c.ghost || c.remote) return; c.av.reclineAng = null; c.locked = false; c.y = null; c.tilt = 0; c.moving = false; c.av.setPose('stand'); c.av.reach(false); c.av.lean(0); c.av.setItem(null); }
+function unseat(c) { if (c.ghost || c.remote) return; c.walkIn = null; c.spinBack = 0; c.av.reclineAng = null; c.locked = false; c.y = null; c.tilt = 0; c.moving = false; c.av.setPose('stand'); c.av.reach(false); c.av.lean(0); c.av.setItem(null); }
 function setBtns(list) {
   const box = $('#ap-btns'); box.innerHTML = '';
   list.filter(Boolean).forEach(b => {
@@ -576,13 +607,20 @@ function beginAct(id, title, text, o = {}) {
 function endAct() {
   if (!act) return; const a = act; act = null;
   const from_ = localChars().filter(c => c.av?.root).map(c => [c, c.av.root.position.clone()]);
-  a.end?.(); chars.forEach(unseat); if (guestChar) unseat(guestChar); $('#act-panel').classList.remove('free');
+  a.end?.(); chars.forEach(unseat); if (guestChar) unseat(guestChar); $('#act-panel').classList.remove('free', 'walking');
   if (tutorial.step === 2 && a.id !== 'place') tutorialNext();
   if (a.camBack && a.camYaw != null) { view.yaw = a.camBack.yaw; view.pitch = a.camBack.pitch; } $('#act-panel').hidden = true; $('#joy').style.visibility = '';
   // 站到活動地點旁邊
-  if (a.back) { const [x, z] = a.back; const p = me(), q = you(); [p.x, p.z] = freeSpot(x, z); [q.x, q.z] = freeSpot(p.x + 0.9, p.z + 0.5); }
+  let walkBack = null;
+  if (a.back) { const [x, z] = a.back; const p = me(), q = you(), f = from_.find(([c]) => c === p)?.[1]; let [bx, bz] = freeSpot(x, z);
+    /* 離開時：在原地站起來，再自己走回入口（不是滑過去） */
+    if (f && !p.ghost && Math.abs(f.y - (scene === 'in' ? 0 : standH(p.x, p.z))) < 1 && Math.hypot(bx - p.x, bz - p.z) < 15) { [p.x, p.z] = freeSpot(p.x, p.z); walkBack = [bx, bz]; }
+    else [p.x, p.z] = [bx, bz];
+    if (q.remote && myIdx() === 1) { [bx, bz] = freeSpot(bx + 0.9, bz + 0.5); if (walkBack) walkBack = [bx, bz]; else [p.x, p.z] = [bx, bz]; } /* 連線時第 2 位站旁邊，兩個人不會走回同一個點 */
+    [q.x, q.z] = freeSpot(bx + 0.9, bz + 0.5); }
   chars.forEach(c => { if (!canStand(c.x, c.z)) [c.x, c.z] = freeSpot(c.x, c.z); });
   from_.forEach(([c, f]) => { const y = groundY(c); if (Math.hypot(f.x - c.x, f.y - y, f.z - c.z) < 14) c.glide = { dx: f.x - c.x, dy: f.y - y, dz: f.z - c.z, t: 0 }; }); /* 站起來也是滑過去，不是瞬間移動 */
+  if (walkBack && Math.hypot(walkBack[0] - me().x, walkBack[1] - me().z) > 0.5) { const pts = findPath(me().x, me().z, walkBack[0], walkBack[1]); if (pts) { me().path = { x: walkBack[0], z: walkBack[1], pts, i: 0 }; me().stuck = 0; } }
 }
 $('#ap-close').onclick = () => { sfx('click'); endAct(); };
 // 兩個人坐成一排：中心、朝向、間距
@@ -624,6 +662,8 @@ const SP = [
   { id: 'kitchen', sc: 'in', ...INSPOTS.kitchen, icon: '🍳', name: '做飯', run: actCook },
   { id: 'read', sc: 'in', ...INSPOTS.read, icon: '📚', name: '閱讀角', run: actRead },
   { id: 'dining', sc: 'in', ...INSPOTS.dining, icon: '🍽️', name: '吃飯', run: actEat, hide: () => !IN?.dish.visible },
+  { id: 'bale', sc: 'out', x: 0, z: 0, r: 2.2, icon: '🛖', name: '峇里涼亭', run: () => actBale(), pos: () => W?.bale ? baleAt(0, W.bale.L / 2 + 0.7) : { x: 999, z: 999 } },
+  { id: 'pond', sc: 'out', x: 0, z: 0, r: 2, icon: '🪷', name: '蓮花池', run: () => actPond(), pos: () => W?.pond ? { x: W.pond.edge[0], z: W.pond.edge[1] } : { x: 999, z: 999 } },
   { id: 'yoga', sc: 'out', x: 0, z: 0, r: 2.4, icon: '🧘', name: '海邊瑜伽', run: () => actYoga(), pos: () => W?.yoga?.enter || { x: 999, z: 999 } },
   { id: 'lighthouse', sc: 'out', x: LH_AT[0], z: LH_AT[1], r: 2.6, icon: '🗼', name: '爬燈塔', run: actLighthouse },
   { id: 'tent', sc: 'out', x: 14.6, z: 10.4, r: 1.8, icon: '⛺', name: '帳篷', run: actTent },
@@ -2434,7 +2474,7 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   { const pp = me().av.root.position, gx = Math.round(pp.x / 3) * 3, gz = Math.round(pp.z / 3) * 3; W.sunL.target.position.set(gx, 0, gz); W.sunL.position.x += gx; W.sunL.position.z += gz; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
@@ -2481,7 +2521,9 @@ function frame() {
     } else p.moving = false;
   }
   if (!act || !you().locked) partnerAI(dt);
-  if (act) { act.t += dt; act.update?.(dt); }
+  tickWalkIn(dt);
+  if (act && walkingIn() && Math.hypot(joy.x, joy.y) > 0.4) endAct(); /* 走過去的路上推搖桿 = 不做了 */
+  if (act && !walkingIn()) { act.t += dt; act.update?.(dt); } /* 兩個人都走到定點，活動才開始計時 */
   placeRoots(dt);
   allChars().forEach(c => { try { syncAv(c, dt); } catch (e) { if (!c._err) { c._err = 1; console.error('角色更新出錯', e); } } }); /* 一個角色出錯不能讓整格畫面停掉 */
   netTick(dt);
@@ -3308,6 +3350,39 @@ function santaGift() {
   addCoins(100); addLove(8, null, 'fest'); addMemo('🎅', `聖誕老公公送了 ${nameOf(myIdx())} 一份禮物：${it[1]}`); save(); burst('star', headPos(me(), 1.3), 16, 0.6); sfx('chime');
   openDlg('🎅 聖誕老公公的禮物', `<div class="fest-card"><span>🎁</span><b>Ho ho ho！聖誕快樂！</b><p>「這是給你們小島的禮物——<b class="nw">${esc(it[1])}</b><br>今年也要一直相親相愛喔。」</p></div><p class="muted">禮物已經放進裝潢的包包裡，還有 🪙 100。</p><button type="button" class="primary" id="sg-ok">謝謝聖誕老公公 ♥</button>`);
   $('#sg-ok').onclick = () => $('#dlg').close();
+}
+
+// ================= 峇里涼亭：兩個人靠在臥榻上看書、躺著聽風 =================
+/* 臥榻的 local 座標（x 左右、z 往步道那一端）換成世界座標 */
+function baleAt(lx, lz) { const B = W.bale, c = Math.cos(B.ry), s = Math.sin(B.ry); return { x: B.x + lx * c + lz * s, z: B.z - lx * s + lz * c }; }
+function actBale() {
+  const B = W?.bale; if (!B) return; let lying = false, pages = 0;
+  const sitUp = () => { const a = baleAt(-0.36, -B.L / 2 + 0.62), b = baleAt(0.36, -B.L / 2 + 0.62); seat(me(), a.x, B.top - HIP + 0.02, a.z, B.ry, 'recline'); seat(you(), b.x, B.top - HIP + 0.02, b.z, B.ry, 'recline'); };
+  const lieDown = () => { const a = baleAt(-0.34, B.L / 2 - 0.18), b = baleAt(0.34, B.L / 2 - 0.18); seat(me(), a.x, B.top + 0.09, a.z, B.ry, 'lie'); seat(you(), b.x, B.top + 0.09, b.z, B.ry, 'lie'); /* 頭要躺在床面上，不能陷進去 */ };
+  const books = on => [me(), you()].forEach(c => { if (c.ghost || c.remote) return; c.av.setItem(on ? bookItem() : null); c.av.reach(on); });
+  actGo(() => { sitUp(); books(true); });
+  const btns = () => setBtns([
+    lying ? { t: '坐起來看書', main: true, fn: () => { lying = false; sitUp(); books(true); btns(); msg('靠在軟軟的靠墊上，翻開書。'); } }
+      : { t: '📖 翻一頁', main: true, fn: () => { pages++; sfx('book'); msg(pick(BOOKS)); burst('heart', headPos(me(), 1.1), 1, 0.3); if (pages % 4 === 0) addLove(1, null, 'bale'); } },
+    !lying && { t: '躺下聽風', fn: () => { lying = true; books(false); lieDown(); btns(); msg(pick(['紗簾被風吹起來，遠遠聽得到海浪。', '雞蛋花的香味飄過來。', '躺著看涼亭的屋頂，時間好像變慢了。'])); addLove(2, null, 'balelie'); } },
+    duo() && { t: '靠在肩膀上', fn: () => { me().av.emote('shy', 1.6); burst('heart', midPos(1), 5, 0.4); addLove(2, '靠在對方肩膀上', 'baleshy'); } }]);
+  beginAct('bale', '🛖 峇里涼亭', '涼亭裡的大臥榻，靠墊軟軟的，紗簾隨風飄。', {
+    focus: () => { const f = baleAt(0, -0.1); return new THREE.Vector3(f.x, B.top + 0.4, f.z); }, camYaw: B.ry + 0.6, camPitch: 0.3, near: () => 0.8, /* 從步道那一端斜斜看：看得到兩個人的臉 */ back: (() => { const f = baleAt(0, B.L / 2 + 1); return [f.x, f.z]; })(),
+    btns: [], end() { books(false); if (pages || lying) addMemo('🛖', `在峇里涼亭${lying ? '躺著聽風' : '一起看書'}`); },
+  });
+  btns();
+}
+/* 蓮花池：蹲在池邊餵錦鯉 */
+function actPond() {
+  const P = W?.pond; if (!P) return; const [ex, ez] = P.edge, face = Math.atan2(P.x - ex, P.z - ez), rx = Math.cos(face), rz = -Math.sin(face);
+  actGo(() => { seat(me(), ex - rx * 0.35, null, ez - rz * 0.35, face, 'crouch'); seat(you(), ex + rx * 0.35, null, ez + rz * 0.35, face, 'crouch'); });
+  let fed = 0;
+  beginAct('pond', '🪷 蓮花池', '錦鯉在蓮葉下面游來游去。', {
+    focus: () => new THREE.Vector3(P.x, LAND_Y + 0.5, P.z + 0.4), camYaw: face + Math.PI + 0.3, camPitch: 0.45, near: () => 0.8, back: [ex, ez + 0.6],
+    btns: [{ t: '🐟 餵魚', main: true, fn: () => { me().av.emote('throw', 0.8); sfx('plop'); fed++; setTimeout(() => { burst('heart', new THREE.Vector3(P.x, LAND_Y + 0.4, P.z), 5, 0.6); msg(pick(['錦鯉都游過來搶飼料', '最大那隻是橘色的', '有一隻一直看著你', '蓮花底下藏著一隻小的'])); }, 500); if (fed === 3) addLove(1, null, 'koi'); } },
+      { t: '聞一聞蓮花', fn: () => { burst('heart', new THREE.Vector3(P.x - 0.6, LAND_Y + 0.8, P.z), 3, 0.3); msg(pick(['淡淡的、甜甜的。', '蓮花早上開、下午就合起來了。', '花瓣上停了一隻蜻蜓。'])); } }],
+    end() { if (fed) addMemo('🪷', '在蓮花池邊餵錦鯉'); },
+  });
 }
 
 // ================= 海邊瑜伽：跟著呼吸做一套六個姿勢 =================

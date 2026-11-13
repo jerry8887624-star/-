@@ -576,3 +576,7 @@ dialog.closing::backdrop { opacity: 0; transition: opacity .14s; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 /* 瑜伽的呼吸條：吸氣變長、吐氣變短，顏色是海和天空 */
 #ap-meter.breath i { background: linear-gradient(90deg, #bfe6f2, #f7c6d4); transition: width .2s linear; }
+
+/* 角色還在走過去：按鈕先淡掉、不能按 */
+#act-panel.walking #ap-btns { opacity: .45; pointer-events: none; transition: opacity .3s; }
+#act-panel.free.walking { opacity: 0; }
