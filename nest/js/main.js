@@ -1,8 +1,8 @@
 // 我們的小島：情侶小窩 3D 遊戲
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
-import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -620,6 +620,7 @@ const SP = [
   { id: 'kitchen', sc: 'in', ...INSPOTS.kitchen, icon: '🍳', name: '做飯', run: actCook },
   { id: 'read', sc: 'in', ...INSPOTS.read, icon: '📚', name: '閱讀角', run: actRead },
   { id: 'dining', sc: 'in', ...INSPOTS.dining, icon: '🍽️', name: '吃飯', run: actEat, hide: () => !IN?.dish.visible },
+  { id: 'yoga', sc: 'out', x: 0, z: 0, r: 2.4, icon: '🧘', name: '海邊瑜伽', run: () => actYoga(), pos: () => W?.yoga?.enter || { x: 999, z: 999 } },
   { id: 'lighthouse', sc: 'out', x: LH_AT[0], z: LH_AT[1], r: 2.6, icon: '🗼', name: '爬燈塔', run: actLighthouse },
   { id: 'tent', sc: 'out', x: 14.6, z: 10.4, r: 1.8, icon: '⛺', name: '帳篷', run: actTent },
   { id: 'ball', sc: 'out', x: 0, z: 0, r: 1.6, icon: '⚽', name: '踢海灘球', run: kickBall, pos: () => W?.ball?.position || { x: 999, z: 999 }, hide: () => !W?.ball },
@@ -1768,7 +1769,7 @@ function shareSave() {
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
-const MINE = ['freeTip', 'useDay', 'lhDay', 'tentDay', 'notesRead', 'qaSeen', 'miniDay', 'capToast', 'sleptDay', 'sweetDay', 'festSeen', 'myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic', 'qch'];
+const MINE = ['yogaDay', 'yogaN', 'freeTip', 'useDay', 'lhDay', 'tentDay', 'notesRead', 'qaSeen', 'miniDay', 'capToast', 'sleptDay', 'sweetDay', 'festSeen', 'myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic', 'qch'];
 function applySave(keys, first) {
   const qaBefore = keys.qa || (first && st.qa) ? JSON.parse(JSON.stringify(st.qa || {})) : null;
   for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k) || k === 'day') continue; if (k === 'qa') { st.qa = { ...(st.qa || {}), ...(v || {}) }; continue; } st[k] = v; }
@@ -1813,7 +1814,7 @@ function onNet(m) {
   }
   if (m.t === 'pos') { const c = peerChar(m.id); if (!c) return; c.net = m; if (!c.seen) { c.seen = 1; c.x = m.x; c.z = m.z; c.ry = m.ry; } return; }
   if (m.t === 'emo') { const c = peerChar(m.id); if (!c) return; c.av.emote(m.k, m.d); if (m.k === 'kiss' || m.k === 'hug') burst('heart', headPos(c, 1.6), 5, 0.3); return; }
-  if (m.t === 'fx') { if (m.k === 'fw' && scene === 'out') launchFirework(!!m.a, true); if (m.k === 'sweet' && act?.id === 'bed') sweetNight(false); if (m.k === 'rare' && scene === 'out' && RARE[m.a]) rareStart(RARE[m.a].k, false); return; }
+  if (m.t === 'fx') { if (m.k === 'fw' && scene === 'out') launchFirework(!!m.a, true); if (m.k === 'sweet' && act?.id === 'bed') sweetNight(false); if (m.k === 'yg') { const c = peerChar(m.id); if (c) c.av.yoga = YOGA_POSES[m.a]?.[0] || null; } if (m.k === 'rare' && scene === 'out' && RARE[m.a]) rareStart(RARE[m.a].k, false); return; }
   if (m.t === 'boat') { if (W?.boat && !MP.driving) { MP.boatT = { x: m.x, z: m.z, ry: m.ry }; if (m.home) { W.boat.position.x = m.x; W.boat.position.z = m.z; W.boat.rotation.y = m.ry; MP.boatT = null; } } MP.boatAway = !m.home; return; }
   if (m.t === 'save') { applySave(m.keys); return; }
   if (m.t === 'memo') { st.diary.unshift(m.m); if (st.diary.length > 300) st.diary.length = 300; save(); return; }
@@ -2429,7 +2430,7 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   { const pp = me().av.root.position, gx = Math.round(pp.x / 3) * 3, gz = Math.round(pp.z / 3) * 3; W.sunL.target.position.set(gx, 0, gz); W.sunL.position.x += gx; W.sunL.position.z += gz; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
@@ -3303,6 +3304,32 @@ function santaGift() {
   addCoins(100); addLove(8, null, 'fest'); addMemo('🎅', `聖誕老公公送了 ${nameOf(myIdx())} 一份禮物：${it[1]}`); save(); burst('star', headPos(me(), 1.3), 16, 0.6); sfx('chime');
   openDlg('🎅 聖誕老公公的禮物', `<div class="fest-card"><span>🎁</span><b>Ho ho ho！聖誕快樂！</b><p>「這是給你們小島的禮物——<b class="nw">${esc(it[1])}</b><br>今年也要一直相親相愛喔。」</p></div><p class="muted">禮物已經放進裝潢的包包裡，還有 🪙 100。</p><button type="button" class="primary" id="sg-ok">謝謝聖誕老公公 ♥</button>`);
   $('#sg-ok').onclick = () => $('#dlg').close();
+}
+
+// ================= 海邊瑜伽：跟著呼吸做一套六個姿勢 =================
+const YOGA_POSES = [['mountain', '山式', '雙手往上延伸，吸氣時把身體拉長'], ['tree', '樹式', '單腳站穩，腳掌貼在另一隻腳的膝蓋旁'], ['warrior', '戰士式', '前腳彎、後腳伸直，雙手打開往兩邊延伸'],
+  ['dog', '下犬式', '手腳撐地，屁股往上推，像一個倒 V'], ['cat', '貓牛式', '跪姿撐地，吸氣抬頭、吐氣拱背'], ['child', '嬰兒式', '跪坐往前趴，額頭貼墊子，好好放鬆']];
+function actYoga() {
+  const Y = W.yoga; if (!Y) return; const face = Y.face, duoNow = duo();
+  const who = [me(), duoNow ? you() : null].filter(c => c && !c.remote && !c.ghost);
+  actGo(() => who.forEach((c, i) => seat(c, Y.mats[i].x, YOGA.y, Y.mats[i].z, face, 'stand')));
+  let i = -1, t = 0, done = 0, sync = 0; const DUR = 9; $('#ap-meter').classList.add('breath');
+  const setPose = k => { who.forEach(c => { c.av.yoga = k; }); if (MP.on && MP.role !== 'g') MP.net.send({ t: 'fx', k: 'yg', a: k ? YOGA_POSES.findIndex(p => p[0] === k) : -1 }); };
+  const next = () => { i++; t = 0; if (i >= YOGA_POSES.length) return finish(); const [k, n, tip] = YOGA_POSES[i]; setPose(k); $('#ap-title').textContent = `🧘 ${n}（${i + 1}/${YOGA_POSES.length}）`; msg(tip); sfx('chime'); btns(); };
+  const finish = () => { setPose('mountain'); done = 1; meter(false); $('#ap-title').textContent = '🧘 海邊瑜伽'; burst('heart', headPos(me(), 1.2), 10, 0.5); sfx('chime');
+    const morning = st.tod >= 5 && st.tod < 10; if (st.yogaDay !== st.day) { st.yogaDay = st.day; st.yogaN = (st.yogaN || 0) + 1; addLove(morning ? 5 : 3, morning ? '晨間瑜伽，神清氣爽' : '做完一套瑜伽', 'yoga'); addCoins(10); addMemo('🧘', `${duoNow ? '兩個人一起' : ''}在海邊做了${morning ? '晨間' : ''}瑜伽（第 ${st.yogaN} 次）`); } else toast('🧘 做完一套，身體好輕鬆');
+    msg(morning ? '海風、日出、深呼吸，今天一定是好日子。' : '身體暖暖的，心也靜下來了。'); setBtns([{ t: '再做一套', main: true, fn: () => { i = -1; done = 0; next(); } }]); };
+  const btns = () => setBtns([{ t: i < YOGA_POSES.length - 1 ? '下一個姿勢' : '完成', main: true, fn: next }, duoNow && { t: '對看一眼', fn: () => { burst('heart', midPos(1), 6, 0.4); addLove(1, null, 'yogaeye'); } }]);
+  beginAct('yoga', '🧘 海邊瑜伽', '站上瑜伽墊，面向大海，準備好了就開始。', {
+    focus: () => new THREE.Vector3((Y.mats[0].x + Y.mats[duoNow ? 1 : 0].x) / 2, YOGA.y + 0.7, (Y.mats[0].z + Y.mats[duoNow ? 1 : 0].z) / 2), camYaw: face + 0.45, camPitch: 0.16, near: () => duoNow ? 0.72 : 0.58, back: [Y.enter.x, Y.enter.z], /* 從海那邊斜斜看回來：看得到臉，也不會被柱子擋住 */
+    btns: [{ t: '開始', s: '六個姿勢，約一分鐘', main: true, fn: next }],
+    update(dt) {
+      if (i < 0 || done) return; t += dt; const ph = (t % 8) / 8, inhale = ph < 0.5; meter(true, inhale ? ph * 2 : 2 - ph * 2);
+      const label = inhale ? '吸氣……' : '吐氣……'; if ($('#ap-msg').dataset.br !== label) { $('#ap-msg').dataset.br = label; msg(`${YOGA_POSES[i][2]}｜${label}`); }
+      if (t > DUR) next();
+    },
+    end() { $('#ap-meter').classList.remove('breath'); who.forEach(c => { c.av.yoga = null; }); if (MP.on && MP.role !== 'g') MP.net.send({ t: 'fx', k: 'yg', a: -1 }); meter(false); },
+  });
 }
 
 // ================= 一起養的愛情樹 =================

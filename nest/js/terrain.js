@@ -20,7 +20,11 @@ export function groundH(x, z) {
 }
 export function onDock(x, z) { return x >= DOCK.x0 && x <= DOCK.x1 && z >= DOCK.z0 && z <= DOCK.z1; }
 // 角色站的高度（碼頭上就站在木板上）
-export function standH(x, z) { return onDock(x, z) ? Math.max(DOCK.y, groundH(x, z)) : groundH(x, z); }
+/* 海邊瑜伽木棧平台：面向海（東南），比沙灘高，站上去就在木板上 */
+const YA = Math.PI / 4, YR = 33 + 2.5 * Math.sin(3 * YA) + 1.5 * Math.sin(5 * YA + 1) - 8.2;
+export const YOGA = { x: Math.cos(YA) * YR, z: Math.sin(YA) * YR, a: YA, hu: 2.2, hv: 3, y: 0.68 };
+export function onYoga(x, z) { const dx = x - YOGA.x, dz = z - YOGA.z, u = dx * Math.cos(YOGA.a) + dz * Math.sin(YOGA.a), v = -dx * Math.sin(YOGA.a) + dz * Math.cos(YOGA.a); return Math.abs(u) <= YOGA.hu && Math.abs(v) <= YOGA.hv; }
+export function standH(x, z) { return onDock(x, z) ? Math.max(DOCK.y, groundH(x, z)) : onYoga(x, z) ? Math.max(YOGA.y, groundH(x, z)) : groundH(x, z); }
 // 可以走的地方：陸地（水深不超過 15 公分）或碼頭
 export function walkable(x, z) { return onDock(x, z) || groundH(x, z) > -0.15; }
 // 沙灘：島的外圈

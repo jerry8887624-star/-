@@ -574,3 +574,5 @@ dialog.closing::backdrop { opacity: 0; transition: opacity .14s; }
 /* 分頁切換 */
 #book-body { animation: itemUp .25s var(--out) both; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+/* 瑜伽的呼吸條：吸氣變長、吐氣變短，顏色是海和天空 */
+#ap-meter.breath i { background: linear-gradient(90deg, #bfe6f2, #f7c6d4); transition: width .2s linear; }
