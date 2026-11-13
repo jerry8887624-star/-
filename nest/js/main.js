@@ -436,10 +436,7 @@ function partnerAI(dt) {
   const fx = Math.sin(p.ry), fz = Math.cos(p.ry), rx = -fz, rz = fx; // 朝向、右手邊
   let tx, tz, near;
   if (lovePending) {
-    const k = lovePending, gap = k.kind === 'hug' ? 0.55 : k.kind === 'kiss' ? 0.62 : 0.8;
-    // 站在你的「畫面右邊」，兩個人面對面，鏡頭看到側面
-    const yw = scene === 'in' ? view.inYaw : view.yaw, sx = Math.cos(yw), sz = -Math.sin(yw);
-    tx = p.x + sx * gap; tz = p.z + sz * gap; if (!canStand(tx, tz)) { tx = p.x - sx * gap; tz = p.z - sz * gap; } k.t += dt;
+    const k = lovePending; [tx, tz] = loveSpot(p, k.kind); k.t += dt; /* 站在你的「畫面右邊」，兩個人面對面，鏡頭看到側面 */
     const d = Math.hypot(tx - q.x, tz - q.z);
     if (d < 0.12 || k.t > 2.2) { if (d >= 0.12) { q.x = tx; q.z = tz; } q.ry = Math.atan2(p.x - q.x, p.z - q.z); doLove(k.kind); lovePending = null; }
     else stepChar(q, tx - q.x, tz - q.z, dt, 3.2);
@@ -678,10 +675,14 @@ function tickSpots() {
     if (s.badge) s.el.textContent = `${s.icon} ${s.name}${s.badge() ? ' ●' : ''}`;
   }
   tickSay();
-  if (act?.free) { /* 小按鈕跟在角色旁邊 */
-    const el = $('#act-panel'), c = me(); tagPos(c, v3); v3.project(cam); const w = el.offsetWidth || 130, h = el.offsetHeight || 80;
-    let x = (v3.x + 1) / 2 * innerWidth + 44, y = (1 - v3.y) / 2 * innerHeight + 6; if (x + w > innerWidth - 8) x -= w + 88; x = clamp(x, 8, innerWidth - w - 8); y = clamp(y, 150, innerHeight - h - 190);
-    el.style.setProperty('--fx', x.toFixed(0) + 'px'); el.style.setProperty('--fy', y.toFixed(0) + 'px');
+  if (act?.free) { /* 小按鈕放在角色（頭到腳）旁邊，不擋到臉和身體 */
+    const el = $('#act-panel'), w = el.offsetWidth || 130, h = el.offsetHeight || 80; let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const c of [me(), duo() && Math.hypot(you().x - me().x, you().z - me().z) < 2.5 ? you() : null]) { if (!c?.av?.bones) continue;
+      for (const [bn, up] of [['Head', 0.55], ['Head', -0.1], ['Hips', 0], ['LeftFoot', 0], ['RightFoot', 0]]) { const b = c.av.bones[bn]; if (!b) continue; b.getWorldPosition(v3); v3.y += up; v3.project(cam); if (v3.z > 1) continue; const sx = (v3.x + 1) / 2 * innerWidth, sy = (1 - v3.y) / 2 * innerHeight; x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy); } }
+    if (x0 < 1e8) { const pad = 46; x0 -= pad; x1 += pad; let x = x1 + 6, y = (y0 + y1) / 2 - h / 2;
+      if (x + w > innerWidth - 8) x = x0 - w - 6; if (x < 8) { x = clamp((x0 + x1) / 2 - w / 2, 8, innerWidth - w - 8); y = y1 + 14; } /* 左右都放不下：放到腳下面 */
+      x = clamp(x, 8, innerWidth - w - 8); y = clamp(y, 150, innerHeight - h - 200); const P = act._chip || (act._chip = { x, y }); if (Math.hypot(x - P.x, y - P.y) > 4) { P.x += (x - P.x) * 0.18; P.y += (y - P.y) * 0.18; }
+      P.x = clamp(P.x, 8, innerWidth - w - 8); el.style.setProperty('--fx', P.x.toFixed(0) + 'px'); el.style.setProperty('--fy', P.y.toFixed(0) + 'px'); }
   }
   // 名字（頭上）
   const seen = new Set();
@@ -1198,7 +1199,7 @@ function actSunset() {
     $('#wish-ok').onclick = () => { const w = $('#wish-in').value.trim(); $('#dlg').close(); st.wishes++; addMemo('🌠', w ? `對流星許願：「${w}」` : '一起對流星許了願'); addLove(5, '願望一定會實現'); burst('star', midPos(), 10); wished = true; };
   };
   beginAct('sunset', isNight() ? '🌠 看星星' : '🌅 看夕陽', isNight() ? '滿天星星，等等看會不會有流星。' : '燈塔旁的長椅，最適合看夕陽。', {
-    focus: () => new THREE.Vector3(x - 1.5, 2.2, z - 0.6), back: [x + 1.6, z + 0.6], camYaw: ry + Math.PI, camPitch: 0.1,
+    focus: () => new THREE.Vector3(x - 1.5, 2.2, z - 0.6), back: [x + 1.6, z + 0.6], camYaw: ry + Math.PI, camPitch: 0.1, look: 1, /* look：鏡頭對著海和天空，才看得到夕陽和流星 */
     update(dt) {
       if (warp) { act.tod = (act.tod ?? st.tod) + dt * 1.6; if (act.tod >= warp) { warp = 0; msg('夕陽好美。' + (Math.random() < 0.5 ? `${nameOf(you().i)} 偷偷看了你一眼。` : '天空變成粉紅色了。')); addLove(4, '一起看夕陽'); addMemo('🌅', '在燈塔旁一起看夕陽'); quest('sunset'); btns(); } }
       if (isNight()) { mt -= dt; if (mt <= 0 && !meteor) { spawnMeteor(); mt = surpriseIs('meteor') ? rand(1.5, 3.5) : rand(5, 11); act.metT = 3; msg('流星！快許願！'); sfx('chime'); } }
@@ -1692,12 +1693,14 @@ function updateCam(dt, snap) {
   }
   if (scene === 'in') {
     tmpT.set(clamp(p.x, -5, 5) * 0.65, 0.9, clamp(p.z, -3.5, 3.5) * 0.55);
-    if (act?.focus && !act.free) tmpT.lerp(act.focus(), 0.7);
+    if (act?.focus && (!act.free || act.look)) tmpT.lerp(act.focus(), 0.7);
     const d = view.inDist, yaw = view.inYaw;
     const ip = view.inPitch; camP.set(tmpT.x + Math.sin(yaw) * d * Math.cos(ip), Math.max(1.2, tmpT.y + d * Math.sin(ip)), tmpT.z + Math.cos(yaw) * d * Math.cos(ip));
     cutaway(IN, cam.position.x, cam.position.z);
   } else {
-    if (act?.focus && !act.free) tmpT.copy(act.focus()); else tmpT.set(p.av.root.position.x, p.av.root.position.y + 1.2, p.av.root.position.z);
+    if (act?.focus && (!act.free || act.look)) tmpT.copy(act.focus());
+    else if (act?.free) { const rp = p.av.root.position, ct = act._ct || (act._ct = rp.clone()); ct.lerp(rp, Math.min(1, dt * (act.camK || 1.6))); tmpT.set(ct.x, ct.y + (p.av.pose === 'lie' ? 0.7 : 1.2), ct.z); } /* 低通：鏡頭不跟著小晃動 */
+    else tmpT.set(p.av.root.position.x, p.av.root.position.y + 1.2, p.av.root.position.z);
     const nf = act?.near?.(); let d = view.dist * (act?.bigView ? 1.6 : nf ? nf : act && !act.free ? 1.1 : 1);
     const yaw = view.yaw, pit = view.pitch;
     for (let k = 0; k < 12; k++) { camP.set(tmpT.x + Math.sin(yaw) * Math.cos(pit) * d, tmpT.y + Math.sin(pit) * d, tmpT.z + Math.cos(yaw) * Math.cos(pit) * d); if (!camBlocked(camP.x, camP.y, camP.z)) break; if (d < 2.5) { camP.y = Math.max(camP.y, 7.2); break; } d *= 0.8; }
@@ -1861,6 +1864,9 @@ function tickSay() {
 let loveAsk = null, approach = null;
 /* 連線時的親親、抱抱、摸頭、牽手：不用問對方，直接走過去做；對方的角色會自然回應 */
 const LOVE_PTS = { hug: 2, kiss: 3, pat: 2 };
+/* 兩個人站多近：[面對面的距離, 往旁邊錯開多少]。頭很大，太近會疊在一起；抱抱時稍微錯開，頭才會靠在對方肩膀旁邊 */
+const LOVE_GAP = { hug: [0.6, 0.24], kiss: [0.88, 0], pat: [0.8, 0] };
+function loveSpot(c, k) { const yw = scene === 'in' ? view.inYaw : view.yaw, [g, o] = LOVE_GAP[k] || [0.8, 0], sx = Math.cos(yw), sz = -Math.sin(yw); let tx = c.x + sx * g - sz * o, tz = c.z + sz * g + sx * o; if (!canStand(tx, tz)) { tx = c.x - sx * g + sz * o; tz = c.z - sz * g - sx * o; } return [tx, tz]; }
 function requestLove(k) {
   const q = you(), pid = [...MP.peers.values()].find(p => p.role === 1 - MP.role)?.id; if (!pid) return;
   if (k === 'hand') {
@@ -1903,8 +1909,7 @@ function onLoveOk(from, k, ok) { if (k === 'hand' && !ok) { MP.lead = false; toa
 function netMove(dt, hasInput) {
   const p = me();
   if (approach) {
-    const c = approach.c, yw = scene === 'in' ? view.inYaw : view.yaw, gap = approach.k === 'hug' ? 0.46 : approach.k === 'kiss' ? 0.66 : 0.62; // 抱抱貼近、親親留給往前傾的距離、摸頭剛好伸手搆得到
-    let tx = c.x + Math.cos(yw) * gap, tz = c.z - Math.sin(yw) * gap; if (!canStand(tx, tz)) { tx = c.x - Math.cos(yw) * gap; tz = c.z + Math.sin(yw) * gap; }
+    const c = approach.c; let [tx, tz] = loveSpot(c, approach.k);
     approach.t += dt; const d = Math.hypot(tx - p.x, tz - p.z);
     if (hasInput && approach.t > 0.4) { approach = null; return false; } /* 自己推搖桿就取消 */
     if (d < 0.14 || approach.t > (approach.max || 2)) { if (d >= 0.14 && d < 1.2) { p.x = tx; p.z = tz; } const k = approach.k, pid = approach.mine; approach = null; p.moving = false; if (d < 1.2) loveNow(k, pid); }
@@ -2286,7 +2291,7 @@ function applyLow() { R.setPixelRatio(st.low ? 1 : PR); resize(); shadowSweep();
 function shadowSweep() {
   if (!W?.sunL) return; const on = !st.low; W.sunL.castShadow = on;
   OUT.traverse(o => { if (!o.isMesh || o === W.ground || o.userData.shOK === on) return; o.userData.shOK = on; const m = o.material; const solid = m && m.isMeshToonMaterial && !m.transparent; o.castShadow = on && solid; o.receiveShadow = on && solid; });
-  W.ground.receiveShadow = on; allChars().forEach(c => { c.av.noBlob = on && (c.sc || 'out') === 'out'; });
+  W.ground.receiveShadow = on; allChars().forEach(c => { c.av.noBlob = on && (c.sc || 'out') === 'out'; c.av.root.traverse(o => { if (o.isMesh) o.receiveShadow = false; }); }); /* 角色身上不畫影子（會一閃一閃） */
 }
 setInterval(shadowSweep, 2500);
 let fpsT = 0, fpsN = 0, lowAsked = false;
@@ -2426,7 +2431,7 @@ function frame() {
   // 時間：一小時 = 36 秒
   syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
-  { const pp = me().av.root.position; W.sunL.target.position.set(pp.x, 0, pp.z); W.sunL.position.x += pp.x; W.sunL.position.z += pp.z; } /* 影子框跟著玩家 */
+  { const pp = me().av.root.position, gx = Math.round(pp.x / 3) * 3, gz = Math.round(pp.z / 3) * 3; W.sunL.target.position.set(gx, 0, gz); W.sunL.position.x += gx; W.sunL.position.z += gz; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
   if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickRemoteBikes(); tickBoatSync(dt); chars[0].av.mate = chars[1].av; chars[1].av.mate = chars[0].av; /* 情侶動作要知道對方身體在哪 */ nightK = k.night; tickFlash();
     // 天黑了提醒一次可以開手電筒
@@ -2473,7 +2478,7 @@ function frame() {
   if (!act || !you().locked) partnerAI(dt);
   if (act) { act.t += dt; act.update?.(dt); }
   placeRoots(dt);
-  allChars().forEach(c => syncAv(c, dt));
+  allChars().forEach(c => { try { syncAv(c, dt); } catch (e) { if (!c._err) { c._err = 1; console.error('角色更新出錯', e); } } }); /* 一個角色出錯不能讓整格畫面停掉 */
   netTick(dt);
   if (ringM?.parent) { ringM.userData.t += dt; ringM.material.opacity = 1 - ringM.userData.t; ringM.scale.setScalar(1 + ringM.userData.t); if (ringM.userData.t > 1) ringM.parent.remove(ringM); }
 
@@ -3047,16 +3052,55 @@ const USE = {
   'basil-pot-125949': { t: 'plant' }, 'fern-plant-1559b8': { t: 'plant' }, 'ti-plant-a7ad06': { t: 'plant' }, 'taro-plant-8c0493': { t: 'plant' },
   guitar: { t: 'guitar' }, 'classroom-globe-16a96e': { t: 'globe' }, 'coffee-cup-90be67': { t: 'cup' }, 'birdhouse-post-66d6c1': { t: 'bird' }, 'garden-birdbath-9671de': { t: 'bird' },
   'xmas-fir-tree': { t: 'xtree' }, 'garland-lamp-post-af02f0': { t: 'lamp' }, 'wooden-toboggan-940bbc': { t: 'seat', y: 0.24, name: '木雪橇' }, 'gingerbread-house-8b9049': { t: 'treat' }, 'gingerbread-man-4766ed': { t: 'treat' }, 'candy-cane-eb113b': { t: 'treat' }, 'snow-laden-spruce-36716e': { t: 'plant', shake: 1 }, 'candy-cane-path-markers-2310e4': { t: 'treat' },
+  'hotel-king-bed-c15761': { t: 'seat', y: 0.55, pose: 'lie', name: '特大雙人床' },
+  'dorm-loft-bed-with-a094e7': { t: 'look', say: ['爬上去看了一下，上面好像秘密基地', '高架床下面可以放書桌'] },
+  'bath-fad968': { t: 'soak', y: 0.2 },
+  'round-jetted-suite-tub-2bd9bb': { t: 'soak', y: 0.25 },
+  'lounge-grand-piano-e98c92': { t: 'piano' },
+  'upright-piano-c0b0ef': { t: 'piano' },
+  'sideboard-dd343b': { t: 'look', say: ['抽屜裡收著你們的小東西', '櫃子上可以擺照片'] },
+  'chest-of-drawers-cbe3e7': { t: 'look', say: ['拉開抽屜，裡面是摺好的衣服', '最下面那格藏著一封情書'] },
+  'dressing-mirror-7c0871': { t: 'mirror' },
+  'coat-rack-57bbbc': { t: 'look', say: ['掛著兩個人的外套', '帽子掛好了'] },
+  'pool-table-1b3f86': { t: 'game', say: ['一桿進洞！', '差一點點…', '漂亮的反彈球', '白球洗袋了，哈哈'] },
+  'lounge-sofa-c34b3e': { t: 'seat', y: 0.42, pose: 'recline', name: '大沙發' },
+  'velvet-tub-chair-b0b5f8': { t: 'seat', y: 0.42, name: '絲絨單椅' },
+  'art-easel-078422': { t: 'game', say: ['畫了一顆歪歪的愛心', '畫了你的側臉，還滿像的', '畫了今天的海', '顏料沾到臉上了'] },
+  'jukebox-1e2ea6': { t: 'jukebox' },
+  'arcade-console-ec27c2': { t: 'game', say: ['新紀錄！', 'Game Over…再一次', '打到第 3 關了', '搖桿快被你搖壞了'] },
+  'trophy-cabinet-e963ac': { t: 'look', say: ['裡面放著你們一起收集的寶貝', '最上層是第一次約會的票根'] },
+  'area-rug-5c56e2': { t: 'lie' },
+  'cafe-counter-d8b226': { t: 'cup' },
+  'library-shelf-run-570904': { t: 'read' },
+  'hot-spring-pool-26312c': { t: 'soak', y: 0.1 },
+  'pergola-bay-module-1ad452': { t: 'shade' },
+  'plaza-fountain-5a5f6e': { t: 'wish' },
+  'backyard-barbecue-grill-84d4ef': { t: 'bbq' },
+  'stone-fire-pit-4136b0': { t: 'warm' },
+  'roofed-well-43a2fc': { t: 'wish' },
+  'windmill-pump-2993a4': { t: 'wind' },
+  'japanese-koi-pond-78d204': { t: 'koi' },
+  'backyard-doghouse-50a492': { t: 'look', say: ['狗狗的新家！牠聞了聞，尾巴搖個不停', '裡面鋪了一條小毯子'] },
+  'backyard-trampoline-2779ec': { t: 'bounce' },
+  'playground-slide-8b764c': { t: 'game', say: ['咻——溜下來了！', '再溜一次！', '屁股好燙'] },
+  'teeter-totter-ee9c62': { t: 'game', say: ['一上一下，好好玩', '你那邊比較重喔', '翹到最高了'] },
+  'sandbox-224517': { t: 'game', say: ['堆了一座小山', '挖到一個貝殼', '在沙上寫了你的名字'] },
+  'seafront-lamp-post-28bada': { t: 'lamp' },
+  'plank-bench-c46528': { t: 'seat', y: 0.25, name: '長木椅' },
+  'rope-swing-on-a-ada4bb': { t: 'game', say: ['盪得好高！', '風從耳邊吹過', '腳碰到樹葉了'] },
+  'ramen-yatai-stall-53974b': { t: 'ramen' },
+  'folding-camp-chair-2fc7d1': { t: 'seat', y: 0.38, pose: 'recline', name: '露營椅' },
+  'festoon-light-run-45629f': { t: 'lamp' },
   'frontyard-gnome-997876': { t: 'gnome' }, bike: { t: 'bell' }, cushion: { t: 'hug' }, rug: { t: 'lie' }, parasol: { t: 'shade' }, 'windsock-d5df79': { t: 'wind' },
 };
-const USE_ICON = { xtree: '🎄', treat: '🍬', seat: '🪑', lamp: '💡', read: '📖', plant: '🌿', guitar: '🎸', globe: '🌍', cup: '☕', bird: '🐦', gnome: '🧙', bell: '🔔', hug: '🧸', lie: '🛋️', shade: '⛱️', wind: '🌬️', desk: '✍️' };
-const USE_VERB = { xtree: '看聖誕樹', treat: '嚐一口', seat: '坐一下', lamp: '開關燈', read: '看書', plant: '澆水', guitar: '彈吉他', globe: '轉地球儀', cup: '喝一口', bird: '看小鳥', gnome: '跟小矮人說話', bell: '按鈴', hug: '抱抱枕', lie: '躺一下', shade: '乘涼', wind: '看風', desk: '寫信' };
+const USE_ICON = { look: '👀', soak: '♨️', piano: '🎹', mirror: '🪞', game: '🎯', jukebox: '🎵', wish: '🪙', bbq: '🍖', warm: '🔥', koi: '🐟', bounce: '🤸', ramen: '🍜', xtree: '🎄', treat: '🍬', seat: '🪑', lamp: '💡', read: '📖', plant: '🌿', guitar: '🎸', globe: '🌍', cup: '☕', bird: '🐦', gnome: '🧙', bell: '🔔', hug: '🧸', lie: '🛋️', shade: '⛱️', wind: '🌬️', desk: '✍️' };
+const USE_VERB = { look: '看一看', soak: '泡一下', piano: '彈鋼琴', mirror: '照鏡子', game: '玩一下', jukebox: '點一首歌', wish: '許願', bbq: '烤肉', warm: '取暖', koi: '餵魚', bounce: '跳一跳', ramen: '吃拉麵', xtree: '看聖誕樹', treat: '嚐一口', seat: '坐一下', lamp: '開關燈', read: '看書', plant: '澆水', guitar: '彈吉他', globe: '轉地球儀', cup: '喝一口', bird: '看小鳥', gnome: '跟小矮人說話', bell: '按鈴', hug: '抱抱枕', lie: '躺一下', shade: '乘涼', wind: '看風', desk: '寫信' };
 const DSP = []; /* 擺設變成的地點（跟 SP 一樣用） */
 function rebuildDecorSpots() {
   DSP.forEach(s => s.el?.remove()); DSP.length = 0;
   (st.decor || []).forEach((d, i) => {
     const u = USE[d.id]; if (!u) return; const def = DECOR.find(x => x[0] === d.id);
-    const s = { id: 'd' + i, sc: d.sc, x: d.x, z: d.z, r: 1.5, icon: USE_ICON[u.t], name: `${def?.[1] || ''}・${USE_VERB[u.t]}`, run: () => useThing(u, { ...d, name: def?.[1] || u.name || '' }), dsp: 1 };
+    const s = { id: 'd' + i, sc: d.sc, x: d.x, z: d.z, r: 1.5, icon: USE_ICON[u.t], name: `${def?.[1] || ''}・${u.pose === 'lie' ? '躺一下' : USE_VERB[u.t]}`, run: () => useThing(u, { ...d, name: def?.[1] || u.name || '' }), dsp: 1 }; /* d 裡有 id */
     const el = document.createElement('button'); el.type = 'button'; el.className = 'lbl'; el.textContent = `${s.icon} ${s.name}`; el.style.display = 'none';
     el.onclick = () => { if (act || !started()) return; route(me(), s.x, s.z, s); sfx('click'); }; $('#labels').appendChild(el); s.el = el; DSP.push(s);
   });
@@ -3086,9 +3130,21 @@ function useThing(u, o) {
     case 'bell': me().av.emote('interact', 0.6); sfx('bell'); return;
     case 'hug': me().av.emote('hug', 1.6); burst('heart', headPos(me(), 1.2), 4, 0.3); toast('🧸 抱著抱枕，好軟'); return;
     case 'lie': return useSeat({ y: 0.04, pose: 'lie', name: '躺一下' }, o, gy);
-    case 'shade': me().av.emote('cheer', 1); toast('⛱️ 陽傘下好涼快'); return;
-    case 'wind': toast(`🌬️ 風向袋${WX?.st?.rain > 0.3 ? '飄得很用力，風好大' : '輕輕飄著，今天適合放風箏'}`); return;
+    case 'shade': me().av.emote('cheer', 1); toast(`⛱️ ${o.name || '陽傘'}下好涼快`); return;
+    case 'wind': toast(`🌬️ ${o.id === 'windmill-pump-2993a4' ? '風車' : '風向袋'}${WX?.st?.rain > 0.3 ? '轉得很快，風好大' : '慢慢轉著，今天適合放風箏'}`); return;
     case 'desk': return useDesk(o, gy);
+    case 'look': me().av.emote('interact', 1.2); toast(`👀 ${pick(u.say)}`, 3200); return;
+    case 'game': me().av.emote(pick(['cheer', 'jump', 'clap']), 1.4); burst('star', headPos(me(), 1.2), 6, 0.4); sfx('pop'); toast(`🎯 ${pick(u.say)}`, 3000); if (daily('game' + o.id)) addLove(1); return;
+    case 'mirror': me().av.emote('wave', 1); setTimeout(() => openLooks(), 500); return;
+    case 'jukebox': me().av.emote('interact', 0.8); sfx('click'); if (!st.music) { st.music = true; save(); } Music.pick((Math.max(-1, Music.track) + 1) % TRACKS.length); Music.play(); setTimeout(() => { toast(`🎵 點了一首「${Music.playing}」`, 3000); me().av.emote('dance', 4); if (duo()) you().av.emote('dance', 4); }, 500); return;
+    case 'wish': me().av.emote('throw', 0.8); sfx('plop'); if ((st.coins || 0) >= 1) { st.coins -= 1; updateChips(); } setTimeout(() => { burst('star', new THREE.Vector3(o.x, gy + 1, o.z), 10, 0.6); sfx('chime'); toast(`🪙 丟了一枚硬幣：「${pick(['希望我們一直在一起', '希望明天也是好天氣', '希望對方每天都開心', '希望一起去很多地方'])}」`, 4000); if (daily('wish')) addLove(2); }, 700); return;
+    case 'bbq': me().av.emote('interact', 1.6); sfx('sizzle'); setTimeout(() => { toast(`🍖 ${pick(['烤好一串，分你一半', '滋滋作響，好香', '有點焦，但還是好吃'])}`, 3200); if (daily('bbq')) { addLove(2); st.pantry = st.pantry || {}; } }, 900); return;
+    case 'warm': me().av.emote('interact', 1.6); toast('🔥 火暖暖的，手都烤熱了'); if (daily('warm')) addLove(1); return;
+    case 'koi': me().av.emote('throw', 0.8); sfx('plop'); setTimeout(() => { burst('heart', new THREE.Vector3(o.x, gy + 0.4, o.z), 5, 0.6); toast(`🐟 ${pick(['錦鯉都游過來搶飼料', '最大那隻是橘色的', '有一隻一直看著你'])}`, 3200); }, 600); if (daily('koi')) addLove(1); return;
+    case 'bounce': { let n = 0; const t_ = setInterval(() => { me().av.emote('jump', 0.9); sfx('pop'); if (++n >= 4) clearInterval(t_); }, 700); toast('🤸 跳～跳～跳～'); if (daily('bounce')) addLove(1); return; }
+    case 'ramen': me().av.emote('eat', 2.2); sfx('sizzle'); setTimeout(() => toast(`🍜 ${pick(['熱騰騰的拉麵，湯頭好濃', '加一顆溏心蛋', '吃到滿頭大汗，好過癮'])}`, 3500), 800); if (daily('ramen')) addLove(2); return;
+    case 'soak': return useSeat({ y: u.y, pose: 'sit', name: '泡湯', soak: 1 }, o, gy);
+    case 'piano': return usePiano(o, gy);
     case 'xtree': me().av.emote('cheer', 1.2); burst('star', new THREE.Vector3(o.x, gy + 2.4, o.z), 14, 0.8); sfx('chime'); toast(`🎄 ${pick(['樹上的星星閃了一下', '聖誕球映著你們兩個的臉', '許一個聖誕願望吧'])}`); if (daily('xtree')) addLove(1); return;
     case 'treat': me().av.emote('eat', 1.4); toast(`🍬 ${pick(['甜甜的，是聖誕節的味道', '捨不得吃，只咬了一小口', '分一半給另一半'])}`); if (daily('treat')) addLove(1); return;
   }
@@ -3102,7 +3158,18 @@ function useSeat(u, o, gy) {
   beginAct('seat', `${u.pose === 'lie' ? '🛋️' : '🪑'} ${o.name || u.name || '坐一下'}`, pick(SEAT_LINES), {
     focus: () => new THREE.Vector3(x, gy + 0.9, z), back: [o.x + fx * 1.2, o.z + fz * 1.2],
     btns: [{ t: '發呆一下', main: true, fn: () => { me().av.emote('shy', 1.4); msg(pick(SEAT_LINES)); if (st.useDay?.d !== st.day || !st.useDay.k.includes('seat' + o.x)) { st.useDay = st.useDay?.d === st.day ? st.useDay : { d: st.day, k: [] }; st.useDay.k.push('seat' + o.x); addLove(1); } } }, duo() && { t: '靠在一起', fn: () => { me().av.lean(1); burst('heart', midPos(1), 5, 0.3); addLove(2, '靠在一起', 'lean'); } }],
-    update(dt) { t += dt; if (u.rock) me().tilt = Math.sin(t * 1.4) * 0.08; }, /* 搖椅慢慢搖 */
+    update(dt) { t += dt; if (u.rock) me().tilt = Math.sin(t * 1.4) * 0.08; if (u.soak && Math.random() < dt / 1.2) burst('z', new THREE.Vector3(x + rand(-0.4, 0.4), gy + 0.7, z + rand(-0.4, 0.4)), 1, 0.2); }, /* 搖椅慢慢搖；泡湯冒熱氣 */
+  });
+}
+function usePiano(o, gy) {
+  const ry = o.ry || 0, fx = Math.sin(ry), fz = Math.cos(ry);
+  actGo(() => seat(me(), o.x + fx * 0.75, gy + 0.46 - HIP, o.z + fz * 0.75, ry + Math.PI, 'sit'));
+  me().av.reach(true); Music.duet(true);
+  beginAct('guitar', '🎹 彈鋼琴', `彈一首給 ${partnerName()} 聽。`, {
+    back: [o.x + fx * 1.6, o.z + fz * 1.6],
+    btns: [{ t: '換一首', main: true, fn: () => { Music.duet(false); setTimeout(() => Music.duet(true), 900); } }],
+    update(dt) { if (Math.random() < dt / 2.5) burst('note', headPos(me(), 1.1), 2, 0.3); },
+    end() { Music.duet(false); me().av.reach(false); addLove(2, null, 'guitar'); },
   });
 }
 function useGuitar(o, gy) {
@@ -3138,42 +3205,30 @@ function applyLamps() {
 }
 /* ---------- 燈塔：爬到最上面看海 ---------- */
 const LH = { x: -19.2, z: -19.2, top: 7.95 };
-/* 燈塔外面的螺旋樓梯：從山坡繞著塔走到陽台。u：0（地面）→ 1（陽台） */
-const LH_Y0 = () => standH(LH.x + 4.1, LH.z);
-function lhPath(u) {
-  const y0 = LH_Y0(), a = 0.2 + u * Math.PI * 2 * 1.75, y = y0 + (LH.top - y0) * u;
-  const r = y < 3.7 ? 4.1 : y < 4.3 ? 4.1 - (y - 3.7) / 0.6 * 2.05 : 2.05 - (y - 4.3) / (LH.top - 4.3) * 0.75;
-  return { x: LH.x + Math.cos(a) * r, y, z: LH.z + Math.sin(a) * r, a, r };
-}
-function buildLhStairs() {
-  if (!W || W.lhStairs) return; const N = 78, m = new THREE.InstancedMesh(new THREE.BoxGeometry(0.62, 0.07, 0.34), toon('#b98a5a'), N), d = new THREE.Object3D();
-  for (let i = 0; i < N; i++) { const q = lhPath(i / (N - 1)); d.position.set(q.x, q.y - 0.04, q.z); d.rotation.set(0, -q.a, 0); d.updateMatrix(); m.setMatrixAt(i, d.matrix); }
-  OUT.add(m); W.lhStairs = m;
-}
 function actLighthouse() {
-  buildLhStairs();
-  const out = Math.atan2(LH.z, LH.x), ox = Math.cos(out), oz = Math.sin(out), px = LH.x + ox * 1.02, pz = LH.z + oz * 1.02, face = Math.atan2(ox, oz);
-  let beam = null, orbit = false, t = 0, a0 = 0, climb = 0;
+  const out = Math.atan2(LH.z, LH.x), ox = Math.cos(out), oz = Math.sin(out), face = Math.atan2(ox, oz);
+  const da = Math.atan2(LH_AT[1] - LH.z, LH_AT[0] - LH.x), door = [LH.x + Math.cos(da) * 3.75, LH.z + Math.sin(da) * 3.75];
+  let beam = null, orbit = false, t = 0, stage = 0;
   const who = [me(), duo() ? you() : null].filter(c => c && !c.remote && !c.ghost);
-  who.forEach(c => { c.locked = true; c.path = null; c.av.setPose('stand'); c.av.holdHand(0); });
-  const stepTo = (c, u, lag) => { const q = lhPath(Math.max(0, u - lag)), q2 = lhPath(Math.min(1, Math.max(0, u - lag) + 0.01)); c.x = q.x; c.z = q.z; c.y = q.y; c.ry = Math.atan2(q2.x - q.x, q2.z - q.z); c.moving = true; };
-  const arrive = () => { const side = k => { const a = out + k * 0.5; return [LH.x + Math.cos(a) * 1.02, LH.z + Math.sin(a) * 1.02]; };
-    actGo(() => { who.forEach((c, i) => { const [x, z] = side(who.length > 1 ? (i ? 0.5 : -0.5) : 0); c.x = x; c.z = z; c.y = LH.top; c.ry = face; c.moving = false; }); });
-    view.yaw = face; view.pitch = 0.3; /* 鏡頭轉到海那一側看回來，人和整座島都在畫面裡 */
-    msg(isNight() ? '整座小島都在腳下，海上一片星光。' : '整座小島都在腳下，海好藍。'); sfx('chime'); btns(); };
+  const side = k => { const a = out + k * 0.5; return [LH.x + Math.cos(a) * 1.02, LH.z + Math.sin(a) * 1.02]; };
   const btns = () => setBtns([{ t: '環顧四周', main: true, fn: () => { orbit = !orbit; } },
     isNight() && { t: '點亮燈塔', fn: () => { beamOn(); sfx('chime'); msg('燈塔的光掃過海面，好像在幫迷路的船指路。'); } },
     duo() && { t: '說愛你', fn: () => { me().av.emote('kiss', 1.6); setTimeout(() => you().av.emote('shy', 1.6), 400); burst('heart', midPos(1.2), 12, 0.5); addLove(4, '在燈塔頂說了愛你', 'lhlove'); } }]);
   const beamOn = () => { if (beam) return; beam = new THREE.Mesh(new THREE.ConeGeometry(3, 26, 24, 1, true), new THREE.MeshBasicMaterial({ color: '#fff3c0', transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide, fog: false })); beam.geometry.translate(0, -13, 0); beam.rotation.z = Math.PI / 2; const g = new THREE.Group(); g.position.set(LH.x, 9.9, LH.z); g.add(beam); OUT.add(g); beam.userData.g = g; };
-  actGo(() => who.forEach((c, i) => stepTo(c, 0, i * 0.03)));
-  beginAct('lighthouse', '🗼 燈塔', '沿著樓梯一階一階走上去……', {
-    back: [LH.x + 4.6, LH.z + 1.2],
+  /* 1. 走到塔門口 */
+  actGo(() => who.forEach((c, i) => { c.locked = true; c.path = null; c.av.setPose('stand'); c.av.holdHand(0); c.x = door[0] + i * 0.5; c.z = door[1] + i * 0.3; c.y = null; c.ry = Math.atan2(LH.x - c.x, LH.z - c.z); c.moving = false; }));
+  sfx('door-open');
+  beginAct('lighthouse', '🗼 燈塔', '推開門，沿著裡面的樓梯往上走……', {
+    back: LH_AT, camK: 0.9,
     update(dt) {
       t += dt;
-      if (climb < 1) { climb = Math.min(1, climb + dt / 7); who.forEach((c, i) => stepTo(c, climb, i * 0.03)); if (Math.floor(t * 2.6) !== Math.floor((t - dt) * 2.6)) sfx('wood'); if (climb >= 1) arrive(); return; }
+      if (stage === 0 && t > 0.7) { stage = 1; who.forEach(c => { c.av.root.scale.setScalar(0.001); }); } /* 2. 進門（人先不見），腳步聲 */
+      if (stage === 1) { if (Math.floor(t * 3) !== Math.floor((t - dt) * 3)) sfx('wood');
+        if (t > 1.0 && !act.up) { act.up = 1; who.forEach((c, i) => { const [x, z] = side(who.length > 1 ? (i ? 0.5 : -0.5) : 0); c.x = x; c.z = z; c.y = LH.top; c.ry = face; c.glide = null; }); view.yaw = face; view.pitch = 0.3; } /* 鏡頭開始沿著塔往上移 */
+        if (t > 3.6) { stage = 2; who.forEach(c => { c.av.root.scale.setScalar(1); c.av.emote('cheer', 1.2); }); burst('star', headPos(me(), 1.2), 10, 0.5); sfx('chime'); msg(isNight() ? '整座小島都在腳下，海上一片星光。' : '整座小島都在腳下，海好藍。'); btns(); } } /* 3. 出現在陽台 */
       if (orbit) view.yaw += dt * 0.25; if (beam) beam.userData.g.rotation.y += dt * 0.9;
     },
-    end() { if (beam) OUT.remove(beam.userData.g); who.forEach(c => { c.moving = false; }); if (climb >= 1 && st.lhDay !== st.day) { st.lhDay = st.day; addLove(3); addMemo('🗼', duo() ? '一起爬上燈塔看整座小島' : '爬上燈塔看整座小島'); } },
+    end() { who.forEach(c => { c.av.root.scale.setScalar(1); }); if (beam) OUT.remove(beam.userData.g); if (stage === 2 && st.lhDay !== st.day) { st.lhDay = st.day; addLove(3); addMemo('🗼', duo() ? '一起爬上燈塔看整座小島' : '爬上燈塔看整座小島'); } },
   });
   setBtns([]);
 }
