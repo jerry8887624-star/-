@@ -1,5 +1,5 @@
 /* 離線快取：網頁先試網路（不讀 HTTP 快取，4 秒逾時才用手機裡的版本），其他資源先用快取並在背景更新 */
-const V='nest-ee5d9a231c';
+const V='nest-111ead80fa';
 const CORE=['./','index.html','manifest.webmanifest','css/app.css','css/themes.css','js/main.js','js/world.js','js/models.js','js/terrain.js','js/avatar.js','js/char.js','js/net.js','js/chatfilter.js','js/data.js','js/audio.js','js/changes.js','js/update.js','js/icons.js','vendor/three.module.min.js','vendor/GLTFLoader.js','vendor/BufferGeometryUtils.js','vendor/SkeletonUtils.js','icons/icon.svg','icons/icon-192.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CORE.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('nest-')&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

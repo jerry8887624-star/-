@@ -534,10 +534,14 @@ let act = null;
 const started = () => !preview.on;
 const v3 = new THREE.Vector3();
 let lastMeSeat = null;
+/* 兩人各自的位置：連線時另一半在他自己的手機上算，所以要用固定的身分（0/1）選位置，不能用陣列順序，否則兩個人都會站到第一個位置疊在一起 */
+const pairSlot = i => (you()?.remote ? myIdx() : i) ? 1 : 0;
 function seat(c, x, y, z, ry, pose = 'sit') {
   if (c.ghost) return;
   // 另一半是真人：他已經坐在我要坐的位置，我就坐他的位置
-  if (c.remote) { if (lastMeSeat && Math.hypot(c.x - lastMeSeat[0], c.z - lastMeSeat[1]) < 0.4) { lastMeSeat = null; seat(me(), x, y, z, ry, pose); } return; }
+  if (c.remote) { /* 雙人位置：他已經在我的位置上 → 我換過去；他還沒到 → 用固定身分分配（第 2 位坐第二個位置），兩邊同時按也不會疊在一起 */
+    const onMine = lastMeSeat && Math.hypot(c.x - lastMeSeat[0], c.z - lastMeSeat[1]) < 0.4, onTheirs = Math.hypot(c.x - x, c.z - z) < 0.4;
+    if (lastMeSeat && (onMine || (!onTheirs && myIdx() === 1))) { lastMeSeat = null; seat(me(), x, y, z, ry, pose); } return; }
   if (c === me()) lastMeSeat = [x, z];
   c.locked = true; c.path = null; c.x = x; c.z = z; c.y = y; c.ry = ry; c.moving = false; c.av.setPose(pose); c.av.holdHand(0); }
 function unseat(c) { if (c.ghost || c.remote) return; c.av.reclineAng = null; c.locked = false; c.y = null; c.tilt = 0; c.moving = false; c.av.setPose('stand'); c.av.reach(false); c.av.lean(0); c.av.setItem(null); }
@@ -3217,7 +3221,7 @@ function actLighthouse() {
     duo() && { t: '說愛你', fn: () => { me().av.emote('kiss', 1.6); setTimeout(() => you().av.emote('shy', 1.6), 400); burst('heart', midPos(1.2), 12, 0.5); addLove(4, '在燈塔頂說了愛你', 'lhlove'); } }]);
   const beamOn = () => { if (beam) return; beam = new THREE.Mesh(new THREE.ConeGeometry(3, 26, 24, 1, true), new THREE.MeshBasicMaterial({ color: '#fff3c0', transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide, fog: false })); beam.geometry.translate(0, -13, 0); beam.rotation.z = Math.PI / 2; const g = new THREE.Group(); g.position.set(LH.x, 9.9, LH.z); g.add(beam); OUT.add(g); beam.userData.g = g; };
   /* 1. 走到塔門口 */
-  actGo(() => who.forEach((c, i) => { c.locked = true; c.path = null; c.av.setPose('stand'); c.av.holdHand(0); c.x = door[0] + i * 0.5; c.z = door[1] + i * 0.3; c.y = null; c.ry = Math.atan2(LH.x - c.x, LH.z - c.z); c.moving = false; }));
+  actGo(() => who.forEach((c, i) => { c.locked = true; c.path = null; c.av.setPose('stand'); c.av.holdHand(0); const k = pairSlot(i); c.x = door[0] + k * 0.5; c.z = door[1] + k * 0.3; c.y = null; c.ry = Math.atan2(LH.x - c.x, LH.z - c.z); c.moving = false; }));
   sfx('door-open');
   beginAct('lighthouse', '🗼 燈塔', '推開門，沿著裡面的樓梯往上走……', {
     back: LH_AT, camK: 0.9,
@@ -3225,7 +3229,7 @@ function actLighthouse() {
       t += dt;
       if (stage === 0 && t > 0.7) { stage = 1; who.forEach(c => { c.av.root.scale.setScalar(0.001); }); } /* 2. 進門（人先不見），腳步聲 */
       if (stage === 1) { if (Math.floor(t * 3) !== Math.floor((t - dt) * 3)) sfx('wood');
-        if (t > 1.0 && !act.up) { act.up = 1; who.forEach((c, i) => { const [x, z] = side(who.length > 1 ? (i ? 0.5 : -0.5) : 0); c.x = x; c.z = z; c.y = LH.top; c.ry = face; c.glide = null; }); view.yaw = face; view.pitch = 0.3; } /* 鏡頭開始沿著塔往上移 */
+        if (t > 1.0 && !act.up) { act.up = 1; who.forEach((c, i) => { const [x, z] = side(duo() ? (pairSlot(i) ? 0.5 : -0.5) : 0); c.x = x; c.z = z; c.y = LH.top; c.ry = face; c.glide = null; }); view.yaw = face; view.pitch = 0.3; } /* 鏡頭開始沿著塔往上移 */
         if (t > 3.6) { stage = 2; who.forEach(c => { c.av.root.scale.setScalar(1); c.av.emote('cheer', 1.2); }); burst('star', headPos(me(), 1.2), 10, 0.5); sfx('chime'); msg(isNight() ? '整座小島都在腳下，海上一片星光。' : '整座小島都在腳下，海好藍。'); btns(); } } /* 3. 出現在陽台 */
       if (orbit) view.yaw += dt * 0.25; if (beam) beam.userData.g.rotation.y += dt * 0.9;
     },
@@ -3312,7 +3316,7 @@ const YOGA_POSES = [['mountain', '山式', '雙手往上延伸，吸氣時把身
 function actYoga() {
   const Y = W.yoga; if (!Y) return; const face = Y.face, duoNow = duo();
   const who = [me(), duoNow ? you() : null].filter(c => c && !c.remote && !c.ghost);
-  actGo(() => who.forEach((c, i) => seat(c, Y.mats[i].x, YOGA.y, Y.mats[i].z, face, 'stand')));
+  actGo(() => who.forEach((c, i) => { const m = Y.mats[pairSlot(i)]; seat(c, m.x, YOGA.y, m.z, face, 'stand'); }));
   let i = -1, t = 0, done = 0, sync = 0; const DUR = 9; $('#ap-meter').classList.add('breath');
   const setPose = k => { who.forEach(c => { c.av.yoga = k; }); if (MP.on && MP.role !== 'g') MP.net.send({ t: 'fx', k: 'yg', a: k ? YOGA_POSES.findIndex(p => p[0] === k) : -1 }); };
   const next = () => { i++; t = 0; if (i >= YOGA_POSES.length) return finish(); const [k, n, tip] = YOGA_POSES[i]; setPose(k); $('#ap-title').textContent = `🧘 ${n}（${i + 1}/${YOGA_POSES.length}）`; msg(tip); sfx('chime'); btns(); };
