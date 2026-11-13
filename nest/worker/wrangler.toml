@@ -1,4 +1,5 @@
 # 網站（nest/ 資料夾）＋連線伺服器，一起部署成一個 Cloudflare Worker
+# 部署觸發：0.19.0 重新部署
 name = "our-island"
 main = "island.js"
 compatibility_date = "2026-10-01"
