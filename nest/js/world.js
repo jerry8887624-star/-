@@ -18,7 +18,7 @@ export const SPOTS = {
   fishing: { x: 41.6, z: 0 },
   boat: { x: 33.5, z: 1.6, boatX: 35.5, boatZ: 2.4 },
   sunset: { x: -23.2, z: -9.5 },
-  dog: { x: 4, z: 2 },
+  dog: { x: 3.2, z: 0.8 },
   coop: { x: 9, z: -2.6 },
   bike: { x: -5.2, z: -3.4 },
 };
@@ -284,11 +284,55 @@ function buildYoga(S) {
   g.updateMatrixWorld(true);
   return { g, curtains, face: g.rotation.y, mats: MATS.map(([lx]) => mat(lx)), enter: new THREE.Vector3(0, 0, -D / 2 - 0.9).applyMatrix4(g.matrixWorld) };
 }
+/* ---------- 木屋前的峇里島庭院：踏腳石步道、火把、峇里涼亭（臥榻）、錦鯉蓮花池、熱帶植物 ---------- */
+export const BALI = { bale: { x: 5.6, z: 4.4, ry: -Math.PI / 2, s: 0.85 }, pond: { x: -3.3, z: 1.3, ry: 0.15, s: 1.05 }, torches: [[-1.15, 1.6], [1.15, 1.6], [-1.15, 6.2], [1.15, 6.2]] };
+function buildBali(S, W) {
+  const B = BALI.bale, jobs = [], g = new THREE.Group(); S.add(g);
+  /* 步道：門口一路到庭院前緣，左右微微錯開 */
+  const stones = []; for (let z = -2.55, k = 0; z < 7.2; z += 0.74, k++) stones.push([(k % 2 ? 0.14 : -0.14), z, k * 1.7, 0.95 + (k % 3) * 0.06]);
+  jobs.push(scatter(S, 'round-path-stone-4130f3', stones, { y: LAND_Y + 0.004 }));
+  /* 涼亭：四根柱子有碰撞，中間是一張大臥榻 */
+  jobs.push(one(S, 'poolside-cabana-d603cf', B.x, B.z, B.ry, B.s));
+  const hs = 1.45 * B.s / 0.85; [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([a, b]) => CIRCLES.push([B.x + a * hs, B.z + b * hs, 0.14]));
+  const bed = new THREE.Group(); bed.position.set(B.x, LAND_Y, B.z); bed.rotation.y = B.ry; S.add(bed);
+  const L = 2.0, Wd = 1.5, H = 0.36, add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; bed.add(m); return m; };
+  add(new THREE.BoxGeometry(Wd + 0.12, H, L + 0.12), woodD(), 0, H / 2, 0);
+  const mat = add(new THREE.BoxGeometry(Wd, 0.13, L), toon('#f6efe2'), 0, H + 0.065, 0); mat.geometry.translate(0, 0, 0);
+  [-0.42, 0.42].forEach(x => { const c = add(new THREE.BoxGeometry(0.62, 0.2, 0.3), toon('#e9d3b4'), x, H + 0.22, -L / 2 + 0.2); c.rotation.x = -0.35; });
+  add(new THREE.BoxGeometry(0.42, 0.12, 0.3), toon('#7fa38a'), -0.5, H + 0.19, -L / 2 + 0.48).rotation.y = 0.3;
+  add(new THREE.BoxGeometry(Wd * 0.92, 0.02, 0.55), toon('#c9785a'), 0, H + 0.14, L / 2 - 0.35); /* 尾端的蠟染毯 */
+  const tray = add(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 16), toon('#a8774c'), 0.5, H + 0.15, 0.55); add(new THREE.CylinderGeometry(0.05, 0.04, 0.12, 10), toon('#f2c94c'), 0.45, H + 0.23, 0.55); add(new THREE.SphereGeometry(0.06, 10, 8), toon('#f7f3ea'), 0.58, H + 0.21, 0.5);
+  { const c = Math.cos(B.ry), sn = Math.sin(B.ry), ex = Math.abs(c) * (Wd + 0.12) / 2 + Math.abs(sn) * (L + 0.12) / 2, ez = Math.abs(sn) * (Wd + 0.12) / 2 + Math.abs(c) * (L + 0.12) / 2; BOXES.push([B.x - ex, B.z - ez, B.x + ex, B.z + ez]); }
+  /* 鋪位資訊給 main.js：腳那一端在 local +z（面向步道） */
+  W.bale = { x: B.x, z: B.z, ry: B.ry, top: LAND_Y + H + 0.13, L, Wd, bed };
+  /* 錦鯉池＋蓮花 */
+  const P = BALI.pond; jobs.push(one(S, 'japanese-koi-pond-78d204', P.x, P.z, P.ry, P.s));
+  CIRCLES.push([P.x - 0.55, P.z, 0.9 * P.s], [P.x + 0.55, P.z, 0.9 * P.s]);
+  jobs.push(one(S, 'lotus-flower-cluster-bc129a', P.x - 0.65, P.z + 0.15, 0.4, 0.45, { y: LAND_Y + 0.28 }), one(S, 'lotus-flower-cluster-bc129a', P.x + 0.75, P.z - 0.3, 2, 0.32, { y: LAND_Y + 0.28 }));
+  W.pond = { x: P.x, z: P.z, edge: [P.x + 0.1, P.z + 1.45] };
+  /* 火把：晚上會亮 */
+  W.torches = []; BALI.torches.forEach(([x, z]) => { jobs.push(one(S, 'reed-fire-torch-f7453e', x, z, x * 0.7, 0.6, { col: 0.25 }));
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffb347', transparent: true, opacity: 0.85, depthWrite: false })); f.position.set(x, LAND_Y + 1.78, z); f.visible = false; S.add(f); W.torches.push(f); });
+  /* 熱帶植物（雞蛋花用櫻花樹換成白黃花） */
+  jobs.push(one(S, 'cherry', -2.6, 8.1, 1.2, 0.85, { col: 0.4 }).then(o => o && frangipani(o)), one(S, 'cherry', -6.9, 2.0, 2.6, 0.8, { col: 0.4 }).then(o => o && frangipani(o)));
+  jobs.push(one(S, 'banana-plant-978d7f', -6.6, -2.2, 0.6, 0.42, { col: 0.35 }), one(S, 'banana-plant-978d7f', 8.2, 6.6, 2.2, 0.38, { col: 0.35 }));
+  jobs.push(one(S, 'ti-plant-a7ad06', -1.25, -2.75, 0.3, 0.5, { col: 0.2 }), one(S, 'ti-plant-a7ad06', 1.25, -2.75, 2.1, 0.5, { col: 0.2 }));
+  jobs.push(scatter(S, 'taro-plant-8c0493', [[-5.3, 0.4, 0.5, 0.8], [-1.3, 2.3, 2.4, 0.7], [-4.8, 2.6, 1.2, 0.65]], { col: 0.3 }));
+  jobs.push(scatter(S, 'tropical-fern-bush-c70147', [[3.2, 6.7, 0.3, 1], [7.9, 2.0, 1.4, 0.9], [3.4, 2.0, 2.2, 0.85], [-3.9, 6.9, 0.8, 0.9]], { col: 0.3 }));
+  jobs.push(one(S, 'bamboo-grove-clump-7c747d', -5.6, -6.6, 0, 0.32, { col: 0.6 }), one(S, 'bamboo-grove-clump-7c747d', 5.6, -6.6, 1.5, 0.3, { col: 0.6 }));
+  jobs.push(one(S, 'clay-storage-pot-626452', -2.2, -2.45, 0.4, 1.3, { col: 0.25 }), one(S, 'gilded-urn-palm-435c00', 2.25, -2.5, 0, 0.6, { col: 0.3 }));
+  return Promise.all(jobs);
+}
+/* 雞蛋花：花換成奶白，中間一點黃 */
+function frangipani(o) { o.traverse(m => { if (!m.isMesh || !m.geometry.attributes.color) return; m.geometry = m.geometry.clone(); /* 頂點色：先複製，不然全島的櫻花都會變白 */
+  const C = m.geometry.attributes.color; for (let i = 0; i < C.count; i++) { const r = C.getX(i), g = C.getY(i), b = C.getZ(i); if (r > 0.45 && g < r * 0.85 && b > g * 0.9) { const k = (r + g + b) / 3 / r; C.setXYZ(i, ...(k > 0.75 ? [0.98, 0.95, 0.88] : [0.97, 0.82, 0.42])); } } C.needsUpdate = true; }); }
+export function tickBali(W, t, night) { (W?.torches || []).forEach((f, i) => { f.visible = night; if (night) { const k = 1 + Math.sin(t * 13 + i * 2) * 0.12 + Math.sin(t * 7.3 + i) * 0.08; f.scale.set(k, k * 1.3, k); } }); }
 export function tickYoga(W, t) { if (!W?.yoga) return; W.yoga.curtains.forEach(c => { const P = c.geometry.attributes.position, b = c.userData.base; for (let i = 0; i < P.count; i++) { const y = b[i * 3 + 1], k = Math.min(1, -y / 2.4); P.setZ(i, b[i * 3 + 2] + Math.sin(t * 1.3 + c.userData.ph + b[i * 3] * 2) * 0.14 * k * k); } P.needsUpdate = true; }); }
 export async function buildIsland(S) {
   const W = {};
   W.ground = makeIsland(); S.add(W.ground);
   W.yoga = buildYoga(S); window.__yoga = W.yoga;
+  const baliJob = buildBali(S, W);
   W.water = makeWater(); S.add(W.water); W.surf = makeSurf(); S.add(W.surf);
   W.sky = makeSky(); S.add(W.sky.g);
   W.hemi = new THREE.HemisphereLight('#dff2ff', '#a89a70', 1); S.add(W.hemi);
@@ -314,7 +358,7 @@ export async function buildIsland(S) {
 
   // 碰撞：小屋（含前廊）、碼頭兩側是海（walkable 會擋）
   BOXES.push([-4.1, -12.2, 4.1, -4.1]);
-  const r = seeded(42), near = (x, z, d) => Object.values(SPOTS).some(s => Math.hypot(s.x - x, s.z - z) < d) || (Math.abs(x) < 6 && z > -13 && z < 2) || (x > 24 && Math.abs(z) < 4) || Math.hypot(x - YOGA.x, z - YOGA.z) < 5.5; /* 瑜伽木棧旁不長樹，鏡頭不被擋 */
+  const r = seeded(42), near = (x, z, d) => Object.values(SPOTS).some(s => Math.hypot(s.x - x, s.z - z) < d) || (Math.abs(x) < 9 && z > -13 && z < 9.5) || (x > 24 && Math.abs(z) < 4) || Math.hypot(x - YOGA.x, z - YOGA.z) < 5.5; /* 瑜伽木棧旁不長樹，鏡頭不被擋 */
   const ring = (n, rmin, rmax, avoid, f) => { const out = []; let k = 0; while (out.length < n && k++ < n * 40) { const a = r() * Math.PI * 2, R = shoreR(Math.cos(a), Math.sin(a)), d = R - rmin - r() * (rmax - rmin), x = Math.cos(a) * d, z = Math.sin(a) * d; if (!near(x, z, avoid) && walkable(x, z) && groundH(x, z) > 0.05) out.push(f(x, z, r())); } return out; };
   const inland = (n, avoid, f) => { const out = []; let k = 0; while (out.length < n && k++ < n * 50) { const x = (r() - 0.5) * 44, z = (r() - 0.5) * 44, R = shoreR(x, z); if (Math.hypot(x, z) < R - 12 && !near(x, z, avoid)) out.push(f(x, z, r())); } return out; };
 
@@ -345,7 +389,6 @@ export async function buildIsland(S) {
     one(S, 'dockLamp', DOCK.x1 - 0.4, DOCK.z1 + 1.1, Math.PI, 1, { y: DOCK.y }),
     one(S, 'rod', SPOTS.fishing.x + 0.2, -1.4, Math.PI / 2, 0.8, { y: DOCK.y }),
     one(S, 'flowerBed', -3.2, -3.4, 0, 1, { col: 0.5 }), one(S, 'flowerBed', 2.0, -3.6, 0, 0.8, { col: 0.4 }),
-    one(S, 'sapling', -2.6, 1.8, 0.3, 1, { col: 0.3 }),
     // 海裡的小石頭、燈塔下的岩石
     scatter(S, 'rock', [[HILL.x + 4, HILL.z - 3, 0.3, 1.6], [HILL.x - 3, HILL.z + 4.6, 1.1, 1.3], [HILL.x - 5.5, HILL.z - 1, 2, 2], [-28, 14, 0.4, 1.8], [24, -22, 1, 1.6], [30, 12, 2, 1.3]], { col: 0.5 }),
     scatter(S, 'palm', ring(16, 6.5, 8.5, 3.5, (x, z, v) => [x, z, v * 6.28, 0.8 + v * 0.4]), { col: 0.35 }),
@@ -366,7 +409,7 @@ export async function buildIsland(S) {
     ...[[DOCK.x1 - 0.6, 1.0], [30, -0.8], [-14, 24]].map(([x, z]) => animal(S, 'gull', x, z, { s: 1.2, roam: 1.5, speed: 0.3 })),
     ...[[40, 4], [38, -4], [44, 2], [42, -6]].map(([x, z]) => animal(S, 'fish', x, z, { s: 0.7, roam: 4, speed: 0.8, swim: true, y: -0.5 })),
   ];
-  await Promise.all([...jobs, ...zoo]);
+  await Promise.all([...jobs, ...zoo, baliJob]);
   // 狗一開始待在家附近，main.js 會設定 follow
   return W;
 }
