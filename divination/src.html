@@ -949,35 +949,90 @@ function toneInfo(full){
   if(last===1||last===2){sc+=2;notes.push('收尾是平聲，響亮好叫')}else if(last===3){sc-=3;notes.push('收尾三聲，叫起來較低沉')}
   return {t,pz,sc,notes};
 }
+/* 改名推薦：依個人生辰計分（八字喜忌＋五行缺補＋調候、出生年天運、生肖字根），同一個人每次結果一致 */
+const POOLA=new Set(GC.POOLA||''),POOLC=new Set(GC.POOLC||'');
+const ZOFC={};Object.entries(GC.POOLZ||{}).forEach(([z,chs])=>{const i=ZHI.indexOf(z);for(const c of chs)(ZOFC[c]=ZOFC[c]||[]).push(i)});
+// 每個五行對這個人取名的需要度：喜用最優先，八字缺的補上，冬生喜火、夏生喜水（《窮通寶鑑》調候），忌神扣分
+function nameNeed(){
+  const n=[0,0,0,0,0],why=[[],[],[],[],[]];
+  D.xi.forEach((e,i)=>{n[e]+=i?3:4;why[e].push('補喜用')});
+  D.ji.forEach(e=>{n[e]-=3});
+  D.cnt.forEach((c,e)=>{if(c===0&&!D.ji.includes(e)){n[e]+=2;why[e].push(`補八字所缺的${WX[e]}`)}else if(c>=4)n[e]-=1});
+  const mz=ZHI.indexOf(D.pillars[1][1]);
+  if([11,0,1].includes(mz)){n[1]+=2;why[1].push('冬天出生，取火調候')}
+  if([5,6,7].includes(mz)){n[4]+=2;why[4].push('夏天出生，取水調候')}
+  return {n,why};
+}
+// 生肖喜忌（依地支關係）：三合、六合為喜；六沖、六害、相刑為忌
+function zodiacRel(z){
+  const like=new Set([(z+4)%12,(z+8)%12,(13-z)%12]),dis=new Set([(z+6)%12,(19-z)%12]);
+  if(z===0)dis.add(3);if(z===3)dis.add(0);
+  [[2,5,8],[1,10,7]].forEach(g=>{if(g.includes(z))g.forEach(x=>{if(x!==z)dis.add(x)})});
+  return {like,dis};
+}
+const TIANYUN={生:[4,'生扶人格'],比和:[2,'與人格比和'],被生:[0,''],剋:[-5,'剋人格'],被剋:[-2,'被人格所剋']};
 function genNames(sur){
-  const g=nmOpt.g||P.gender, pref=nmOpt.prefer||D.xi, gk=g==='男'?'m':g==='女'?'f':null;
-  const pool=POOL.filter(x=>(!gk||x.g==='u'||x.g===gk)&&!sur.includes(x.c));
+  const g=nmOpt.g||P.gender, gk=g==='男'?'m':g==='女'?'f':null, pref=nmOpt.prefer;
+  const need=nameNeed(), bz=ZHI.indexOf(D.birthZ), ZR=zodiacRel(bz), te=gWx(D.pillars[0][0]);
+  const zsc=c=>(ZOFC[c]||[]).reduce((a,z)=>a+(ZR.like.has(z)?2:ZR.dis.has(z)?-3:0),0);
+  const cs=x=>need.n[x.e]+zsc(x.c)+(pref?(pref.includes(x.e)?4:0):0)+(POOLA.has(x.c)?5:POOLC.has(x.c)?-3:0); // 常見好字加分、冷僻器物字減分
+  const pool=POOL.filter(x=>(!gk||x.g==='u'||x.g===gk)&&!sur.includes(x.c)).map(x=>({...x,s:cs(x)}));
   const fix=[...(nmOpt.fix||'').trim()][0];
-  const fixObj=fix?(POOLMAP[fix]||{c:fix,e:-1,g:'u',m:'指定用字'}):null;
-  const combos=[];
-  if(nmOpt.len===1){pool.forEach(a=>combos.push([a]))}
-  else if(fixObj){pool.forEach(a=>{if(a.c!==fix)combos.push(nmOpt.pos===0?[fixObj,a]:[a,fixObj])})}
-  else pool.forEach(a=>pool.forEach(b=>{if(a.c!==b.c)combos.push([a,b])}));
-  const out=[];let seed=nmOpt.seed||1;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
-  for(const cs of combos){
-    const given=cs.map(x=>x.c).join('');const N=nameAnalysis(sur,given);if(!N.ok)continue;
+  const fixObj=fix?(POOLMAP[fix]?{...POOLMAP[fix],s:cs(POOLMAP[fix])}:{c:fix,e:-1,g:'u',m:'指定用字',s:0}):null;
+  const tie=s=>hash(`${P.date}|${P.hour}|${P.gender}|${sur}|${s}`)/4294967296; // 同分時依生辰排序，不用隨機
+  const out=[], seen=new Set();
+  const evalName=cs_=>{
+    const given=cs_.map(x=>x.c).join('');if(seen.has(given))return;seen.add(given);
+    const N=nameAnalysis(sur,given);if(!N.ok)return;
     // 單名的外格依五格公式固定為 2（凶數），論命慣例不以單名外格論吉凶，只看人格、地格、總格
     const ks=(N.fixWai?['ren','di','zong']:['ren','di','wai','zong']).map(k=>n81(N.g[k])[0]);
-    if(ks.includes('凶'))continue;
-    let sc=N.score+(D.xi.includes(N.e[1])?6:D.ji.includes(N.e[1])?-6:0);
-    cs.forEach(x=>{if(pref.includes(x.e))sc+=4;if(D.ji.includes(x.e))sc-=4});
+    if(ks.includes('凶'))return;
+    const ty=TIANYUN[rel(te,N.e[1])];
+    let sc=N.score+need.n[N.e[1]]*2+ty[0]+cs_.reduce((a,x)=>a+x.s*1.5,0);
+    // 名字兩字的字義五行：前字生後字最佳，比和次之，相剋扣分
+    if(cs_.length===2&&cs_[0].e>=0&&cs_[1].e>=0)sc+={生:3,比和:1,被生:1,剋:-3,被剋:-2}[rel(cs_[0].e,cs_[1].e)];
     if(ks.every(k=>k==='吉'))sc+=4;
     const T=toneInfo(sur+given);if(T)sc+=T.sc;
-    out.push({given,cs,N,T,sc,j:sc+rnd()*6});
+    out.push({given,cs:cs_,N,T,sc,j:sc+tie(given),ty});
+  };
+  if(nmOpt.len===1)pool.forEach(a=>evalName([a]));
+  else if(fixObj)pool.forEach(a=>{if(a.c!==fix)evalName(nmOpt.pos===0?[fixObj,a]:[a,fixObj])});
+  else{
+    // 雙名：先依筆畫組合篩掉五格落凶的，再從每組筆畫裡挑分數最高的字配對，避免上百萬種組合
+    const byS={};pool.forEach(x=>{const k=strokesOf(x.c);(byS[k]=byS[k]||[]).push(x)});
+    Object.values(byS).forEach(a=>a.sort((x,y)=>y.s-x.s||x.c.localeCompare(y.c)));
+    const ks=Object.keys(byS).map(Number);
+    for(const s1 of ks)for(const s2 of ks){
+      const A=byS[s1],B=byS[s2],t=nameAnalysis(sur,A[0].c+(B[0].c===A[0].c&&B[1]?B[1].c:B[0].c));
+      if(!t.ok)continue;const kk=(t.fixWai?['ren','di','zong']:['ren','di','wai','zong']).map(k=>n81(t.g[k])[0]);if(kk.includes('凶'))continue;
+      A.slice(0,6).forEach(a=>B.slice(0,6).forEach(b=>{if(a.c!==b.c)evalName([a,b])}));
+    }
   }
   out.sort((a,b)=>b.j-a.j);
-  const used={},pick=[];
-  for(const o of out){if(o.cs.some(x=>used[x.c]&&x.c!==fix))continue;o.cs.forEach(x=>used[x.c]=1);pick.push(o);if(pick.length>=30)break}
-  return pick;
+  const used={},pick=[],want=30*((nmOpt.batch||0)+1);
+  for(const o of out){if(o.cs.some(x=>used[x.c]&&x.c!==fix))continue;o.cs.forEach(x=>used[x.c]=1);pick.push(o);if(pick.length>=want)break}
+  const res=pick.slice(30*(nmOpt.batch||0));
+  if(!res.length&&pick.length){nmOpt.batch=0;return pick.slice(0,30)}
+  res.forEach(o=>o.why=nameWhy(o,need,ZR,te));
+  return res;
+}
+// 一句話說明為什麼推薦這個名字給你
+function nameWhy(o,need,ZR,te){
+  const w=[],re_=o.N.e[1];
+  if(need.why[re_].length)w.push(`人格屬${WX[re_]}，${need.why[re_].join('、')}`);
+  const good=o.cs.filter(x=>x.e>=0&&need.n[x.e]>0&&need.why[x.e].length).map(x=>`「${x.c}」屬${WX[x.e]}`);
+  if(good.length)w.push(`${good.join('、')}，${[...new Set(o.cs.filter(x=>x.e>=0&&need.n[x.e]>0).flatMap(x=>need.why[x.e]))].slice(0,2).join('、')}`);
+  if(o.ty[1])w.push(`出生年干屬${WX[te]}，${o.ty[1]}`);
+  const zl=o.cs.filter(x=>(ZOFC[x.c]||[]).some(z=>ZR.like.has(z))).map(x=>x.c);
+  if(zl.length)w.push(`屬${SX[ZHI.indexOf(D.birthZ)]}，「${zl.join('、')}」字形帶三合或六合的生肖`);
+  const zd=o.cs.filter(x=>(ZOFC[x.c]||[]).some(z=>ZR.dis.has(z))).map(x=>x.c);
+  if(zd.length)w.push(`「${zd.join('、')}」帶沖害的生肖字根，生肖派不建議`);
+  return w.join('；')||'五格數理皆不落凶，音律順口';
 }
 function candHtml(o,sur,fav){
   return `<div class="cand"><div class="nm">${esc(sur)}${o.given}</div><div class="sc">${Math.min(100,o.N.score)}<span class="small muted"> 分</span></div>
     <div class="meta">${o.cs.map(x=>`<span>${x.c}${x.e>=0?elTag(x.e):''} ${strokesOf(x.c)}畫・${esc(x.m)}</span>`).join('')}</div>
+    ${o.why?`<div class="meta"><span>推薦理由：${o.why}</span></div>`:''}
     <div class="meta"><span>人格${o.N.g.ren}</span><span>地格${o.N.g.di}</span><span>外格${o.N.g.wai}${o.N.fixWai?'（單名固定）':''}</span><span>總格${o.N.g.zong}</span><span>三才 ${o.N.e.map(e=>WX[e]).join('')}</span>${o.T?`<span>音律 ${o.T.pz}</span>`:''}${D.xi.includes(o.N.e[1])?'<span class="good-t">人格補喜用</span>':''}</div>
     <div class="acts"><button type="button" class="btn sm" data-try="${o.given}">帶入詳細分析</button><button type="button" class="btn sm ghost" data-fav="${o.given}">${fav.includes(sur+o.given)?'已收藏 ✓':'收藏'}</button></div></div>`;
 }
@@ -1029,6 +1084,8 @@ function renderName(){
     <div class="card stack">
       <h3 class="h3">姓名 × 八字</h3>
       <p>你的八字喜用 ${D.xi.map(elTag).join(' ')}，忌 ${D.ji.map(elTag).join(' ')}。人格屬${elTag(renE)}，<span class="${match}-t">${match==='good'?'正好補到命局需要的五行，名字與命盤相輔相成。':match==='bad'?'屬於命局的忌神，名字對運勢的助力有限。':'不衝突也不特別補益。'}</span></p>
+      ${(()=>{const te=gWx(D.pillars[0][0]),r=rel(te,renE),ZR=zodiacRel(ZHI.indexOf(D.birthZ)),zl=[...given].filter(c=>(ZOFC[c]||[]).some(z=>ZR.like.has(z))),zd=[...given].filter(c=>(ZOFC[c]||[]).some(z=>ZR.dis.has(z)));
+        return `<p class="small">天運：出生年干${D.pillars[0][0]}屬${WX[te]}，${{生:'生扶人格，較有助力',比和:'與人格比和，平穩',被生:'人格去生天運，稍耗力',剋:'剋人格，五格派視為較不利',被剋:'被人格所剋，影響較小'}[r]}。生肖：屬${SX[ZHI.indexOf(D.birthZ)]}，${zl.length?`「${zl.join('、')}」字形帶三合或六合的生肖，生肖派視為加分`:''}${zl.length&&zd.length?'；':''}${zd.length?`「${zd.join('、')}」帶沖、害或刑的生肖字根，生肖派建議避開`:''}${!zl.length&&!zd.length?'名字沒有明顯的生肖字根':''}（生肖姓名學爭議較大，僅供參考）。</p>`})()}
       <p class="small">${[...given].map(c=>POOLMAP[c]?`${c}：字義五行屬${WX[POOLMAP[c].e]}${D.xi.includes(POOLMAP[c].e)?'（喜用）':D.ji.includes(POOLMAP[c].e)?'（忌）':''}，${POOLMAP[c].m}`:'').filter(Boolean).join('；')||'名字用字不在本字庫中，字義五行請參考專業字典。'}</p>
     </div>`;
   }else body=`<div class="card"><p>有字查不到康熙筆畫，請在字下方手動填入筆畫數。</p></div>`;
@@ -1037,7 +1094,7 @@ function renderName(){
   const gen=`
   <div class="card stack" id="genCard">
     <div><div class="eyebrow">改名建議</div><h3 class="h3">依「${esc(sur)}」姓與你的八字推薦好名</h3></div>
-    <p class="small muted">條件：人格、地格、外格、總格都不落凶數（單名的外格恆為 2，不論吉凶），再依三才相生、人格五行是否補喜用、用字五行排序。字庫共 ${POOL.length} 個常用好字。</p>
+    <p class="small muted">條件：人格、地格、外格、總格都不落凶數（單名的外格恆為 2，不論吉凶）。再依你的八字喜忌、五行缺補與季節調候、出生年干的天運五行、生肖字根，以及三才、兩字五行與音律計分，所以同姓的人也會依生辰得到不同的名字。字庫共 ${POOL.length} 字。</p>
     <div class="grid2">
       <div class="f"><span>性別</span><div class="seg" role="group" aria-label="名字性別">${['男','女','不限'].map(x=>`<button type="button" data-ng="${x}" aria-pressed="${g===x}">${x}</button>`).join('')}</div></div>
       <div class="f"><span>字數</span><div class="seg" role="group" aria-label="名字字數"><button type="button" data-nl="1" aria-pressed="${nmOpt.len===1}">單名</button><button type="button" data-nl="2" aria-pressed="${nmOpt.len===2}">雙名</button></div></div>
@@ -3670,11 +3727,11 @@ document.addEventListener('click',async e=>{
   if(t.dataset.nl){nmOpt.len=+t.dataset.nl;nmOpt.res=null;renderName();return}
   if(t.dataset.np){nmOpt.fix=$('#nmFix')?.value||'';nmOpt.pos=+t.dataset.np;nmOpt.res=null;renderName();return}
   if(t.dataset.ne){const e=+t.dataset.ne;const pr=[...(nmOpt.prefer||D.xi)];const k=pr.indexOf(e);if(k>=0)pr.splice(k,1);else pr.push(e);nmOpt.prefer=pr;renderName();return}
-  if(t.id==='genBtn'){nmOpt.fix=$('#nmFix')?.value||'';const sur=$('#nmSur').value.trim()||P.sur;t.textContent='推算中…';setTimeout(()=>{nmOpt.res=genNames(sur);nmOpt.show=10;renderName();const c=$('#genCard');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});toast(nmOpt.res.length?`找到 ${nmOpt.res.length} 個好名字`:'找不到符合的名字')},30);return}
+  if(t.id==='genBtn'){nmOpt.fix=$('#nmFix')?.value||'';nmOpt.batch=0;const sur=$('#nmSur').value.trim()||P.sur;t.textContent='推算中…';setTimeout(()=>{nmOpt.res=genNames(sur);nmOpt.show=10;renderName();const c=$('#genCard');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});toast(nmOpt.res.length?`找到 ${nmOpt.res.length} 個好名字`:'找不到符合的名字')},30);return}
   if(t.dataset.try){$('#nmGiven').value=t.dataset.try;renderName();window.scrollTo({top:0,behavior:'smooth'});return}
   if(t.dataset.tryfull){const f=t.dataset.tryfull,sl=[...($('#nmSur').value.trim()||P.sur)].length;$('#nmSur').value=[...f].slice(0,sl).join('');$('#nmGiven').value=[...f].slice(sl).join('');renderName();window.scrollTo({top:0,behavior:'smooth'});return}
   if(t.dataset.fav){const sur=$('#nmSur').value.trim(),n=sur+t.dataset.fav;let f=store.get('gx_fav',[]);f=f.includes(n)?f.filter(x=>x!==n):[n,...f].slice(0,30);store.set('gx_fav',f);t.textContent=f.includes(n)?'已收藏 ✓':'收藏';f.includes(n)?hud('已加入收藏','heart'):toast('已取消收藏');return}
-  if(t.id==='genAgain'){nmOpt.seed=(nmOpt.seed||1)+7919;const sur=$('#nmSur').value.trim()||P.sur;nmOpt.res=genNames(sur);nmOpt.show=10;renderName();$('#genCard')?.scrollIntoView({behavior:'smooth',block:'start'});buzz();return}
+  if(t.id==='genAgain'){nmOpt.batch=(nmOpt.batch||0)+1;const sur=$('#nmSur').value.trim()||P.sur;nmOpt.res=genNames(sur);nmOpt.show=10;renderName();$('#genCard')?.scrollIntoView({behavior:'smooth',block:'start'});buzz();return}
   if(t.id==='genMore'){nmOpt.show+=10;renderName();return}
   if(t.id==='favClear'){if(await alertBox({title:'清除所有收藏？',buttons:[{text:'取消',style:'cancel',value:false},{text:'清除',style:'destructive',value:true}]})){store.set('gx_fav',[]);renderName();hud('已清除')}return}
 });
