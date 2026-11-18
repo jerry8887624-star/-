@@ -3,7 +3,7 @@
 更新：2026-10-29。新對話接手時先讀這份，再照 SKILL.md 的流程做。
 
 ## 版本與網址
-- 目前版本：1.26（`data/changes.json` 最上面那筆，v = `2026.11.12`）。下次發布版號接著遞增。
+- 目前版本：1.28（`data/changes.json` 最上面那筆，v = `2026.11.19`）。
 - 正式網址：**https://lingxi-397.pages.dev/**（Cloudflare Pages，從 GitHub `main` 自動部署，建置輸出目錄 `divination`，沒有建置命令）。
 - 新網址寫在 `divination/data/site.json`，build.py 會帶入 `SITE_URL`、og 標籤，並產生 `old-site.html`。
 - 舊網址 `…github.io/-/divination/` 現在只放輕量搬家頁：`deploy.yml` 把 `divination/old-site.html` 複製成舊網址的 index.html。來源是 `divination/move.html`，裡面的 `/*SITE_URL*/` 會被替換掉。
@@ -43,6 +43,14 @@
 - App：`visitPing()` 在 boot 呼叫，`gx_vday` 記錄今天是否已計；結果存 `gx_visits`；顯示在頁首 `#navVisits`（1.26 起；空間不夠時 `visitFit()` 依序省略「累計」「今日」，再不夠改用標題上方的 `#ltVisits`）。API 不通時隱藏。SW 不快取 `/api/`。
 - 本機測試：scratchpad 安裝 wrangler，在含 functions/ 的暫存資料夾執行 `wrangler pages dev divination --d1 DB=xxx --persist-to <scratch>`，避免 .wrangler 寫進 repo。不要用 pkill -f 比對含相同字串的指令（會把自己的 shell 一起砍掉）。
 - 使用者需在 Cloudflare 後台建立 D1 並綁定到 Pages 專案（變數名 DB），之後重新部署一次才生效。
+
+## 改名系統（1.27）
+- 字庫 `GC.POOL` 約 1,310 字（字、字義五行、性別、字義）；`POOLA` 常見好字（+5）、`POOLC` 冷僻器物字（−3）；`POOLZ` 各地支／生肖字根（chaizi 拆字＋人工排除）。
+- `genNames()`：`nameNeed()`（喜用、忌、缺五行、冬火夏水調候）＋`zodiacRel()`（三合六合喜，沖害刑忌）＋天運（年柱天干五行對人格）＋兩字五行生剋＋音律；雙名先依筆畫組篩五格再取每組前 6 字配對（約 0.1 秒）。同分以生辰雜湊排序，不用隨機；「換一批」＝ `nmOpt.batch` 下一頁。每名 `nameWhy()` 一句理由。
+- 使用者要求：此類內部優化的更新紀錄只寫「優化改名系統」，不寫細節。
+- 1.28：生肖喜忌改用林予凡 2026 輔大中文碩論頁104–106 的十二生肖表（`ZRULE`＋`POOLK` 部件鍵）；天運加看總格；依該論文字庫與康熙推算修正 11 字筆畫（政紫淵鼎節緒繡郎導即者）。使用者提供的 PDF 不存進 repo。
+- 劉采蓴 2025 台科大 EMBA 碩論（姓名靈動→MBTI，LLM）：只放進說明文獻；其部件靈動表論文註明不公開，無資料可用，不納入計分。
+- 文獻：ndltd.ncl.edu.tw 有圖形驗證碼、清大 ETD 有機器人檢查，不要嘗試繞過，請使用者下載 PDF 給你；已加進環境的允許網站：ndltd.ncl.edu.tw、etd.lib.nthu.edu.tw、openaccess.library.uitm.edu.my。以前，只能從搜尋摘要引用（張瀚 2015、張子亮、雲科大〈以姓名筆劃論吉凶為例〉、清大〈依字義推估年齡〉、鄭宇寰《甲子生肖體用姓名學》）。
 
 ## 音訊（目前做法）
 - 背景音樂 5 首，放在 `audio/*.mp3`（響度 -20 LUFS、112 kbps）：寺院系〈儀式靜心〉〈缽音入定〉〈晨鐘回響〉、星空系〈琉璃雨〉〈靜夜安神〉。用**原生 `<audio>`** 播放、不經 Web Audio，因為接 Web Audio 時捲動會變調、爆音。iOS 不能調網頁音量。
