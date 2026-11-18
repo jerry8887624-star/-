@@ -1759,6 +1759,26 @@ function updateCam(dt, snap) {
   }
   const k = snap ? 1 : 1 - Math.exp(-dt * (act?.camSpeed?.() || (RAREFX.o && RAREFX.t < RAREFX.camDur ? 1.6 : 6)));
   camT.lerp(tmpT, k); cam.position.lerp(camP, k); cam.lookAt(camT);
+  fadeBlockers(dt);
+}
+/* 擋住鏡頭的東西（陽傘、樹、涼亭、燈塔…）自動變半透明，角色永遠看得到 */
+const fadeRay = new THREE.Raycaster(), fading = new Set(); let fadeT = 0;
+function outProps() { return props.filter(o => { if (o.userData.inOut == null) { let q = o; while (q.parent) q = q.parent; o.userData.inOut = q === OUT; } return o.userData.inOut; }); }
+function propOf(o) { while (o && !o.userData.isProp) o = o.parent; return o; }
+function fadeBlockers(dt) {
+  if (scene !== 'out' || !W) { fading.forEach(o => setFade(o, 1, 1)); fading.clear(); return; }
+  fadeT -= dt;
+  if (fadeT <= 0) { fadeT = 0.15; const hit = new Set(), heads = [me()]; if (act && duo()) heads.push(you());
+    for (const c of heads) { if (!c?.av?.head || !c.av.root.visible) continue; const h = c.av.head.getWorldPosition(new THREE.Vector3()), dir = h.clone().sub(cam.position), L = dir.length(); if (L < 0.5) continue;
+      fadeRay.set(cam.position, dir.normalize()); fadeRay.far = L - 0.35;
+      for (const x of fadeRay.intersectObjects(outProps(), true)) { const o = propOf(x.object); if (o) hit.add(o); } }
+    hit.forEach(o => { o.userData.fadeTo = 0.28; fading.add(o); }); fading.forEach(o => { if (!hit.has(o)) o.userData.fadeTo = 1; }); }
+  fading.forEach(o => { const cur = o.userData.fadeNow ?? 1, to = o.userData.fadeTo ?? 1, n = cur + (to - cur) * Math.min(1, dt * 8); setFade(o, n, to); if (to === 1 && n > 0.98) { setFade(o, 1, 1); fading.delete(o); } });
+}
+function setFade(o, v, to) {
+  if (!o.userData.fadeMats) { o.userData.fadeMats = []; o.traverse(m => { if (!m.isMesh) return; m.material = Array.isArray(m.material) ? m.material.map(t => t.clone()) : m.material.clone(); (Array.isArray(m.material) ? m.material : [m.material]).forEach(t => o.userData.fadeMats.push([t, t.transparent, t.depthWrite])); }); } /* 先複製材質：只有擋住的那一個變透明 */
+  o.userData.fadeNow = v; const solid = v > 0.99 && to === 1;
+  o.userData.fadeMats.forEach(([t, tr, dw]) => { const nt = solid ? tr : true; if (t.transparent !== nt) { t.transparent = nt; t.needsUpdate = true; } t.opacity = solid ? 1 : v; t.depthWrite = solid ? dw : false; }); /* 只有透明開關改變時才重新編譯材質 */
 }
 
 // ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
@@ -3099,7 +3119,7 @@ const USE = {
   'basil-pot-125949': { t: 'plant' }, 'fern-plant-1559b8': { t: 'plant' }, 'ti-plant-a7ad06': { t: 'plant' }, 'taro-plant-8c0493': { t: 'plant' },
   guitar: { t: 'guitar' }, 'classroom-globe-16a96e': { t: 'globe' }, 'coffee-cup-90be67': { t: 'cup' }, 'birdhouse-post-66d6c1': { t: 'bird' }, 'garden-birdbath-9671de': { t: 'bird' },
   'xmas-fir-tree': { t: 'xtree' }, 'garland-lamp-post-af02f0': { t: 'lamp' }, 'wooden-toboggan-940bbc': { t: 'seat', y: 0.24, name: '木雪橇' }, 'gingerbread-house-8b9049': { t: 'treat' }, 'gingerbread-man-4766ed': { t: 'treat' }, 'candy-cane-eb113b': { t: 'treat' }, 'snow-laden-spruce-36716e': { t: 'plant', shake: 1 }, 'candy-cane-path-markers-2310e4': { t: 'treat' },
-  'hotel-king-bed-c15761': { t: 'seat', y: 0.55, pose: 'lie', name: '特大雙人床' },
+  'hotel-king-bed-c15761': { t: 'seat', y: 0.68, pose: 'lie', fwd: 0.8, pair: 0.42, name: '特大雙人床' }, /* 腳在床尾、頭在枕頭上；兩個人並排 */
   'dorm-loft-bed-with-a094e7': { t: 'look', say: ['爬上去看了一下，上面好像秘密基地', '高架床下面可以放書桌'] },
   'bath-fad968': { t: 'soak', y: 0.2 },
   'round-jetted-suite-tub-2bd9bb': { t: 'soak', y: 0.25 },
@@ -3200,7 +3220,8 @@ function useThing(u, o) {
 function useSeat(u, o, gy) {
   const ry = o.ry || 0, fx = Math.sin(ry), fz = Math.cos(ry), side = u.side || 0, f = u.fwd || 0;
   const x = o.x + fx * (f - side), z = o.z + fz * (f - side), y = gy + (u.y ?? 0.45) - (u.pose === 'lie' ? 0 : HIP), pose = u.pose || 'sit', fry = side ? ry : ry;
-  actGo(() => { seat(me(), x, y, z, fry, pose); if (side && duo()) seat(you(), o.x - fx * (f - side), y, o.z - fz * (f - side), ry + Math.PI, pose); }, 220);
+  const lx = Math.cos(ry), lz = -Math.sin(ry), pr = u.pair && duo() ? u.pair : 0; /* 並排躺：左右各一個 */
+  actGo(() => { seat(me(), x - lx * pr, y, z - lz * pr, fry, pose); if (pr) seat(you(), x + lx * pr, y, z + lz * pr, fry, pose); else if (side && duo()) seat(you(), o.x - fx * (f - side), y, o.z - fz * (f - side), ry + Math.PI, pose); }, 220);
   let t = 0; sfx('wood');
   beginAct('seat', `${u.pose === 'lie' ? '🛋️' : '🪑'} ${o.name || u.name || '坐一下'}`, pick(SEAT_LINES), {
     focus: () => new THREE.Vector3(x, gy + 0.9, z), back: [o.x + fx * 1.2, o.z + fz * 1.2],
