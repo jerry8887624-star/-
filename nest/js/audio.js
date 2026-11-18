@@ -26,7 +26,7 @@ const SAMPLES = {
   wood: [['wood-0', 'wood-1', 'wood-2', 'wood-3'], 0.16], whoosh: [['whoosh'], 0.5], plop: [['plop'], 0.55], splash: [['splash'], 0.6],
   water: [['water'], 0.4], sand: [['sand-0', 'sand-1'], 0.45], sizzle: [['sizzle'], 0.45], boom: [['boom'], 0.55], book: [['book'], 0.55],
   bite: [['bite-0'], 0.6], bite2: [['bite-1'], 0.6],
-  bell: [['bell'], 0.7], /* 腳踏車鈴（錄音；沒有就用下面合成的） */
+  /* 腳踏車鈴用下面合成的叮叮聲（沒有錄音檔，不要列在這裡，免得每次開遊戲都載入失敗） */
 };
 const bufs = {}; let loading = false;
 function loadSamples() {

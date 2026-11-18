@@ -49,7 +49,7 @@ export const props = [];
 // 單一個模型；y 不給就站在地面上
 export async function one(parent, key, x, z, ry = 0, s = 1, { col = 0, y = null, box = null } = {}) {
   const g = await load(key); if (!g) return null;
-  const o = cloneModel(g); o.position.set(x, y ?? standH(x, z), z); o.rotation.y = ry; o.scale.setScalar(s); parent.add(o); props.push(o);
+  const o = cloneModel(g); o.position.set(x, y ?? standH(x, z), z); o.rotation.y = ry; o.scale.setScalar(s); parent.add(o); props.push(o); o.userData.isProp = true;
   if (g.animations?.length) { const mixer = new THREE.AnimationMixer(o); g.animations.forEach(c => mixer.clipAction(c).play()); mixers.push(mixer); }
   if (col) CIRCLES.push([x, z, col * s]);
   if (box) BOXES.push(box);
