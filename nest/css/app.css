@@ -580,3 +580,19 @@ dialog.closing::backdrop { opacity: 0; transition: opacity .14s; }
 /* 角色還在走過去：按鈕先淡掉、不能按 */
 #act-panel.walking #ap-btns { opacity: .45; pointer-events: none; transition: opacity .3s; }
 #act-panel.free.walking { opacity: 0; }
+
+/* 衣櫃 */
+.lk-tabs { margin: 2px 0 2px; }
+.lk-cats { gap: 6px; padding-bottom: 2px; }
+.lk-cats button { flex: 0 0 auto; padding: 6px 12px; font-size: var(--fs-xs); }
+.lk-sec { display: block; margin: 10px 2px 2px; font-size: var(--fs-s); }
+.lk-grid { margin-top: 6px; }
+.shop button.lk-item { min-height: 62px; align-content: center; transition: transform .15s ease, box-shadow .2s ease; }
+.shop button.lk-item b { font-size: var(--fs-s); line-height: 1.3; text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; } /* 長名字平均斷成兩行，不會剩一個字 */
+.shop button.lk-item small { font-size: var(--fs-xs); }
+.shop button.lk-item.paid small { color: #c08a2a; font-weight: 700; }
+.shop button.lk-item.on { outline: 2px solid var(--rose); background: linear-gradient(160deg, #fff, rgba(255, 214, 226, .7)); }
+.shop button.lk-item.on.paid small u { text-decoration: none; padding: 2px 8px; border-radius: 999px; background: linear-gradient(135deg, #ff7a9c, #ff9a6a); color: #fff; }
+.shop button.lk-item:active { transform: scale(.96); }
+#lk-count { margin: 0; font-size: var(--fs-xs); }
+body.dressing #hud, body.dressing #labels { opacity: 0; pointer-events: none; transition: opacity .25s; }

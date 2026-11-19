@@ -28,7 +28,13 @@ export const OUTFITS = [
 // 不用解鎖、可以隨機抽到的服裝編號
 export const FREE_OUTFIT_IDS = OUTFITS.map((o, i) => o.locked ? -1 : i).filter(i => i >= 0);
 export const FREE_OUTFITS = FREE_OUTFIT_IDS.length;
-export const GLASSES = ['無', '圓框', '方框'];
+export const GLASSES = ['無', '圓框', '方框', '圓墨鏡', '心形墨鏡', '貓眼框'];
+/* 配件（衣櫃）：n 名字、p 島幣（0 免費）、c 帽子蓋住頭頂（頭頂翹起來的頭髮收進去） */
+export const HATS = [{ n: '不戴', p: 0 }, { n: '毛線帽', p: 0, c: 1 }, { n: '漁夫帽', p: 0, c: 1 }, { n: '草帽', p: 0, c: 1 }, { n: '棒球帽', p: 0, c: 1 }, { n: '貝雷帽', p: 120, c: 1 },
+  { n: '花冠', p: 150 }, { n: '雞蛋花髮夾', p: 0 }, { n: '大蝴蝶結', p: 0 }, { n: '兔耳髮箍', p: 120 }, { n: '貓耳髮箍', p: 120 }, { n: '耳罩耳機', p: 150 }, { n: '小皇冠', p: 300 }, { n: '聖誕帽', p: 150, c: 1 }, { n: '頭巾', p: 0 }];
+export const GLASSES_P = [0, 0, 0, 0, 120, 120];
+export const NECKS = [{ n: '不戴', p: 0 }, { n: '針織圍巾', p: 0 }, { n: '花環', p: 0 }, { n: '珍珠項鍊', p: 120 }, { n: '愛心金項鍊', p: 150 }, { n: '領結', p: 0 }, { n: '小領巾', p: 0 }];
+export const EARS = [{ n: '不戴', p: 0 }, { n: '珍珠耳環', p: 0 }, { n: '金色圈圈', p: 120 }, { n: '星星耳環', p: 120 }, { n: '櫻桃耳環', p: 150 }];
 // 配件：完成每日小任務解鎖（0 = 不戴）；3 是文昌帝君聖誕限定
 export const ACCS = ['不戴', '愛心光環', '小花'];
 
@@ -166,14 +172,14 @@ export class Avatar {
     else { const m = part(new THREE.TorusGeometry(0.035, 0.012, 4, 10, Math.PI), mouthM, 0, mouthY, mouthZ); m.rotation.z = Math.PI; }
 
     // 髮型（動物頭、外星人、光頭沒有頭髮）
-    const h = L.hair % HAIRS.length;
+    const h = L.hair % HAIRS.length, cover = !!HATS[(L.hat | 0) % HATS.length]?.c;
     if (!headType && h !== 11) {
       const cap = new THREE.Mesh(new THREE.SphereGeometry(0.445, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.5), hair);
       cap.rotation.x = -0.32; cap.position.set(0, 0.02, -0.02); head.add(cap);
       const back = new THREE.Mesh(new THREE.SphereGeometry(0.45, 20, 14, Math.PI * 1.08, Math.PI * 0.84, Math.PI * 0.2, Math.PI * 0.5), hair);
       back.position.z = -0.03; head.add(back);
     }
-    const add = (geo, x, y, z, sx = 1, sy = 1, sz = 1) => part(geo, hair, x, y, z, sx, sy, sz);
+    const add = (geo, x, y, z, sx = 1, sy = 1, sz = 1) => (cover && y > 0.2 ? { rotation: {}, position: {} } : part(geo, hair, x, y, z, sx, sy, sz)); /* 戴帽子：頭頂翹起來的頭髮（丸子、刺刺、爆炸頭上面）收進帽子裡 */
     if (!headType) {
       // 鮑伯頭：圓柱 theta=0 在正前方，缺口要留在前面露出臉
       if (h === 1) { add(new THREE.CylinderGeometry(0.46, 0.48, 0.42, 20, 1, true, Math.PI * 0.32, Math.PI * 1.36), 0, -0.1, 0); }
@@ -198,14 +204,20 @@ export class Avatar {
       const board = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.04, 0.72), dark); board.position.y = 0.43; board.rotation.y = Math.PI / 4; head.add(board);
       const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.25), lam('#e2b13c')); tassel.position.set(0.3, 0.3, 0.1); head.add(tassel);
     }
-    if (L.glasses) {
-      const gm = lam('#2a2a2a');
+    const gl = (L.glasses | 0) % GLASSES.length;
+    if (gl) {
+      const gm = lam(gl === 4 ? '#e8507a' : gl === 5 ? '#3a2a2a' : '#2a2a2a'), lens = lam(gl === 4 ? '#ff8fb0' : '#1e2430', { transparent: true, opacity: gl === 3 || gl === 4 ? 0.88 : 0 });
       [-1, 1].forEach(s => {
-        const ring = L.glasses === 1 ? new THREE.TorusGeometry(0.085, 0.014, 6, 18) : new THREE.TorusGeometry(0.09, 0.014, 4, 4);
-        const r = new THREE.Mesh(ring, gm); r.position.set(0.14 * s, 0.0, 0.41); if (L.glasses === 2) r.rotation.z = Math.PI / 4; head.add(r);
+        let r;
+        if (gl === 4) { r = heartMesh(0.1, gm); r.position.set(0.15 * s, -0.01, 0.41); r.rotation.x = Math.PI / 2; head.add(r); const l = heartMesh(0.085, lens); l.position.set(0.15 * s, -0.01, 0.418); l.rotation.x = Math.PI / 2; head.add(l); return; }
+        const ring = gl === 2 ? new THREE.TorusGeometry(0.09, 0.014, 4, 4) : new THREE.TorusGeometry(gl === 3 ? 0.095 : 0.085, gl === 5 ? 0.02 : 0.014, 6, 18);
+        r = new THREE.Mesh(ring, gm); r.position.set(0.14 * s, 0.0, 0.41); if (gl === 2) r.rotation.z = Math.PI / 4; if (gl === 5) { r.scale.set(1.15, 0.8, 1); r.rotation.z = -0.25 * s; } head.add(r);
+        if (gl === 3) { const d = new THREE.Mesh(new THREE.CircleGeometry(0.09, 16), lens); d.position.set(0.14 * s, 0, 0.412); head.add(d); }
+        if (gl === 5) { const tip = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.07, 4), gm); tip.position.set(0.24 * s, 0.07, 0.4); tip.rotation.z = -1.1 * s; head.add(tip); }
       });
       const br = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.1), gm); br.rotation.z = Math.PI / 2; br.position.set(0, 0.02, 0.42); head.add(br);
     }
+    this.buildAcc(head, L, lam, part);
 
     // 配件：1 愛心光環、2 頭上小花
     const acc = L.acc | 0;
@@ -256,6 +268,43 @@ export class Avatar {
   reach(on) { this.reaching = !!on; }
   // 靠在對方肩膀上：-1 往左、1 往右、0 坐正
   lean(side) { this.leanSide = side | 0; }
+
+  /* 帽子／頭飾、項鍊、耳環（頭的座標：臉是半徑 0.42 的球，下巴約在 y -0.4） */
+  buildAcc(head, L, lam, part) {
+    const M = (geo, c, x, y, z, sx = 1, sy = 1, sz = 1, ex = {}) => { const m = new THREE.Mesh(geo, typeof c === 'string' ? lam(c, ex) : c); m.position.set(x, y, z); m.scale.set(sx, sy, sz); head.add(m); return m; };
+    const flower = (x, y, z, petal, center, r = 0.05, rx = 0, ry = 0) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.set(rx, ry, 0); const pm = lam(petal); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2, p = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), pm); p.position.set(Math.cos(a) * r * 1.1, Math.sin(a) * r * 1.1, 0); p.scale.z = 0.45; g.add(p); } const c = new THREE.Mesh(new THREE.SphereGeometry(r * 0.6, 8, 6), lam(center)); c.position.z = r * 0.25; g.add(c); head.add(g); return g; };
+    const hat = (L.hat | 0) % HATS.length;
+    if (hat === 1) { const c = '#e9877a'; M(new THREE.SphereGeometry(0.47, 22, 12, 0, Math.PI * 2, 0, Math.PI * 0.52), c, 0, 0.05, -0.02, 1, 1.02, 1); const band = M(new THREE.TorusGeometry(0.455, 0.06, 8, 26), '#f3d3c8', 0, 0.07, -0.02); band.rotation.x = Math.PI / 2; M(new THREE.SphereGeometry(0.1, 10, 8), '#f8efe8', 0, 0.55, -0.02); }
+    if (hat === 2) { const c = '#d9cdb4'; M(new THREE.CylinderGeometry(0.36, 0.45, 0.3, 20), c, 0, 0.36, -0.02); M(new THREE.CylinderGeometry(0.62, 0.66, 0.04, 22), c, 0, 0.2, -0.02).rotation.x = 0.06; const b = M(new THREE.TorusGeometry(0.43, 0.025, 6, 22), '#7a6a52', 0, 0.26, -0.02); b.rotation.x = Math.PI / 2; }
+    if (hat === 3) { const st = '#e8cf8a'; M(new THREE.CylinderGeometry(0.32, 0.42, 0.28, 18), st, 0, 0.4, -0.02); const br = M(new THREE.CylinderGeometry(0.82, 0.86, 0.035, 26), st, 0, 0.26, -0.02); br.rotation.x = 0.05; const rb = M(new THREE.TorusGeometry(0.405, 0.035, 6, 22), '#f08a8a', 0, 0.3, -0.02); rb.rotation.x = Math.PI / 2; flower(0.34, 0.33, 0.2, '#fbf6ea', '#f6d77a', 0.04, 0, 0.6); }
+    if (hat === 4) { const c = '#3f6fb0'; M(new THREE.SphereGeometry(0.47, 22, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), c, 0, 0.08, -0.02, 1, 0.9, 1); const v = M(new THREE.CylinderGeometry(0.34, 0.34, 0.05, 18, 1, false, -Math.PI / 2, Math.PI), c, 0, 0.16, 0.3, 1, 1, 1.15); v.rotation.x = 0.38; /* 帽簷往前往下壓，正面看得到 */ M(new THREE.SphereGeometry(0.04, 8, 6), '#f4f4f4', 0, 0.5, -0.02); }
+    if (hat === 5) { const b = M(new THREE.SphereGeometry(0.5, 20, 10), '#b03a3e', -0.06, 0.36, -0.04, 1, 0.32, 1); b.rotation.z = 0.22; M(new THREE.CylinderGeometry(0.02, 0.02, 0.08), '#3a1a1a', -0.12, 0.54, -0.04); }
+    if (hat === 6) { const cols = ['#f7a6c0', '#fbf6ea', '#f6d77a', '#c8a6ea', '#f7a6c0', '#fbf6ea', '#9ad3b8']; for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; flower(Math.sin(a) * 0.4, 0.32 + Math.cos(a) * 0.04, Math.cos(a) * 0.4 - 0.02, cols[i % cols.length], '#f6d77a', 0.042, -Math.PI / 2 + 0.5, a); } }
+    if (hat === 7) { flower(0.33, 0.24, 0.22, '#fbf6ea', '#f6c84a', 0.065, 0, 0.75); }
+    if (hat === 8) { const c = '#e84a6a', g = new THREE.Group(); g.position.set(0.22, 0.4, 0.16); g.rotation.set(-0.5, 0.35, 0.35); head.add(g); [-1, 1].forEach(s => { const w = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.24, 4), lam(c)); w.position.x = 0.13 * s; w.rotation.z = -Math.PI / 2 * s; w.scale.z = 0.45; g.add(w); }); const k = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 8), lam('#d23a5a')); g.add(k); } /* 大蝴蝶結斜斜別在頭上前面 */
+    if (hat === 9 || hat === 10) { M(new THREE.TorusGeometry(0.465, 0.024, 6, 24, Math.PI), hat === 9 ? '#fbf3f5' : '#3a3036', 0, 0.02, -0.06); /* 髮箍從左耳繞過頭頂到右耳 */
+      [-1, 1].forEach(s => { if (hat === 9) { const e = M(new THREE.CapsuleGeometry(0.065, 0.32, 4, 8), '#fbf3f5', 0.16 * s, 0.68, -0.04); e.rotation.z = -0.18 * s; const i = M(new THREE.CapsuleGeometry(0.035, 0.24, 4, 8), '#f6b6c8', 0.16 * s, 0.69, -0.0); i.rotation.z = -0.18 * s; }
+        else { const e = M(new THREE.ConeGeometry(0.12, 0.2, 4), '#3a3036', 0.27 * s, 0.5, -0.04); e.rotation.z = -0.4 * s; e.rotation.y = Math.PI / 4; const i = M(new THREE.ConeGeometry(0.06, 0.11, 4), '#f6b6c8', 0.26 * s, 0.49, 0.0); i.rotation.z = -0.4 * s; i.rotation.y = Math.PI / 4; } }); }
+    if (hat === 11) { M(new THREE.TorusGeometry(0.475, 0.035, 6, 24, Math.PI), '#f4f1ec', 0, 0.0, -0.04); [-1, 1].forEach(s => { const cup = M(new THREE.CylinderGeometry(0.13, 0.13, 0.1, 16), '#f4f1ec', 0.45 * s, -0.04, -0.03); cup.rotation.z = Math.PI / 2; M(new THREE.CylinderGeometry(0.1, 0.1, 0.02, 16), '#e8a0b4', 0.51 * s, -0.04, -0.03).rotation.z = Math.PI / 2; }); }
+    if (hat === 12) { const g = lam('#f2c94c', { emissive: '#4a3600' }); const base = M(new THREE.CylinderGeometry(0.17, 0.17, 0.08, 12, 1, true), g, 0.12, 0.46, 0); base.material.side = THREE.DoubleSide; for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; M(new THREE.ConeGeometry(0.035, 0.1, 4), g, 0.12 + Math.cos(a) * 0.16, 0.54, Math.sin(a) * 0.16); } M(new THREE.SphereGeometry(0.03, 8, 6), '#e8506a', 0.12, 0.47, 0.17); }
+    if (hat === 13) { const c = '#d33a3a'; const cone = M(new THREE.ConeGeometry(0.42, 0.55, 18), c, 0, 0.5, -0.04); cone.rotation.z = 0.35; const band = M(new THREE.TorusGeometry(0.42, 0.07, 8, 24), '#f8f6f2', 0, 0.22, -0.03); band.rotation.x = Math.PI / 2; M(new THREE.SphereGeometry(0.09, 10, 8), '#f8f6f2', -0.24, 0.72, -0.04); }
+    if (hat === 14) { const c = '#e9b04a'; const band = M(new THREE.TorusGeometry(0.44, 0.07, 8, 26), c, 0, 0.16, -0.02); band.rotation.x = Math.PI / 2 - 0.2; band.scale.set(1, 1, 0.5); [-1, 1].forEach(s => { const t = M(new THREE.ConeGeometry(0.06, 0.18, 4), c, 0.07 * s, 0.12, -0.5); t.rotation.z = 0.6 * s; t.rotation.x = -0.4; }); }
+    /* 項鍊／圍巾：在下巴下面一圈 */
+    const nk = (L.neck | 0) % NECKS.length, NY = -0.5;
+    if (nk === 1) { const sc = '#d8564a'; const r = M(new THREE.TorusGeometry(0.22, 0.08, 8, 20), sc, 0, NY, 0); r.rotation.x = Math.PI / 2; const tail = M(new THREE.BoxGeometry(0.12, 0.3, 0.05), sc, 0.12, NY - 0.18, 0.2); tail.rotation.z = 0.15; M(new THREE.BoxGeometry(0.12, 0.04, 0.052), '#f3e3d0', 0.135, NY - 0.31, 0.2).rotation.z = 0.15; }
+    if (nk === 2) { const cols = ['#f7a6c0', '#fbf6ea', '#f6d77a', '#f58a6a']; for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; M(new THREE.SphereGeometry(0.05, 8, 6), cols[i % 4], Math.sin(a) * 0.25, NY - 0.02 - Math.max(0, Math.cos(a)) * 0.1, Math.cos(a) * 0.22); } }
+    if (nk === 3) { for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2; M(new THREE.SphereGeometry(0.025, 8, 6), '#fbf8f2', Math.sin(a) * 0.23, NY + 0.02 - Math.max(0, Math.cos(a)) * 0.08, Math.cos(a) * 0.21); } }
+    if (nk === 4) { const g = lam('#f2c94c', { emissive: '#3a2a00' }); const ch = M(new THREE.TorusGeometry(0.22, 0.008, 4, 28), g, 0, NY + 0.02, 0.0); ch.rotation.x = Math.PI / 2 - 0.35; const h = heartMesh(0.05, lam('#e8506a', { emissive: '#4a0a1a' })); h.position.set(0, NY - 0.07, 0.23); head.add(h); }
+    if (nk === 5) { const c = '#2c3e6a'; [-1, 1].forEach(s => { const w = M(new THREE.ConeGeometry(0.07, 0.12, 4), c, 0.065 * s, NY + 0.04, 0.24); w.rotation.z = -Math.PI / 2 * s; w.scale.z = 0.5; }); M(new THREE.SphereGeometry(0.035, 8, 6), c, 0, NY + 0.04, 0.25); }
+    if (nk === 6) { const c = '#e9b04a'; const r = M(new THREE.TorusGeometry(0.21, 0.035, 6, 20), c, 0, NY + 0.02, 0); r.rotation.x = Math.PI / 2; const t = M(new THREE.ConeGeometry(0.12, 0.2, 3), c, 0, NY - 0.08, 0.2); t.rotation.x = Math.PI; t.scale.z = 0.3; }
+    /* 耳環：臉的兩側 */
+    const er = (L.ear | 0) % EARS.length;
+    if (er) [-1, 1].forEach(s => { const x = 0.42 * s, y = -0.17, z = 0.02;
+      if (er === 1) M(new THREE.SphereGeometry(0.035, 10, 8), '#fbf8f2', x, y, z);
+      if (er === 2) { const r = M(new THREE.TorusGeometry(0.05, 0.012, 6, 16), lam('#f2c94c', { emissive: '#3a2a00' }), x, y - 0.03, z); r.rotation.y = Math.PI / 2; }
+      if (er === 3) { const st = M(new THREE.OctahedronGeometry(0.045), lam('#f6d24a', { emissive: '#5a4200' }), x, y - 0.03, z, 1, 1, 0.4); st.rotation.y = Math.PI / 2; }
+      if (er === 4) { [-0.025, 0.025].forEach(dz => M(new THREE.SphereGeometry(0.03, 8, 6), '#d8323c', x, y - 0.07, z + dz)); M(new THREE.CylinderGeometry(0.006, 0.006, 0.07), '#4a8a3a', x, y - 0.03, z).rotation.x = 0.3; } });
+  }
 
   update(dt, moving) {
     this.t += dt;
