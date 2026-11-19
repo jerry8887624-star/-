@@ -1,6 +1,6 @@
 // 我們的小島：情侶小窩 3D 遊戲
 import * as THREE from '../vendor/three.module.min.js';
-import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, preloadBodies, preloadClips } from './char.js';
+import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, GLASSES, GLASSES_P, HATS, NECKS, EARS, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
 import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
@@ -1598,32 +1598,70 @@ function openBook(tab = 'memo') {
     $('#reset-all').onclick = () => { if (confirm('確定要清除小島上所有的回憶嗎？這個動作不能復原。')) { localStorage.removeItem(KEY); location.reload(); } };
   }
 }
+/* 衣櫃：衣服、配件分頁＋格子；一半免費、一半用島幣買（先試穿再買，沒買關掉就換回來） */
+const LOOK_SLOTS = { outfit: { pre: 'o', price: k => OUTFITS[k]?.price || 0, name: k => OUTFITS[k]?.name }, hat: { pre: 'h', price: k => HATS[k]?.p || 0, name: k => HATS[k]?.n },
+  glasses: { pre: 'g', price: k => GLASSES_P[k] || 0, name: k => GLASSES[k] }, neck: { pre: 'n', price: k => NECKS[k]?.p || 0, name: k => NECKS[k]?.n }, ear: { pre: 'e', price: k => EARS[k]?.p || 0, name: k => EARS[k]?.n } };
+const owns = (slot, k) => !LOOK_SLOTS[slot].price(k) || (st.closet || []).includes(LOOK_SLOTS[slot].pre + k);
+let lookTab = 'outfit', lookCat = 'all';
 function openLooks(i = me().i) {
   const L = st.looks[i], lvl = LV().lv;
-  // 換裝：面板從下面升起來，上半部看得到自己（可以轉身看背面）
-  const c = chars[i]; if (!lookCam) { c.path = null; const ry0 = c.ry; lookCam = { c, back: false, a: scene === 'in' ? Math.atan2(-c.x, -c.z) : c.ry }; $('#dlg').addEventListener('close', () => { c.ry = ry0; lookCam = null; delete $('#dlg').dataset.sheet; }, { once: true }); } // 屋內：鏡頭從房間中央那一側看（不會被家具擋住）
+  const c = chars[i]; if (!lookCam) { c.path = null; const ry0 = c.ry; lookCam = { c, back: false, a: scene === 'in' ? Math.atan2(-c.x, -c.z) : c.ry };
+    const keep = { ...L }; /* 試穿沒買：關掉衣櫃時換回原本的 */
+    document.body.classList.add('dressing'); /* 試衣服：上面的狀態列先收起來，整個人看得到 */
+    $('#dlg').addEventListener('close', () => { c.ry = ry0; lookCam = null; delete $('#dlg').dataset.sheet; document.body.classList.remove('dressing'); const Lc = st.looks[i]; let back = false; for (const k of Object.keys(LOOK_SLOTS)) if (!owns(k, Lc[k] | 0)) { Lc[k] = keep[k] | 0; back = true; } if (back) { chars[i].av.setLook(Lc); save(); toast('試穿的衣服沒有買，換回原本的了'); } }, { once: true }); }
   const accOK = a => a === 0 || (a === 2 && lvl >= 2) || (a === 1 && lvl >= 5);
-  const rows = [['髮型', 'hair', HAIRS], ['髮色', 'hairColor', HAIR_COLORS.map((c, k) => `色 ${k + 1}`)], ['膚色', 'skin', SKINS.map((c, k) => `膚 ${k + 1}`)], ['衣服', 'outfit', OUTFITS.map(o => o.name)], ['頭型', 'head', HEADS], ['眼睛', 'eye', EYES], ['嘴巴', 'mouth', MOUTHS], ['配件', 'acc', ACCS]];
-  openDlg(`👗 ${nameOf(i)} 的造型`, `<p class="muted">改了馬上就看得到。${lvl < 4 ? '配件「小花」Lv2、「愛心光環」Lv4 解鎖。' : ''}</p>${rows.map(([n, k, arr]) => `<div class="look-row" data-k="${k}" data-n="${arr.length}"><span>${n}</span><span id="lv-${k}">${esc(arr[(L[k] | 0) % arr.length])}</span><button type="button" data-d="-1" aria-label="上一個">‹</button><button type="button" data-d="1" aria-label="下一個">›</button></div>`).join('')}
-    <button type="button" class="ghost" id="lk-couple">👫 兩個人一起換情侶裝</button>
-    <div class="row"><button type="button" class="ghost" id="lk-rand">🎲 隨機</button><button type="button" class="ghost" id="lk-g">${L.gender === 'f' ? '換成男生' : '換成女生'}</button></div>`);
+  let pending = null;
+  const card = (slot, k, label, sub = '') => { const own = owns(slot, k), on = (L[slot] | 0) === k, pr = LOOK_SLOTS[slot].price(k), buy = on && !own;
+    return `<button type="button" class="item lk-item${on ? ' on' : ''}${own ? '' : ' paid'}" data-s="${slot}" data-v="${k}" aria-pressed="${on}"><b>${esc(label)}</b><small>${buy ? `試穿中・<u>🪙 ${pr} 買下</u>` : own ? (on ? '穿著中' : (pr ? '已擁有' : '免費')) : `🪙 ${pr}`}</small></button>`; };
+  const arrows = rows => rows.map(([n, k, arr]) => `<div class="look-row" data-k="${k}" data-n="${arr.length}"><span>${n}</span><span id="lv-${k}">${esc(arr[(L[k] | 0) % arr.length])}</span><button type="button" data-d="-1" aria-label="上一個">‹</button><button type="button" data-d="1" aria-label="下一個">›</button></div>`).join('');
+  const body = () => {
+    if (lookTab === 'outfit') { const cats = [['all', '全部'], ...Object.entries(KIND_NAMES)];
+      const list = OUTFITS.map((o, k) => [o, k]).filter(([o]) => lookCat === 'all' || o.kind === lookCat);
+      return `<div class="tabs lk-cats">${cats.map(([k, n]) => `<button type="button" data-c="${k}" aria-selected="${k === lookCat}">${n}</button>`).join('')}</div>
+        <div class="shop items lk-grid">${list.map(([o, k]) => card('outfit', k, o.name)).join('')}</div>
+        <button type="button" class="ghost" id="lk-couple">👫 兩個人一起換情侶裝</button>`; }
+    if (lookTab === 'acc') return [['帽子・頭飾', 'hat', HATS.map(x => x.n)], ['眼鏡', 'glasses', GLASSES], ['項鍊・圍巾', 'neck', NECKS.map(x => x.n)], ['耳環', 'ear', EARS.map(x => x.n)]]
+      .map(([t, slot, names]) => `<b class="lk-sec">${t}</b><div class="shop items lk-grid">${names.map((n, k) => card(slot, k, n)).join('')}</div>`).join('')
+      + `<b class="lk-sec">特效</b>${arrows([['特效', 'acc', ACCS]])}${lvl < 5 ? '<p class="muted">「小花」Lv2、「愛心光環」Lv5 解鎖。</p>' : ''}`;
+    if (lookTab === 'hair') return arrows([['髮型', 'hair', HAIRS], ['髮色', 'hairColor', HAIR_COLORS.map((x, k) => `色 ${k + 1}`)]]);
+    return arrows([['頭型', 'head', HEADS], ['膚色', 'skin', SKINS.map((x, k) => `膚 ${k + 1}`)], ['眼睛', 'eye', EYES], ['嘴巴', 'mouth', MOUTHS]])
+      + `<div class="row"><button type="button" class="ghost" id="lk-rand">🎲 隨機</button><button type="button" class="ghost" id="lk-g">${L.gender === 'f' ? '換成男生' : '換成女生'}</button></div>`;
+  };
+  const tabs = [['outfit', '衣服'], ['acc', '配件'], ['hair', '髮型'], ['face', '臉']];
+  const owned = () => Object.keys(LOOK_SLOTS).reduce((n, s) => n + (s === 'outfit' ? OUTFITS : s === 'hat' ? HATS : s === 'glasses' ? GLASSES : s === 'neck' ? NECKS : EARS).filter((x, k) => owns(s, k)).length, 0);
+  const total = OUTFITS.length + HATS.length + GLASSES.length + NECKS.length + EARS.length;
+  const render = () => {
+    $('#lk-body').innerHTML = body(); $('#lk-count').textContent = `衣櫃 ${owned()}／${total}・🪙 ${st.coins || 0}`;
+    $('#lk-body').querySelectorAll('.lk-cats button').forEach(b => b.onclick = () => { lookCat = b.dataset.c; sfx('click'); render(); });
+    $('#lk-body').querySelectorAll('.lk-item').forEach(b => b.onclick = () => {
+      const slot = b.dataset.s, v = +b.dataset.v, pr = LOOK_SLOTS[slot].price(v);
+      if ((L[slot] | 0) === v && !owns(slot, v)) { /* 第二次按：買下 */
+        if ((st.coins || 0) < pr) { toast(`小島幣不夠，還差 ${pr - (st.coins || 0)} 🪙`); return; }
+        st.coins -= pr; st.closet = [...(st.closet || []), LOOK_SLOTS[slot].pre + v]; save(); updateChips(); sfx('chime'); burst('heart', headPos(c, 1.1), 6, 0.4);
+        toast(`買了「${LOOK_SLOTS[slot].name(v)}」，收進衣櫃了`); if (!st.firstBuy) { st.firstBuy = 1; addMemo('👗', `第一次在衣櫃買了「${LOOK_SLOTS[slot].name(v)}」`); } render(); return; }
+      L[slot] = v; chars[i].av.setLook(L); if (owns(slot, v)) save(); sfx('click'); render();
+    });
+    $('#lk-body').querySelectorAll('.look-row').forEach(r => r.querySelectorAll('button').forEach(b => b.onclick = () => {
+      const k = r.dataset.k, n = +r.dataset.n; let v = ((L[k] | 0) + +b.dataset.d + n) % n;
+      if (k === 'acc') { let guard = 0; while (!accOK(v) && guard++ < n) v = (v + +b.dataset.d + n) % n; }
+      L[k] = v; chars[i].av.setLook(L); save(); render();
+    }));
+    const cp = $('#lk-couple'); if (cp) cp.onclick = () => {
+      const list = OUTFITS.map((o, k) => o.kind === 'couple' && owns('outfit', k) ? k : -1).filter(k => k >= 0);
+      const now = list.indexOf(st.looks[0].outfit), next = list[(now + 1) % list.length];
+      [0, 1].forEach(j => { st.looks[j].outfit = next; chars[j].av.setLook(st.looks[j]); }); save(); render();
+      burst('heart', midPos(), 6); toast(`換上${OUTFITS[next].name} 👫`); if (!st.coupleWorn) { st.coupleWorn = 1; addMemo('👫', `第一次穿${OUTFITS[next].name}`); addLove(3); }
+    };
+    const rd = $('#lk-rand'); if (rd) rd.onclick = () => { st.looks[i] = randomLook(L.gender); Object.keys(LOOK_SLOTS).forEach(k => { if (!owns(k, st.looks[i][k] | 0)) st.looks[i][k] = 0; }); st.looks[i].acc = accOK(L.acc | 0) ? L.acc : 0; makeAv(i); save(); openLooks(i); };
+    const gd = $('#lk-g'); if (gd) gd.onclick = () => { st.looks[i] = randomLook(L.gender === 'f' ? 'm' : 'f'); makeAv(i); save(); openLooks(i); };
+  };
+  openDlg(`👗 ${nameOf(i)} 的造型`, `<div class="tabs lk-tabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" data-t="${k}" aria-selected="${k === lookTab}">${n}</button>`).join('')}</div><p class="muted" id="lk-count"></p><div id="lk-body"></div>`);
   $('#dlg').dataset.sheet = '1';
   const turn = document.createElement('button'); turn.type = 'button'; turn.className = 'ghost lk-turn'; turn.textContent = lookCam.back ? '看正面' : '看背面';
   turn.onclick = () => { lookCam.back = !lookCam.back; turn.textContent = lookCam.back ? '看正面' : '看背面'; sfx('click'); };
   $('#dlg-body').prepend(turn);
-  $('#dlg-body').querySelectorAll('.look-row').forEach(r => r.querySelectorAll('button').forEach(b => b.onclick = () => {
-    const k = r.dataset.k, n = +r.dataset.n; let v = ((L[k] | 0) + +b.dataset.d + n) % n;
-    if (k === 'acc') { let guard = 0; while (!accOK(v) && guard++ < n) v = (v + +b.dataset.d + n) % n; }
-    L[k] = v; chars[i].av.setLook(L); save(); const arr = rows.find(x => x[1] === k)[2]; $('#lv-' + k).textContent = arr[v];
-  }));
-  $('#lk-couple').onclick = () => {
-    const cp = OUTFITS.map((o, k) => o.kind === 'couple' ? k : -1).filter(k => k >= 0);
-    const now = cp.indexOf(st.looks[0].outfit), next = cp[(now + 1) % cp.length];
-    [0, 1].forEach(j => { st.looks[j].outfit = next; chars[j].av.setLook(st.looks[j]); }); save(); openLooks(i);
-    burst('heart', midPos(), 6); toast(`換上${OUTFITS[next].name} 👫`); if (!st.coupleWorn) { st.coupleWorn = 1; addMemo('👫', `第一次穿${OUTFITS[next].name}`); addLove(3); }
-  };
-  $('#lk-rand').onclick = () => { st.looks[i] = randomLook(L.gender); st.looks[i].acc = accOK(L.acc | 0) ? L.acc : 0; makeAv(i); save(); openLooks(i); };
-  $('#lk-g').onclick = () => { st.looks[i] = randomLook(L.gender === 'f' ? 'm' : 'f'); makeAv(i); save(); openLooks(i); };
+  $('#dlg-body').querySelectorAll('.lk-tabs button').forEach(b => b.onclick = () => { lookTab = b.dataset.t; $('#dlg-body').querySelectorAll('.lk-tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b))); sfx('click'); render(); $('#lk-body').scrollIntoView?.({ block: 'nearest' }); });
+  render();
 }
 
 // ---------- 海邊撿貝殼 ----------
@@ -1729,7 +1767,7 @@ function updateCam(dt, snap) {
     const kk = snap ? 1 : 1 - Math.exp(-dt * 6); camT.lerp(tmpT, kk); cam.position.lerp(camP, kk); cam.lookAt(camT); return;
   }
   if (lookCam) {
-    const c = lookCam.c, r = c.av.root.position, a = lookCam.a, d = scene === 'in' ? 4.4 : innerWidth > innerHeight ? 4.2 : 6.2;
+    const c = lookCam.c, r = c.av.root.position, a = lookCam.a, d = scene === 'in' ? 2.7 : innerWidth > innerHeight ? 3.2 : 3.4; /* 試衣服：鏡頭拉近，看得清楚衣服細節 */
     c.ry = a + (lookCam.back ? Math.PI : 0); // 看背面＝角色轉過去
     // 看的點在角色腳下，角色就會出現在畫面上半部（下半部被換裝面板蓋住）
     tmpT.set(r.x, r.y - 0.2, r.z); camP.set(r.x + Math.sin(a) * d, r.y + 0.45, r.z + Math.cos(a) * d);
@@ -1782,7 +1820,7 @@ function setFade(o, v, to) {
 }
 
 // ---------- 連線：其他人的角色、共用存檔、情侶互動、訪客 ----------
-const SHARED = ['santaGot', 'lampsOff', 'letters', 'rares', 'rareDay', 'surFound', 'playDays', 'playDay', 'loveDay', 'keepPlaces', 'names', 'looks', 'anniv', 'born', 'rt', 'theme', 'pantry', 'eggs', 'fedDay', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
+const SHARED = ['closet', 'santaGot', 'lampsOff', 'letters', 'rares', 'rareDay', 'surFound', 'playDays', 'playDay', 'loveDay', 'keepPlaces', 'names', 'looks', 'anniv', 'born', 'rt', 'theme', 'pantry', 'eggs', 'fedDay', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
 const LOVE_WORD = { hand: '牽你的手', hug: '抱抱你', kiss: '親親你', pat: '摸摸你的頭' };
 function newChar(look) { const c = { i: 'g', av: new Avatar(look), x: 0, z: 0, ry: 0, y: null, moving: false, locked: false, path: null, spinT: 0, stuck: 0, tilt: 0, sc: 'out' }; OUT.add(c.av.root); hookEmote(c); return c; }
 function hookEmote(c) { const orig = c.av.emote.bind(c.av); c.av.emote = (k, d) => { orig(k, d); if (MP.on && c === me()) MP.net.send({ t: 'emo', k, d }); }; }

@@ -11,7 +11,7 @@ const MAX_GUESTS = 4;
 const PAIR_DAYS = 7;
 const HOUR_MS = 36000; // 遊戲裡一小時 = 36 秒（跟前端一樣）
 // 兩位島主共用的存檔欄位
-const SHARED = ['santaGot', 'lampsOff', 'letters', 'rares', 'rareDay', 'surFound', 'playDays', 'playDay', 'loveDay', 'keepPlaces', 'born', 'rt', 'names', 'looks', 'anniv', 'love', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
+const SHARED = ['closet', 'santaGot', 'lampsOff', 'letters', 'rares', 'rareDay', 'surFound', 'playDays', 'playDay', 'loveDay', 'keepPlaces', 'born', 'rt', 'names', 'looks', 'anniv', 'love', 'day', 'theme', 'pantry', 'eggs', 'fedDay', 'diary', 'fish', 'fishMax', 'coins', 'inv', 'decor', 'quests', 'rewards', 'questDays', 'snowman', 'shells', 'garden', 'castles', 'letterDay', 'flowersGiven', 'dishes', 'wishes', 'fireworks', 'laps', 'coupleWorn', 'notes', 'tree', 'surprise', 'photos', 'cooked', 'picked', 'puzzle', 'gh'];
 const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(x => ABC[x % ABC.length]).join(''); };
 const hash = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -20,8 +20,10 @@ const num = (v, lo, hi) => { v = Number(v); return Number.isFinite(v) ? Math.max
 const int = (v, lo, hi) => Math.round(num(v, lo, hi));
 function cleanLook(l) {
   l = l || {};
-  return { gender: l.gender === 'm' ? 'm' : 'f', hair: int(l.hair, 0, 20), hairColor: int(l.hairColor, 0, 20), skin: int(l.skin, 0, 20), outfit: int(l.outfit, 0, 30),
-    glasses: int(l.glasses, 0, 2), acc: int(l.acc, 0, 2), head: int(l.head, 0, 10), eye: int(l.eye, 0, 10), mouth: int(l.mouth, 0, 10), cheek: int(l.cheek, 0, 5) };
+  /* 衣服、配件會越來越多：上限放寬（只防亂傳的數字），新增欄位也要加在這裡，不然另一半看不到 */
+  return { gender: l.gender === 'm' ? 'm' : 'f', hair: int(l.hair, 0, 40), hairColor: int(l.hairColor, 0, 40), skin: int(l.skin, 0, 20), outfit: int(l.outfit, 0, 200),
+    glasses: int(l.glasses, 0, 30), acc: int(l.acc, 0, 10), head: int(l.head, 0, 20), eye: int(l.eye, 0, 20), mouth: int(l.mouth, 0, 20), cheek: int(l.cheek, 0, 10),
+    hat: int(l.hat, 0, 80), neck: int(l.neck, 0, 40), ear: int(l.ear, 0, 40) };
 }
 // 情侶每日問答：{ 'YYYY-MM-DD': { q: 題號, a: [答案0, 答案1], ts: [時間0, 時間1], h: [愛心0, 愛心1] } }，最多留 120 天
 function cleanQA(qa) {
@@ -39,6 +41,7 @@ function cleanSave(s, withQA) {
   if (o.looks) o.looks = [cleanLook(o.looks[0]), cleanLook(o.looks[1])];
   if (o.names) o.names = [0, 1].map(i => { const r = checkName(o.names?.[i]); return r.ok ? r.text : ''; });
   if (Array.isArray(o.diary)) o.diary = o.diary.slice(0, 300);
+  if ('closet' in o) o.closet = (Array.isArray(o.closet) ? o.closet : []).filter(k => typeof k === 'string' && /^[oghne]\d{1,3}$/.test(k)).slice(0, 400); /* 衣櫃買過的東西 */
   // 冰箱便利貼：最多 20 張，每張 60 字
   if ('notes' in o) o.notes = (Array.isArray(o.notes) ? o.notes : []).slice(0, 20).filter(n => n && typeof n.text === 'string').map(n => ({ by: n.by === 1 ? 1 : 0, text: n.text.slice(0, 60), ts: num(n.ts, 0, 1e14) }));
   // 拼圖：圖片只能是小島拍的照片（或空字串＝預設圖）

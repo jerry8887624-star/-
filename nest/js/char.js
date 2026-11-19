@@ -5,10 +5,10 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { GLTFLoader } from '../vendor/GLTFLoader.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
-import { Avatar as HeadMaker, HAIR_COLORS, SKINS, heartMesh } from './avatar.js';
+import { Avatar as HeadMaker, HAIR_COLORS, SKINS, heartMesh, HATS, NECKS, EARS } from './avatar.js';
 import { toonGrad } from './models.js';
 
-export { HAIRS, HAIR_COLORS, SKINS, HEADS, EYES, MOUTHS, CHEEKS, ACCS, heartMesh } from './avatar.js';
+export { HAIRS, HAIR_COLORS, SKINS, HEADS, EYES, MOUTHS, CHEEKS, ACCS, GLASSES, GLASSES_P, HATS, NECKS, EARS, heartMesh } from './avatar.js';
 
 // ---------- 身體（衣服） ----------
 // 每個身體列出顏色區塊：skin 皮膚、top 上衣、bottom 褲子、print 圖案、hide 手上的道具（藏起來）
@@ -18,6 +18,14 @@ const BODIES = {
   sweater: { id: 'kite-kid-0a7d70', skin: ['dbad8b'], top: ['b54f46', 'a3473f', 'a84941', 'a84a40', 'a84a41', 'bf463e'], bottom: ['6683a1', '718fab', '6683a2'], hide: ['b7845a', 'c4a990', '9a6e49', 'dfdde0'] },
   long: { id: 'student-in-a-hoodie-7c8223', skin: ['dcb490'], top: ['d1c8bd', 'c6bdb2', 'beb5aa', 'c3baaf', 'f0ede9'], bottom: ['56534f', '4b4946'], hide: ['6e4f39', '4a494b', 'e7e3dd', '6a4b32', '292a2c'] },
   street: { id: 'street-skater-4ee28b', skin: ['d7a47d'], top: ['5c554c'], print: ['d8673d', '5e92b7', '37373d', 'c5bbaa'], bottom: ['8e9fa7', '83939d'], hide: ['c74333', '8c959d', '242427', 'c8945e', '2e2e30', 'dfaf3d', '508ebf'] },
+  /* 新身體：模型的每個部位有名字（attach-coat-mesh…），用名字分：帽子、頭髮、眼鏡、手上的道具藏起來，body 最多的顏色＝皮膚 */
+  holiday: { id: 'holidaymaker-in-a-sun-2ba5e5', auto: 1 }, pool: { id: 'pool-guest-78b655', auto: 1 }, cardigan: { id: 'player-in-a-cardigan-b558c9', auto: 1 },
+  longcoat: { id: 'graduate-student-945ef0', auto: 1 }, trench: { id: 'passenger-ac425a', auto: 1 }, sailor: { id: 'school-student-385134', auto: 1 },
+  aloha: { id: 'slot-tourist-08b37d', auto: 1 }, wintercoat: { id: 'spectator-d086fe', auto: 1 }, plaid: { id: 'student-with-backpack-65d2b4', auto: 1 },
+  vest: { id: 'schoolkid-da94c1', auto: 1 }, hiker: { id: 'backpacker-f56207', auto: 1 }, safari: { id: 'park-ranger-c1697e', auto: 1 },
+  waistcoat: { id: 'cocktail-server-eb211b', auto: 1 }, blazer: { id: 'front-desk-clerk-99f0c2', auto: 1 }, yukata: { id: 'townswoman-5ca8b5', auto: 1 },
+  knit: { id: 'motel-clerk-950c39', auto: 1 }, puffer: { id: 'parent-chaperone-79e535', auto: 1 }, apron: { id: 'barista-505240', auto: 1 },
+  wetsuit: { id: 'swimmer-in-a-wetsuit-9fca8f', auto: 1 }, witch: { id: 'kid-witch-01c770', auto: 1 }, gardener: { id: 'village-gardener-9f7af6', auto: 1 },
 };
 // 衣服：kind = 'casual' 休閒、'pj' 睡衣、'couple' 情侶裝（兩個人穿一樣）
 export const OUTFITS = [
@@ -34,15 +42,49 @@ export const OUTFITS = [
   { name: '情侶白T', kind: 'couple', body: 'tee', top: '#f8f6f0', bottom: '#4a6a9a', heart: true },
   { name: '情侶粉帽T', kind: 'couple', body: 'hoodie', top: '#f4a6bc', bottom: '#4a4f5a', print: '#ffffff', heart: true },
   { name: '情侶紅毛衣', kind: 'couple', body: 'sweater', top: '#c8323c', bottom: '#3a4a6a', heart: true },
+  /* ↓ 新衣服（只能往後加：存檔記的是編號）。price：0 直接能穿，其他用島幣買；tint：把某個部位整件換色（保留原本的明暗） */
+  { name: '度假亞麻衫', kind: 'island', body: 'holiday', price: 0 },
+  { name: '亞麻衫・天藍', kind: 'island', body: 'holiday', price: 120, tint: { coat: '#a9cfe8' } },
+  { name: '夏威夷花襯衫', kind: 'island', body: 'aloha', price: 0 },
+  { name: '海邊罩衫', kind: 'island', body: 'pool', price: 0 },
+  { name: '罩衫・蜜桃', kind: 'island', body: 'pool', price: 120, tint: { coat: '#f6c3b0' } },
+  { name: '潛水衣', kind: 'island', body: 'wetsuit', price: 150 },
+  { name: '芥末黃開襟衫', kind: 'casual', body: 'cardigan', price: 0 },
+  { name: '開襟衫・湖水綠', kind: 'casual', body: 'cardigan', price: 120, tint: { coat: '#86c4b2' } },
+  { name: '開襟衫・奶茶', kind: 'casual', body: 'cardigan', price: 120, tint: { coat: '#cdb092' } },
+  { name: '格紋襯衫＋後背包', kind: 'casual', body: 'plaid', price: 0 },
+  { name: '撞色羽絨背心', kind: 'casual', body: 'vest', price: 0 },
+  { name: '奶油黃針織衫', kind: 'casual', body: 'knit', price: 0 },
+  { name: '針織衫・薰衣草', kind: 'casual', body: 'knit', price: 120, tint: { coat: '#c4b2e2' } },
+  { name: '咖啡師圍裙', kind: 'casual', body: 'apron', price: 0 },
+  { name: '園藝工作服', kind: 'casual', body: 'gardener', price: 0 },
+  { name: '米白長大衣', kind: 'out', body: 'longcoat', price: 200 },
+  { name: '長大衣・炭灰', kind: 'out', body: 'longcoat', price: 200, tint: { coat: '#5c5f68' } },
+  { name: '駝色風衣', kind: 'out', body: 'trench', price: 250 },
+  { name: '風衣・經典黑', kind: 'out', body: 'trench', price: 250, tint: { coat: '#2e2e33' } },
+  { name: '海軍藍水手服', kind: 'out', body: 'sailor', price: 180 },
+  { name: '水手服・純白', kind: 'out', body: 'sailor', price: 180, tint: { coat: '#eef0f3' } },
+  { name: '黑色西裝外套', kind: 'out', body: 'blazer', price: 220 },
+  { name: '酒紅背心套裝', kind: 'out', body: 'waistcoat', price: 220 },
+  { name: '卡其獵裝', kind: 'out', body: 'safari', price: 150 },
+  { name: '登山背包客', kind: 'out', body: 'hiker', price: 150 },
+  { name: '海軍藍大衣＋圍巾', kind: 'season', body: 'wintercoat', price: 200 },
+  { name: '橘色羽絨外套', kind: 'season', body: 'puffer', price: 0 },
+  { name: '羽絨外套・草莓粉', kind: 'season', body: 'puffer', price: 150, tint: { top: '#f2a9bf' } },
+  { name: '和風浴衣', kind: 'season', body: 'yukata', price: 300 },
+  { name: '小巫師斗篷', kind: 'season', body: 'witch', price: 180 },
+  { name: '情侶花襯衫', kind: 'couple', body: 'aloha', price: 0 },
+  { name: '情侶風衣', kind: 'couple', body: 'trench', price: 300 },
 ];
-export const KIND_NAMES = { casual: '休閒便服', pj: '睡衣', couple: '情侶裝' };
-const CASUAL = OUTFITS.map((o, i) => o.kind === 'casual' ? i : -1).filter(i => i >= 0);
+export const KIND_NAMES = { casual: '日常', island: '海島度假', out: '外出', season: '季節節慶', pj: '睡衣', couple: '情侶裝' };
+const CASUAL = OUTFITS.map((o, i) => (o.kind === 'casual' || o.kind === 'island') && !o.price ? i : -1).filter(i => i >= 0); /* 隨機只抽免費的 */
+const freeOf = (arr, chance) => { const f = arr.map((x, i) => i && !x.p ? i : -1).filter(i => i > 0); return Math.random() < chance ? f[Math.floor(Math.random() * f.length)] : 0; };
 
 export function randomLook(gender) {
   const g = gender || (Math.random() < 0.5 ? 'f' : 'm'), r = n => Math.floor(Math.random() * n);
   const fh = [1, 2, 3, 4, 6, 8, 9, 10], mh = [0, 5, 0, 7, 8];
   return { gender: g, hair: g === 'f' ? fh[r(fh.length)] : mh[r(mh.length)], hairColor: Math.random() < 0.8 ? r(4) : r(HAIR_COLORS.length), skin: r(3),
-    outfit: CASUAL[r(CASUAL.length)], glasses: Math.random() < 0.15 ? 1 + r(2) : 0, head: 0, eye: r(5), mouth: r(5), cheek: Math.random() < 0.75 ? 0 : 1 + r(2), acc: 0 };
+    outfit: CASUAL[r(CASUAL.length)], glasses: Math.random() < 0.15 ? 1 + r(2) : 0, head: 0, eye: r(5), mouth: r(5), cheek: Math.random() < 0.75 ? 0 : 1 + r(2), acc: 0, hat: freeOf(HATS, 0.35), neck: freeOf(NECKS, 0.2), ear: freeOf(EARS, 0.25) };
 }
 
 // ---------- 載入 ----------
@@ -83,7 +125,24 @@ function toClip(raw, name, bones, restHipsY) {
 const _c = new THREE.Color();
 const hexOf = (r, g, b) => _c.setRGB(r, g, b, THREE.LinearSRGBColorSpace).getHexString();
 function near(hex, list) { const a = parseInt(hex, 16); for (const h of list) { const b = parseInt(h, 16); if (Math.abs((a >> 16) - (b >> 16)) + Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) + Math.abs((a & 255) - (b & 255)) < 14) return h; } return null; }
+/* 新身體：照部位名字處理 */
+const HIDE_PART = /^(hair|hat|eyes|face|lefthand|righthand)$/;
+const partOf = o => { let q = o; while (q) { const m = /attach-(\w+?)-mesh/.exec(q.name || ''); if (m) return m[1]; if (/^body/i.test(q.name || '')) return 'body'; q = q.parent; } return 'body'; };
+const csum = h => parseInt(h.slice(0, 2), 16) + parseInt(h.slice(2, 4), 16) + parseInt(h.slice(4, 6), 16);
+function recolorAuto(model, out, skinHex) {
+  const meshes = []; model.traverse(o => { if (o.isSkinnedMesh || o.isMesh) meshes.push(o); });
+  const count = {}; /* 每個部位最多的顏色 */
+  meshes.forEach(o => { const part = partOf(o); if (HIDE_PART.test(part)) { o.visible = false; return; } o.geometry = o.geometry.clone(); const col = o.geometry.attributes.color; if (!col) return; const c = count[part] || (count[part] = {}); for (let i = 0; i < col.count; i++) { const h = hexOf(col.getX(i), col.getY(i), col.getZ(i)); c[h] = (c[h] || 0) + 1; } });
+  const main = p => { const c = count[p]; if (!c) return null; let best = null; for (const h in c) if (!best || c[h] > c[best]) best = h; return best; };
+  const skinBase = main('body'), tint = Object.entries(out.tint || {}).map(([p, t]) => [p, main(p), t]).filter(x => x[1]);
+  meshes.forEach(o => { if (!o.visible) return; const col = o.geometry.attributes.color; if (!col) return; const part = partOf(o), tt = tint.find(x => x[0] === part);
+    for (let i = 0; i < col.count; i++) { const h = hexOf(col.getX(i), col.getY(i), col.getZ(i));
+      let base = null, target = null; if (skinBase && near(h, [skinBase])) { base = skinBase; target = skinHex; } else if (tt) { base = tt[1]; target = tt[2]; }
+      if (!target) continue; const k = Math.min(1.3, (csum(h) + 1) / (csum(base) + 1)); _c.set(target); col.setXYZ(i, Math.min(1, _c.r * k), Math.min(1, _c.g * k), Math.min(1, _c.b * k)); }
+    col.needsUpdate = true; });
+}
 function recolor(model, spec, out, skinHex) {
+  if (spec.auto) return recolorAuto(model, out, skinHex);
   const zones = [['skin', skinHex], ['top', out.top], ['bottom', out.bottom], ['print', out.print]];
   model.traverse(o => {
     if (!o.isSkinnedMesh && !o.isMesh) return;
