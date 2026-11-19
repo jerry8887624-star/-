@@ -1603,6 +1603,9 @@ const LOOK_SLOTS = { outfit: { pre: 'o', price: k => OUTFITS[k]?.price || 0, nam
   glasses: { pre: 'g', price: k => GLASSES_P[k] || 0, name: k => GLASSES[k] }, neck: { pre: 'n', price: k => NECKS[k]?.p || 0, name: k => NECKS[k]?.n }, ear: { pre: 'e', price: k => EARS[k]?.p || 0, name: k => EARS[k]?.n } };
 const owns = (slot, k) => !LOOK_SLOTS[slot].price(k) || (st.closet || []).includes(LOOK_SLOTS[slot].pre + k);
 let lookTab = 'outfit', lookCat = 'all';
+/* 卡片名字：長的從中間（或「・」後面）斷成兩行，不會剩一個字掉下去 */
+const lkLabel = t => { const i = t.indexOf('・'), j = t.indexOf('＋'); if (i > 0) return `${esc(t.slice(0, i + 1))}<br>${esc(t.slice(i + 1))}`; if (j > 0) return `${esc(t.slice(0, j))}<br>${esc(t.slice(j))}`; if (t.length < 6) return esc(t); const pre = LK_PRE.find(w => t.startsWith(w) && t.length - w.length >= 2); const m = pre ? pre.length : Math.ceil(t.length / 2); return `${esc(t.slice(0, m))}<br>${esc(t.slice(m))}`; };
+const LK_PRE = ['海軍藍', '芥末黃', '奶油黃', '夏威夷', '小巫師', '咖啡師', '撞色', '黑色', '酒紅', '橘色', '米白', '駝色', '卡其', '和風', '度假', '情侶', '海邊', '園藝', '登山', '雞蛋花', '愛心', '耳罩', '針織'];
 function openLooks(i = me().i) {
   const L = st.looks[i], lvl = LV().lv;
   const c = chars[i]; if (!lookCam) { c.path = null; const ry0 = c.ry; lookCam = { c, back: false, a: scene === 'in' ? Math.atan2(-c.x, -c.z) : c.ry };
@@ -1612,7 +1615,7 @@ function openLooks(i = me().i) {
   const accOK = a => a === 0 || (a === 2 && lvl >= 2) || (a === 1 && lvl >= 5);
   let pending = null;
   const card = (slot, k, label, sub = '') => { const own = owns(slot, k), on = (L[slot] | 0) === k, pr = LOOK_SLOTS[slot].price(k), buy = on && !own;
-    return `<button type="button" class="item lk-item${on ? ' on' : ''}${own ? '' : ' paid'}" data-s="${slot}" data-v="${k}" aria-pressed="${on}"><b>${esc(label)}</b><small>${buy ? `試穿中・<u>🪙 ${pr} 買下</u>` : own ? (on ? '穿著中' : (pr ? '已擁有' : '免費')) : `🪙 ${pr}`}</small></button>`; };
+    return `<button type="button" class="item lk-item${on ? ' on' : ''}${own ? '' : ' paid'}" data-s="${slot}" data-v="${k}" aria-pressed="${on}"><b>${lkLabel(label)}</b><small>${buy ? `試穿中・<u>🪙 ${pr} 買下</u>` : own ? (on ? '穿著中' : (pr ? '已擁有' : '免費')) : `🪙 ${pr}`}</small></button>`; };
   const arrows = rows => rows.map(([n, k, arr]) => `<div class="look-row" data-k="${k}" data-n="${arr.length}"><span>${n}</span><span id="lv-${k}">${esc(arr[(L[k] | 0) % arr.length])}</span><button type="button" data-d="-1" aria-label="上一個">‹</button><button type="button" data-d="1" aria-label="下一個">›</button></div>`).join('');
   const body = () => {
     if (lookTab === 'outfit') { const cats = [['all', '全部'], ...Object.entries(KIND_NAMES)];
