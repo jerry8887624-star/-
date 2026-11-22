@@ -115,6 +115,10 @@ export function tickAnimals(dt, P, walkOK) {
       const d = Math.hypot(p.x - P.x, p.z - P.z), toward = (_pv.vx * (p.x - P.x) + _pv.vz * (p.z - P.z)) / (d || 1), run = _pv.sp > 3.2 && toward > 1.5;
       if ((run && d < FLEE[a.key][0]) || (_pv.sp > 0.5 && toward > 0.3 && d < (a.key === 'gull' ? 1.6 : 1.0))) startFlee(a, P, d, run, walkOK);
     }
+    if (a.sleep) { /* 睡覺：動畫放很慢、頭低下來、身體趴低一點（在狗屋裡只露出頭） */
+      const nk = a.neck || (a.neck = a.o.getObjectByName('Neck')); a.mixer.timeScale = 0.25; playA(a, a.idle); if (nk) { if (a.neckRest == null) a.neckRest = nk.rotation.x; nk.rotation.x = a.neckRest + 0.35; } /* 設定成固定角度，不會越轉越多 */
+      const gy = standH(p.x, p.z) - 0.07; p.y += (gy - p.y) * Math.min(1, dt * 3); continue; }
+    if (a.mixer.timeScale !== 1) { a.mixer.timeScale = 1; if (a.neck && a.neckRest != null) { a.neck.rotation.x = a.neckRest; a.neckRest = null; } } /* 醒來：頭抬回來 */
     if (a.idleOnly) continue;
     if (a.hold > 0) { a.hold -= dt; playA(a, a.idle); continue; } // 被摸的時候乖乖站好
     a.t -= dt;

@@ -393,7 +393,7 @@ export class Avatar {
     if (e === 'jump' || e === 'cheer') by += Math.abs(Math.sin(et * (e === 'jump' ? 7 : 6))) * (e === 'jump' ? 0.3 : 0.15);
     if ((w = s('clap', e === 'clap'))) { const c = 0.35 + Math.sin(et * 18) * 0.25; this.aim(R, RF, V(-0.3, -0.25, 1), w); this.aim(RF, RH, V(c, 0.25, 1), w); this.aim(L, LF, V(0.3, -0.25, 1), w); this.aim(LF, LH, V(-c, 0.25, 1), w); }
     // 抱抱：兩手繞到對方背後（真的抱住）；沒有對方時才用原本的姿勢
-    if ((w = s('hugM', e === 'hug' && !!mate))) { this.twist('Spine1', V(1, 0, 0), 0.16 * w); this.reachTo(R, RF, RH, this.matePt('Spine1', -0.13, 0.13, 0.02), V(-1, -0.2, -0.4), w); this.reachTo(L, LF, LH, this.matePt('Spine1', -0.13, -0.13, 0.02), V(1, -0.2, -0.4), w); }
+    if ((w = s('hugM', e === 'hug' && !!mate))) { this.twist('Spine1', V(1, 0, 0), 0.3 * w); this.reachTo(R, RF, RH, this.matePt('Spine1', -0.05, 0.17, 0.06), V(-1, -0.3, -0.2), w); this.reachTo(L, LF, LH, this.matePt('Spine1', -0.04, -0.17, 0.0), V(1, -0.3, -0.2), w); } /* 身體往前靠，手環到對方腰側、貼著背 */
     if ((w = s('hug', e === 'hug' && !mate))) { this.aim(R, RF, V(-0.5, 0.05, 1), w); this.aim(RF, RH, V(0.85, 0.05, 0.55), w); this.aim(L, LF, V(0.5, 0.05, 1), w); this.aim(LF, LH, V(-0.85, 0.05, 0.55), w); this.twist('Spine1', V(1, 0, 0), 0.12 * w); }
     // 親親：身體往前傾到臉碰在一起；有對方時兩手扶在對方腰上
     if ((w = s('kiss', e === 'kiss'))) { this.twist('Spine1', V(1, 0, 0), 0.32 * w * Math.min(1, et * 3)); if (mate) { this.reachTo(R, RF, RH, this.matePt('Hips', 0.02, 0.15, 0.12), V(-1, -0.8, 0), w); this.reachTo(L, LF, LH, this.matePt('Hips', 0.02, -0.15, 0.12), V(1, -0.8, 0), w); } else { this.aim(R, RF, V(-0.3, -0.8, -0.5), w); this.aim(L, LF, V(0.3, -0.8, -0.5), w); } }

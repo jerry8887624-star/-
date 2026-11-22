@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, GLASSES, GLASSES_P, HATS, NECKS, EARS, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -715,7 +715,8 @@ function tickSpots() {
     const y = scene === 'in' ? 2.1 : (s.id === 'dog' ? pp.y + 1.2 : standH(pp.x, pp.z) + 2.0);
     v3.set(pp.x, y, pp.z).project(cam);
     if (v3.z > 1) { s.el.style.display = 'none'; continue; }
-    s.el.style.display = ''; s.el.style.left = ((v3.x + 1) / 2 * innerWidth) + 'px'; s.el.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px';
+    s.el.style.display = ''; const hw = (s.el._w || (s.el._w = s.el.offsetWidth || 90)) / 2 + 8; s.el.style.left = Math.min(innerWidth - hw, Math.max(hw, (v3.x + 1) / 2 * innerWidth)) + 'px'; s.el.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px'; /* 標籤不會被畫面邊緣切掉 */
+    if (s.id === 'dog') { const t = W.dog?.sleep ? '💤 狗狗睡著了' : `${s.icon} ${s.name}`; if (s.el.textContent !== t) { s.el.textContent = t; s.el._w = 0; } }
     s.el.style.opacity = s.lblK.toFixed(2); s.el.style.setProperty('--k', (0.86 + 0.14 * s.lblK).toFixed(3));
     if (s.badge) s.el.textContent = `${s.icon} ${s.name}${s.badge() ? ' ●' : ''}`;
   }
@@ -1302,13 +1303,60 @@ function actGarden() {
   render();
 }
 
+// ================= 狗狗自己的一天：跟著主人走一段、自己去逛逛聞聞、累了回狗屋睡覺，晚上一定回家睡 =================
+const DOGB = { mode: 'follow', t: 25, route: null, ri: 0, stuck: 0, lx: 0, lz: 0, zt: 0, sniff: 0, then: null }; window.__dog = DOGB; /* 測試用：看狗狗現在在做什麼 */
+const dogFront = k => ({ x: DOGHOUSE.x + Math.sin(DOGHOUSE.ry) * k, z: DOGHOUSE.z + Math.cos(DOGHOUSE.ry) * k });
+const dogSleepy = () => st.tod >= 21 || st.tod < 6; /* 這段時間狗狗一定回狗屋睡 */
+function dogGo(x, z, then) { const d = W.dog, p = d.o.position; d.sleep = false; d.follow = null; d.fetch = false;
+  DOGB.route = [...(findPath(p.x, p.z, x, z) || []), [x, z]]; DOGB.ri = 0; DOGB.stuck = 0; DOGB.then = then || null; }
+function dogWake(msgOut) { const d = W.dog; if (!d?.sleep) return false; d.sleep = false; const f = dogFront(1.1); DOGB.mode = 'follow'; DOGB.t = 40; dogGo(f.x, f.z); if (msgOut) toast('🐶 狗狗伸了個懶腰，從狗屋走出來'); return true; }
+function dogPick() {
+  const d = W.dog; d.follow = null; d.sleep = false;
+  if (dogSleepy()) { DOGB.mode = 'home'; DOGB.t = 9999; const f = dogFront(1.1); dogGo(f.x, f.z, () => { const b = dogFront(0.12); dogGo(b.x, b.z, () => { d.sleep = true; DOGB.mode = 'sleep'; d.o.rotation.y = DOGHOUSE.ry; }); }); return; }
+  const r = Math.random();
+  if (r < 0.34) { DOGB.mode = 'follow'; DOGB.t = 30 + Math.random() * 40; return; }
+  if (r < 0.46 && duo()) { DOGB.mode = 'partner'; DOGB.t = 25 + Math.random() * 25; return; }
+  if (r < 0.86) { DOGB.mode = 'wander'; DOGB.t = 45 + Math.random() * 50; dogWander(); return; }
+  DOGB.mode = 'nap'; DOGB.t = 40 + Math.random() * 50; const f = dogFront(1.1); dogGo(f.x, f.z, () => { const b = dogFront(0.12); dogGo(b.x, b.z, () => { d.sleep = true; d.o.rotation.y = DOGHOUSE.ry; }); });
+}
+/* 想去聞聞的地方：菜園、蓮花池、營火、野餐墊、愛情樹、雞舍、沙灘…或隨便找個草地 */
+function dogWander() {
+  const P = [SPOTS.garden, { x: BALI.pond.x + 0.2, z: BALI.pond.z + 1.6 }, SPOTS.campfire, SPOTS.picnic, TREE, SPOTS.coop, SPOTS.sunbathe, SPOTS.sandcastle, { x: 0, z: 5 }];
+  let q = pick(P); const a = Math.random() * 6.28, r = 0.8 + Math.random() * 1.6; let x = q.x + Math.cos(a) * r, z = q.z + Math.sin(a) * r; if (!canStand(x, z)) [x, z] = freeSpot(x, z);
+  dogGo(x, z, () => { DOGB.sniff = 3 + Math.random() * 5; });
+}
+function tickDog(dt) {
+  const d = W.dog; if (!d) return; const p = d.o.position;
+  if (scene !== 'out') return;
+  if (!DOGB.init) { DOGB.init = 1; if (dogSleepy()) { const b = dogFront(0.12); p.set(b.x, standH(b.x, b.z), b.z); d.o.rotation.y = DOGHOUSE.ry; d.sleep = true; DOGB.mode = 'sleep'; d.follow = null; d.tx = b.x; d.tz = b.z; } else DOGB.t = 8; } /* 晚上打開遊戲：狗狗已經在狗屋裡睡了 */
+  /* 走路線 */
+  if (DOGB.route) {
+    const [wx, wz] = DOGB.route[DOGB.ri], dist = Math.hypot(wx - p.x, wz - p.z);
+    d.tx = wx; d.tz = wz; d.home = { x: wx, z: wz }; d.roam = 0; d.t = 99;
+    if (Math.hypot(p.x - DOGB.lx, p.z - DOGB.lz) < dt * 0.2) DOGB.stuck += dt; else DOGB.stuck = 0; DOGB.lx = p.x; DOGB.lz = p.z;
+    if (dist < 0.3 || DOGB.stuck > 1.5) { DOGB.ri++; DOGB.stuck = 0; if (DOGB.ri >= DOGB.route.length) { DOGB.route = null; const t = DOGB.then; DOGB.then = null; t?.(); } }
+    return;
+  }
+  if (d.sleep) { DOGB.zt -= dt; if (DOGB.zt <= 0) { DOGB.zt = 1.8; burst('z', p.clone().add(new THREE.Vector3(Math.sin(DOGHOUSE.ry) * 0.2, 0.75, Math.cos(DOGHOUSE.ry) * 0.2)), 1, 0.15); }
+    if (DOGB.mode === 'sleep' && !dogSleepy()) { d.sleep = false; DOGB.t = 0; } /* 天亮了 */ }
+  if (DOGB.mode === 'follow' || DOGB.mode === 'partner') {
+    const who = DOGB.mode === 'partner' ? you() : me();
+    d.follow = () => (scene === 'out' && !act && who && !who.ghost ? who : null);
+    if (act) { d.home = { x: me().x, z: me().z }; d.roam = 2.5; } /* 主人在做活動：在旁邊晃 */
+  } else if (DOGB.mode === 'wander' && !d.sleep) { if (DOGB.sniff > 0) { DOGB.sniff -= dt; d.hold = 0.2; if (DOGB.sniff <= 0) dogWander(); } }
+  /* 主人走過來：在逛街的狗狗有時候會跑過來跟 */
+  if (DOGB.mode === 'wander' && !d.sleep && Math.hypot(me().x - p.x, me().z - p.z) < 3 && Math.random() < dt * 0.15) { DOGB.mode = 'follow'; DOGB.t = 30 + Math.random() * 30; d.hold = 0; }
+  if (DOGB.mode === 'sleep') return;
+  DOGB.t -= dt; if (DOGB.t <= 0 || (dogSleepy() && DOGB.mode !== 'home')) dogPick();
+}
+
 // ---------- 狗狗：摸摸、丟球 ----------
 let ballM = null;
 function actDog() {
   const d = W.dog; if (!d) return;
   openDlg('🐶 狗狗', `<div class="opts"><button type="button" id="dog-pet">🫳 摸摸狗狗<small>牠會很開心</small></button><button type="button" id="dog-ball">🎾 丟球<small>看牠跑去撿回來</small></button></div>`);
   $('#dog-pet').onclick = () => {
-    $('#dlg').close(); const p = me(), dp = d.o.position;
+    $('#dlg').close(); if (dogWake(true)) return; DOGB.mode = 'follow'; DOGB.t = 40; DOGB.route = null; const p = me(), dp = d.o.position;
     // 狗狗先停下來，走到牠前面蹲下摸
     d.hold = 3.2; d.tx = dp.x; d.tz = dp.z;
     const ang = Math.atan2(p.x - dp.x, p.z - dp.z), tx = dp.x + Math.sin(ang) * 0.75, tz = dp.z + Math.cos(ang) * 0.75;
@@ -1316,7 +1364,7 @@ function actDog() {
     if (Math.hypot(tx - p.x, tz - p.z) < 0.4) pet(); else route(p, tx, tz, { r: 0.5, run: pet });
   };
   $('#dog-ball').onclick = () => {
-    $('#dlg').close(); const p = me();
+    $('#dlg').close(); if (dogWake(true)) return; DOGB.mode = 'follow'; DOGB.t = 40; DOGB.route = null; const p = me();
     if (!ballM) { ballM = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), toon('#d8f04a')); }
     OUT.add(ballM); ballM.visible = true;
     // 往前丟 8 公尺，找得到能走的地方
@@ -1971,8 +2019,12 @@ let loveAsk = null, approach = null;
 /* 連線時的親親、抱抱、摸頭、牽手：不用問對方，直接走過去做；對方的角色會自然回應 */
 const LOVE_PTS = { hug: 2, kiss: 3, pat: 2 };
 /* 兩個人站多近：[面對面的距離, 往旁邊錯開多少]。頭很大，太近會疊在一起；抱抱時稍微錯開，頭才會靠在對方肩膀旁邊 */
-const LOVE_GAP = { hug: [0.6, 0.24], kiss: [0.88, 0], pat: [0.8, 0] };
-function loveSpot(c, k) { const yw = scene === 'in' ? view.inYaw : view.yaw, [g, o] = LOVE_GAP[k] || [0.8, 0], sx = Math.cos(yw), sz = -Math.sin(yw); let tx = c.x + sx * g - sz * o, tz = c.z + sz * g + sx * o; if (!canStand(tx, tz)) { tx = c.x - sx * g + sz * o; tz = c.z - sz * g - sx * o; } return [tx, tz]; }
+const LOVE_GAP = { hug: [0.42, 0.3], kiss: [0.88, 0], pat: [0.8, 0] }; /* 抱抱：身體貼近、兩顆頭錯開到對方肩膀旁，手才環得到背 */
+/* 對方旁邊的兩個位置（鏡頭看過去的左右）：選離自己近、站得下的那一個，走過去才不會穿過對方 */
+function loveSpot(c, k) { const yw = scene === 'in' ? view.inYaw : view.yaw, [g, o] = LOVE_GAP[k] || [0.8, 0], sx = Math.cos(yw), sz = -Math.sin(yw), p = me();
+  const A = [c.x + sx * g - sz * o, c.z + sz * g + sx * o], B = [c.x - sx * g + sz * o, c.z - sz * g - sx * o];
+  const okA = canStand(...A), okB = canStand(...B); if (okA !== okB) return okA ? A : B;
+  return Math.hypot(A[0] - p.x, A[1] - p.z) <= Math.hypot(B[0] - p.x, B[1] - p.z) ? A : B; }
 function requestLove(k) {
   const q = you(), pid = [...MP.peers.values()].find(p => p.role === 1 - MP.role)?.id; if (!pid) return;
   if (k === 'hand') {
@@ -2019,7 +2071,10 @@ function netMove(dt, hasInput) {
     approach.t += dt; const d = Math.hypot(tx - p.x, tz - p.z);
     if (hasInput && approach.t > 0.4) { approach = null; return false; } /* 自己推搖桿就取消 */
     if (d < 0.14 || approach.t > (approach.max || 2)) { if (d >= 0.14 && d < 1.2) { p.x = tx; p.z = tz; } const k = approach.k, pid = approach.mine; approach = null; p.moving = false; if (d < 1.2) loveNow(k, pid); }
-    else stepChar(p, tx - p.x, tz - p.z, dt, 3.2);
+    else { /* 直線會擦過對方：先繞到對方旁邊再過去 */
+      const ux = tx - p.x, uz = tz - p.z, L2 = ux * ux + uz * uz || 1, k = Math.max(0, Math.min(1, ((c.x - p.x) * ux + (c.z - p.z) * uz) / L2)), cx = p.x + ux * k - c.x, cz = p.z + uz * k - c.z, near = Math.hypot(cx, cz);
+      if (near < 0.42 && k > 0.05 && k < 0.95) { const n = Math.hypot(cx, cz) || 1, side = near > 0.001 ? [cx / n, cz / n] : [-uz / Math.sqrt(L2), ux / Math.sqrt(L2)]; stepChar(p, c.x + side[0] * 0.7 - p.x, c.z + side[1] * 0.7 - p.z, dt, 3.2); }
+      else stepChar(p, ux, uz, dt, 3.2); }
     return true;
   }
   if (MP.led) {
@@ -2592,7 +2647,7 @@ function frame() {
 
   if (scene === 'out') {
     mixers.forEach(m => m.update(dt));
-    if (W.dog && !W.dog.follow) W.dog.follow = () => scene === 'out' && !act ? me() : null;
+    tickDog(dt);
     tickAnimals(dt, p, (x, z) => walkable(x, z) && !blocked(x, z, 0.2, [], BOXES));
     tickShells(T); tickFireworks(dt); tickMeteor(dt);
   }
@@ -3620,7 +3675,7 @@ function dogWelcome() {
   if (MP.role === 'g') return; const last = st.lastDayHere, gap = last ? st.day - last : 0;
   if (last !== st.day) { st.visitDays = (st.visitDays || 0) + 1; st.lastDayHere = st.day; save(); }
   const d = W.dog; if (!last || gap < 1 || !d || scene !== 'out') return;
-  const p = me(); d.o.position.set(p.x + 5, standH(p.x + 5, p.z + 3), p.z + 3); d.tx = p.x + 0.7; d.tz = p.z + 0.5; d.t = 3;
+  const p = me(); d.sleep = false; DOGB.route = null; DOGB.mode = 'follow'; DOGB.t = 45; d.o.position.set(p.x + 5, standH(p.x + 5, p.z + 3), p.z + 3); d.tx = p.x + 0.7; d.tz = p.z + 0.5; d.t = 3;
   setTimeout(() => {
     p.av.emote('petdog', 2); burst('heart', d.o.position.clone().add(new THREE.Vector3(0, 0.8, 0)), gap >= 3 ? 12 : 7); sfx('pop');
     toast(gap >= 3 ? `🐶 ${gap} 天沒見，狗狗開心到一直轉圈圈！` : '🐶 狗狗衝過來撲到你身上：好想你！', 4000); addLove(2, null, 'dogwelcome');

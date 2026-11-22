@@ -285,6 +285,8 @@ function buildYoga(S) {
   return { g, curtains, face: g.rotation.y, mats: MATS.map(([lx]) => mat(lx)), enter: new THREE.Vector3(0, 0, -D / 2 - 0.9).applyMatrix4(g.matrixWorld) };
 }
 /* ---------- 木屋前的峇里島庭院：踏腳石步道、火把、峇里涼亭（臥榻）、錦鯉蓮花池、熱帶植物 ---------- */
+/* 狗屋：木屋右前方，門朝著院子；狗狗晚上、想睡的時候會自己走回來睡 */
+export const DOGHOUSE = { x: 6.3, z: -3.7, ry: -0.6 };
 export const BALI = { bale: { x: 5.6, z: 4.4, ry: -Math.PI / 2, s: 0.85 }, pond: { x: -3.3, z: 1.3, ry: 0.15, s: 1.05 }, torches: [[-1.15, 1.6], [1.15, 1.6], [-1.15, 6.2], [1.15, 6.2]] };
 function buildBali(S, W) {
   const B = BALI.bale, jobs = [], g = new THREE.Group(); S.add(g);
@@ -332,6 +334,8 @@ export async function buildIsland(S) {
   const W = {};
   W.ground = makeIsland(); S.add(W.ground);
   W.yoga = buildYoga(S); window.__yoga = W.yoga;
+  CIRCLES.push([DOGHOUSE.x, DOGHOUSE.z, 0.62]); /* 人不會穿過狗屋（狗狗自己可以走進去） */
+  const dogHouseJob = one(S, 'backyard-doghouse-50a492', DOGHOUSE.x, DOGHOUSE.z, DOGHOUSE.ry, 1).then(o => { W.doghouse = o; });
   const baliJob = buildBali(S, W);
   W.water = makeWater(); S.add(W.water); W.surf = makeSurf(); S.add(W.surf);
   W.sky = makeSky(); S.add(W.sky.g);
@@ -409,7 +413,7 @@ export async function buildIsland(S) {
     ...[[DOCK.x1 - 0.6, 1.0], [30, -0.8], [-14, 24]].map(([x, z]) => animal(S, 'gull', x, z, { s: 1.2, roam: 1.5, speed: 0.3 })),
     ...[[40, 4], [38, -4], [44, 2], [42, -6]].map(([x, z]) => animal(S, 'fish', x, z, { s: 0.7, roam: 4, speed: 0.8, swim: true, y: -0.5 })),
   ];
-  await Promise.all([...jobs, ...zoo, baliJob]);
+  await Promise.all([...jobs, ...zoo, baliJob, dogHouseJob]);
   // 狗一開始待在家附近，main.js 會設定 follow
   return W;
 }
