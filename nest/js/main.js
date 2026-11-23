@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, GLASSES, GLASSES_P, HATS, NECKS, EARS, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickCritters, tickChapel, BEACH, CHAPEL, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickCritters, tickChapel, BEACH, CHAPEL, FARM, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -662,6 +662,9 @@ const SP = [
   { id: 'kitchen', sc: 'in', ...INSPOTS.kitchen, icon: '🍳', name: '做飯', run: actCook },
   { id: 'read', sc: 'in', ...INSPOTS.read, icon: '📚', name: '閱讀角', run: actRead },
   { id: 'dining', sc: 'in', ...INSPOTS.dining, icon: '🍽️', name: '吃飯', run: actEat, hide: () => !IN?.dish.visible },
+  { id: 'pasture', sc: 'out', x: FARM.pasture.x + FARM.pasture.w / 2 + 1.3, z: FARM.pasture.z, r: 2, icon: '🐑', name: '小牧場', run: () => actPasture() },
+  { id: 'field', sc: 'out', x: FARM.field.x1 + 1.1, z: (FARM.field.z0 + FARM.field.z1) / 2, r: 2, icon: '🍓', name: '採收', run: () => actField() },
+  { id: 'well', sc: 'out', x: FARM.well.x + 1.1, z: FARM.well.z + 0.4, r: 1.4, icon: '🪣', name: '水井', run: () => useWell() },
   { id: 'bell', sc: 'out', x: CHAPEL.bell.x, z: CHAPEL.bell.z + 1.3, r: 1.8, icon: '🔔', name: '一起敲鐘', run: () => actBell() },
   { id: 'vow', sc: 'out', x: 0, z: 0, r: 1.8, icon: '💍', name: '小教堂', run: () => actVow(), pos: () => chapelDoor() },
   { id: 'dinner', sc: 'out', x: CHAPEL.table.x, z: CHAPEL.table.z + 1.3, r: 1.8, icon: '🕯️', name: '燭光晚餐', run: () => actDinner() },
@@ -1517,7 +1520,7 @@ function actRead() {
 function pantryCount(k) { const P = st.pantry || {}; return k === '魚' ? EDIBLE.filter(n => n !== '愛心魚').reduce((t, n) => t + (P[n] || 0), 0) : P[k] || 0; }
 function canCook(r) { return Object.entries(r[3]).every(([k, n]) => pantryCount(k) >= n); }
 function useIngredients(r) { const P = st.pantry; for (const [k, n] of Object.entries(r[3])) { let left = n; if (k === '魚') { for (const f of ['小丑魚', '藍色倒吊', '黃金鯛', '小章魚', '鮪魚']) while (left > 0 && P[f] > 0) { P[f]--; left--; } } else P[k] -= n; } save(); }
-const FOOD_ICON = { 雞蛋: '🥚', 魚: '🐟', 鮪魚: '🐟', 小章魚: '🐙', 愛心魚: '💗', 小丑魚: '🐠', 藍色倒吊: '🐟', 黃金鯛: '🐡' };
+const FOOD_ICON = { 草莓: '🍓', 番茄: '🍅', 牛奶: '🥛', 雞蛋: '🥚', 魚: '🐟', 鮪魚: '🐟', 小章魚: '🐙', 愛心魚: '💗', 小丑魚: '🐠', 藍色倒吊: '🐟', 黃金鯛: '🐡' };
 function pantryText() { const P = st.pantry || {}, list = Object.entries(P).filter(([, n]) => n > 0); return list.length ? list.map(([k, n]) => `${FOOD_ICON[k] || '🍽️'}${k}×${n}`).join('　') : '空空的（釣魚帶回家、去雞舍撿雞蛋）'; }
 function actCook() {
   const p = me(), q = you(); seat(p, 4.9, 0, FURN.cook.z + 0.75, Math.PI, 'stand'); p.y = null; seat(q, 3.8, 0, FURN.cook.z + 0.75, Math.PI, 'stand'); q.y = null; // 站在流理台前：一個顧爐子、一個在水槽邊洗菜
@@ -3477,6 +3480,38 @@ function santaGift() {
   openDlg('🎅 聖誕老公公的禮物', `<div class="fest-card"><span>🎁</span><b>Ho ho ho！聖誕快樂！</b><p>「這是給你們小島的禮物——<b class="nw">${esc(it[1])}</b><br>今年也要一直相親相愛喔。」</p></div><p class="muted">禮物已經放進裝潢的包包裡，還有 🪙 100。</p><button type="button" class="primary" id="sg-ok">謝謝聖誕老公公 ♥</button>`);
   $('#sg-ok').onclick = () => $('#dlg').close();
 }
+
+// ================= 小農場：牧場餵動物、擠牛奶；田裡採草莓番茄；水井打水 =================
+const farmDay = () => (st.farm?.d === st.day ? st.farm : (st.farm = { d: st.day, berry: 0, tomato: 0, milk: 0, fed: 0 }));
+const addFood = (k, n) => { st.pantry = st.pantry || {}; st.pantry[k] = (st.pantry[k] || 0) + n; save(); };
+function actPasture() {
+  const P = FARM.pasture, gx = P.x + P.w / 2 + 0.9, gz = P.z; let fed = false;
+  actGo(() => { seat(me(), gx, null, gz - 0.35, -Math.PI / 2, 'stand'); seat(you(), gx, null, gz + 0.35, -Math.PI / 2, 'stand'); });
+  const come = () => (W.farmAnimals || []).forEach((a, i) => { a.tx = gx - 1.1 - (i % 2) * 0.7; a.tz = gz + (i - 2) * 0.55; a.t = 6; a.hold = 0; });
+  const btns = () => setBtns([{ t: '🌾 餵牧草', main: true, fn: () => { come(); me().av.emote('throw', 0.8); sfx('pop'); fed = true; const F = farmDay(); F.fed++; save(); setTimeout(() => burst('heart', new THREE.Vector3(gx - 1.4, LAND_Y + 1, gz), 6, 0.5), 1600);
+        msg(pick(['綿羊跑最快，山羊在後面推擠。', '小豬吃得滿臉都是。', '乳牛慢慢走過來，眼睛好溫柔。'])); if (F.fed === 1) addLove(2, '餵了牧場的動物', 'feed'); } },
+    { t: '🐑 摸摸小羊', fn: () => { me().av.emote('petdog', 2); setTimeout(() => burst('heart', new THREE.Vector3(gx - 1.1, LAND_Y + 0.9, gz), 3, 0.3), 700); msg(pick(['軟綿綿的，像雲一樣。', '小羊咩了一聲。', '毛裡面有一根草。'])); } },
+    { t: '🥛 擠牛奶', fn: () => { const F = farmDay(); if (F.milk >= 1) return msg('乳牛今天已經擠過了，明天再來吧。'); F.milk++; addFood('牛奶', 1); me().av.emote('interact', 1.4); sfx('water'); msg('🥛 擠了一瓶新鮮牛奶，放進冰箱了（可以做草莓牛奶、牛奶布丁）。'); addLove(1, null, 'milk'); } }]);
+  beginAct('pasture', '🐑 小牧場', '綿羊、山羊、乳牛和小豬，看到人就跑過來討吃的。', {
+    focus: () => new THREE.Vector3(gx - 1.5, LAND_Y + 0.8, gz), camYaw: Math.PI / 2 + 0.55, camPitch: 0.28, near: () => 0.85, back: [gx + 1.2, gz],
+    btns: [], end() { if (fed) addMemo('🐑', duo() ? '一起去牧場餵動物' : '去牧場餵了動物'); },
+  });
+  btns();
+}
+function actField() {
+  const fd = FARM.field, x = fd.x1 + 0.5, z = (fd.z0 + fd.z1) / 2; let got = 0;
+  actGo(() => { seat(me(), x, null, z - 0.5, -Math.PI / 2, 'crouch'); seat(you(), x, null, z + 0.6, -Math.PI / 2, 'crouch'); });
+  const pickIt = (k, max, icon) => { const F = farmDay(), key = k === '草莓' ? 'berry' : 'tomato'; if (F[key] >= max) return msg(`今天的${k}都摘完了，明天會再長出來。`); const n = k === '草莓' ? 2 : 1; F[key] += n; addFood(k, n); got += n; me().av.emote('harvest', 1.6); sfx('pop');
+    burst('heart', headPos(me(), 0.9), 2, 0.3); msg(`${icon} 摘了 ${n} ${k === '草莓' ? '顆草莓' : '顆番茄'}，放進冰箱（今天還能摘 ${Math.max(0, max - F[key])}）。`); if (got === n) addLove(1, null, 'harvest'); };
+  beginAct('field', '🍓 小農田', '草莓紅了、番茄也熟了，蹲下來摘一點吧。', {
+    focus: () => new THREE.Vector3(x - 1.5, LAND_Y + 0.5, z), camYaw: Math.PI / 2 + 0.5, camPitch: 0.35, near: () => 0.8, back: [x + 1, z],
+    btns: [{ t: '🍓 摘草莓', main: true, fn: () => pickIt('草莓', 6, '🍓') }, { t: '🍅 摘番茄', fn: () => pickIt('番茄', 3, '🍅') },
+      { t: '💧 澆水', fn: () => { me().av.emote('water', 2); sfx('water'); burst('star', new THREE.Vector3(x - 1.2, LAND_Y + 0.6, z), 8, 0.5); msg(pick(['葉子上的水珠亮晶晶。', '稻草人好像在笑。', '南瓜又變大了一點。'])); } }],
+    end() { if (got) addMemo('🍓', `在小農田摘了 ${got} 個${duo() ? '，兩個人邊摘邊偷吃' : ''}`); },
+  });
+}
+function useWell() { const p = me(); p.ry = Math.atan2(FARM.well.x - p.x, FARM.well.z - p.z); p.av.emote('interact', 1.6); setTimeout(() => sfx('water'), 600); setTimeout(() => burst('star', new THREE.Vector3(FARM.well.x, LAND_Y + 1, FARM.well.z), 6, 0.3), 700);
+  toast(pick(['🪣 打了一桶清涼的井水', '🪣 往井裡看，看到兩個人的倒影', '🪣 對著井說了一句悄悄話，聲音繞了一圈回來'])); if (st.wellDay !== st.day) { st.wellDay = st.day; addLove(1); } }
 
 // ================= 地中海小教堂：一起敲鐘、門口許下約定、燭光晚餐 =================
 function chapelDoor() { const d = W?.chapel?.getObjectByName('door'); if (!d) return { x: 999, z: 999 }; const p = d.getWorldPosition(new THREE.Vector3()), a = CHAPEL.ry; return { x: p.x + Math.sin(a) * 1.3, z: p.z + Math.cos(a) * 1.3 }; }
