@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, GLASSES, GLASSES_P, HATS, NECKS, EARS, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickCritters, tickChapel, BEACH, CHAPEL, FARM, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -662,6 +662,16 @@ const SP = [
   { id: 'kitchen', sc: 'in', ...INSPOTS.kitchen, icon: '🍳', name: '做飯', run: actCook },
   { id: 'read', sc: 'in', ...INSPOTS.read, icon: '📚', name: '閱讀角', run: actRead },
   { id: 'dining', sc: 'in', ...INSPOTS.dining, icon: '🍽️', name: '吃飯', run: actEat, hide: () => !IN?.dish.visible },
+  { id: 'pasture', sc: 'out', x: FARM.pasture.x + FARM.pasture.w / 2 + 1.3, z: FARM.pasture.z, r: 2, icon: '🐑', name: '小牧場', run: () => actPasture() },
+  { id: 'field', sc: 'out', x: FARM.field.x1 + 1.1, z: (FARM.field.z0 + FARM.field.z1) / 2, r: 2, icon: '🍓', name: '採收', run: () => actField() },
+  { id: 'well', sc: 'out', x: FARM.well.x + 1.1, z: FARM.well.z + 0.4, r: 1.4, icon: '🪣', name: '水井', run: () => useWell() },
+  { id: 'bell', sc: 'out', x: CHAPEL.bell.x, z: CHAPEL.bell.z + 1.3, r: 1.8, icon: '🔔', name: '一起敲鐘', run: () => actBell() },
+  { id: 'vow', sc: 'out', x: 0, z: 0, r: 1.8, icon: '💍', name: '小教堂', run: () => actVow(), pos: () => chapelDoor() },
+  { id: 'dinner', sc: 'out', x: CHAPEL.table.x, z: CHAPEL.table.z + 1.3, r: 1.8, icon: '🕯️', name: '燭光晚餐', run: () => actDinner() },
+  { id: 'icecream', sc: 'out', x: BEACH.kiosk.x - 1.5, z: BEACH.kiosk.z, r: 1.8, icon: '🍦', name: '冰淇淋車', run: () => actIceCream() },
+  { id: 'shower', sc: 'out', x: BEACH.shower.x + 0.6, z: BEACH.shower.z + 0.3, r: 1.2, icon: '🚿', name: '沖腳', run: () => useShower() },
+  { id: 'kayak', sc: 'out', x: 10.3, z: 24.6, r: 1.8, icon: '🛶', name: '划獨木舟', run: () => actPaddle('kayak') },
+  { id: 'sup', sc: 'out', x: 12.6, z: 25.2, r: 1.6, icon: '🏄', name: '立式划槳', run: () => actPaddle('sup') },
   { id: 'bale', sc: 'out', x: 0, z: 0, r: 2.2, icon: '🛖', name: '峇里涼亭', run: () => actBale(), pos: () => W?.bale ? baleAt(0, W.bale.L / 2 + 0.7) : { x: 999, z: 999 } },
   { id: 'pond', sc: 'out', x: 0, z: 0, r: 2, icon: '🪷', name: '蓮花池', run: () => actPond(), pos: () => W?.pond ? { x: W.pond.edge[0], z: W.pond.edge[1] } : { x: 999, z: 999 } },
   { id: 'yoga', sc: 'out', x: 0, z: 0, r: 2.4, icon: '🧘', name: '海邊瑜伽', run: () => actYoga(), pos: () => W?.yoga?.enter || { x: 999, z: 999 } },
@@ -1304,6 +1314,7 @@ function actGarden() {
 }
 
 // ================= 狗狗自己的一天：跟著主人走一段、自己去逛逛聞聞、累了回狗屋睡覺，晚上一定回家睡 =================
+window.__crit = k => animals.find(a => a.key === k)?.o.position; /* 測試用：找某種動物的位置 */
 const DOGB = { mode: 'follow', t: 25, route: null, ri: 0, stuck: 0, lx: 0, lz: 0, zt: 0, sniff: 0, then: null }; window.__dog = DOGB; /* 測試用：看狗狗現在在做什麼 */
 const dogFront = k => ({ x: DOGHOUSE.x + Math.sin(DOGHOUSE.ry) * k, z: DOGHOUSE.z + Math.cos(DOGHOUSE.ry) * k });
 const dogSleepy = () => st.tod >= 21 || st.tod < 6; /* 這段時間狗狗一定回狗屋睡 */
@@ -1509,7 +1520,7 @@ function actRead() {
 function pantryCount(k) { const P = st.pantry || {}; return k === '魚' ? EDIBLE.filter(n => n !== '愛心魚').reduce((t, n) => t + (P[n] || 0), 0) : P[k] || 0; }
 function canCook(r) { return Object.entries(r[3]).every(([k, n]) => pantryCount(k) >= n); }
 function useIngredients(r) { const P = st.pantry; for (const [k, n] of Object.entries(r[3])) { let left = n; if (k === '魚') { for (const f of ['小丑魚', '藍色倒吊', '黃金鯛', '小章魚', '鮪魚']) while (left > 0 && P[f] > 0) { P[f]--; left--; } } else P[k] -= n; } save(); }
-const FOOD_ICON = { 雞蛋: '🥚', 魚: '🐟', 鮪魚: '🐟', 小章魚: '🐙', 愛心魚: '💗', 小丑魚: '🐠', 藍色倒吊: '🐟', 黃金鯛: '🐡' };
+const FOOD_ICON = { 草莓: '🍓', 番茄: '🍅', 牛奶: '🥛', 雞蛋: '🥚', 魚: '🐟', 鮪魚: '🐟', 小章魚: '🐙', 愛心魚: '💗', 小丑魚: '🐠', 藍色倒吊: '🐟', 黃金鯛: '🐡' };
 function pantryText() { const P = st.pantry || {}, list = Object.entries(P).filter(([, n]) => n > 0); return list.length ? list.map(([k, n]) => `${FOOD_ICON[k] || '🍽️'}${k}×${n}`).join('　') : '空空的（釣魚帶回家、去雞舍撿雞蛋）'; }
 function actCook() {
   const p = me(), q = you(); seat(p, 4.9, 0, FURN.cook.z + 0.75, Math.PI, 'stand'); p.y = null; seat(q, 3.8, 0, FURN.cook.z + 0.75, Math.PI, 'stand'); q.y = null; // 站在流理台前：一個顧爐子、一個在水槽邊洗菜
@@ -1967,6 +1978,7 @@ function onNet(m) {
   }
   if (m.t === 'pos') { const c = peerChar(m.id); if (!c) return; c.net = m; if (!c.seen) { c.seen = 1; c.x = m.x; c.z = m.z; c.ry = m.ry; } return; }
   if (m.t === 'emo') { const c = peerChar(m.id); if (!c) return; c.av.emote(m.k, m.d); if (m.k === 'kiss' || m.k === 'hug') burst('heart', headPos(c, 1.6), 5, 0.3); return; }
+  if (m.t === 'fx' && m.k === 'bell') { if (W?.bell) W.bell.userData.ring = 3.2; if (scene === 'out') sfx('chime'); return; } /* 另一半敲鐘：這邊也看得到、聽得到 */
   if (m.t === 'fx') { if (m.k === 'fw' && scene === 'out') launchFirework(!!m.a, true); if (m.k === 'sweet' && act?.id === 'bed') sweetNight(false); if (m.k === 'yg') { const c = peerChar(m.id); if (c) c.av.yoga = YOGA_POSES[m.a]?.[0] || null; } if (m.k === 'rare' && scene === 'out' && RARE[m.a]) rareStart(RARE[m.a].k, false); return; }
   if (m.t === 'boat') { if (W?.boat && !MP.driving) { MP.boatT = { x: m.x, z: m.z, ry: m.ry }; if (m.home) { W.boat.position.x = m.x; W.boat.position.z = m.z; W.boat.rotation.y = m.ry; MP.boatT = null; } } MP.boatAway = !m.home; return; }
   if (m.t === 'save') { applySave(m.keys); return; }
@@ -2590,7 +2602,7 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickChapel(W, performance.now() / 1000, dt); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   { const pp = me().av.root.position, gx = Math.round(pp.x / 3) * 3, gz = Math.round(pp.z / 3) * 3; W.sunL.target.position.set(gx, 0, gz); W.sunL.position.x += gx; W.sunL.position.z += gz; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
@@ -2637,7 +2649,7 @@ function frame() {
     } else p.moving = false;
   }
   if (!act || !you().locked) partnerAI(dt);
-  tickWalkIn(dt);
+  tickWalkIn(dt); tickCrafts(dt);
   if (act && walkingIn() && Math.hypot(joy.x, joy.y) > 0.4) endAct(); /* 走過去的路上推搖桿 = 不做了 */
   if (act && !walkingIn()) { act.t += dt; act.update?.(dt); } /* 兩個人都走到定點，活動才開始計時 */
   placeRoots(dt);
@@ -3468,6 +3480,159 @@ function santaGift() {
   openDlg('🎅 聖誕老公公的禮物', `<div class="fest-card"><span>🎁</span><b>Ho ho ho！聖誕快樂！</b><p>「這是給你們小島的禮物——<b class="nw">${esc(it[1])}</b><br>今年也要一直相親相愛喔。」</p></div><p class="muted">禮物已經放進裝潢的包包裡，還有 🪙 100。</p><button type="button" class="primary" id="sg-ok">謝謝聖誕老公公 ♥</button>`);
   $('#sg-ok').onclick = () => $('#dlg').close();
 }
+
+// ================= 小農場：牧場餵動物、擠牛奶；田裡採草莓番茄；水井打水 =================
+const farmDay = () => (st.farm?.d === st.day ? st.farm : (st.farm = { d: st.day, berry: 0, tomato: 0, milk: 0, fed: 0 }));
+const addFood = (k, n) => { st.pantry = st.pantry || {}; st.pantry[k] = (st.pantry[k] || 0) + n; save(); };
+function actPasture() {
+  const P = FARM.pasture, gx = P.x + P.w / 2 + 0.9, gz = P.z; let fed = false;
+  actGo(() => { seat(me(), gx, null, gz - 0.35, -Math.PI / 2, 'stand'); seat(you(), gx, null, gz + 0.35, -Math.PI / 2, 'stand'); });
+  const come = () => (W.farmAnimals || []).forEach((a, i) => { a.tx = gx - 1.1 - (i % 2) * 0.7; a.tz = gz + (i - 2) * 0.55; a.t = 6; a.hold = 0; });
+  const btns = () => setBtns([{ t: '🌾 餵牧草', main: true, fn: () => { come(); me().av.emote('throw', 0.8); sfx('pop'); fed = true; const F = farmDay(); F.fed++; save(); setTimeout(() => burst('heart', new THREE.Vector3(gx - 1.4, LAND_Y + 1, gz), 6, 0.5), 1600);
+        msg(pick(['綿羊跑最快，山羊在後面推擠。', '小豬吃得滿臉都是。', '乳牛慢慢走過來，眼睛好溫柔。'])); if (F.fed === 1) addLove(2, '餵了牧場的動物', 'feed'); } },
+    { t: '🐑 摸摸小羊', fn: () => { me().av.emote('petdog', 2); setTimeout(() => burst('heart', new THREE.Vector3(gx - 1.1, LAND_Y + 0.9, gz), 3, 0.3), 700); msg(pick(['軟綿綿的，像雲一樣。', '小羊咩了一聲。', '毛裡面有一根草。'])); } },
+    { t: '🥛 擠牛奶', fn: () => { const F = farmDay(); if (F.milk >= 1) return msg('乳牛今天已經擠過了，明天再來吧。'); F.milk++; addFood('牛奶', 1); me().av.emote('interact', 1.4); sfx('water'); msg('🥛 擠了一瓶新鮮牛奶，放進冰箱了（可以做草莓牛奶、牛奶布丁）。'); addLove(1, null, 'milk'); } }]);
+  beginAct('pasture', '🐑 小牧場', '綿羊、山羊、乳牛和小豬，看到人就跑過來討吃的。', {
+    focus: () => new THREE.Vector3(gx - 1.5, LAND_Y + 0.8, gz), camYaw: Math.PI / 2 + 0.55, camPitch: 0.28, near: () => 0.85, back: [gx + 1.2, gz],
+    btns: [], end() { if (fed) addMemo('🐑', duo() ? '一起去牧場餵動物' : '去牧場餵了動物'); },
+  });
+  btns();
+}
+function actField() {
+  const fd = FARM.field, x = fd.x1 + 0.5, z = (fd.z0 + fd.z1) / 2; let got = 0;
+  actGo(() => { seat(me(), x, null, z - 0.5, -Math.PI / 2, 'crouch'); seat(you(), x, null, z + 0.6, -Math.PI / 2, 'crouch'); });
+  const pickIt = (k, max, icon) => { const F = farmDay(), key = k === '草莓' ? 'berry' : 'tomato'; if (F[key] >= max) return msg(`今天的${k}都摘完了，明天會再長出來。`); const n = k === '草莓' ? 2 : 1; F[key] += n; addFood(k, n); got += n; me().av.emote('harvest', 1.6); sfx('pop');
+    burst('heart', headPos(me(), 0.9), 2, 0.3); msg(`${icon} 摘了 ${n} ${k === '草莓' ? '顆草莓' : '顆番茄'}，放進冰箱（今天還能摘 ${Math.max(0, max - F[key])}）。`); if (got === n) addLove(1, null, 'harvest'); };
+  beginAct('field', '🍓 小農田', '草莓紅了、番茄也熟了，蹲下來摘一點吧。', {
+    focus: () => new THREE.Vector3(x - 1.5, LAND_Y + 0.5, z), camYaw: Math.PI / 2 + 0.5, camPitch: 0.35, near: () => 0.8, back: [x + 1, z],
+    btns: [{ t: '🍓 摘草莓', main: true, fn: () => pickIt('草莓', 6, '🍓') }, { t: '🍅 摘番茄', fn: () => pickIt('番茄', 3, '🍅') },
+      { t: '💧 澆水', fn: () => { me().av.emote('water', 2); sfx('water'); burst('star', new THREE.Vector3(x - 1.2, LAND_Y + 0.6, z), 8, 0.5); msg(pick(['葉子上的水珠亮晶晶。', '稻草人好像在笑。', '南瓜又變大了一點。'])); } }],
+    end() { if (got) addMemo('🍓', `在小農田摘了 ${got} 個${duo() ? '，兩個人邊摘邊偷吃' : ''}`); },
+  });
+}
+function useWell() { const p = me(); p.ry = Math.atan2(FARM.well.x - p.x, FARM.well.z - p.z); p.av.emote('interact', 1.6); setTimeout(() => sfx('water'), 600); setTimeout(() => burst('star', new THREE.Vector3(FARM.well.x, LAND_Y + 1, FARM.well.z), 6, 0.3), 700);
+  toast(pick(['🪣 打了一桶清涼的井水', '🪣 往井裡看，看到兩個人的倒影', '🪣 對著井說了一句悄悄話，聲音繞了一圈回來'])); if (st.wellDay !== st.day) { st.wellDay = st.day; addLove(1); } }
+
+// ================= 地中海小教堂：一起敲鐘、門口許下約定、燭光晚餐 =================
+function chapelDoor() { const d = W?.chapel?.getObjectByName('door'); if (!d) return { x: 999, z: 999 }; const p = d.getWorldPosition(new THREE.Vector3()), a = CHAPEL.ry; return { x: p.x + Math.sin(a) * 1.3, z: p.z + Math.cos(a) * 1.3 }; }
+function actBell() {
+  const B = CHAPEL.bell, z = B.z + 0.75; let rung = 0;
+  actGo(() => { seat(me(), B.x - 0.35, null, z, Math.PI, 'stand'); seat(you(), B.x + 0.35, null, z, Math.PI, 'stand'); });
+  const ring = () => { if (!W.bell) return; W.bell.userData.ring = 3.2; rung++; [me(), you()].forEach(c => { if (!c.ghost && !c.remote) c.av.emote('cheer', 1.2); }); sfx('chime'); setTimeout(() => sfx('chime'), 550); setTimeout(() => sfx('chime'), 1100);
+    burst('heart', new THREE.Vector3(B.x, LAND_Y + 2.6, B.z), 12, 0.7); if (MP.on) MP.net.send({ t: 'fx', k: 'bell' });
+    if (rung === 1 && st.bellDay !== st.day) { st.bellDay = st.day; addLove(duo() ? 4 : 2, duo() ? '一起敲響小教堂的鐘' : '敲響了小教堂的鐘', 'bell'); }
+    msg(pick(['噹——噹——，鐘聲飄到海上。', '聽說一起敲鐘的人，會一直在一起。', '海鷗被鐘聲嚇得飛起來了。', '鐘聲停了，心還在跳。'])); };
+  beginAct('bell', '🔔 小教堂的鐘', '兩個人一起拉繩子，許一個願望。', {
+    focus: () => new THREE.Vector3(B.x, LAND_Y + 1.5, B.z + 0.4), camYaw: 0.42, camPitch: 0.16, near: () => 0.8, /* 從兩個人背後斜斜看：人和鐘都在畫面裡 */ back: [B.x, B.z + 2],
+    btns: [{ t: '🔔 敲鐘', main: true, fn: ring }, { t: '許一個願', fn: () => { me().av.emote('shy', 1.6); burst('star', headPos(me(), 1.3), 8, 0.5); msg(pick(['「希望明年也在這裡一起敲鐘。」', '「希望我們都健健康康。」', '「希望每天都能看到你笑。」'])); } }],
+    end() { if (rung) addMemo('🔔', duo() ? '在藍頂小教堂一起敲了鐘' : '在藍頂小教堂敲了鐘'); },
+  });
+}
+function actVow() {
+  const D = chapelDoor(); if (D.x > 900) return; const a = CHAPEL.ry, fx = Math.sin(a), fz = Math.cos(a), lx = Math.cos(a), lz = -Math.sin(a), door = W.chapel.getObjectByName('door'); let said = false, t = 0, pet = 0;
+  actGo(() => { seat(me(), D.x - lx * 0.42, null, D.z - lz * 0.42, a + Math.PI / 2, 'stand'); seat(you(), D.x + lx * 0.42, null, D.z + lz * 0.42, a - Math.PI / 2, 'stand'); }); /* 兩個人面對面站在教堂門口 */
+  beginAct('vow', '💍 藍頂小教堂', duo() ? '面對面站在教堂門口，說一句想對對方說的話。' : '推開小教堂的門，裡面很安靜。', {
+    focus: () => new THREE.Vector3(D.x, LAND_Y + 1.2, D.z), camYaw: a + 0.5, camPitch: 0.18, near: () => 0.8, back: [D.x + fx * 1.2, D.z + fz * 1.2],
+    btns: [{ t: duo() ? '💍 許下約定' : '🕊️ 安靜坐一下', main: true, fn: () => { said = true; pet = 6; me().av.emote(duo() ? 'shy' : 'idle', 2); if (duo()) setTimeout(() => you().av.emote('shy', 2), 400); burst('heart', midPos(1.3), 14, 0.6); sfx('chime');
+        msg(duo() ? pick(['「以後的每一天，都想跟你一起過。」', '「謝謝你一直在我身邊。」', '「不管去哪裡，都要一起。」', '「我會一直喜歡你。」']) : '陽光從彩色的窗戶照進來。');
+        if (st.vowDay !== st.day) { st.vowDay = st.day; addLove(duo() ? 5 : 2, duo() ? '在小教堂許下約定 💍' : null, 'vow'); } } },
+      duo() && { t: '牽手', fn: () => { burst('heart', midPos(1), 5, 0.3); addLove(1, null, 'vowhand'); msg('手心有一點點汗。'); } }],
+    update(dt) { t += dt; if (door) door.rotation.y = -Math.min(1, t / 1.5) * 1.1; /* 門慢慢打開 */
+      if (pet > 0) { pet -= dt; if (Math.random() < dt * 14) burst('star', new THREE.Vector3(D.x + (Math.random() - 0.5) * 2, LAND_Y + 2.6, D.z + (Math.random() - 0.5) * 2), 1, 0.15); } },
+    end() { if (door) door.rotation.y = 0; if (said) addMemo('💍', duo() ? '在藍頂小教堂門口許下約定' : '在藍頂小教堂靜靜坐了一下'); },
+  });
+}
+function actDinner() {
+  const T = CHAPEL.table, tav = W.taverna; if (!tav) return; tav.updateMatrixWorld(true);
+  const chairs = ['chair-front', 'chair-back'].map(n => tav.getObjectByName(n)?.getWorldPosition(new THREE.Vector3())).filter(Boolean); if (chairs.length < 2) return;
+  const sitAt = (c, q) => { const dx = T.x - q.x, dz = T.z - q.z, L = Math.hypot(dx, dz) || 1; seat(c, q.x - dx / L * 0.05, LAND_Y + 0.44 - HIP, q.z - dz / L * 0.05, Math.atan2(dx, dz), 'sit'); };
+  let n = 0; const night = isNight() || st.tod >= 17.5;
+  actGo(() => { sitAt(me(), chairs[0]); sitAt(you(), chairs[1]); });
+  beginAct('dinner', '🕯️ 燭光晚餐', night ? '海上的夕陽、桌上的蠟燭，今天的晚餐只屬於你們。' : '藍白格子桌巾，一邊吃一邊看海。', {
+    focus: () => new THREE.Vector3(T.x, LAND_Y + 0.9, T.z), camYaw: -0.55, camPitch: 0.24, near: () => 0.75, back: [T.x, T.z + 1.6],
+    btns: [{ t: '🥂 乾杯', main: true, fn: () => { n++; [me(), you()].forEach(c => { if (!c.ghost && !c.remote) c.av.emote('cheer', 1); }); sfx('chime'); burst('heart', new THREE.Vector3(T.x, LAND_Y + 1.3, T.z), 6, 0.4); msg(pick(['敬今天。', '敬我們。', '敬下一次旅行。', '敬每一個平凡的日子。']));
+        if (n === 1 && st.dinnerDay !== st.day) { st.dinnerDay = st.day; addLove(night ? 5 : 3, night ? '海邊的燭光晚餐 🕯️' : '在小教堂旁邊吃午餐', 'dinner'); } } },
+      duo() && { t: '餵對方一口', fn: () => { me().av.reach(true); setTimeout(() => { me().av.reach(false); you().av.emote('shy', 1.4); burst('heart', headPos(you(), 1.1), 4); }, 600); addLove(1, null, 'dinnerfeed'); } },
+      { t: '看海', fn: () => msg(pick(['海面上有一條金色的路。', '遠遠的燈塔亮了。', '風裡有九重葛的味道。'])) }],
+    end() { if (n) addMemo('🕯️', night ? '在藍頂小教堂旁吃了燭光晚餐' : '在藍頂小教堂旁吃了一頓地中海午餐'); },
+  });
+}
+
+// ================= 海邊：冰淇淋車、沖腳、獨木舟、立式划槳 =================
+const FLAVORS = [['草莓', '#f6a6bd'], ['抹茶', '#a8d08d'], ['香草', '#f8efd2'], ['芒果', '#f7c04a'], ['巧克力', '#8a5a3c']];
+function coneItem(col) { const g = new THREE.Group(), c = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.14, 10), toon('#d9a35e')); c.rotation.x = Math.PI; c.position.y = -0.02; g.add(c); const b = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), toon(col)); b.position.y = 0.07; g.add(b); return g; }
+function actIceCream() {
+  const K = BEACH.kiosk, fx = -1, x = K.x - 1.35, z = K.z; let got = 0;
+  actGo(() => { seat(me(), x, null, z - 0.35, Math.PI / 2, 'stand'); seat(you(), x, null, z + 0.35, Math.PI / 2, 'stand'); });
+  const items = on => [me(), you()].forEach((c, i) => { if (c.ghost || c.remote) return; c.av.setItem(on ? coneItem(on[i] || on[0]) : null); c.av.reach(!!on); });
+  const buy = f => { if (got >= 3) return msg('今天吃太多冰了，肚子會痛喔 😆'); const cost = duo() ? 10 : 6; if ((st.coins || 0) < cost) return toast(`小島幣不夠（要 🪙 ${cost}）`); st.coins -= cost; save(); updateChips(); got++;
+    const other = pick(FLAVORS); items([f[1], other[1]]); sfx('pop'); burst('heart', headPos(me(), 1.2), 4, 0.3); msg(duo() ? `${f[0]}給你、${other[0]}給我，交換吃一口 ♥` : `${f[0]}口味，冰冰涼涼的。`);
+    setTimeout(() => { if (act?.id === 'icecream') me().av.emote('eat', 1.6); }, 700); if (got === 1) addLove(duo() ? 3 : 1, duo() ? '在海邊一起吃冰淇淋' : null, 'icecream'); };
+  beginAct('icecream', '🍦 冰淇淋車', '海邊的小冰淇淋車，今天有五種口味。', {
+    focus: () => new THREE.Vector3(x + 0.2, 1.2, z), camYaw: Math.PI / 2 + 0.55, camPitch: 0.2, near: () => 0.7, back: [x - 0.8, z],
+    btns: FLAVORS.slice(0, 4).map((f, i) => ({ t: `${f[0]}`, s: i ? '' : `🪙 ${duo() ? 10 : 6}`, main: !i, fn: () => buy(f) })),
+    end() { items(null); if (got) addMemo('🍦', duo() ? '在海邊一起吃冰淇淋' : '在海邊吃了冰淇淋'); },
+  });
+}
+function useShower() { const p = me(); p.ry = Math.atan2(BEACH.shower.x - p.x, BEACH.shower.z - p.z); p.av.emote('cheer', 1.2); sfx('water'); for (let i = 0; i < 3; i++) setTimeout(() => burst('star', new THREE.Vector3(BEACH.shower.x, LAND_Y + 1.6, BEACH.shower.z), 6, 0.25), i * 250); toast(pick(['🚿 沖掉腳上的沙，好涼！', '🚿 水好冰，叫了一聲', '🚿 順便把對方也噴濕了 😆'])); if (st.showerDay !== st.day) { st.showerDay = st.day; addLove(1); } }
+/* 獨木舟／立式划槳：每個人划自己的。繞著浮台的路線用「現在幾點」算，兩支手機算出來一樣，晚一點下水也會划在一起 */
+const CRAFT = new Map();
+const PAD = { kayak: { model: 'sea-kayak-97b592', s: 0.5, sp: 1.5 }, sup: { model: 'stand-up-paddleboard-92874f', s: 0.62, sp: 1.15 } };
+function loopPt(t, slot) { const L = BEACH.loop, a = t * (PAD.kayak.sp / L.r) * 0.85, r = L.r + (slot ? 1.1 : -0.2); return { x: L.x + Math.cos(a) * r, z: L.z + Math.sin(a) * r, ry: Math.atan2(-Math.sin(a), Math.cos(a)) }; }
+const nowS = () => Date.now() / 1000;
+async function craftOf(c, kind) {
+  let C = CRAFT.get(c); if (C?.kind === kind) return C; if (C) { OUT.remove(C.o); CRAFT.delete(c); }
+  const g = await load(PAD[kind].model); if (!g) return null; if (CRAFT.get(c)?.kind === kind) return CRAFT.get(c);
+  const o = cloneModel(g); o.scale.setScalar(PAD[kind].s); OUT.add(o); o.updateMatrixWorld(true);
+  /* 槳：從模型拿出來，放在一個可以轉的支點上；用最長的那一邊當槳柄 */
+  const pm = o.getObjectByName('paddle-mesh') || o.getObjectByName('paddle'), mesh = pm?.isMesh ? pm : pm?.children?.find(x => x.isMesh);
+  let paddle = null, half = 0.4;
+  if (mesh) { const geo = mesh.geometry.clone(); mesh.updateMatrixWorld(true); geo.applyMatrix4(new THREE.Matrix4().copy(o.matrixWorld).invert().multiply(mesh.matrixWorld)); geo.computeBoundingBox(); const b = geo.boundingBox, cen = b.getCenter(new THREE.Vector3()), sz = b.getSize(new THREE.Vector3()); geo.translate(-cen.x, -cen.y, -cen.z);
+    const ax = sz.x >= sz.y && sz.x >= sz.z ? 'x' : sz.y >= sz.z ? 'y' : 'z'; if (ax === 'z') geo.rotateY(Math.PI / 2); if (ax === 'y') geo.rotateZ(Math.PI / 2); /* 槳柄放到 x 軸 */
+    half = Math.max(sz.x, sz.y, sz.z) / 2; paddle = new THREE.Mesh(geo, mesh.material); paddle.castShadow = true; o.add(paddle); (o.getObjectByName('paddle') || mesh).visible = false; }
+  const seat = o.getObjectByName('seat'), sl = seat ? o.worldToLocal(seat.getWorldPosition(new THREE.Vector3())).multiplyScalar(1) : new THREE.Vector3();
+  C = { kind, o, paddle, half, seat: sl, ph: Math.random() * 6 }; CRAFT.set(c, C); return C;
+}
+function tickCrafts(dt) {
+  if (scene !== 'out') { CRAFT.forEach(C => { C.o.visible = false; }); return; }
+  if (W?.kayakRest) W.kayakRest.visible = ![...CRAFT.values()].some(C => C.kind === 'kayak' && C.o.visible); if (W?.supRest) W.supRest.visible = ![...CRAFT.values()].some(C => C.kind === 'sup' && C.o.visible); /* 有人在划：沙灘上那一艘先收起來 */
+  for (const c of allChars()) {
+    const kind = c === me() ? (act?.id === 'kayak' || act?.id === 'sup' ? act.id : null) : (c.act === 'kayak' || c.act === 'sup' ? c.act : null);
+    const C = CRAFT.get(c); if (!kind) { if (C) { C.o.visible = false; if (c.av.rowGrip && !c.locked) c.av.rowGrip = null; } continue; }
+    if (!C || C.kind !== kind) { craftOf(c, kind); continue; }
+    const t = performance.now() / 1000, o = C.o; o.visible = true; C.ph += dt * (c.paddling === false ? 0 : kind === 'sup' ? 1.6 : 2.2);
+    const r = c.av.root.position, ry = c.ry, sl = C.seat, sc = PAD[kind].s, cs = Math.cos(ry), sn = Math.sin(ry);
+    o.rotation.set(Math.sin(t * 1.3 + 1) * 0.03, ry, Math.sin(t * 1.1) * 0.04); o.position.set(r.x - (sl.x * cs + sl.z * sn) * sc, 0.02 + Math.sin(t * 1.6) * 0.04, r.z - (-sl.x * sn + sl.z * cs) * sc);
+    if (C.paddle) { const P = C.paddle, k = C.ph, hb = C.half;
+      if (kind === 'kayak') { P.position.set(sl.x, sl.y + 0.55, sl.z + 0.55); P.rotation.set(0, Math.sin(k) * 0.55, Math.sin(k) * 0.45); }
+      else { const side = Math.sin(k * 0.5) > 0 ? 1 : -1; P.position.set(sl.x + side * 0.42, sl.y + 1.25, sl.z + 0.2 + Math.sin(k) * 0.5); P.rotation.set(Math.sin(k) * 0.45, 0, Math.PI / 2 + side * 0.12); }
+      o.updateMatrixWorld(true); c.av.rowGrip = kind === 'kayak' ? [P.localToWorld(new THREE.Vector3(hb * 0.28, 0, 0)), P.localToWorld(new THREE.Vector3(-hb * 0.28, 0, 0))] : [P.localToWorld(new THREE.Vector3(hb * 0.92, 0, 0)), P.localToWorld(new THREE.Vector3(hb * 0.35, 0, 0))]; }
+  }
+}
+function actPaddle(kind) {
+  const L = BEACH.launch, slot = duo() ? pairSlot(0) : 0, p = me(); let phase = 'out', paused = false, tk = 0, laps = 0, a0 = null;
+  const start = { x: L.x + (slot ? 0.9 : 0), z: L.z }; /* 在沙灘上的水邊上船，再推出去 */
+  actGo(() => { seat(p, start.x, 0.12, start.z, Math.atan2(BEACH.loop.x - start.x, BEACH.loop.z - start.z), kind === 'kayak' ? 'floor' : 'stand'); });
+  craftOf(p, kind); p.av.emote('row', 9999);
+  const go = (tx, tz, dt, sp) => { const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz); if (d > 0.02) { const k = Math.min(d, sp * dt) / d; p.x += dx * k; p.z += dz * k; turnTo2(p, Math.atan2(dx, dz), dt); } return d; };
+  const btns = () => setBtns([{ t: phase === 'home' ? '回岸邊中…' : '划回岸邊', main: true, fn: () => { phase = 'home'; btns(); } },
+    { t: paused ? '繼續划' : '停下來看海', fn: () => { paused = !paused; p.paddling = !paused; msg(paused ? '把槳橫放，隨著浪輕輕搖。' : '繼續往前划。'); btns(); } },
+    duo() && { t: '潑水給對方', fn: () => { me().av.emote('cheer', 1); setTimeout(() => you().av.emote('shy', 1.4), 300); burst('star', midPos(0.6), 8, 0.4); addLove(1, null, 'splash'); msg(pick(['啊！好冰！', '對方也潑回來了 😆', '兩個人都濕透了'])); } }]);
+  beginAct(kind, kind === 'kayak' ? '🛶 獨木舟' : '🏄 立式划槳', kind === 'kayak' ? '坐進獨木舟，繞著海上的浮台划一圈。' : '站上划槳板，慢慢划到浮台那邊。', {
+    focus: () => new THREE.Vector3(p.av.root.position.x, 0.8, p.av.root.position.z), camPitch: 0.32, near: () => 1.15, camSpeed: () => 2.5, back: [L.x - 0.6, L.z - 1.2],
+    btns: [],
+    update(dt) {
+      p.y = (kind === 'kayak' ? 0.13 : 0.15) + Math.sin(performance.now() / 1000 * 1.6) * 0.04;
+      if (paused) return; tk += dt; if (tk > 12) { tk = 0; addLove(1, null, 'paddle'); }
+      if (phase === 'out') { const q = loopPt(nowS() + 4, slot); if (go(q.x, q.z, dt, PAD[kind].sp * 1.5) < 0.5) { phase = 'loop'; a0 = nowS(); msg(pick(['浮台上有一隻海鷗在曬太陽。', '海水好清，看得到底下的小魚。', '回頭看，小島好漂亮。'])); } }
+      else if (phase === 'loop') { const q = loopPt(nowS(), slot); go(q.x, q.z, dt, PAD[kind].sp * 1.4); if (nowS() - a0 > 2 * Math.PI / (PAD.kayak.sp / BEACH.loop.r * 0.85) && !laps) { laps = 1; msg('繞完一圈了！要再一圈，還是划回岸邊？'); } }
+      else if (go(start.x, start.z, dt, PAD[kind].sp * 1.3) < 0.3) { endAct(); }
+    },
+    end() { p.paddling = true; p.av.emote('idle', 0.1); p.av.rowGrip = null; if (laps || tk) addMemo(kind === 'kayak' ? '🛶' : '🏄', `${duo() ? '兩個人' : ''}在海上${kind === 'kayak' ? '划獨木舟' : '玩立式划槳'}，繞著浮台`); },
+  });
+  btns();
+}
+function turnTo2(c, want, dt) { let d = want - c.ry; d = Math.atan2(Math.sin(d), Math.cos(d)); c.ry += d * Math.min(1, dt * 3); }
 
 // ================= 峇里涼亭：兩個人靠在臥榻上看書、躺著聽風 =================
 /* 臥榻的 local 座標（x 左右、z 往步道那一端）換成世界座標 */
