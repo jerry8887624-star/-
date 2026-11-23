@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, GLASSES, GLASSES_P, HATS, NECKS, EARS, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickCritters, BEACH, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickCritters, tickChapel, BEACH, CHAPEL, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -662,6 +662,9 @@ const SP = [
   { id: 'kitchen', sc: 'in', ...INSPOTS.kitchen, icon: '🍳', name: '做飯', run: actCook },
   { id: 'read', sc: 'in', ...INSPOTS.read, icon: '📚', name: '閱讀角', run: actRead },
   { id: 'dining', sc: 'in', ...INSPOTS.dining, icon: '🍽️', name: '吃飯', run: actEat, hide: () => !IN?.dish.visible },
+  { id: 'bell', sc: 'out', x: CHAPEL.bell.x, z: CHAPEL.bell.z + 1.3, r: 1.8, icon: '🔔', name: '一起敲鐘', run: () => actBell() },
+  { id: 'vow', sc: 'out', x: 0, z: 0, r: 1.8, icon: '💍', name: '小教堂', run: () => actVow(), pos: () => chapelDoor() },
+  { id: 'dinner', sc: 'out', x: CHAPEL.table.x, z: CHAPEL.table.z + 1.3, r: 1.8, icon: '🕯️', name: '燭光晚餐', run: () => actDinner() },
   { id: 'icecream', sc: 'out', x: BEACH.kiosk.x - 1.5, z: BEACH.kiosk.z, r: 1.8, icon: '🍦', name: '冰淇淋車', run: () => actIceCream() },
   { id: 'shower', sc: 'out', x: BEACH.shower.x + 0.6, z: BEACH.shower.z + 0.3, r: 1.2, icon: '🚿', name: '沖腳', run: () => useShower() },
   { id: 'kayak', sc: 'out', x: 10.3, z: 24.6, r: 1.8, icon: '🛶', name: '划獨木舟', run: () => actPaddle('kayak') },
@@ -1972,6 +1975,7 @@ function onNet(m) {
   }
   if (m.t === 'pos') { const c = peerChar(m.id); if (!c) return; c.net = m; if (!c.seen) { c.seen = 1; c.x = m.x; c.z = m.z; c.ry = m.ry; } return; }
   if (m.t === 'emo') { const c = peerChar(m.id); if (!c) return; c.av.emote(m.k, m.d); if (m.k === 'kiss' || m.k === 'hug') burst('heart', headPos(c, 1.6), 5, 0.3); return; }
+  if (m.t === 'fx' && m.k === 'bell') { if (W?.bell) W.bell.userData.ring = 3.2; if (scene === 'out') sfx('chime'); return; } /* 另一半敲鐘：這邊也看得到、聽得到 */
   if (m.t === 'fx') { if (m.k === 'fw' && scene === 'out') launchFirework(!!m.a, true); if (m.k === 'sweet' && act?.id === 'bed') sweetNight(false); if (m.k === 'yg') { const c = peerChar(m.id); if (c) c.av.yoga = YOGA_POSES[m.a]?.[0] || null; } if (m.k === 'rare' && scene === 'out' && RARE[m.a]) rareStart(RARE[m.a].k, false); return; }
   if (m.t === 'boat') { if (W?.boat && !MP.driving) { MP.boatT = { x: m.x, z: m.z, ry: m.ry }; if (m.home) { W.boat.position.x = m.x; W.boat.position.z = m.z; W.boat.rotation.y = m.ry; MP.boatT = null; } } MP.boatAway = !m.home; return; }
   if (m.t === 'save') { applySave(m.keys); return; }
@@ -2595,7 +2599,7 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickChapel(W, performance.now() / 1000, dt); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   { const pp = me().av.root.position, gx = Math.round(pp.x / 3) * 3, gz = Math.round(pp.z / 3) * 3; W.sunL.target.position.set(gx, 0, gz); W.sunL.position.x += gx; W.sunL.position.z += gz; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
@@ -3472,6 +3476,51 @@ function santaGift() {
   addCoins(100); addLove(8, null, 'fest'); addMemo('🎅', `聖誕老公公送了 ${nameOf(myIdx())} 一份禮物：${it[1]}`); save(); burst('star', headPos(me(), 1.3), 16, 0.6); sfx('chime');
   openDlg('🎅 聖誕老公公的禮物', `<div class="fest-card"><span>🎁</span><b>Ho ho ho！聖誕快樂！</b><p>「這是給你們小島的禮物——<b class="nw">${esc(it[1])}</b><br>今年也要一直相親相愛喔。」</p></div><p class="muted">禮物已經放進裝潢的包包裡，還有 🪙 100。</p><button type="button" class="primary" id="sg-ok">謝謝聖誕老公公 ♥</button>`);
   $('#sg-ok').onclick = () => $('#dlg').close();
+}
+
+// ================= 地中海小教堂：一起敲鐘、門口許下約定、燭光晚餐 =================
+function chapelDoor() { const d = W?.chapel?.getObjectByName('door'); if (!d) return { x: 999, z: 999 }; const p = d.getWorldPosition(new THREE.Vector3()), a = CHAPEL.ry; return { x: p.x + Math.sin(a) * 1.3, z: p.z + Math.cos(a) * 1.3 }; }
+function actBell() {
+  const B = CHAPEL.bell, z = B.z + 0.75; let rung = 0;
+  actGo(() => { seat(me(), B.x - 0.35, null, z, Math.PI, 'stand'); seat(you(), B.x + 0.35, null, z, Math.PI, 'stand'); });
+  const ring = () => { if (!W.bell) return; W.bell.userData.ring = 3.2; rung++; [me(), you()].forEach(c => { if (!c.ghost && !c.remote) c.av.emote('cheer', 1.2); }); sfx('chime'); setTimeout(() => sfx('chime'), 550); setTimeout(() => sfx('chime'), 1100);
+    burst('heart', new THREE.Vector3(B.x, LAND_Y + 2.6, B.z), 12, 0.7); if (MP.on) MP.net.send({ t: 'fx', k: 'bell' });
+    if (rung === 1 && st.bellDay !== st.day) { st.bellDay = st.day; addLove(duo() ? 4 : 2, duo() ? '一起敲響小教堂的鐘' : '敲響了小教堂的鐘', 'bell'); }
+    msg(pick(['噹——噹——，鐘聲飄到海上。', '聽說一起敲鐘的人，會一直在一起。', '海鷗被鐘聲嚇得飛起來了。', '鐘聲停了，心還在跳。'])); };
+  beginAct('bell', '🔔 小教堂的鐘', '兩個人一起拉繩子，許一個願望。', {
+    focus: () => new THREE.Vector3(B.x, LAND_Y + 1.5, B.z + 0.4), camYaw: 0.42, camPitch: 0.16, near: () => 0.8, /* 從兩個人背後斜斜看：人和鐘都在畫面裡 */ back: [B.x, B.z + 2],
+    btns: [{ t: '🔔 敲鐘', main: true, fn: ring }, { t: '許一個願', fn: () => { me().av.emote('shy', 1.6); burst('star', headPos(me(), 1.3), 8, 0.5); msg(pick(['「希望明年也在這裡一起敲鐘。」', '「希望我們都健健康康。」', '「希望每天都能看到你笑。」'])); } }],
+    end() { if (rung) addMemo('🔔', duo() ? '在藍頂小教堂一起敲了鐘' : '在藍頂小教堂敲了鐘'); },
+  });
+}
+function actVow() {
+  const D = chapelDoor(); if (D.x > 900) return; const a = CHAPEL.ry, fx = Math.sin(a), fz = Math.cos(a), lx = Math.cos(a), lz = -Math.sin(a), door = W.chapel.getObjectByName('door'); let said = false, t = 0, pet = 0;
+  actGo(() => { seat(me(), D.x - lx * 0.42, null, D.z - lz * 0.42, a + Math.PI / 2, 'stand'); seat(you(), D.x + lx * 0.42, null, D.z + lz * 0.42, a - Math.PI / 2, 'stand'); }); /* 兩個人面對面站在教堂門口 */
+  beginAct('vow', '💍 藍頂小教堂', duo() ? '面對面站在教堂門口，說一句想對對方說的話。' : '推開小教堂的門，裡面很安靜。', {
+    focus: () => new THREE.Vector3(D.x, LAND_Y + 1.2, D.z), camYaw: a + 0.5, camPitch: 0.18, near: () => 0.8, back: [D.x + fx * 1.2, D.z + fz * 1.2],
+    btns: [{ t: duo() ? '💍 許下約定' : '🕊️ 安靜坐一下', main: true, fn: () => { said = true; pet = 6; me().av.emote(duo() ? 'shy' : 'idle', 2); if (duo()) setTimeout(() => you().av.emote('shy', 2), 400); burst('heart', midPos(1.3), 14, 0.6); sfx('chime');
+        msg(duo() ? pick(['「以後的每一天，都想跟你一起過。」', '「謝謝你一直在我身邊。」', '「不管去哪裡，都要一起。」', '「我會一直喜歡你。」']) : '陽光從彩色的窗戶照進來。');
+        if (st.vowDay !== st.day) { st.vowDay = st.day; addLove(duo() ? 5 : 2, duo() ? '在小教堂許下約定 💍' : null, 'vow'); } } },
+      duo() && { t: '牽手', fn: () => { burst('heart', midPos(1), 5, 0.3); addLove(1, null, 'vowhand'); msg('手心有一點點汗。'); } }],
+    update(dt) { t += dt; if (door) door.rotation.y = -Math.min(1, t / 1.5) * 1.1; /* 門慢慢打開 */
+      if (pet > 0) { pet -= dt; if (Math.random() < dt * 14) burst('star', new THREE.Vector3(D.x + (Math.random() - 0.5) * 2, LAND_Y + 2.6, D.z + (Math.random() - 0.5) * 2), 1, 0.15); } },
+    end() { if (door) door.rotation.y = 0; if (said) addMemo('💍', duo() ? '在藍頂小教堂門口許下約定' : '在藍頂小教堂靜靜坐了一下'); },
+  });
+}
+function actDinner() {
+  const T = CHAPEL.table, tav = W.taverna; if (!tav) return; tav.updateMatrixWorld(true);
+  const chairs = ['chair-front', 'chair-back'].map(n => tav.getObjectByName(n)?.getWorldPosition(new THREE.Vector3())).filter(Boolean); if (chairs.length < 2) return;
+  const sitAt = (c, q) => { const dx = T.x - q.x, dz = T.z - q.z, L = Math.hypot(dx, dz) || 1; seat(c, q.x - dx / L * 0.05, LAND_Y + 0.44 - HIP, q.z - dz / L * 0.05, Math.atan2(dx, dz), 'sit'); };
+  let n = 0; const night = isNight() || st.tod >= 17.5;
+  actGo(() => { sitAt(me(), chairs[0]); sitAt(you(), chairs[1]); });
+  beginAct('dinner', '🕯️ 燭光晚餐', night ? '海上的夕陽、桌上的蠟燭，今天的晚餐只屬於你們。' : '藍白格子桌巾，一邊吃一邊看海。', {
+    focus: () => new THREE.Vector3(T.x, LAND_Y + 0.9, T.z), camYaw: -0.55, camPitch: 0.24, near: () => 0.75, back: [T.x, T.z + 1.6],
+    btns: [{ t: '🥂 乾杯', main: true, fn: () => { n++; [me(), you()].forEach(c => { if (!c.ghost && !c.remote) c.av.emote('cheer', 1); }); sfx('chime'); burst('heart', new THREE.Vector3(T.x, LAND_Y + 1.3, T.z), 6, 0.4); msg(pick(['敬今天。', '敬我們。', '敬下一次旅行。', '敬每一個平凡的日子。']));
+        if (n === 1 && st.dinnerDay !== st.day) { st.dinnerDay = st.day; addLove(night ? 5 : 3, night ? '海邊的燭光晚餐 🕯️' : '在小教堂旁邊吃午餐', 'dinner'); } } },
+      duo() && { t: '餵對方一口', fn: () => { me().av.reach(true); setTimeout(() => { me().av.reach(false); you().av.emote('shy', 1.4); burst('heart', headPos(you(), 1.1), 4); }, 600); addLove(1, null, 'dinnerfeed'); } },
+      { t: '看海', fn: () => msg(pick(['海面上有一條金色的路。', '遠遠的燈塔亮了。', '風裡有九重葛的味道。'])) }],
+    end() { if (n) addMemo('🕯️', night ? '在藍頂小教堂旁吃了燭光晚餐' : '在藍頂小教堂旁吃了一頓地中海午餐'); },
+  });
 }
 
 // ================= 海邊：冰淇淋車、沖腳、獨木舟、立式划槳 =================

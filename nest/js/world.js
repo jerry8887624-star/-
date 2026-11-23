@@ -387,6 +387,40 @@ function buildBeach(S, W) {
   jobs.push(one(S, 'driftwood-log-90340b', -12.4, 25.4, 0.8, 0.8), one(S, 'driftwood-log-90340b', 15.4, 23.6, 2.2, 0.7));
   return Promise.all(jobs);
 }
+/* ---------- 地中海藍頂小教堂：木屋北邊面海的白色平台；可以一起敲鐘、在教堂門口許下約定、燭光晚餐 ---------- */
+export const CHAPEL = { x: 2.6, z: -23.8, ry: Math.PI / 2, s: 0.7, terrace: { x0: 0.2, x1: 11, z0: -27.2, z1: -20.2 }, bell: { x: 7.6, z: -20.0 }, table: { x: 8.7, z: -25.4 } };
+function buildChapel(S, W) {
+  const C = CHAPEL, T = C.terrace, jobs = [], y = LAND_Y + 0.04, white = toon('#f6f2ea'), whiteD = toon('#e6dfd2'), blue = toon('#3f74b8');
+  /* 白色石板平台：一塊塊方磚 */
+  for (let x = T.x0; x < T.x1 - 0.01; x += 0.9) for (let z = T.z0; z < T.z1 - 0.01; z += 0.9) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.06, 0.86), ((Math.floor(x / 0.9) + Math.floor(z / 0.9)) % 4) ? white : whiteD); m.position.set(x + 0.45, y, z + 0.45); m.receiveShadow = true; S.add(m); }
+  jobs.push(one(S, 'blue-domed-chapel-297391', C.x, C.z, C.ry, C.s).then(o => { W.chapel = o; }));
+  { const hw = 4 * C.s / 2, hl = 8 * C.s / 2, c = Math.abs(Math.cos(C.ry)), sn = Math.abs(Math.sin(C.ry)); BOXES.push([C.x - (hw * c + hl * sn), C.z - (hw * sn + hl * c), C.x + (hw * c + hl * sn), C.z + (hw * sn + hl * c)]); }
+  /* 面海那一邊的矮白牆（中間留缺口可以看海） */
+  [[2.0, T.z0 - 0.1], [9.4, T.z0 - 0.1]].forEach(([x, z]) => { jobs.push(one(S, 'low-garden-wall-run-a34d05', x, z, 0, 0.7)); CIRCLES.push([x - 0.9, z, 0.3], [x, z, 0.3], [x + 0.9, z, 0.3]); });
+  /* 鐘門：兩根白柱子、上面一根橫樑，鐘掛在中間 */
+  const B = C.bell; [-0.75, 0.75].forEach(dx => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.32, 2.3, 0.32), white); m.position.set(B.x + dx, LAND_Y + 1.15, B.z); m.castShadow = true; S.add(m); CIRCLES.push([B.x + dx, B.z, 0.22]); });
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.3, 0.42), white); beam.position.set(B.x, LAND_Y + 2.42, B.z); beam.castShadow = true; S.add(beam);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), blue); cap.position.set(B.x, LAND_Y + 2.57, B.z); S.add(cap);
+  const cross = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.26, 0.04), toon('#c9a54a')); cross.position.set(B.x, LAND_Y + 3.0, B.z); S.add(cross);
+  jobs.push(one(S, 'church-bell-ccef99', B.x, B.z, 0, 0.62, { y: LAND_Y + 1.62 }).then(o => { W.bell = o; }));
+  /* 燭光晚餐的桌子（藍白格子桌巾、兩張藍椅子），兩個人都看得到海 */
+  jobs.push(one(S, 'taverna-table-set-6b4bc1', C.table.x, C.table.z, Math.PI / 2, 0.95).then(o => { W.taverna = o; }));
+  CIRCLES.push([C.table.x, C.table.z, 0.42]);
+  const candle = new THREE.Group(); candle.position.set(C.table.x, LAND_Y + 0.92, C.table.z); const cb = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 10), toon('#f8f2e4')); cb.position.y = 0.06; candle.add(cb);
+  const fl = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffc85a' })); fl.scale.y = 1.6; fl.position.y = 0.15; candle.add(fl); S.add(candle); W.candle = { g: candle, fl };
+  /* 植物、燈 */
+  jobs.push(one(S, 'bougainvillea-cb4728', C.x + 0.4, C.z + 2.35, 0, 0.6), one(S, 'bougainvillea-cb4728', 10.6, -26.9, 0.4, 0.55));
+  jobs.push(one(S, 'olive-tree-3cb4a4', 13.4, -20.6, 1.2, 0.5, { col: 0.4 }), one(S, 'flowering-agave-84b67c', 11.8, -22.6, 0.6, 0.6, { col: 0.3 }));
+  jobs.push(scatter(S, 'pencil-cypress-73f3f4', [[-0.9, -25.6, 0, 0.42], [-1.1, -21.6, 1, 0.38], [12.3, -26.2, 2, 0.4]], { col: 0.3 }));
+  jobs.push(scatter(S, 'geraniums-in-olive-oil-70e682', [[6.1, -20.4, 0.3, 0.9], [9.1, -20.4, 1.4, 0.9], [10.6, -24.2, 2.2, 0.85], [5.0, -26.9, 0.8, 0.85]], { col: 0.15 }));
+  jobs.push(one(S, 'harbour-lamp-post-3d8032', 0.7, -20.6, 0, 0.55, { col: 0.15 }), one(S, 'harbour-lamp-post-3d8032', 10.7, -20.6, 0, 0.55, { col: 0.15 }));
+  return Promise.all(jobs);
+}
+export function tickChapel(W, t, dt) {
+  if (W?.candle) { const k = 1 + Math.sin(t * 13) * 0.12 + Math.sin(t * 7.7) * 0.08; W.candle.fl.scale.set(k, 1.6 * k, k); }
+  const B = W?.bell; if (!B) return; const bell = B.userData.bellPart || (B.userData.bellPart = B.getObjectByName('bell')), cl = B.userData.clap || (B.userData.clap = B.getObjectByName('clapper'));
+  if (B.userData.ring > 0) { B.userData.ring -= dt; const k = B.userData.ring, a = Math.sin((3.2 - k) * 5.5) * Math.min(1, k / 1.2) * 0.5; if (bell) bell.rotation.x = a; if (cl) cl.rotation.x = -a * 0.6; } else if (bell) bell.rotation.x *= 0.9;
+}
 export function tickYoga(W, t) { if (!W?.yoga) return; W.yoga.curtains.forEach(c => { const P = c.geometry.attributes.position, b = c.userData.base; for (let i = 0; i < P.count; i++) { const y = b[i * 3 + 1], k = Math.min(1, -y / 2.4); P.setZ(i, b[i * 3 + 2] + Math.sin(t * 1.3 + c.userData.ph + b[i * 3] * 2) * 0.14 * k * k); } P.needsUpdate = true; }); }
 export async function buildIsland(S) {
   const W = {};
@@ -394,7 +428,7 @@ export async function buildIsland(S) {
   W.yoga = buildYoga(S); window.__yoga = W.yoga;
   CIRCLES.push([DOGHOUSE.x, DOGHOUSE.z, 0.62]); /* 人不會穿過狗屋（狗狗自己可以走進去） */
   const dogHouseJob = one(S, 'backyard-doghouse-50a492', DOGHOUSE.x, DOGHOUSE.z, DOGHOUSE.ry, 1).then(o => { W.doghouse = o; });
-  const baliJob = buildBali(S, W), beachJob = buildBeach(S, W); buildCritters(S, W);
+  const baliJob = buildBali(S, W), beachJob = buildBeach(S, W), chapelJob = buildChapel(S, W); buildCritters(S, W);
   W.water = makeWater(); S.add(W.water); W.surf = makeSurf(); S.add(W.surf);
   W.sky = makeSky(); S.add(W.sky.g);
   W.hemi = new THREE.HemisphereLight('#dff2ff', '#a89a70', 1); S.add(W.hemi);
@@ -468,13 +502,14 @@ export async function buildIsland(S) {
     animal(S, 'cat', 1.6, -3.0, { s: 1.0, idleOnly: true }).then(a => { W.cat = a; if (a) a.o.rotation.y = 0.4; }),
     ...[[-6, 12], [-16, 2], [16, -2]].map(([x, z]) => animal(S, 'rabbit', x, z, { s: 0.9, roam: 4, speed: 0.6 })),
     /* 森林小動物：木屋後面草地上的小鹿、燈塔旁的狐狸（很害羞，跑過去會被嚇跑） */
-    ...[[4, -24], [12, -19]].map(([x, z]) => animal(S, 'deer', x, z, { s: 0.55, roam: 6, speed: 0.55 })),
+    ...[[-9, -15], [17, -12]].map(([x, z]) => animal(S, 'deer', x, z, { s: 0.55, roam: 5, speed: 0.55 })),
+    animal(S, 'pack-donkey-c69029', 15, -23, { s: 0.6, roam: 3, speed: 0.4 }),
     animal(S, 'fox', -11, -21, { s: 0.7, roam: 5, speed: 0.7 }),
     ...ring(4, 5.5, 7, 3, (x, z) => [x, z]).map(([x, z]) => animal(S, 'crab', x, z, { s: 0.22, roam: 2.5, speed: 0.25 })),
     ...[[DOCK.x1 - 0.6, 1.0], [30, -0.8], [-14, 24]].map(([x, z]) => animal(S, 'gull', x, z, { s: 1.2, roam: 1.5, speed: 0.3 })),
     ...[[40, 4], [38, -4], [44, 2], [42, -6]].map(([x, z]) => animal(S, 'fish', x, z, { s: 0.7, roam: 4, speed: 0.8, swim: true, y: -0.5 })),
   ];
-  await Promise.all([...jobs, ...zoo, baliJob, beachJob, dogHouseJob]);
+  await Promise.all([...jobs, ...zoo, baliJob, beachJob, chapelJob, dogHouseJob]);
   // 狗一開始待在家附近，main.js 會設定 follow
   return W;
 }
