@@ -329,6 +329,64 @@ function buildBali(S, W) {
 function frangipani(o) { o.traverse(m => { if (!m.isMesh || !m.geometry.attributes.color) return; m.geometry = m.geometry.clone(); /* 頂點色：先複製，不然全島的櫻花都會變白 */
   const C = m.geometry.attributes.color; for (let i = 0; i < C.count; i++) { const r = C.getX(i), g = C.getY(i), b = C.getZ(i); if (r > 0.45 && g < r * 0.85 && b > g * 0.9) { const k = (r + g + b) / 3 / r; C.setXYZ(i, ...(k > 0.75 ? [0.98, 0.95, 0.88] : [0.97, 0.82, 0.42])); } } C.needsUpdate = true; }); }
 export function tickBali(W, t, night) { (W?.torches || []).forEach((f, i) => { f.visible = night; if (night) { const k = 1 + Math.sin(t * 13 + i * 2) * 0.12 + Math.sin(t * 7.3 + i) * 0.08; f.scale.set(k, k * 1.3, k); } }); }
+/* ---------- 小生物：白天花叢邊有蝴蝶、蜜蜂；晚上池塘和草地有螢火蟲 ---------- */
+export function buildCritters(S, W) {
+  const G = new THREE.Group(); S.add(G); const flowers = [[-3.2, -3.4], [2.0, -3.6], [-10, 0.4], [-12, -1.6], [-8, -1.6], [-4.6, 4.8], [-3.3, 2.6], [3.2, 6.7], [-2.6, 8.1], [7, -7.5], [-12.6, 10.6], [-15, 3]];
+  const wingM = c => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide, transparent: true, opacity: 0.95 });
+  const fly = [];
+  ['#ffffff', '#f6d24a', '#f39a5a', '#8fc2f0', '#f7a6c8', '#c8a6f0', '#ffffff', '#f6d24a', '#9ad3b8', '#f39a5a'].forEach((c, i) => { const g = new THREE.Group(), m = wingM(c), wg = new THREE.PlaneGeometry(0.11, 0.08); wg.translate(0.055, 0, 0);
+    const L = new THREE.Mesh(wg, m), R = new THREE.Mesh(wg, m); R.scale.x = -1; g.add(L, R); const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.008, 0.05, 2, 4), new THREE.MeshBasicMaterial({ color: '#3a2a20' })); b.rotation.x = Math.PI / 2; g.add(b);
+    const [ax, az] = flowers[i % flowers.length]; G.add(g); fly.push({ g, L, R, ax, az, ph: Math.random() * 9, sp: 0.5 + Math.random() * 0.4, rest: 0 }); });
+  const bees = []; const beeB = new THREE.MeshBasicMaterial({ color: '#f2c230' }), beeK = new THREE.MeshBasicMaterial({ color: '#2a2418' }), beeW = wingM('#e8f4ff'); beeW.opacity = 0.6;
+  for (let i = 0; i < 7; i++) { const g = new THREE.Group(), body = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), beeB); body.scale.set(1, 0.9, 1.4); const band = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.007, 4, 10), beeK); band.position.z = -0.008;
+    const wg = new THREE.PlaneGeometry(0.04, 0.025); wg.translate(0.02, 0, 0); const L = new THREE.Mesh(wg, beeW), R = new THREE.Mesh(wg, beeW); R.scale.x = -1; L.position.y = R.position.y = 0.025; g.add(body, band, L, R);
+    const [ax, az] = flowers[(i * 3 + 1) % flowers.length]; G.add(g); bees.push({ g, L, R, ax, az, ph: Math.random() * 9 }); }
+  /* 螢火蟲：一顆顆發光的小點，忽明忽暗 */
+  const N = 46, pos = new Float32Array(N * 3), ff = [], spots = [[-3.3, 1.3, 2.6], [5.6, 4.4, 3], [0, -22, 9], [10, -18, 7], [-12, -20, 6], [-20, 4, 6], [-10, 8, 4], [11, 6, 3.5], [17, 18, 4]];
+  for (let i = 0; i < N; i++) { const [x, z, r] = spots[i % spots.length], a = Math.random() * 6.28, d = Math.random() * r; ff.push({ x: x + Math.cos(a) * d, z: z + Math.sin(a) * d, ph: Math.random() * 20, sp: 0.4 + Math.random() * 0.5 }); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); const al = new Float32Array(N); geo.setAttribute('a', new THREE.BufferAttribute(al, 1));
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64; const cx = cv.getContext('2d'), gr = cx.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,210,1)'); gr.addColorStop(0.25, 'rgba(220,255,140,.85)'); gr.addColorStop(1, 'rgba(180,255,90,0)'); cx.fillStyle = gr; cx.fillRect(0, 0, 64, 64);
+  const ptsM = new THREE.PointsMaterial({ size: 0.3, map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: '#e9ffb0', fog: false });
+  ptsM.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('void main() {', 'attribute float a; varying float vA;\nvoid main() { vA = a;'); sh.fragmentShader = sh.fragmentShader.replace('void main() {', 'varying float vA;\nvoid main() {').replace('#include <premultiplied_alpha_fragment>', 'gl_FragColor.a *= vA;\n#include <premultiplied_alpha_fragment>'); };
+  const pts = new THREE.Points(geo, ptsM); pts.frustumCulled = false; S.add(pts);
+  W.critters = { fly, bees, ff, pts, pos, al, geo };
+}
+export function tickCritters(W, t, dt, hour, wet) {
+  const C = W?.critters; if (!C) return; const day = hour >= 6.5 && hour < 18 && !wet, night = (hour >= 18.8 || hour < 5) && !wet; /* 下雨下雪：蝴蝶蜜蜂螢火蟲都躲起來 */
+  C.fly.forEach(f => { f.g.visible = day; if (!day) return; const k = t * f.sp + f.ph, x = f.ax + Math.sin(k * 0.7) * 1.6 + Math.sin(k * 1.9) * 0.4, z = f.az + Math.cos(k * 0.55) * 1.4 + Math.sin(k * 2.3) * 0.3, y = standH(x, z) + 0.55 + Math.sin(k * 1.3) * 0.3 + Math.sin(k * 5) * 0.06;
+    const px = f.g.position.x, pz = f.g.position.z; f.g.position.set(x, y, z); f.g.rotation.y = Math.atan2(x - px, z - pz); const flap = Math.sin(t * 17 + f.ph) * 1.1; f.L.rotation.z = flap; f.R.rotation.z = -flap; });
+  C.bees.forEach(b => { b.g.visible = day; if (!day) return; const k = t * 1.3 + b.ph, x = b.ax + Math.sin(k) * 0.9, z = b.az + Math.sin(k * 2) * 0.45, y = standH(x, z) + 0.45 + Math.sin(k * 3.1) * 0.12;
+    const px = b.g.position.x, pz = b.g.position.z; b.g.position.set(x, y, z); b.g.rotation.y = Math.atan2(x - px, z - pz); const flap = Math.sin(t * 70 + b.ph) * 0.8; b.L.rotation.z = flap; b.R.rotation.z = -flap; });
+  C.pts.visible = night; if (!night) return;
+  C.ff.forEach((f, i) => { const k = t * f.sp + f.ph, x = f.x + Math.sin(k * 0.6) * 0.8, z = f.z + Math.cos(k * 0.45) * 0.8; C.pos[i * 3] = x; C.pos[i * 3 + 1] = standH(x, z) + 0.45 + Math.sin(k * 0.9) * 0.3; C.pos[i * 3 + 2] = z; const bl = Math.sin(t * 1.6 + f.ph * 3); C.al[i] = Math.max(0, bl) ** 2; });
+  C.geo.attributes.position.needsUpdate = true; C.geo.attributes.a.needsUpdate = true;
+}
+/* ---------- 海邊木棧道：從庭院的踏腳石一路接到沙灘，盡頭是看海平台；沙灘上有救生塔、冰淇淋車、沖腳、划船出發點，海上有浮台 ---------- */
+export const BEACH = { walk: { x: 0, z0: 7.9, z1: 21, w: 1.5 }, deck: { x0: -1.25, x1: 0.75, z0: 21, z1: 23.4 }, kiosk: { x: 4.8, z: 18.8, ry: Math.PI / 2 }, shower: { x: -1.9, z: 19.6 },
+  launch: { x: 11.6, z: 26.2 }, raft: { x: 4, z: 35.5 }, loop: { x: 4, z: 35.5, r: 5.4 } };
+function buildBeach(S, W) {
+  const jobs = [], plank = toon('#c8a275'), plankD = toon('#9a7450'), rope = toon('#e6d3ae'), B = BEACH;
+  const add = (geo, mat, x, y, z, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry; m.receiveShadow = true; m.castShadow = true; S.add(m); return m; };
+  /* 木棧道：一片一片橫的木板，跟著地面高低 */
+  for (let z = B.walk.z0; z < B.walk.z1; z += 0.36) { const y = Math.max(groundH(B.walk.x, z), LAND_Y - 0.1) + 0.035; add(new THREE.BoxGeometry(B.walk.w, 0.05, 0.3), (Math.round(z / 0.36) % 3) ? plank : plankD, B.walk.x + Math.sin(z * 7) * 0.02, y, z); }
+  /* 兩邊的繩子欄杆（短木樁＋麻繩），入口留著不擋路 */
+  const posts = []; for (let z = B.walk.z0 + 1.4; z < B.walk.z1; z += 1.8) [-1, 1].forEach(s => { const x = B.walk.x + s * (B.walk.w / 2 + 0.08), y = groundH(x, z); posts.push([x, y, z]); add(new THREE.CylinderGeometry(0.05, 0.06, 0.55, 6), plankD, x, y + 0.27, z); });
+  [-1, 1].forEach(s => { const L = posts.filter(p => Math.sign(p[0] - B.walk.x) === s); for (let i = 0; i < L.length - 1; i++) { const [x0, y0, z0] = L[i], [x1, y1, z1] = L[i + 1], len = Math.hypot(z1 - z0, y1 - y0); const r = add(new THREE.CylinderGeometry(0.014, 0.014, len, 5), rope, x0, (y0 + y1) / 2 + 0.42, (z0 + z1) / 2); r.rotation.x = Math.PI / 2; } });
+  /* 盡頭的看海平台 */
+  const D = B.deck, dy = groundH((D.x0 + D.x1) / 2, D.z0) + 0.06;
+  for (let z = D.z0; z < D.z1; z += 0.34) add(new THREE.BoxGeometry(D.x1 - D.x0, 0.06, 0.3), (Math.round(z / 0.34) % 3) ? plank : plankD, (D.x0 + D.x1) / 2, dy, z);
+  [[D.x0, D.z1], [D.x1, D.z1], [D.x0, D.z0], [D.x1, D.z0]].forEach(([x, z]) => add(new THREE.CylinderGeometry(0.07, 0.08, 0.7, 6), plankD, x, dy - 0.2, z));
+  jobs.push(one(S, 'back-to-back-promenade-8c153b', (D.x0 + D.x1) / 2, D.z1 - 0.7, 0, 0.62, { y: dy + 0.03, col: 0.4 }), one(S, 'seafront-lamp-post-28bada', D.x1 - 0.25, D.z0 + 0.3, 0, 0.55, { y: dy, col: 0.15 }).then(o => { W.beachLamp = o; }));
+  /* 沙灘上的東西 */
+  jobs.push(one(S, 'ice-cream-kiosk-on-40a568', B.kiosk.x, B.kiosk.z, B.kiosk.ry, 0.62, { col: 0.75 }).then(o => { W.kiosk = o; const f = o?.getObjectByName('flap-pivot'); if (f) f.rotation.x = -1.1; }));
+  jobs.push(one(S, 'beach-shower-post-719ac6', B.shower.x, B.shower.z, 0.4, 0.7, { col: 0.2 }));
+  jobs.push(one(S, 'lifeguard-tower-183c37', -9.2, 23.6, Math.PI, 0.55, { col: 1.0 }), one(S, 'beach-flag-pole-2bf334', -4.4, 24.6, 0.3, 0.55, { col: 0.15 }), one(S, 'lifebuoy-on-a-post-57421b', -6.4, 22.4, 0.5, 0.75, { col: 0.25 }));
+  jobs.push(one(S, 'life-jacket-post-15c73a', 13.6, 24.3, -0.9, 0.7, { col: 0.3 }), one(S, 'sea-kayak-97b592', 10.3, 25.3, 0.7, 0.5).then(o => { W.kayakRest = o; }), one(S, 'stand-up-paddleboard-92874f', 12.2, 25.9, 0.5, 0.6).then(o => { W.supRest = o; }));
+  jobs.push(one(S, 'swim-raft-6aefb5', B.raft.x, B.raft.z, 0.4, 0.8, { y: -0.55 }).then(o => { W.raft = o; }));
+  jobs.push(scatter(S, 'marram-grass-tuft-8c7a99', [[-1.6, 16.4, 0.3, 0.6], [1.7, 17.2, 1.2, 0.55], [-1.7, 18.0, 2, 0.6], [2.4, 20.2, 0.7, 0.6], [-4.8, 21, 1.6, 0.6], [6.6, 21.3, 2.5, 0.55], [-7.3, 20.4, 0.2, 0.6], [9.6, 21.6, 1, 0.5]]));
+  jobs.push(one(S, 'driftwood-log-90340b', -12.4, 25.4, 0.8, 0.8), one(S, 'driftwood-log-90340b', 15.4, 23.6, 2.2, 0.7));
+  return Promise.all(jobs);
+}
 export function tickYoga(W, t) { if (!W?.yoga) return; W.yoga.curtains.forEach(c => { const P = c.geometry.attributes.position, b = c.userData.base; for (let i = 0; i < P.count; i++) { const y = b[i * 3 + 1], k = Math.min(1, -y / 2.4); P.setZ(i, b[i * 3 + 2] + Math.sin(t * 1.3 + c.userData.ph + b[i * 3] * 2) * 0.14 * k * k); } P.needsUpdate = true; }); }
 export async function buildIsland(S) {
   const W = {};
@@ -336,7 +394,7 @@ export async function buildIsland(S) {
   W.yoga = buildYoga(S); window.__yoga = W.yoga;
   CIRCLES.push([DOGHOUSE.x, DOGHOUSE.z, 0.62]); /* 人不會穿過狗屋（狗狗自己可以走進去） */
   const dogHouseJob = one(S, 'backyard-doghouse-50a492', DOGHOUSE.x, DOGHOUSE.z, DOGHOUSE.ry, 1).then(o => { W.doghouse = o; });
-  const baliJob = buildBali(S, W);
+  const baliJob = buildBali(S, W), beachJob = buildBeach(S, W); buildCritters(S, W);
   W.water = makeWater(); S.add(W.water); W.surf = makeSurf(); S.add(W.surf);
   W.sky = makeSky(); S.add(W.sky.g);
   W.hemi = new THREE.HemisphereLight('#dff2ff', '#a89a70', 1); S.add(W.hemi);
@@ -409,11 +467,14 @@ export async function buildIsland(S) {
     ...[[0.8, 0.9], [-0.9, 1.1], [0.2, 1.8]].map(([dx, dz]) => animal(S, 'chicken-base', SPOTS.coop.x + dx, SPOTS.coop.z + dz, { s: 0.8, roam: 2.2, speed: 0.5 }).then(a => { if (a) (W.chickens ||= []).push(a); })),
     animal(S, 'cat', 1.6, -3.0, { s: 1.0, idleOnly: true }).then(a => { W.cat = a; if (a) a.o.rotation.y = 0.4; }),
     ...[[-6, 12], [-16, 2], [16, -2]].map(([x, z]) => animal(S, 'rabbit', x, z, { s: 0.9, roam: 4, speed: 0.6 })),
+    /* 森林小動物：木屋後面草地上的小鹿、燈塔旁的狐狸（很害羞，跑過去會被嚇跑） */
+    ...[[4, -24], [12, -19]].map(([x, z]) => animal(S, 'deer', x, z, { s: 0.55, roam: 6, speed: 0.55 })),
+    animal(S, 'fox', -11, -21, { s: 0.7, roam: 5, speed: 0.7 }),
     ...ring(4, 5.5, 7, 3, (x, z) => [x, z]).map(([x, z]) => animal(S, 'crab', x, z, { s: 0.22, roam: 2.5, speed: 0.25 })),
     ...[[DOCK.x1 - 0.6, 1.0], [30, -0.8], [-14, 24]].map(([x, z]) => animal(S, 'gull', x, z, { s: 1.2, roam: 1.5, speed: 0.3 })),
     ...[[40, 4], [38, -4], [44, 2], [42, -6]].map(([x, z]) => animal(S, 'fish', x, z, { s: 0.7, roam: 4, speed: 0.8, swim: true, y: -0.5 })),
   ];
-  await Promise.all([...jobs, ...zoo, baliJob, dogHouseJob]);
+  await Promise.all([...jobs, ...zoo, baliJob, beachJob, dogHouseJob]);
   // 狗一開始待在家附近，main.js 會設定 follow
   return W;
 }

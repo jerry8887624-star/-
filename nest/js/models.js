@@ -18,7 +18,7 @@ export const M = {
   bedside: 'bedside-table-740c6b', tv: 'flat-screen-television-97b1f3', media: 'low-media-unit-645e61', diningTable: 'dining-table-7af83a', diningChair: 'dining-chair-530532',
   island: 'kitchen-island-47f4c8', fridge: 'fridge-freezer-fb9b5a', hob: 'hob-01fe88', worktop: 'worktop-run-643552', plant: 'floor-houseplant-8fad17', bookcase: 'alcove-bookcase-83894d',
   art: 'framed-wall-art-d2c8a2', cushion: 'cushion-121479', blanket: 'throw-blanket-f1ab26', wardrobe: 'wardrobe-f3b2f2', curtain: 'curtain-panel-ee2ed9', pendant: 'ceiling-pendant-d21307',
-  dog: 'dog-base', cat: 'cat-base', crab: 'hermit-crab-base', gull: 'herring-gull-base', rabbit: 'rabbit-base', fish: 'reef-fish-base', duck: 'duck-base',
+  dog: 'dog-base', cat: 'cat-base', crab: 'hermit-crab-base', gull: 'herring-gull-base', rabbit: 'rabbit-base', deer: 'forest-deer-fe648d', fox: 'red-fox-5c3bc0', fish: 'reef-fish-base', duck: 'duck-base',
 };
 
 let _grad;
@@ -85,7 +85,7 @@ export async function animal(parent, key, x, z, { s = 1, roam = 4, speed = 0.6, 
 }
 export function playA(a, n) { if (a.cur === n || !a.acts[n]) return; const nx = a.acts[n]; nx.reset().fadeIn(0.25).play(); if (a.cur && a.acts[a.cur]) a.acts[a.cur].fadeOut(0.25); a.cur = n; }
 // 被嚇到：跑過去會逃開，慢慢走近只會讓開一點點；海鷗被衝過去會飛走
-const FLEE = { 'chicken-base': [2.8, 3.2, 3.6], rabbit: [3.4, 4.5, 3.4], duck: [2.6, 3.2, 3], crab: [1.8, 2.2, 3], cat: [2.2, 3, 3.2], gull: [3.2, 3, 2.4] }; // [跑步時多近會逃, 逃多遠, 逃的速度倍數]
+const FLEE = { deer: [5, 7, 3.4], fox: [4.2, 6, 3.2], 'chicken-base': [2.8, 3.2, 3.6], rabbit: [3.4, 4.5, 3.4], duck: [2.6, 3.2, 3], crab: [1.8, 2.2, 3], cat: [2.2, 3, 3.2], gull: [3.2, 3, 2.4] }; // [跑步時多近會逃, 逃多遠, 逃的速度倍數]
 const _pv = { x: 0, z: 0, ok: false, sp: 0, vx: 0, vz: 0 };
 function startFlee(a, P, d, run, walkOK) {
   const f = FLEE[a.key]; if (!f) return;

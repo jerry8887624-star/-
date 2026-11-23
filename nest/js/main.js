@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, GLASSES, GLASSES_P, HATS, NECKS, EARS, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickCritters, BEACH, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -662,6 +662,10 @@ const SP = [
   { id: 'kitchen', sc: 'in', ...INSPOTS.kitchen, icon: '🍳', name: '做飯', run: actCook },
   { id: 'read', sc: 'in', ...INSPOTS.read, icon: '📚', name: '閱讀角', run: actRead },
   { id: 'dining', sc: 'in', ...INSPOTS.dining, icon: '🍽️', name: '吃飯', run: actEat, hide: () => !IN?.dish.visible },
+  { id: 'icecream', sc: 'out', x: BEACH.kiosk.x - 1.5, z: BEACH.kiosk.z, r: 1.8, icon: '🍦', name: '冰淇淋車', run: () => actIceCream() },
+  { id: 'shower', sc: 'out', x: BEACH.shower.x + 0.6, z: BEACH.shower.z + 0.3, r: 1.2, icon: '🚿', name: '沖腳', run: () => useShower() },
+  { id: 'kayak', sc: 'out', x: 10.3, z: 24.6, r: 1.8, icon: '🛶', name: '划獨木舟', run: () => actPaddle('kayak') },
+  { id: 'sup', sc: 'out', x: 12.6, z: 25.2, r: 1.6, icon: '🏄', name: '立式划槳', run: () => actPaddle('sup') },
   { id: 'bale', sc: 'out', x: 0, z: 0, r: 2.2, icon: '🛖', name: '峇里涼亭', run: () => actBale(), pos: () => W?.bale ? baleAt(0, W.bale.L / 2 + 0.7) : { x: 999, z: 999 } },
   { id: 'pond', sc: 'out', x: 0, z: 0, r: 2, icon: '🪷', name: '蓮花池', run: () => actPond(), pos: () => W?.pond ? { x: W.pond.edge[0], z: W.pond.edge[1] } : { x: 999, z: 999 } },
   { id: 'yoga', sc: 'out', x: 0, z: 0, r: 2.4, icon: '🧘', name: '海邊瑜伽', run: () => actYoga(), pos: () => W?.yoga?.enter || { x: 999, z: 999 } },
@@ -1304,6 +1308,7 @@ function actGarden() {
 }
 
 // ================= 狗狗自己的一天：跟著主人走一段、自己去逛逛聞聞、累了回狗屋睡覺，晚上一定回家睡 =================
+window.__crit = k => animals.find(a => a.key === k)?.o.position; /* 測試用：找某種動物的位置 */
 const DOGB = { mode: 'follow', t: 25, route: null, ri: 0, stuck: 0, lx: 0, lz: 0, zt: 0, sniff: 0, then: null }; window.__dog = DOGB; /* 測試用：看狗狗現在在做什麼 */
 const dogFront = k => ({ x: DOGHOUSE.x + Math.sin(DOGHOUSE.ry) * k, z: DOGHOUSE.z + Math.cos(DOGHOUSE.ry) * k });
 const dogSleepy = () => st.tod >= 21 || st.tod < 6; /* 這段時間狗狗一定回狗屋睡 */
@@ -2590,7 +2595,7 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   { const pp = me().av.root.position, gx = Math.round(pp.x / 3) * 3, gz = Math.round(pp.z / 3) * 3; W.sunL.target.position.set(gx, 0, gz); W.sunL.position.x += gx; W.sunL.position.z += gz; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
@@ -2637,7 +2642,7 @@ function frame() {
     } else p.moving = false;
   }
   if (!act || !you().locked) partnerAI(dt);
-  tickWalkIn(dt);
+  tickWalkIn(dt); tickCrafts(dt);
   if (act && walkingIn() && Math.hypot(joy.x, joy.y) > 0.4) endAct(); /* 走過去的路上推搖桿 = 不做了 */
   if (act && !walkingIn()) { act.t += dt; act.update?.(dt); } /* 兩個人都走到定點，活動才開始計時 */
   placeRoots(dt);
@@ -3468,6 +3473,82 @@ function santaGift() {
   openDlg('🎅 聖誕老公公的禮物', `<div class="fest-card"><span>🎁</span><b>Ho ho ho！聖誕快樂！</b><p>「這是給你們小島的禮物——<b class="nw">${esc(it[1])}</b><br>今年也要一直相親相愛喔。」</p></div><p class="muted">禮物已經放進裝潢的包包裡，還有 🪙 100。</p><button type="button" class="primary" id="sg-ok">謝謝聖誕老公公 ♥</button>`);
   $('#sg-ok').onclick = () => $('#dlg').close();
 }
+
+// ================= 海邊：冰淇淋車、沖腳、獨木舟、立式划槳 =================
+const FLAVORS = [['草莓', '#f6a6bd'], ['抹茶', '#a8d08d'], ['香草', '#f8efd2'], ['芒果', '#f7c04a'], ['巧克力', '#8a5a3c']];
+function coneItem(col) { const g = new THREE.Group(), c = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.14, 10), toon('#d9a35e')); c.rotation.x = Math.PI; c.position.y = -0.02; g.add(c); const b = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), toon(col)); b.position.y = 0.07; g.add(b); return g; }
+function actIceCream() {
+  const K = BEACH.kiosk, fx = -1, x = K.x - 1.35, z = K.z; let got = 0;
+  actGo(() => { seat(me(), x, null, z - 0.35, Math.PI / 2, 'stand'); seat(you(), x, null, z + 0.35, Math.PI / 2, 'stand'); });
+  const items = on => [me(), you()].forEach((c, i) => { if (c.ghost || c.remote) return; c.av.setItem(on ? coneItem(on[i] || on[0]) : null); c.av.reach(!!on); });
+  const buy = f => { if (got >= 3) return msg('今天吃太多冰了，肚子會痛喔 😆'); const cost = duo() ? 10 : 6; if ((st.coins || 0) < cost) return toast(`小島幣不夠（要 🪙 ${cost}）`); st.coins -= cost; save(); updateChips(); got++;
+    const other = pick(FLAVORS); items([f[1], other[1]]); sfx('pop'); burst('heart', headPos(me(), 1.2), 4, 0.3); msg(duo() ? `${f[0]}給你、${other[0]}給我，交換吃一口 ♥` : `${f[0]}口味，冰冰涼涼的。`);
+    setTimeout(() => { if (act?.id === 'icecream') me().av.emote('eat', 1.6); }, 700); if (got === 1) addLove(duo() ? 3 : 1, duo() ? '在海邊一起吃冰淇淋' : null, 'icecream'); };
+  beginAct('icecream', '🍦 冰淇淋車', '海邊的小冰淇淋車，今天有五種口味。', {
+    focus: () => new THREE.Vector3(x + 0.2, 1.2, z), camYaw: Math.PI / 2 + 0.55, camPitch: 0.2, near: () => 0.7, back: [x - 0.8, z],
+    btns: FLAVORS.slice(0, 4).map((f, i) => ({ t: `${f[0]}`, s: i ? '' : `🪙 ${duo() ? 10 : 6}`, main: !i, fn: () => buy(f) })),
+    end() { items(null); if (got) addMemo('🍦', duo() ? '在海邊一起吃冰淇淋' : '在海邊吃了冰淇淋'); },
+  });
+}
+function useShower() { const p = me(); p.ry = Math.atan2(BEACH.shower.x - p.x, BEACH.shower.z - p.z); p.av.emote('cheer', 1.2); sfx('water'); for (let i = 0; i < 3; i++) setTimeout(() => burst('star', new THREE.Vector3(BEACH.shower.x, LAND_Y + 1.6, BEACH.shower.z), 6, 0.25), i * 250); toast(pick(['🚿 沖掉腳上的沙，好涼！', '🚿 水好冰，叫了一聲', '🚿 順便把對方也噴濕了 😆'])); if (st.showerDay !== st.day) { st.showerDay = st.day; addLove(1); } }
+/* 獨木舟／立式划槳：每個人划自己的。繞著浮台的路線用「現在幾點」算，兩支手機算出來一樣，晚一點下水也會划在一起 */
+const CRAFT = new Map();
+const PAD = { kayak: { model: 'sea-kayak-97b592', s: 0.5, sp: 1.5 }, sup: { model: 'stand-up-paddleboard-92874f', s: 0.62, sp: 1.15 } };
+function loopPt(t, slot) { const L = BEACH.loop, a = t * (PAD.kayak.sp / L.r) * 0.85, r = L.r + (slot ? 1.1 : -0.2); return { x: L.x + Math.cos(a) * r, z: L.z + Math.sin(a) * r, ry: Math.atan2(-Math.sin(a), Math.cos(a)) }; }
+const nowS = () => Date.now() / 1000;
+async function craftOf(c, kind) {
+  let C = CRAFT.get(c); if (C?.kind === kind) return C; if (C) { OUT.remove(C.o); CRAFT.delete(c); }
+  const g = await load(PAD[kind].model); if (!g) return null; if (CRAFT.get(c)?.kind === kind) return CRAFT.get(c);
+  const o = cloneModel(g); o.scale.setScalar(PAD[kind].s); OUT.add(o); o.updateMatrixWorld(true);
+  /* 槳：從模型拿出來，放在一個可以轉的支點上；用最長的那一邊當槳柄 */
+  const pm = o.getObjectByName('paddle-mesh') || o.getObjectByName('paddle'), mesh = pm?.isMesh ? pm : pm?.children?.find(x => x.isMesh);
+  let paddle = null, half = 0.4;
+  if (mesh) { const geo = mesh.geometry.clone(); mesh.updateMatrixWorld(true); geo.applyMatrix4(new THREE.Matrix4().copy(o.matrixWorld).invert().multiply(mesh.matrixWorld)); geo.computeBoundingBox(); const b = geo.boundingBox, cen = b.getCenter(new THREE.Vector3()), sz = b.getSize(new THREE.Vector3()); geo.translate(-cen.x, -cen.y, -cen.z);
+    const ax = sz.x >= sz.y && sz.x >= sz.z ? 'x' : sz.y >= sz.z ? 'y' : 'z'; if (ax === 'z') geo.rotateY(Math.PI / 2); if (ax === 'y') geo.rotateZ(Math.PI / 2); /* 槳柄放到 x 軸 */
+    half = Math.max(sz.x, sz.y, sz.z) / 2; paddle = new THREE.Mesh(geo, mesh.material); paddle.castShadow = true; o.add(paddle); (o.getObjectByName('paddle') || mesh).visible = false; }
+  const seat = o.getObjectByName('seat'), sl = seat ? o.worldToLocal(seat.getWorldPosition(new THREE.Vector3())).multiplyScalar(1) : new THREE.Vector3();
+  C = { kind, o, paddle, half, seat: sl, ph: Math.random() * 6 }; CRAFT.set(c, C); return C;
+}
+function tickCrafts(dt) {
+  if (scene !== 'out') { CRAFT.forEach(C => { C.o.visible = false; }); return; }
+  if (W?.kayakRest) W.kayakRest.visible = ![...CRAFT.values()].some(C => C.kind === 'kayak' && C.o.visible); if (W?.supRest) W.supRest.visible = ![...CRAFT.values()].some(C => C.kind === 'sup' && C.o.visible); /* 有人在划：沙灘上那一艘先收起來 */
+  for (const c of allChars()) {
+    const kind = c === me() ? (act?.id === 'kayak' || act?.id === 'sup' ? act.id : null) : (c.act === 'kayak' || c.act === 'sup' ? c.act : null);
+    const C = CRAFT.get(c); if (!kind) { if (C) { C.o.visible = false; if (c.av.rowGrip && !c.locked) c.av.rowGrip = null; } continue; }
+    if (!C || C.kind !== kind) { craftOf(c, kind); continue; }
+    const t = performance.now() / 1000, o = C.o; o.visible = true; C.ph += dt * (c.paddling === false ? 0 : kind === 'sup' ? 1.6 : 2.2);
+    const r = c.av.root.position, ry = c.ry, sl = C.seat, sc = PAD[kind].s, cs = Math.cos(ry), sn = Math.sin(ry);
+    o.rotation.set(Math.sin(t * 1.3 + 1) * 0.03, ry, Math.sin(t * 1.1) * 0.04); o.position.set(r.x - (sl.x * cs + sl.z * sn) * sc, 0.02 + Math.sin(t * 1.6) * 0.04, r.z - (-sl.x * sn + sl.z * cs) * sc);
+    if (C.paddle) { const P = C.paddle, k = C.ph, hb = C.half;
+      if (kind === 'kayak') { P.position.set(sl.x, sl.y + 0.55, sl.z + 0.55); P.rotation.set(0, Math.sin(k) * 0.55, Math.sin(k) * 0.45); }
+      else { const side = Math.sin(k * 0.5) > 0 ? 1 : -1; P.position.set(sl.x + side * 0.42, sl.y + 1.25, sl.z + 0.2 + Math.sin(k) * 0.5); P.rotation.set(Math.sin(k) * 0.45, 0, Math.PI / 2 + side * 0.12); }
+      o.updateMatrixWorld(true); c.av.rowGrip = kind === 'kayak' ? [P.localToWorld(new THREE.Vector3(hb * 0.28, 0, 0)), P.localToWorld(new THREE.Vector3(-hb * 0.28, 0, 0))] : [P.localToWorld(new THREE.Vector3(hb * 0.92, 0, 0)), P.localToWorld(new THREE.Vector3(hb * 0.35, 0, 0))]; }
+  }
+}
+function actPaddle(kind) {
+  const L = BEACH.launch, slot = duo() ? pairSlot(0) : 0, p = me(); let phase = 'out', paused = false, tk = 0, laps = 0, a0 = null;
+  const start = { x: L.x + (slot ? 0.9 : 0), z: L.z }; /* 在沙灘上的水邊上船，再推出去 */
+  actGo(() => { seat(p, start.x, 0.12, start.z, Math.atan2(BEACH.loop.x - start.x, BEACH.loop.z - start.z), kind === 'kayak' ? 'floor' : 'stand'); });
+  craftOf(p, kind); p.av.emote('row', 9999);
+  const go = (tx, tz, dt, sp) => { const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz); if (d > 0.02) { const k = Math.min(d, sp * dt) / d; p.x += dx * k; p.z += dz * k; turnTo2(p, Math.atan2(dx, dz), dt); } return d; };
+  const btns = () => setBtns([{ t: phase === 'home' ? '回岸邊中…' : '划回岸邊', main: true, fn: () => { phase = 'home'; btns(); } },
+    { t: paused ? '繼續划' : '停下來看海', fn: () => { paused = !paused; p.paddling = !paused; msg(paused ? '把槳橫放，隨著浪輕輕搖。' : '繼續往前划。'); btns(); } },
+    duo() && { t: '潑水給對方', fn: () => { me().av.emote('cheer', 1); setTimeout(() => you().av.emote('shy', 1.4), 300); burst('star', midPos(0.6), 8, 0.4); addLove(1, null, 'splash'); msg(pick(['啊！好冰！', '對方也潑回來了 😆', '兩個人都濕透了'])); } }]);
+  beginAct(kind, kind === 'kayak' ? '🛶 獨木舟' : '🏄 立式划槳', kind === 'kayak' ? '坐進獨木舟，繞著海上的浮台划一圈。' : '站上划槳板，慢慢划到浮台那邊。', {
+    focus: () => new THREE.Vector3(p.av.root.position.x, 0.8, p.av.root.position.z), camPitch: 0.32, near: () => 1.15, camSpeed: () => 2.5, back: [L.x - 0.6, L.z - 1.2],
+    btns: [],
+    update(dt) {
+      p.y = (kind === 'kayak' ? 0.13 : 0.15) + Math.sin(performance.now() / 1000 * 1.6) * 0.04;
+      if (paused) return; tk += dt; if (tk > 12) { tk = 0; addLove(1, null, 'paddle'); }
+      if (phase === 'out') { const q = loopPt(nowS() + 4, slot); if (go(q.x, q.z, dt, PAD[kind].sp * 1.5) < 0.5) { phase = 'loop'; a0 = nowS(); msg(pick(['浮台上有一隻海鷗在曬太陽。', '海水好清，看得到底下的小魚。', '回頭看，小島好漂亮。'])); } }
+      else if (phase === 'loop') { const q = loopPt(nowS(), slot); go(q.x, q.z, dt, PAD[kind].sp * 1.4); if (nowS() - a0 > 2 * Math.PI / (PAD.kayak.sp / BEACH.loop.r * 0.85) && !laps) { laps = 1; msg('繞完一圈了！要再一圈，還是划回岸邊？'); } }
+      else if (go(start.x, start.z, dt, PAD[kind].sp * 1.3) < 0.3) { endAct(); }
+    },
+    end() { p.paddling = true; p.av.emote('idle', 0.1); p.av.rowGrip = null; if (laps || tk) addMemo(kind === 'kayak' ? '🛶' : '🏄', `${duo() ? '兩個人' : ''}在海上${kind === 'kayak' ? '划獨木舟' : '玩立式划槳'}，繞著浮台`); },
+  });
+  btns();
+}
+function turnTo2(c, want, dt) { let d = want - c.ry; d = Math.atan2(Math.sin(d), Math.cos(d)); c.ry += d * Math.min(1, dt * 3); }
 
 // ================= 峇里涼亭：兩個人靠在臥榻上看書、躺著聽風 =================
 /* 臥榻的 local 座標（x 左右、z 往步道那一端）換成世界座標 */
