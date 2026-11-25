@@ -361,7 +361,7 @@ export function tickCritters(W, t, dt, hour, wet) {
   C.ff.forEach((f, i) => { const k = t * f.sp + f.ph, x = f.x + Math.sin(k * 0.6) * 0.8, z = f.z + Math.cos(k * 0.45) * 0.8; C.pos[i * 3] = x; C.pos[i * 3 + 1] = standH(x, z) + 0.45 + Math.sin(k * 0.9) * 0.3; C.pos[i * 3 + 2] = z; const bl = Math.sin(t * 1.6 + f.ph * 3); C.al[i] = Math.max(0, bl) ** 2; });
   C.geo.attributes.position.needsUpdate = true; C.geo.attributes.a.needsUpdate = true;
 }
-/* ---------- 海邊木棧道：從庭院的踏腳石一路接到沙灘，盡頭是看海平台；沙灘上有救生塔、冰淇淋車、沖腳、划船出發點，海上有浮台 ---------- */
+/* ---------- 海邊木棧道：從庭院的踏腳石一路接到沙灘，盡頭是看海平台；沙灘上有救生塔、冰淇淋車、沖腳、划船出發點 ---------- */
 export const BEACH = { walk: { x: 0, z0: 7.9, z1: 21, w: 1.5 }, deck: { x0: -1.25, x1: 0.75, z0: 21, z1: 23.4 }, kiosk: { x: 4.8, z: 18.8, ry: Math.PI / 2 }, shower: { x: -1.9, z: 19.6 },
   launch: { x: 11.6, z: 26.2 }, raft: { x: 4, z: 35.5 }, loop: { x: 4, z: 35.5, r: 5.4 } };
 function buildBeach(S, W) {
@@ -382,7 +382,6 @@ function buildBeach(S, W) {
   jobs.push(one(S, 'beach-shower-post-719ac6', B.shower.x, B.shower.z, 0.4, 0.7, { col: 0.2 }));
   jobs.push(one(S, 'lifeguard-tower-183c37', -9.2, 23.6, Math.PI, 0.55, { col: 1.0 }), one(S, 'beach-flag-pole-2bf334', -4.4, 24.6, 0.3, 0.55, { col: 0.15 }), one(S, 'lifebuoy-on-a-post-57421b', -6.4, 22.4, 0.5, 0.75, { col: 0.25 }));
   jobs.push(one(S, 'life-jacket-post-15c73a', 13.6, 24.3, -0.9, 0.7, { col: 0.3 }), one(S, 'sea-kayak-97b592', 10.3, 25.3, 0.7, 0.5).then(o => { W.kayakRest = o; }), one(S, 'stand-up-paddleboard-92874f', 12.2, 25.9, 0.5, 0.6).then(o => { W.supRest = o; }), one(S, 'swan-pedal-boat-8dc50b', 14.6, 26.2, 0.6, 0.58, { col: 0.6 }).then(o => { W.swanRest = o; }));
-  jobs.push(one(S, 'swim-raft-6aefb5', B.raft.x, B.raft.z, 0.4, 0.8, { y: -0.55 }).then(o => { W.raft = o; }));
   jobs.push(scatter(S, 'marram-grass-tuft-8c7a99', [[-1.6, 16.4, 0.3, 0.6], [1.7, 17.2, 1.2, 0.55], [-1.7, 18.0, 2, 0.6], [2.4, 20.2, 0.7, 0.6], [-4.8, 21, 1.6, 0.6], [6.6, 21.3, 2.5, 0.55], [-7.3, 20.4, 0.2, 0.6], [9.6, 21.6, 1, 0.5]]));
   jobs.push(one(S, 'driftwood-log-90340b', -12.4, 25.4, 0.8, 0.8), one(S, 'driftwood-log-90340b', 15.4, 23.6, 2.2, 0.7));
   return Promise.all(jobs);
