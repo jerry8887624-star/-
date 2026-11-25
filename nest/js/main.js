@@ -3627,7 +3627,7 @@ function actIceCream() {
   });
 }
 function useShower() { const p = me(); p.ry = Math.atan2(BEACH.shower.x - p.x, BEACH.shower.z - p.z); p.av.emote('cheer', 1.2); sfx('water'); for (let i = 0; i < 3; i++) setTimeout(() => burst('star', new THREE.Vector3(BEACH.shower.x, LAND_Y + 1.6, BEACH.shower.z), 6, 0.25), i * 250); toast(pick(['🚿 沖掉腳上的沙，好涼！', '🚿 水好冰，叫了一聲', '🚿 順便把對方也噴濕了 😆'])); if (st.showerDay !== st.day) { st.showerDay = st.day; addLove(1); } }
-/* 獨木舟／立式划槳：每個人划自己的。繞著浮台的路線用「現在幾點」算，兩支手機算出來一樣，晚一點下水也會划在一起 */
+/* 獨木舟／立式划槳：每個人划自己的。繞一圈的路線用「現在幾點」算，兩支手機算出來一樣，晚一點下水也會划在一起 */
 const CRAFT = new Map();
 const PAD = { kayak: { model: 'sea-kayak-97b592', s: 0.5, sp: 1.5 }, sup: { model: 'stand-up-paddleboard-92874f', s: 0.62, sp: 1.15 },
   swan: { model: 'swan-pedal-boat-8dc50b', s: 0.58, sp: 1.0, seats: [[-0.36, 0.62, -0.32], [0.36, 0.62, -0.32]] } }; /* 天鵝船：兩人座，座位在模型座標 */
@@ -3687,18 +3687,18 @@ function actPaddle(kind) {
   const btns = () => setBtns([{ t: phase === 'home' ? '回岸邊中…' : '划回岸邊', main: true, fn: () => { phase = 'home'; btns(); } },
     { t: paused ? '繼續划' : '停下來看海', fn: () => { paused = !paused; p.paddling = !paused; msg(paused ? '把槳橫放，隨著浪輕輕搖。' : '繼續往前划。'); btns(); } },
     duo() && { t: '潑水給對方', fn: () => { me().av.emote('cheer', 1); setTimeout(() => you().av.emote('shy', 1.4), 300); burst('star', midPos(0.6), 8, 0.4); addLove(1, null, 'splash'); msg(pick(['啊！好冰！', '對方也潑回來了 😆', '兩個人都濕透了'])); } }]);
-  const T = { kayak: ['🛶 獨木舟', '坐進獨木舟，繞著海上的浮台划一圈。'], sup: ['🏄 立式划槳', '站上划槳板，慢慢划到浮台那邊。'], swan: ['🦢 天鵝船', duo() ? '先上船的人踩，另一半點「天鵝船」就會坐到旁邊。' : '踩著天鵝船，慢慢繞浮台一圈。'] }[kind];
+  const T = { kayak: ['🛶 獨木舟', '坐進獨木舟，在海上繞一圈。'], sup: ['🏄 立式划槳', '站上划槳板，慢慢划出去繞一圈。'], swan: ['🦢 天鵝船', duo() ? '先上船的人踩，另一半點「天鵝船」就會坐到旁邊。' : '踩著天鵝船，慢慢在海上繞一圈。'] }[kind];
   beginAct(kind, T[0], T[1], {
     focus: () => new THREE.Vector3(p.av.root.position.x, 0.8, p.av.root.position.z), camPitch: 0.32, near: () => 1.15, camSpeed: () => 2.5, back: [L.x - 0.6, L.z - 1.2],
     btns: [],
     update(dt) {
       p.y = (kind === 'kayak' ? 0.13 : kind === 'swan' ? PAD.swan.seats[0][1] * PAD.swan.s - HIP + 0.02 : 0.15) + Math.sin(performance.now() / 1000 * 1.6) * 0.04;
       if (paused) return; tk += dt; if (tk > 12) { tk = 0; addLove(1, null, 'paddle'); }
-      if (phase === 'out') { const q = loopPt(nowS() + 4, slot); if (go(q.x, q.z, dt, PAD[kind].sp * 1.5) < 0.5) { phase = 'loop'; a0 = nowS(); msg(pick(['浮台上有一隻海鷗在曬太陽。', '海水好清，看得到底下的小魚。', '回頭看，小島好漂亮。'])); } }
+      if (phase === 'out') { const q = loopPt(nowS() + 4, slot); if (go(q.x, q.z, dt, PAD[kind].sp * 1.5) < 0.5) { phase = 'loop'; a0 = nowS(); msg(pick(['一隻海鷗停在旁邊的浪上。', '海水好清，看得到底下的小魚。', '回頭看，小島好漂亮。'])); } }
       else if (phase === 'loop') { const q = loopPt(nowS(), slot); go(q.x, q.z, dt, PAD[kind].sp * 1.4); if (nowS() - a0 > 2 * Math.PI / (PAD.kayak.sp / BEACH.loop.r * 0.85) && !laps) { laps = 1; msg('繞完一圈了！要再一圈，還是划回岸邊？'); } }
       else if (go(start.x, start.z, dt, PAD[kind].sp * 1.3) < 0.3) { endAct(); }
     },
-    end() { p.paddling = true; p.av.emote('idle', 0.1); p.av.rowGrip = null; if (laps || tk) addMemo({ kayak: '🛶', sup: '🏄', swan: '🦢' }[kind], `${duo() ? '兩個人' : ''}在海上${{ kayak: '划獨木舟', sup: '玩立式划槳', swan: '踩天鵝船' }[kind]}，繞著浮台`); },
+    end() { p.paddling = true; p.av.emote('idle', 0.1); p.av.rowGrip = null; if (laps || tk) addMemo({ kayak: '🛶', sup: '🏄', swan: '🦢' }[kind], `${duo() ? '兩個人' : ''}在海上${{ kayak: '划獨木舟', sup: '玩立式划槳', swan: '踩天鵝船' }[kind]}，繞了一圈`); },
   });
   btns();
 }
