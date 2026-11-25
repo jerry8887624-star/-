@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, GLASSES, GLASSES_P, HATS, NECKS, EARS, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickCritters, tickChapel, BEACH, CHAPEL, FARM, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickCritters, tickChapel, BEACH, CHAPEL, FARM, RANCH, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -386,7 +386,8 @@ function spawnRing(p) {
 const R_BODY = 0.28;
 function canStand(x, z) {
   if (scene === 'in') { const hw = ROOM.w / 2 - 0.4, hd = ROOM.d / 2 - 0.4; return x > -hw && x < hw && z > -hd && z < hd && !blocked(x, z, R_BODY, DCIRC.in, IN.BOXES); }
-  return walkable(x, z) && !blocked(x, z, R_BODY, CIRCLES, BOXES) && !blocked(x, z, R_BODY, DCIRC.out, []);
+  const rb = act?.id === 'horse' ? 0.5 : R_BODY; /* 騎馬：馬比人大，碰撞範圍也大一點，馬頭不會穿進牆或樹 */
+  return walkable(x, z) && !blocked(x, z, rb, CIRCLES, BOXES) && !blocked(x, z, rb, DCIRC.out, []);
 }
 // ---------- 找路（A*）：繞過小木屋、樹、家具，沿著沙灘走上碼頭 ----------
 const grids = {};
@@ -444,8 +445,11 @@ function stepChar(c, dx, dz, dt, speed) {
   const sx = dx / L * speed * dt, sz = dz / L * speed * dt;
   let moved = false;
   if (canStand(c.x + sx, c.z + sz)) { c.x += sx; c.z += sz; moved = true; }
-  else if (canStand(c.x + sx, c.z)) { c.x += sx; moved = Math.abs(sx) > 1e-4; }
-  else if (canStand(c.x, c.z + sz)) { c.z += sz; moved = Math.abs(sz) > 1e-4; }
+  else { /* 撞到東西：轉一點角度沿著邊滑過去（樹、石頭、家具都不會卡住），先試偏離最少的方向 */
+    const st = Math.hypot(sx, sz), a0 = Math.atan2(sx, sz);
+    for (const da of [0.45, -0.45, 0.9, -0.9, 1.3, -1.3]) { const a = a0 + da, tx = Math.sin(a) * st * Math.cos(da * 0.5), tz = Math.cos(a) * st * Math.cos(da * 0.5); if (canStand(c.x + tx, c.z + tz)) { c.x += tx; c.z += tz; moved = true; break; } }
+    if (!moved && canStand(c.x + sx, c.z)) { c.x += sx; moved = Math.abs(sx) > 1e-4; }
+    else if (!moved && canStand(c.x, c.z + sz)) { c.z += sz; moved = Math.abs(sz) > 1e-4; } }
   const want = Math.atan2(dx, dz); let d = want - c.ry; d = Math.atan2(Math.sin(d), Math.cos(d)); c.ry += d * Math.min(1, dt * 10);
   c.moving = moved; return moved;
 }
@@ -662,6 +666,7 @@ const SP = [
   { id: 'kitchen', sc: 'in', ...INSPOTS.kitchen, icon: '🍳', name: '做飯', run: actCook },
   { id: 'read', sc: 'in', ...INSPOTS.read, icon: '📚', name: '閱讀角', run: actRead },
   { id: 'dining', sc: 'in', ...INSPOTS.dining, icon: '🍽️', name: '吃飯', run: actEat, hide: () => !IN?.dish.visible },
+  { id: 'horse', sc: 'out', x: 0, z: 0, r: 2, icon: '🐴', name: '騎馬', run: () => actHorse(), pos: () => horseSpot(), hide: () => act?.id === 'horse' || !W?.horses?.length },
   { id: 'pasture', sc: 'out', x: FARM.pasture.x + FARM.pasture.w / 2 + 1.3, z: FARM.pasture.z, r: 2, icon: '🐑', name: '小牧場', run: () => actPasture() },
   { id: 'field', sc: 'out', x: FARM.field.x1 + 1.1, z: (FARM.field.z0 + FARM.field.z1) / 2, r: 2, icon: '🍓', name: '採收', run: () => actField() },
   { id: 'well', sc: 'out', x: FARM.well.x + 1.1, z: FARM.well.z + 0.4, r: 1.4, icon: '🪣', name: '水井', run: () => useWell() },
@@ -672,6 +677,7 @@ const SP = [
   { id: 'shower', sc: 'out', x: BEACH.shower.x + 0.6, z: BEACH.shower.z + 0.3, r: 1.2, icon: '🚿', name: '沖腳', run: () => useShower() },
   { id: 'kayak', sc: 'out', x: 10.3, z: 24.6, r: 1.8, icon: '🛶', name: '划獨木舟', run: () => actPaddle('kayak') },
   { id: 'sup', sc: 'out', x: 12.6, z: 25.2, r: 1.6, icon: '🏄', name: '立式划槳', run: () => actPaddle('sup') },
+  { id: 'swan', sc: 'out', x: 13.9, z: 24.9, r: 1.8, icon: '🦢', name: '天鵝船', run: () => actPaddle('swan') },
   { id: 'bale', sc: 'out', x: 0, z: 0, r: 2.2, icon: '🛖', name: '峇里涼亭', run: () => actBale(), pos: () => W?.bale ? baleAt(0, W.bale.L / 2 + 0.7) : { x: 999, z: 999 } },
   { id: 'pond', sc: 'out', x: 0, z: 0, r: 2, icon: '🪷', name: '蓮花池', run: () => actPond(), pos: () => W?.pond ? { x: W.pond.edge[0], z: W.pond.edge[1] } : { x: 999, z: 999 } },
   { id: 'yoga', sc: 'out', x: 0, z: 0, r: 2.4, icon: '🧘', name: '海邊瑜伽', run: () => actYoga(), pos: () => W?.yoga?.enter || { x: 999, z: 999 } },
@@ -2638,7 +2644,7 @@ function frame() {
       p.path = null; lovePending = null;
       const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = -fz, rz = fx;
       const dx = fx * -iy + rx * ix, dz = fz * -iy + rz * ix;
-      stepChar(p, dx, dz, dt, (act?.id === 'bike' ? 8.5 : st.run ? WALK.run : WALK.walk) * mag);
+      stepChar(p, dx, dz, dt, (act?.id === 'bike' ? 8.5 : act?.id === 'horse' ? 7.2 : st.run ? WALK.run : WALK.walk) * mag);
     } else if (p.path) {
       const P = p.path, last = P.i >= P.pts.length - 1, [wx, wz] = P.pts[Math.min(P.i, P.pts.length - 1)];
       const dx = wx - p.x, dz = wz - p.z, d = Math.hypot(dx, dz);
@@ -2649,7 +2655,7 @@ function frame() {
     } else p.moving = false;
   }
   if (!act || !you().locked) partnerAI(dt);
-  tickWalkIn(dt); tickCrafts(dt);
+  tickWalkIn(dt); tickCrafts(dt); tickHorses(dt);
   if (act && walkingIn() && Math.hypot(joy.x, joy.y) > 0.4) endAct(); /* 走過去的路上推搖桿 = 不做了 */
   if (act && !walkingIn()) { act.t += dt; act.update?.(dt); } /* 兩個人都走到定點，活動才開始計時 */
   placeRoots(dt);
@@ -3481,6 +3487,52 @@ function santaGift() {
   $('#sg-ok').onclick = () => $('#dlg').close();
 }
 
+// ================= 騎馬：拴馬樁有兩匹馬，一人一匹；推搖桿輕一點是走、推到底是跑 =================
+const myHorseIx = () => (duo() ? myIdx() : 0) % 2;
+function horseSpot() { const h = W?.horses?.[myHorseIx()]; if (!h) return { x: 999, z: 999 }; const p = h.o.position; return { x: p.x - 0.9, z: p.z + 0.6 }; }
+/* 馬鞍在馬身上的位置（馬的座標）：用馬鞍模型的外框算，坐在馬鞍正中間、上緣往下一點 */
+function seatLocal(h) { if (h.seatL) return h.seatL; const m = h.o.getObjectByName('attach-saddle-mesh') || h.o.getObjectByName('attach-saddle'); h.o.updateMatrixWorld(true);
+  if (!m) return (h.seatL = new THREE.Vector3(0, 1.2, 0)); const b = new THREE.Box3().setFromObject(m), c = b.getCenter(new THREE.Vector3()); c.y = b.max.y - (b.max.y - b.min.y) * 0.25; return (h.seatL = h.o.worldToLocal(c)); }
+const seatWorld = h => h.o.localToWorld(seatLocal(h).clone());
+const saddleY = h => seatWorld(h).y;
+/* 騎士站的位置 → 馬的位置（騎士在馬鞍上，馬往前後挪） */
+function placeHorse(h, c) { const L = seatLocal(h), sc = h.o.scale.x, cs = Math.cos(c.ry), sn = Math.sin(c.ry), ox = (L.x * cs + L.z * sn) * sc, oz = (-L.x * sn + L.z * cs) * sc; const x = c.x - ox, z = c.z - oz; h.o.position.set(x, standH(x, z), z); h.o.rotation.y = c.ry; h.o.updateMatrixWorld(true); }
+function horseHome(h) { if (!h) return; h.rider = null; const p = h.o.position, H = h.home; if (Math.hypot(p.x - H.x, p.z - H.z) < 0.3) return; h.route = [...(findPath(p.x, p.z, H.x, H.z) || []), [H.x, H.z]]; h.ri = 0; }
+function actHorse() {
+  const h = W?.horses?.[myHorseIx()]; if (!h) return; if (h.rider && h.rider !== me()) return toast('這匹馬有人在騎喔');
+  const p = me(), r0 = p.av.root.position.clone(); h.rider = p; h.route = null; const sw = seatWorld(h); p.x = sw.x; p.z = sw.z; p.ry = h.o.rotation.y; p.y = sw.y - HIP;
+  p.locked = false; p.path = null; p.av.setPose('horse'); p.av.reach(true); sfx('whoosh'); p.glide = { dx: r0.x - p.x, dy: r0.y - p.y, dz: r0.z - p.z, t: 0 }; /* 從馬旁邊滑上馬背 */ burst('heart', headPos(p, 1.4), 3, 0.3);
+  let tog = 0, last = { x: p.x, z: p.z }, spd = 0;
+  beginAct('horse', '🐴 騎馬', '推搖桿騎馬：輕輕推是慢慢走，推到底就跑起來。', {
+    move: true,
+    btns: [{ t: '下馬', main: true, fn: () => endAct() }, { t: '摸摸馬', fn: () => { p.av.emote('pat', 1.2); const hd = h.o.getObjectByName('Head'); burst('heart', (hd ? hd.getWorldPosition(new THREE.Vector3()) : h.o.position.clone()).add(new THREE.Vector3(0, 0.3, 0)), 4, 0.3); msg(pick(['馬甩了甩鬃毛。', '馬輕輕噴了一口氣。', '馬用鼻子蹭你的手。'])); } }],
+    update(dt) {
+      const c = me(), v = Math.hypot(c.x - last.x, c.z - last.z) / Math.max(dt, 1e-3); last = { x: c.x, z: c.z }; spd += (v - spd) * Math.min(1, dt * 6);
+      const run = spd > 3.6, t = performance.now() / 1000, bob = spd > 0.4 ? Math.abs(Math.sin(t * (run ? 9 : 5))) * (run ? 0.07 : 0.03) : 0;
+      placeHorse(h, c); c.y = saddleY(h) - HIP + bob;
+      playA(h, spd > 3.6 ? 'Run' : spd > 0.4 ? 'Walk' : 'Idle'); if (h.acts.Run) h.acts.Run.timeScale = 1 + Math.max(0, spd - 4) * 0.08;
+      /* 兩個人一起騎：並肩騎一段，甜蜜值一天一次 */
+      const q = you(); if (duo() && q.act === 'horse' && Math.hypot(q.x - c.x, q.z - c.z) < 5) { tog += dt; if (tog > 20 && st.rideDay !== st.day) { st.rideDay = st.day; addLove(4, '一起騎馬散步 🐴', 'ride2'); addMemo('🐴', '兩個人並肩騎馬繞小島'); } }
+    },
+    end() { const c = me(); c.y = null; c.av.setPose('stand'); c.av.reach(false); const s = Math.sin(c.ry + Math.PI / 2), co = Math.cos(c.ry + Math.PI / 2); const [x, z] = freeSpot(c.x + s * 0.9, c.z + co * 0.9); c.x = x; c.z = z; horseHome(h); if (!st.rodeOnce) { st.rodeOnce = 1; addMemo('🐴', '第一次在小島上騎馬'); } },
+  });
+}
+/* 每一格：別人騎的馬跟著他；沒人騎的馬自己走回拴馬樁 */
+function tickHorses(dt) {
+  const H = W?.horses; if (!H?.length || scene !== 'out') return;
+  const q = you(), mine = act?.id === 'horse' ? H[myHorseIx()] : null;
+  H.forEach((h, i) => {
+    if (h === mine) return;
+    if (q?.remote && q.act === 'horse' && i === (1 - myIdx()) % 2) { if (!h.rider) { h.rider = q; h.route = null; } const sp = q.moving ? 4 : 0, p = h.o.position; const nx = q.av.root.position.x, nz = q.av.root.position.z, v = Math.hypot(nx - p.x, nz - p.z) / Math.max(dt, 1e-3);
+      placeHorse(h, { x: nx, z: nz, ry: q.ry }); playA(h, v > 3.6 ? 'Run' : v > 0.3 || sp ? 'Walk' : 'Idle'); return; }
+    if (h.rider && h.rider !== me()) horseHome(h); /* 另一半下馬了 */
+    if (h.rider === me() && act?.id !== 'horse') horseHome(h);
+    if (h.route) { const [wx, wz] = h.route[h.ri], p = h.o.position, dx = wx - p.x, dz = wz - p.z, d = Math.hypot(dx, dz);
+      if (d < 0.2) { h.ri++; if (h.ri >= h.route.length) { h.route = null; h.o.rotation.y = 0; playA(h, 'Idle'); } return; }
+      const st2 = Math.min(d, 1.6 * dt); p.x += dx / d * st2; p.z += dz / d * st2; p.y = standH(p.x, p.z); let a = Math.atan2(dx, dz) - h.o.rotation.y; a = Math.atan2(Math.sin(a), Math.cos(a)); h.o.rotation.y += a * Math.min(1, dt * 5); playA(h, 'Walk'); }
+  });
+}
+
 // ================= 小農場：牧場餵動物、擠牛奶；田裡採草莓番茄；水井打水 =================
 const farmDay = () => (st.farm?.d === st.day ? st.farm : (st.farm = { d: st.day, berry: 0, tomato: 0, milk: 0, fed: 0 }));
 const addFood = (k, n) => { st.pantry = st.pantry || {}; st.pantry[k] = (st.pantry[k] || 0) + n; save(); };
@@ -3577,7 +3629,9 @@ function actIceCream() {
 function useShower() { const p = me(); p.ry = Math.atan2(BEACH.shower.x - p.x, BEACH.shower.z - p.z); p.av.emote('cheer', 1.2); sfx('water'); for (let i = 0; i < 3; i++) setTimeout(() => burst('star', new THREE.Vector3(BEACH.shower.x, LAND_Y + 1.6, BEACH.shower.z), 6, 0.25), i * 250); toast(pick(['🚿 沖掉腳上的沙，好涼！', '🚿 水好冰，叫了一聲', '🚿 順便把對方也噴濕了 😆'])); if (st.showerDay !== st.day) { st.showerDay = st.day; addLove(1); } }
 /* 獨木舟／立式划槳：每個人划自己的。繞著浮台的路線用「現在幾點」算，兩支手機算出來一樣，晚一點下水也會划在一起 */
 const CRAFT = new Map();
-const PAD = { kayak: { model: 'sea-kayak-97b592', s: 0.5, sp: 1.5 }, sup: { model: 'stand-up-paddleboard-92874f', s: 0.62, sp: 1.15 } };
+const PAD = { kayak: { model: 'sea-kayak-97b592', s: 0.5, sp: 1.5 }, sup: { model: 'stand-up-paddleboard-92874f', s: 0.62, sp: 1.15 },
+  swan: { model: 'swan-pedal-boat-8dc50b', s: 0.58, sp: 1.0, seats: [[-0.36, 0.62, -0.32], [0.36, 0.62, -0.32]] } }; /* 天鵝船：兩人座，座位在模型座標 */
+const CRAFT_KINDS = ['kayak', 'sup', 'swan'];
 function loopPt(t, slot) { const L = BEACH.loop, a = t * (PAD.kayak.sp / L.r) * 0.85, r = L.r + (slot ? 1.1 : -0.2); return { x: L.x + Math.cos(a) * r, z: L.z + Math.sin(a) * r, ry: Math.atan2(-Math.sin(a), Math.cos(a)) }; }
 const nowS = () => Date.now() / 1000;
 async function craftOf(c, kind) {
@@ -3591,44 +3645,60 @@ async function craftOf(c, kind) {
     const ax = sz.x >= sz.y && sz.x >= sz.z ? 'x' : sz.y >= sz.z ? 'y' : 'z'; if (ax === 'z') geo.rotateY(Math.PI / 2); if (ax === 'y') geo.rotateZ(Math.PI / 2); /* 槳柄放到 x 軸 */
     half = Math.max(sz.x, sz.y, sz.z) / 2; paddle = new THREE.Mesh(geo, mesh.material); paddle.castShadow = true; o.add(paddle); (o.getObjectByName('paddle') || mesh).visible = false; }
   const seat = o.getObjectByName('seat'), sl = seat ? o.worldToLocal(seat.getWorldPosition(new THREE.Vector3())).multiplyScalar(1) : new THREE.Vector3();
-  C = { kind, o, paddle, half, seat: sl, ph: Math.random() * 6 }; CRAFT.set(c, C); return C;
+  const sw = PAD[kind].seats; C = { kind, o, paddle, half, seat: sw ? new THREE.Vector3(...sw[0]) : sl, ph: Math.random() * 6, wheel: o.getObjectByName('paddle-wheel'), crank: o.getObjectByName('pedal-crank') }; CRAFT.set(c, C); return C;
 }
 function tickCrafts(dt) {
   if (scene !== 'out') { CRAFT.forEach(C => { C.o.visible = false; }); return; }
-  if (W?.kayakRest) W.kayakRest.visible = ![...CRAFT.values()].some(C => C.kind === 'kayak' && C.o.visible); if (W?.supRest) W.supRest.visible = ![...CRAFT.values()].some(C => C.kind === 'sup' && C.o.visible); /* 有人在划：沙灘上那一艘先收起來 */
+  if (W?.kayakRest) W.kayakRest.visible = ![...CRAFT.values()].some(C => C.kind === 'kayak' && C.o.visible); if (W?.supRest) W.supRest.visible = ![...CRAFT.values()].some(C => C.kind === 'sup' && C.o.visible); if (W?.swanRest) W.swanRest.visible = ![...CRAFT.values()].some(C => C.kind === 'swan' && C.o.visible); /* 有人在划：沙灘上那一艘先收起來 */
   for (const c of allChars()) {
-    const kind = c === me() ? (act?.id === 'kayak' || act?.id === 'sup' ? act.id : null) : (c.act === 'kayak' || c.act === 'sup' ? c.act : null);
+    let kind = c === me() ? (CRAFT_KINDS.includes(act?.id) ? act.id : null) : (CRAFT_KINDS.includes(c.act) ? c.act : null);
+    if (kind === 'swan' && (c === me() ? me().swanHost : (act?.id === 'swan' && !me().swanHost && Math.hypot(c.x - swanSeat2(me()).x, c.z - swanSeat2(me()).z) < 0.6))) kind = null; /* 坐在別人的天鵝船上：自己不用再一艘 */
     const C = CRAFT.get(c); if (!kind) { if (C) { C.o.visible = false; if (c.av.rowGrip && !c.locked) c.av.rowGrip = null; } continue; }
     if (!C || C.kind !== kind) { craftOf(c, kind); continue; }
     const t = performance.now() / 1000, o = C.o; o.visible = true; C.ph += dt * (c.paddling === false ? 0 : kind === 'sup' ? 1.6 : 2.2);
     const r = c.av.root.position, ry = c.ry, sl = C.seat, sc = PAD[kind].s, cs = Math.cos(ry), sn = Math.sin(ry);
     o.rotation.set(Math.sin(t * 1.3 + 1) * 0.03, ry, Math.sin(t * 1.1) * 0.04); o.position.set(r.x - (sl.x * cs + sl.z * sn) * sc, 0.02 + Math.sin(t * 1.6) * 0.04, r.z - (-sl.x * sn + sl.z * cs) * sc);
+    if (C.wheel) { C.wheel.rotation.x += dt * (c.paddling === false ? 0 : 3); if (C.crank) C.crank.rotation.x = C.wheel.rotation.x; }
     if (C.paddle) { const P = C.paddle, k = C.ph, hb = C.half;
       if (kind === 'kayak') { P.position.set(sl.x, sl.y + 0.55, sl.z + 0.55); P.rotation.set(0, Math.sin(k) * 0.55, Math.sin(k) * 0.45); }
       else { const side = Math.sin(k * 0.5) > 0 ? 1 : -1; P.position.set(sl.x + side * 0.42, sl.y + 1.25, sl.z + 0.2 + Math.sin(k) * 0.5); P.rotation.set(Math.sin(k) * 0.45, 0, Math.PI / 2 + side * 0.12); }
       o.updateMatrixWorld(true); c.av.rowGrip = kind === 'kayak' ? [P.localToWorld(new THREE.Vector3(hb * 0.28, 0, 0)), P.localToWorld(new THREE.Vector3(-hb * 0.28, 0, 0))] : [P.localToWorld(new THREE.Vector3(hb * 0.92, 0, 0)), P.localToWorld(new THREE.Vector3(hb * 0.35, 0, 0))]; }
   }
 }
+/* 天鵝船第二個座位（世界座標）：開船的人在左邊座位，旁邊那個位置 */
+function swanSeat2(c) { const S = PAD.swan, sc = S.s, a = S.seats[0], b = S.seats[1], dx = (b[0] - a[0]) * sc, dz = (b[2] - a[2]) * sc, cs = Math.cos(c.ry), sn = Math.sin(c.ry); return { x: c.x + dx * cs + dz * sn, z: c.z - dx * sn + dz * cs }; }
+function joinSwan(host) {
+  const p = me(); if (Math.hypot(host.x - p.x, host.z - p.z) > 9) return toast(`等 ${nameOf(host.i)} 把天鵝船划回岸邊再一起坐吧`);
+  p.swanHost = host; const r0 = p.av.root.position.clone(), s2 = swanSeat2(host); p.x = s2.x; p.z = s2.z; p.ry = host.ry; p.y = host.y ?? 0.2; p.locked = true; p.path = null; p.av.setPose('ride'); p.glide = { dx: r0.x - p.x, dy: r0.y - p.y, dz: r0.z - p.z, t: 0 };
+  beginAct('swan', '🦢 天鵝船', `坐在 ${nameOf(host.i)} 旁邊，一起踩天鵝船。`, {
+    focus: () => new THREE.Vector3(p.av.root.position.x, 0.8, p.av.root.position.z), camPitch: 0.32, near: () => 1.15, camSpeed: () => 2.5, back: [BEACH.launch.x - 0.6, BEACH.launch.z - 1.2],
+    btns: [{ t: '靠在肩膀上', main: true, fn: () => { me().av.emote('shy', 1.6); burst('heart', midPos(1), 6, 0.4); addLove(2, '在天鵝船上靠在一起', 'swanlean'); } }, { t: '下船', fn: () => endAct() }],
+    update() { if (host.act !== 'swan') { endAct(); return; } const q = swanSeat2(host); p.x = q.x; p.z = q.z; p.ry = host.ry; p.y = host.y ?? p.y; },
+    end() { p.swanHost = null; addMemo('🦢', `和 ${nameOf(host.i)} 一起坐天鵝船`); },
+  });
+}
 function actPaddle(kind) {
+  if (kind === 'swan' && duo() && you().remote && you().act === 'swan') return joinSwan(you()); /* 另一半已經在天鵝船上：坐到他旁邊 */
   const L = BEACH.launch, slot = duo() ? pairSlot(0) : 0, p = me(); let phase = 'out', paused = false, tk = 0, laps = 0, a0 = null;
   const start = { x: L.x + (slot ? 0.9 : 0), z: L.z }; /* 在沙灘上的水邊上船，再推出去 */
-  actGo(() => { seat(p, start.x, 0.12, start.z, Math.atan2(BEACH.loop.x - start.x, BEACH.loop.z - start.z), kind === 'kayak' ? 'floor' : 'stand'); });
-  craftOf(p, kind); p.av.emote('row', 9999);
+  actGo(() => { seat(p, start.x, 0.12, start.z, Math.atan2(BEACH.loop.x - start.x, BEACH.loop.z - start.z), kind === 'kayak' ? 'floor' : kind === 'swan' ? 'ride' : 'stand'); });
+  craftOf(p, kind); if (kind !== 'swan') p.av.emote('row', 9999);
   const go = (tx, tz, dt, sp) => { const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz); if (d > 0.02) { const k = Math.min(d, sp * dt) / d; p.x += dx * k; p.z += dz * k; turnTo2(p, Math.atan2(dx, dz), dt); } return d; };
   const btns = () => setBtns([{ t: phase === 'home' ? '回岸邊中…' : '划回岸邊', main: true, fn: () => { phase = 'home'; btns(); } },
     { t: paused ? '繼續划' : '停下來看海', fn: () => { paused = !paused; p.paddling = !paused; msg(paused ? '把槳橫放，隨著浪輕輕搖。' : '繼續往前划。'); btns(); } },
     duo() && { t: '潑水給對方', fn: () => { me().av.emote('cheer', 1); setTimeout(() => you().av.emote('shy', 1.4), 300); burst('star', midPos(0.6), 8, 0.4); addLove(1, null, 'splash'); msg(pick(['啊！好冰！', '對方也潑回來了 😆', '兩個人都濕透了'])); } }]);
-  beginAct(kind, kind === 'kayak' ? '🛶 獨木舟' : '🏄 立式划槳', kind === 'kayak' ? '坐進獨木舟，繞著海上的浮台划一圈。' : '站上划槳板，慢慢划到浮台那邊。', {
+  const T = { kayak: ['🛶 獨木舟', '坐進獨木舟，繞著海上的浮台划一圈。'], sup: ['🏄 立式划槳', '站上划槳板，慢慢划到浮台那邊。'], swan: ['🦢 天鵝船', duo() ? '先上船的人踩，另一半點「天鵝船」就會坐到旁邊。' : '踩著天鵝船，慢慢繞浮台一圈。'] }[kind];
+  beginAct(kind, T[0], T[1], {
     focus: () => new THREE.Vector3(p.av.root.position.x, 0.8, p.av.root.position.z), camPitch: 0.32, near: () => 1.15, camSpeed: () => 2.5, back: [L.x - 0.6, L.z - 1.2],
     btns: [],
     update(dt) {
-      p.y = (kind === 'kayak' ? 0.13 : 0.15) + Math.sin(performance.now() / 1000 * 1.6) * 0.04;
+      p.y = (kind === 'kayak' ? 0.13 : kind === 'swan' ? PAD.swan.seats[0][1] * PAD.swan.s - HIP + 0.02 : 0.15) + Math.sin(performance.now() / 1000 * 1.6) * 0.04;
       if (paused) return; tk += dt; if (tk > 12) { tk = 0; addLove(1, null, 'paddle'); }
       if (phase === 'out') { const q = loopPt(nowS() + 4, slot); if (go(q.x, q.z, dt, PAD[kind].sp * 1.5) < 0.5) { phase = 'loop'; a0 = nowS(); msg(pick(['浮台上有一隻海鷗在曬太陽。', '海水好清，看得到底下的小魚。', '回頭看，小島好漂亮。'])); } }
       else if (phase === 'loop') { const q = loopPt(nowS(), slot); go(q.x, q.z, dt, PAD[kind].sp * 1.4); if (nowS() - a0 > 2 * Math.PI / (PAD.kayak.sp / BEACH.loop.r * 0.85) && !laps) { laps = 1; msg('繞完一圈了！要再一圈，還是划回岸邊？'); } }
       else if (go(start.x, start.z, dt, PAD[kind].sp * 1.3) < 0.3) { endAct(); }
     },
-    end() { p.paddling = true; p.av.emote('idle', 0.1); p.av.rowGrip = null; if (laps || tk) addMemo(kind === 'kayak' ? '🛶' : '🏄', `${duo() ? '兩個人' : ''}在海上${kind === 'kayak' ? '划獨木舟' : '玩立式划槳'}，繞著浮台`); },
+    end() { p.paddling = true; p.av.emote('idle', 0.1); p.av.rowGrip = null; if (laps || tk) addMemo({ kayak: '🛶', sup: '🏄', swan: '🦢' }[kind], `${duo() ? '兩個人' : ''}在海上${{ kayak: '划獨木舟', sup: '玩立式划槳', swan: '踩天鵝船' }[kind]}，繞著浮台`); },
   });
   btns();
 }
