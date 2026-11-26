@@ -1,8 +1,8 @@
 // 我們的小島：情侶小窩 3D 遊戲
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, GLASSES, GLASSES_P, HATS, NECKS, EARS, preloadBodies, preloadClips } from './char.js';
-import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickCritters, tickChapel, BEACH, CHAPEL, FARM, RANCH, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA, K, inl, shr } from './terrain.js';
+import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickPaths, tickCritters, tickChapel, BEACH, CHAPEL, FARM, RANCH, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -55,7 +55,7 @@ const TREE = { x: -4.6, z: 4.8 }; // 兩個人一起種的愛情樹
 const WADE = shorePoint(SPOTS.sunbathe.x, SPOTS.sunbathe.z + 1.5); // 曬太陽前面、浪打得到的地方
 const PZ_AT = { x: 0, z: -2.5, y: 0.405 }; // 客廳茶几上
 // 升級解鎖的新地方：Lv3 海邊小屋、Lv5 花園溫室
-const PLACES = { hut: { x: -15, z: 19.3, lv: 4, key: 'beach-hut-fc7649', s: 0.8, ry: 0 }, gh: { x: -18.5, z: 3, lv: 6, key: 'greenhouse-53ab6d', s: 0.75, ry: Math.PI / 2 } };
+const PLACES = { hut: { x: shr(-15, 19.3)[0], z: shr(-15, 19.3)[1], lv: 4, key: 'beach-hut-fc7649', s: 0.8, ry: 0 }, gh: { x: inl(-18.5, 3)[0], z: inl(-18.5, 3)[1], lv: 6, key: 'greenhouse-53ab6d', s: 0.75, ry: Math.PI / 2 } };
 const curS = () => scene === 'in' ? IN.S : OUT;
 
 // ---------- 角色 ----------
@@ -132,7 +132,7 @@ function actGo(fn) {
   fn();
   cs.forEach((c, i) => {
     const f = from[i], d = Math.hypot(f.p.x - c.x, f.p.z - c.z);
-    if (c.locked && c.sc === f.sc && d > 0.6 && d < 60) {
+    if (c.locked && c.sc === f.sc && d > 0.6 && d < 95) {
       const to = { x: c.x, z: c.z, y: c.y, ry: c.ry, pose: c.av.pose || 'stand' }, fx = Math.sin(to.ry), fz = Math.cos(to.ry);
       /* 先走到位置正前方（或正後方）0.6 公尺，再一步跨進去：不會從旁邊那個人身上擦過去 */
       const [ax, az] = [[to.x + fx * 0.6, to.z + fz * 0.6], [to.x - fx * 0.6, to.z - fz * 0.6]].find(([x, z]) => canStand(x, z)) || freeSpot(to.x, to.z);
@@ -154,6 +154,11 @@ function tickWalkIn(dt) {
       if (side && !lastOne) { const [px, pz] = Wk.i ? Wk.pts[Wk.i - 1] : [Wk.x0, Wk.z0], sx = wx - px, sz = wz - pz, sl = Math.hypot(sx, sz) || 1; wx += -sz / sl * side; wz += sx / sl * side; }
       const dx = wx - c.x, dz = wz - c.z, d = Math.hypot(dx, dz);
       if (d <= step) { c.x = wx; c.z = wz; step -= d; Wk.i++; } else { c.x += dx / d * step; c.z += dz / d * step; step = 0; let a = Math.atan2(dx, dz) - c.ry; a = Math.atan2(Math.sin(a), Math.cos(a)); c.ry += a * Math.min(1, dt * 10); } }
+    /* 走路途中碰到另一個人：各自往旁邊讓一點（兩支手機各讓自己的人，加起來剛好錯開），不會穿過去或疊在一起 */
+    { const T = Wk.to, farT = Math.hypot(T.x - c.x, T.z - c.z) > 0.75;
+      if (farT) allChars().forEach(o => { if (o === c || !o.av?.root || o.ghost || (o.sc || 'out') !== (c.sc || 'out')) return; const op = o.walkIn || o.locked ? { x: o.x, z: o.z } : o.av.root.position; let dx = c.x - op.x, dz = c.z - op.z, d = Math.hypot(dx, dz);
+        if (d >= 0.62) return; if (d < 1e-3) { const sg = pairSlot(localChars().indexOf(c)) ? 1 : -1; dx = Math.cos(c.ry) * sg; dz = -Math.sin(c.ry) * sg; d = 1; }
+        const k = Math.min(0.62 - d, dt * 3) / d, nx = c.x + dx * k, nz = c.z + dz * k; if (canStand(nx, nz)) { c.x = nx; c.z = nz; } }); }
     c.moving = true;
     if (Wk.i >= Wk.pts.length || Wk.t > 30) { /* 到了：轉向、坐下（高度慢慢降下去） */
       const T = Wk.to, y0 = groundY(c); c.walkIn = null; c.x = T.x; c.z = T.z; c.y = T.y; c.av.setPose(T.pose); c.moving = false;
@@ -294,7 +299,7 @@ const fireworks = [];
 function launchFirework(heart, fromNet) {
   if (MP.on && !fromNet) MP.net.send({ t: 'fx', k: 'fw', a: heart ? 1 : 0 });
   const g = new THREE.BufferGeometry(), n = 140, pos = new Float32Array(n * 3), vel = [];
-  const ox = SPOTS.beach.x + rand(-9, 9), oz = 42 + rand(-3, 5), oy = 8 + rand(0, 4);
+  const ox = SPOTS.beach.x + rand(-9, 9), oz = 42 * K + rand(-3, 5), oy = 8 + rand(0, 4); /* 在海上放（島放大了，跟著往外） */
   for (let i = 0; i < n; i++) {
     pos.set([ox, oy, oz], i * 3);
     if (heart) { const t = i / n * Math.PI * 2, x = 16 * Math.sin(t) ** 3, y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t); vel.push(new THREE.Vector3(x * 0.42, y * 0.42, rand(-0.5, 0.5))); }
@@ -597,7 +602,7 @@ function setBtns(list) {
 const msg = t => { $('#ap-msg').textContent = t; };
 function meter(on, v = 0, zone) { const m = $('#ap-meter'); m.hidden = !on; if (!on) return; m.querySelector('i').style.width = (v * 100) + '%'; if (zone) { const em = m.querySelector('em'); em.style.left = zone[0] * 100 + '%'; em.style.width = (zone[1] - zone[0]) * 100 + '%'; } }
 /* 生活動作（坐、躺、爬燈塔…）：無縫，不進獨立畫面；搖桿照常，推一下就站起來；按鈕變成角色旁的小按鈕 */
-const LH_AT = [-19.2 + 4.6, -19.2 + 1.2]; /* 燈塔樓梯口 */
+const LH_AT = [HILL.x - 0.2 + 4.6, HILL.z - 0.2 + 1.2]; /* 燈塔樓梯口（跟著燈塔的小山丘） */
 const FREE_ACTS = new Set(['swing', 'hammock', 'picnic', 'sunbathe', 'sunset', 'bed', 'sofa', 'read', 'seat', 'desk', 'lighthouse', 'tent', 'treebench', 'guitar']);
 function beginAct(id, title, text, o = {}) {
   act = { id, t: 0, ...o, free: FREE_ACTS.has(id) && !o.move }; $('#act-panel').hidden = false; $('#act-panel').classList.toggle('free', act.free);
@@ -675,14 +680,14 @@ const SP = [
   { id: 'dinner', sc: 'out', x: CHAPEL.table.x, z: CHAPEL.table.z + 1.3, r: 1.8, icon: '🕯️', name: '燭光晚餐', run: () => actDinner() },
   { id: 'icecream', sc: 'out', x: BEACH.kiosk.x - 1.5, z: BEACH.kiosk.z, r: 1.8, icon: '🍦', name: '冰淇淋車', run: () => actIceCream() },
   { id: 'shower', sc: 'out', x: BEACH.shower.x + 0.6, z: BEACH.shower.z + 0.3, r: 1.2, icon: '🚿', name: '沖腳', run: () => useShower() },
-  { id: 'kayak', sc: 'out', x: 10.3, z: 24.6, r: 1.8, icon: '🛶', name: '划獨木舟', run: () => actPaddle('kayak') },
-  { id: 'sup', sc: 'out', x: 12.6, z: 25.2, r: 1.6, icon: '🏄', name: '立式划槳', run: () => actPaddle('sup') },
-  { id: 'swan', sc: 'out', x: 13.9, z: 24.9, r: 1.8, icon: '🦢', name: '天鵝船', run: () => actPaddle('swan') },
+  { id: 'kayak', sc: 'out', x: shr(10.3, 24.6)[0], z: shr(10.3, 24.6)[1], r: 1.8, icon: '🛶', name: '划獨木舟', run: () => actPaddle('kayak') },
+  { id: 'sup', sc: 'out', x: shr(12.6, 25.2)[0], z: shr(12.6, 25.2)[1], r: 1.6, icon: '🏄', name: '立式划槳', run: () => actPaddle('sup') },
+  { id: 'swan', sc: 'out', x: shr(13.9, 24.9)[0], z: shr(13.9, 24.9)[1], r: 1.8, icon: '🦢', name: '天鵝船', run: () => actPaddle('swan') },
   { id: 'bale', sc: 'out', x: 0, z: 0, r: 2.2, icon: '🛖', name: '峇里涼亭', run: () => actBale(), pos: () => W?.bale ? baleAt(0, W.bale.L / 2 + 0.7) : { x: 999, z: 999 } },
   { id: 'pond', sc: 'out', x: 0, z: 0, r: 2, icon: '🪷', name: '蓮花池', run: () => actPond(), pos: () => W?.pond ? { x: W.pond.edge[0], z: W.pond.edge[1] } : { x: 999, z: 999 } },
   { id: 'yoga', sc: 'out', x: 0, z: 0, r: 2.4, icon: '🧘', name: '海邊瑜伽', run: () => actYoga(), pos: () => W?.yoga?.enter || { x: 999, z: 999 } },
   { id: 'lighthouse', sc: 'out', x: LH_AT[0], z: LH_AT[1], r: 2.6, icon: '🗼', name: '爬燈塔', run: actLighthouse },
-  { id: 'tent', sc: 'out', x: 14.6, z: 10.4, r: 1.8, icon: '⛺', name: '帳篷', run: actTent },
+  { id: 'tent', sc: 'out', x: SPOTS.tent.x - 1, z: SPOTS.tent.z + 1.2, r: 1.8, icon: '⛺', name: '帳篷', run: actTent },
   { id: 'ball', sc: 'out', x: 0, z: 0, r: 1.6, icon: '⚽', name: '踢海灘球', run: kickBall, pos: () => W?.ball?.position || { x: 999, z: 999 }, hide: () => !W?.ball },
   ...[[-12.6, 10.6], [-13.5, -16.5], [7, -7.5]].map(([x, z], i) => ({ id: 'sakura' + i, sc: 'out', x, z: z + 1.5, r: 1.8, icon: '🌸', name: '搖櫻花樹', run: () => shakeTree(x, z) })),
   { id: 'desk', sc: 'in', x: 5.3, z: -1.5, r: 1.3, icon: '✍️', name: '書桌', run: () => useDesk({ x: 6.52, z: -1.6, sc: 'in', name: '書桌' }, 0) },
@@ -965,7 +970,7 @@ function actWade() {
 
 // ---------- 堆沙堡 ----------
 let castleObjs = [];
-const CASTLE_SPOTS = [[-4.43, 20.82], [-2.58, 21.46], [-6.27, 20.3], [-3.25, 19.56]]; /* 乾沙上、浪打不到的地方 */
+const CASTLE_SPOTS = [[-4.43, 20.82], [-2.58, 21.46], [-6.27, 20.3], [-3.25, 19.56]].map(([x, z]) => shr(x, z)); /* 乾沙上、浪打不到的地方 */
 async function showCastles() {
   castleObjs.forEach(o => OUT.remove(o)); castleObjs = [];
   const g = await load('sandcastle'); if (!g) return;
@@ -1190,7 +1195,7 @@ function actBoat() {
   const driver = [...allChars()].find(c => c.remote && c.act === 'boat');
   const passenger = !!driver; if (MP.boatAway && !passenger) return toast('小船出海了，等它回來吧');
   const home = boat.position.clone(), homeRy = boat.rotation.y;
-  const RAD = 49, a0 = Math.atan2(home.z, home.x) + 0.05;
+  const RAD = 49 * K, a0 = Math.atan2(home.z, home.x) + 0.05;
   let s = 0, paused = false, phase = 'out', lapA = 0, tk = 0;
   const place = () => {
     const [a, b] = passenger ? [you(), me()] : [me(), you()];
@@ -1737,7 +1742,7 @@ let shellObjs = [];
 function spawnShells() {
   shellObjs.forEach(s => OUT.remove(s.o)); shellObjs = [];
   for (let k = 0, N = surpriseIs('shellday') ? 15 : 7; k < N; k++) {
-    let x, z, g = 0; do { const a = Math.random() * Math.PI * 2, R = shoreR(Math.cos(a), Math.sin(a)) - rand(5.2, 7.5); x = Math.cos(a) * R; z = Math.sin(a) * R; } while (g++ < 30 && (!walkable(x, z) || x > 24 && Math.abs(z) < 3));
+    let x, z, g = 0; do { const a = Math.random() * Math.PI * 2, R = shoreR(Math.cos(a), Math.sin(a)) - rand(5.2, 7.5); x = Math.cos(a) * R; z = Math.sin(a) * R; } while (g++ < 30 && (!walkable(x, z) || x > DOCK.x0 - 3 && Math.abs(z) < 3));
     const t = Math.floor(Math.random() * SHELLS.length), col = ['#ffb0c0', '#ffa040', '#f0e0d0', '#7ad8c8', '#e8c8a0', '#ffffff'][t];
     const o = new THREE.Group(); const m = t === 1 ? new THREE.Mesh(new THREE.OctahedronGeometry(0.14), toon(col)) : t === 4 ? new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.2, 8), toon(col)) : new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), toon(col, t === 3 ? { transparent: true, opacity: 0.75 } : {}));
     if (t === 1) m.scale.y = 0.3; if (t === 4) m.rotation.z = Math.PI / 2; o.add(m);
@@ -2599,6 +2604,21 @@ let nightK = 0, flashTipNight = -1;
 function setFlash(v) { st.flash = !!v; $('#btn-flash').setAttribute('aria-pressed', String(st.flash)); save(); }
 $('#btn-flash').onclick = () => { setFlash(!st.flash); sfx('click'); toast(st.flash ? '🔦 打開手電筒' : '關掉手電筒'); };
 
+// ---------- 效能：遠處的小東西先不畫（只有大島才需要，手機比較不燙） ----------
+let cullT = 0; const _cv = new THREE.Vector3(), _cs = new THREE.Sphere(), _cb = new THREE.Box3();
+function setLayer(o, l) { o.traverse(m => { if (m.isMesh || m.isInstancedMesh || m.isPoints || m.isLine) m.layers.set(l); }); }
+function tickCull(dt) {
+  if ((cullT += dt) < 0.5) return; cullT = 0;
+  const on = scene === 'out' && !preview.on && window.__cull !== false;
+  const base = Math.max(42, (view.dist || 10) + 34); /* 鏡頭拉遠時也不會看到身邊的東西不見 */
+  for (const o of outProps()) {
+    if (o.userData.cullR == null) { _cb.setFromObject(o); if (_cb.isEmpty()) { o.userData.cullR = 99; continue; } _cb.getBoundingSphere(_cs); o.userData.cullR = _cs.radius; }
+    const r = o.userData.cullR; if (r > 3) continue;
+    o.getWorldPosition(_cv); const far = on && _cv.distanceTo(cam.position) > base + r * 16, l = far ? 1 : 0;
+    if ((o.userData.cullL || 0) !== l) { o.userData.cullL = l; setLayer(o, l); }
+  }
+}
+
 // ---------- 主迴圈 ----------
 const clock = new THREE.Clock(); let T = 0, saveT = 0;
 let lowSkip = false;
@@ -2608,11 +2628,11 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickChapel(W, performance.now() / 1000, dt); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickPaths(W, isNight()); tickChapel(W, performance.now() / 1000, dt); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   { const pp = me().av.root.position, gx = Math.round(pp.x / 3) * 3, gz = Math.round(pp.z / 3) * 3; W.sunL.target.position.set(gx, 0, gz); W.sunL.position.x += gx; W.sunL.position.z += gz; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
-  if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickRemoteBikes(); tickBoatSync(dt); chars[0].av.mate = chars[1].av; chars[1].av.mate = chars[0].av; /* 情侶動作要知道對方身體在哪 */ nightK = k.night; tickFlash();
+  if (!preview.on) { tickWeather(dt, k); tickTutorial(dt); tickFps(dt); tickCull(dt); tickRemoteBikes(); tickBoatSync(dt); chars[0].av.mate = chars[1].av; chars[1].av.mate = chars[0].av; /* 情侶動作要知道對方身體在哪 */ nightK = k.night; tickFlash();
     // 天黑了提醒一次可以開手電筒
     if (k.night > 0.6 && !st.flash && scene === 'out' && flashTipNight !== st.day && started()) { flashTipNight = st.day; toast('🌙 天黑了，左下角 🔦 可以打開手電筒', 4000); $('#btn-flash').classList.add('glow'); setTimeout(() => $('#btn-flash').classList.remove('glow'), 6000); } }
   if (IN) { IN.winMat.color.copy(k.hor).lerp(new THREE.Color('#ffd9a8'), 0.25); }
@@ -2973,7 +2993,7 @@ function surSpot(at, seed) {
   const R = n => (dayHash(seed + n) % 1000) / 1000;
   const near = (p, r = 1.6) => [p.x + (R(1) - 0.5) * r * 2, p.z + (R(2) - 0.5) * r * 2];
   let x, z;
-  if (at === 'beach') { const a = R(3) * Math.PI * 2, rr = shoreR(Math.cos(a), Math.sin(a)) - 9.4; x = Math.cos(a) * rr; z = Math.sin(a) * rr; if (x > 24 && Math.abs(z) < 4) { x = -x; } }
+  if (at === 'beach') { const a = R(3) * Math.PI * 2, rr = shoreR(Math.cos(a), Math.sin(a)) - 9.4; x = Math.cos(a) * rr; z = Math.sin(a) * rr; if (x > DOCK.x0 - 3 && Math.abs(z) < 4) { x = -x; } }
   else if (at === 'grass') { const a = R(3) * Math.PI * 2, rr = 5 + R(4) * 12; x = Math.cos(a) * rr; z = Math.sin(a) * rr; }
   else if (at === 'dock') { x = SPOTS.fishing.x - 4 - R(5) * 6; z = (R(6) - 0.5) * 1.2; }
   else if (at === 'tree') [x, z] = near({ x: TREE.x, z: TREE.z + 1.6 }, 1.2);
@@ -3169,7 +3189,7 @@ function rareStart(k, mine) {
 }
 function rareBuild(k) {
   const g = new THREE.Group(), p = me();
-  const seaDir = Math.atan2(p.z, p.x), far = 48, sx = Math.cos(seaDir) * far, sz = Math.sin(seaDir) * far; /* 往人面前的海那一邊 */
+  const seaDir = Math.atan2(p.z, p.x), far = 48 * K, sx = Math.cos(seaDir) * far, sz = Math.sin(seaDir) * far; /* 往人面前的海那一邊 */
   if (k === 'whale') {
     const w = new THREE.Group(), body = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), toon('#3e5f86')); body.scale.set(4.2, 1.6, 1.7); w.add(body);
     const belly = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), toon('#dfe8f0')); belly.scale.set(3.6, 1.1, 1.3); belly.position.y = -0.45; w.add(belly);
@@ -3386,7 +3406,7 @@ function applyLamps() {
   if (IN?.lamps) IN.lamps.forEach(l => { const near = off.some(x => { if (!x.startsWith('in:')) return false; const [a, b] = x.slice(3).split(',').map(Number); return Math.hypot(a - l.position.x, b - l.position.z) < 1.5; }); l.visible = !near; });
 }
 /* ---------- 燈塔：爬到最上面看海 ---------- */
-const LH = { x: -19.2, z: -19.2, top: 7.95 };
+const LH = { x: HILL.x - 0.2, z: HILL.z - 0.2, top: 7.95 };
 function actLighthouse() {
   const out = Math.atan2(LH.z, LH.x), ox = Math.cos(out), oz = Math.sin(out), face = Math.atan2(ox, oz);
   const da = Math.atan2(LH_AT[1] - LH.z, LH_AT[0] - LH.x), door = [LH.x + Math.cos(da) * 3.75, LH.z + Math.sin(da) * 3.75];
@@ -3416,7 +3436,7 @@ function actLighthouse() {
 }
 /* ---------- 帳篷：鑽進去躺一下 ---------- */
 function actTent() {
-  const x = 15.6, z = 9.2, a = -0.7, fx = Math.sin(a), fz = Math.cos(a), y = standH(x, z) + 0.06;
+  const x = SPOTS.tent.x, z = SPOTS.tent.z, a = -0.7, fx = Math.sin(a), fz = Math.cos(a), y = standH(x, z) + 0.06;
   actGo(() => { seat(me(), x - fx * 0.2 - fz * 0.3, y, z - fz * 0.2 + fx * 0.3, a + Math.PI, 'lie'); if (duo()) seat(you(), x - fx * 0.2 + fz * 0.3, y, z - fz * 0.2 - fx * 0.3, a + Math.PI, 'lie'); }, 250);
   beginAct('tent', '⛺ 帳篷', isNight() ? '躺在帳篷裡，從門口看得到星星。' : '帳篷裡涼涼的，好想睡午覺。', {
     focus: () => new THREE.Vector3(x + fx * 0.6, y + 0.5, z + fz * 0.6), back: [x + fx * 2, z + fz * 2], camYaw: a, camPitch: 0.55, near: () => 0.75, /* 從帳篷門口看進去 */
