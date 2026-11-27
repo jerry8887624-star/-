@@ -596,3 +596,4 @@ dialog.closing::backdrop { opacity: 0; transition: opacity .14s; }
 .shop button.lk-item:active { transform: scale(.96); }
 #lk-count { margin: 0; font-size: var(--fs-xs); }
 body.dressing #hud, body.dressing #labels { opacity: 0; pointer-events: none; transition: opacity .25s; }
+.npc-say { margin: 6px 0 14px; padding: 12px 14px; border-radius: 16px; background: var(--card2, #fff6ea); font-size: var(--fs-m, 16px); line-height: 1.8; font-weight: 600; }
