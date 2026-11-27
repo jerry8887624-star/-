@@ -2634,8 +2634,12 @@ function openNpc(id) {
 let npcTalkT = 8;
 function tickNpcTalk(dt) {
   if ((npcTalkT -= dt) > 0 || scene !== 'out' || !started() || act) return; npcTalkT = 6;
-  const p = me(); const near = npcList().filter(c => c.vis && !c.moving && Math.hypot(c.x - p.x, c.z - p.z) < 7 && performance.now() - (c.saidAt || 0) > 45000);
-  if (!near.length || Math.random() < 0.5) return; const c = pick(near); c.saidAt = performance.now(); npcTalkT = 14; showSay(c, npcLine(c));
+  const p = me(), now = performance.now();
+  /* 走路經過你身邊：打個招呼 */
+  const pass = npcList().find(c => c.vis && c.moving && Math.hypot(c.x - p.x, c.z - p.z) < 3.5 && now - (c.saidAt || 0) > 60000);
+  if (pass) { pass.saidAt = now; npcTalkT = 10; showSay(pass, pick(st.tod < 11 ? ['早安～', `${nameOf(myIdx())}，早啊！`, '今天也是好天氣～'] : st.tod >= 18 ? ['晚安～', '天黑了，路上小心喔。', '嗨～散步啊？'] : ['嗨～', '午安！', '要去哪裡玩呀？', `${nameOf(myIdx())}，你好！`])); return; }
+  const near = npcList().filter(c => c.vis && !c.moving && Math.hypot(c.x - p.x, c.z - p.z) < 7 && now - (c.saidAt || 0) > 45000);
+  if (!near.length || Math.random() < 0.5) return; const c = pick(near); c.saidAt = now; npcTalkT = 14; showSay(c, npcLine(c));
 }
 const npcHit = (x, z, ox, oz) => { for (const c of npcList()) { if (!c.vis) continue; const d = Math.hypot(x - c.x, z - c.z); if (d < 0.5 && d < Math.hypot(ox - c.x, oz - c.z) - 1e-4) return true; } return false; };
 

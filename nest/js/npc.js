@@ -69,12 +69,12 @@ function places() {
   const H = VILLAGE, d = id => doorOf(H[id], 1.0), dIn = id => doorOf(H[id], -1.2);
   const F = FARM.field, PA = FARM.pasture, T = CHAPEL.terrace, cf = SPOTS.campfire, dockZ = 0.72;
   const mai = d('mai'), mf = { x: Math.sin(H.mai.ry), z: Math.cos(H.mai.ry) };
-  const fieldPts = [0.2, 0.5, 0.8].map(k => { const z = F.z0 + (F.z1 - F.z0) * k; return P(F.x0 - 0.7, z, Math.PI / 2, 'crouch', 'harvest'); }).concat([0.3, 0.7].map(k => { const x = F.x0 + (F.x1 - F.x0) * k; return P(x, F.z1 + 0.7, Math.PI, 'crouch', 'plant'); }));
+  const fieldPts = [0.2, 0.5, 0.8].map(k => { const z = F.z0 + (F.z1 - F.z0) * k; return P(F.x0 - 0.7, z, Math.PI / 2, 'stand', 'harvest'); }).concat([0.3, 0.7].map(k => { const x = F.x0 + (F.x1 - F.x0) * k; return P(x, F.z1 + 0.7, Math.PI, 'stand', 'plant'); }));
   return {
     shopFront: [P(mai.x + mf.x * 0.6, mai.z + mf.z * 0.6 + 1.1, H.mai.ry, 'stand', 'talk'), P(mai.x + mf.x * 0.5, mai.z + mf.z * 0.5 - 0.9, H.mai.ry, 'stand', 'interact')],
     shopBuy: [P(mai.x + mf.x * 2.6, mai.z + mf.z * 2.6 + 1.6, H.mai.ry + Math.PI, 'stand', 'talk'), P(mai.x + mf.x * 2.8, mai.z + mf.z * 2.8 - 0.4, H.mai.ry + Math.PI, 'stand', 'agree'), P(mai.x + mf.x * 2.4, mai.z + mf.z * 2.4 + 3.2, H.mai.ry + Math.PI + 0.4, 'stand', 'talk')],
     dock: [P(DOCK.x0 + 6, dockZ, 0, 'stand', null, 'rod'), P(DOCK.x0 + 9.5, -dockZ, Math.PI, 'stand', null, 'rod'), P(DOCK.x0 + 4, -dockZ, Math.PI, 'stand', null, 'rod')],
-    nets: (() => { const h = H.hai, c = Math.cos(h.ry), s = Math.sin(h.ry), at = (dx, dz) => [h.x + dx * c + dz * s, h.z - dx * s + dz * c]; const [x, z] = at(2.9, 2.6), [x2, z2] = at(1.6, 3.4); return [P(x, z, face(x, z, ...at(2.9, 1.2)), 'crouch', 'interact'), P(x2, z2, face(x2, z2, ...at(2.9, 1.2)), 'stand', 'fold')]; })(),
+    nets: (() => { const h = H.hai, c = Math.cos(h.ry), s = Math.sin(h.ry), at = (dx, dz) => [h.x + dx * c + dz * s, h.z - dx * s + dz * c]; const [x, z] = at(2.9, 2.6), [x2, z2] = at(1.6, 3.4); return [P(x, z, face(x, z, ...at(2.9, 1.2)), 'stand', 'pickup'), P(x2, z2, face(x2, z2, ...at(2.9, 1.2)), 'stand', 'fold')]; })(),
     field: fieldPts,
     pasture: [P(PA.x - PA.w / 2 - 0.9, PA.z, Math.PI / 2, 'stand', 'interact'), P(PA.x, PA.z - PA.d / 2 - 0.9, 0, 'stand', 'fold'), P(PA.x + PA.w / 2 + 0.9, PA.z + 1, -Math.PI / 2, 'stand', 'interact')],
     well: [P(FARM.well.x + 1.3, FARM.well.z, -Math.PI / 2, 'stand', 'interact'), P(FARM.well.x, FARM.well.z + 1.3, Math.PI, 'stand', 'water')],
@@ -85,7 +85,7 @@ function places() {
     paintBeach: (() => { const L = BEACH.launch; return [P(L.x - 3, L.z - 2.5, face(L.x - 3, L.z - 2.5, L.x, L.z + 8), 'stand', 'interact', 'brush')]; })(),
     sunset: [P(SPOTS.sunset.x + 1.6, SPOTS.sunset.z + 1.5, face(SPOTS.sunset.x + 1.6, SPOTS.sunset.z + 1.5, SPOTS.sunset.x - 20, SPOTS.sunset.z), 'stand', 'interact', 'brush')],
     sakura: [P(SPOTS.swing.x + 3.2, SPOTS.swing.z - 2.6, 2.4, 'stand', 'fold'), P(SPOTS.swing.x + 4.6, SPOTS.swing.z + 1.5, -2.2, 'stand', null)],
-    garden: (() => { const h = H.deng, c = Math.cos(h.ry), s = Math.sin(h.ry), at = (dx, dz) => [h.x + dx * c + dz * s, h.z - dx * s + dz * c]; return [[3.6, 3.3], [-3.6, 3.0], [1.8, 4.2]].map(([a, b]) => { const [x, z] = at(a, b); return P(x, z, face(x, z, h.x, h.z) + Math.PI, 'crouch', 'water'); }); })(),
+    garden: (() => { const h = H.deng, c = Math.cos(h.ry), s = Math.sin(h.ry), at = (dx, dz) => [h.x + dx * c + dz * s, h.z - dx * s + dz * c]; return [[3.6, 3.3], [-3.6, 3.0], [1.8, 4.2]].map(([a, b]) => { const [x, z] = at(a, b); return P(x, z, face(x, z, h.x, h.z) + Math.PI, 'stand', 'water'); }); })(),
     lighthouseDoor: (() => { const cx = HILL.x - 0.2, cz = HILL.z - 0.2, x = cx + 4.6, z = cz + 1.2, a = Math.atan2(z - cz, x - cx); return { door: [x, z], in: [cx + Math.cos(a) * 3.2, cz + Math.sin(a) * 3.2] }; })(), /* 燈塔的門：跟玩家爬燈塔走同一個門 */
     yoga: [P(YOGA.x - Math.cos(YOGA.a) * 4.2, YOGA.z - Math.sin(YOGA.a) * 4.2, YOGA.a + Math.PI / 2, 'stand', 'fold')],
     picnic: [P(SPOTS.picnic.x + 3.2, SPOTS.picnic.z + 1.2, -2, 'floor', 'sittalk'), P(SPOTS.picnic.x + 2.8, SPOTS.picnic.z - 2.4, -1, 'stand', null)],
@@ -143,7 +143,7 @@ function buildDay(n, day, PL) {
     const pts = PL[key]; if (!pts?.length) continue;
     const seq = key === 'mailRound'; let i = seq ? 0 : Math.floor(r() * pts.length), guard = 0;
     while (t < t1 - 20 && guard++ < 400) {
-      const dw = seq ? 25 + r() * 20 : 70 + r() * 110;
+      const dw = seq ? 22 + r() * 18 : 28 + r() * 55; /* 不要在同一個點站太久：換位置、走動，看起來才像在生活 */
       let p = pts[i]; { const L0 = plen(findPath(pos[0], pos[1], p[0], p[1])) / SPEED; for (let k = 0; k < pts.length && busy(p, t, t + L0 + dw); k++) p = pts[(i + k + 1) % pts.length];
         if (busy(p, t, t + L0 + dw)) { const a = hash(n.id, b, guard) % 8 / 8 * TAU, q = [p[0] + Math.cos(a) * 1.1, p[1] + Math.sin(a) * 1.1]; p = standOK(q[0], q[1]) ? [q[0], q[1], p[2], p[3], p[4], p[5]] : p; } }
       walk(findPath(pos[0], pos[1], p[0], p[1]), label);
@@ -187,6 +187,31 @@ export function initNPCs(S, W) {
 /* 傳回「現在」在做什麼（對話框用） */
 export function npcNow(c) { const e = c.cur?.e; if (!e) return ''; const L = e.label || ''; if (!c.cur.walk) return L; return /^在/.test(L) ? L.replace(/^在/, '正要去') : /^(去|回家)/.test(L) ? '正要' + L : '在路上'; }
 export function npcKey(c) { const t = c.tNow ?? 0, s = c.def.sched; let k = 'any'; for (const [h, key] of s) if (h * 3600 <= t) k = key; return k; }
+/* ---------- 站著的時候在做什麼：一直換小動作，不會像木頭人 ---------- */
+const pick2 = a => a[Math.floor(Math.random() * a.length)];
+const WORK = new Set(['harvest', 'plant', 'water', 'pickup', 'interact']), TALK = new Set(['talk', 'sittalk']);
+function behave(c, e, dt, rain, x, z) {
+  const b = c.beh; if (b && (b.t -= dt) > 0) { if (b.k === 'look') c.look += (b.to - c.look) * Math.min(1, dt * 1.5); return; }
+  const em = e.emo, A = c.av, R = Math.random();
+  if (e.item === 'rod') { /* 釣魚：等一等、偶爾拉一下竿、看看海 */
+    if (R < 0.35) { c.beh = { k: 'work', t: 2.4 }; A.emote('pickup', 2.4); } else if (R < 0.5) { c.beh = { k: 'look', t: 3 + Math.random() * 2, to: (Math.random() - 0.5) * 1.2 }; A.emote(null, 0); } else { c.beh = { k: 'idle', t: 4 + Math.random() * 5 }; A.emote(null, 0); c.look *= 0.5; } return; }
+  if (WORK.has(em) && !rain) { /* 做事：做一陣子 → 停下來伸伸懶腰、看看四周 → 再繼續 */
+    if (!b || b.k !== 'work' || R < 0.25) { const k = R < 0.12 && em !== 'interact' ? 'pickup' : em; c.beh = { k: 'work', t: 5 + Math.random() * 7 }; A.emote(k, c.beh.t); c.look = 0; }
+    else if (R < 0.55) { c.beh = { k: 'look', t: 2 + Math.random() * 2, to: (Math.random() - 0.5) * 1.6 }; A.emote(null, 0); }
+    else { c.beh = { k: 'rest', t: 1.8 }; A.emote(pick2(['agree', 'fold']), 1.8); }
+    return; }
+  if (TALK.has(em) || e.pose === 'floor') { /* 聊天：面向旁邊的人，講話、笑、點頭輪流來 */
+    const k = R < 0.45 ? (e.pose === 'floor' ? 'sittalk' : 'talk') : R < 0.65 ? 'laugh' : R < 0.8 ? 'agree' : null; const d = k === 'talk' || k === 'sittalk' ? 4 + Math.random() * 4 : 2 + Math.random() * 1.5;
+    c.beh = { k: 'chat', t: d }; A.emote(e.pose === 'floor' && k !== 'sittalk' ? null : k, d);
+    const n = NP.find(o => o !== c && o.vis && !o.moving && Math.hypot(o.x - x, o.z - z) < 4); if (n) { c.look = 0; c.faceRy = Math.atan2(n.x - x, n.z - z); c.faceT = d; }
+    return; }
+  /* 散步、看風景：東張西望、抱胸、伸懶腰、偶爾滑一下手機 */
+  if (R < 0.45) { c.beh = { k: 'look', t: 2.5 + Math.random() * 3, to: (Math.random() - 0.5) * 2.2 }; A.emote(null, 0); }
+  else if (R < 0.62 && !rain) { c.beh = { k: 'act', t: 3.5 }; A.emote('fold', 3.5); }
+  else if (R < 0.74 && !rain) { c.beh = { k: 'act', t: 3 }; A.emote('phone', 3); }
+  else if (R < 0.84) { c.beh = { k: 'act', t: 2 }; A.emote('agree', 2); }
+  else { c.beh = { k: 'idle', t: 2 + Math.random() * 3 }; A.emote(null, 0); }
+}
 /* others：其他人的位置（玩家、另一半），居民會稍微讓開，不會疊在一起 */
 export function tickNPCs(dt, { day, tod, cam, others, rain, show }) {
   if (!ready) return; const t = tod * 3600; let built = 0;
@@ -205,10 +230,16 @@ export function tickNPCs(dt, { day, tod, cam, others, rain, show }) {
     const jump = !c.vis || Math.hypot(x - c.x, z - c.z) > 3; c.x = x; c.z = z;
     /* 遠的不畫、不算動作（省電） */
     const far = Math.hypot(cam.position.x - x, cam.position.z - z) > 75; root.visible = !far; c.vis = true; if (far) continue;
-    let want = c.faceT > 0 ? c.faceRy : s.ry; if (c.faceT > 0) c.faceT -= dt;
+    /* 有人走近：轉過來看你、點個頭（不是在忙的時候） */
+    let near = null, nd = 3.6; if (!s.walk) for (const o of others) { const d = Math.hypot(o.x - x, o.z - z); if (d < nd) { nd = d; near = o; } }
+    if (near && !c.noticed && c.beh?.k !== 'work') { c.noticed = true; c.beh = { k: 'greet', t: 2.2 }; c.av.emote(pick2(['agree', 'laugh']), 2.2); c.greetAt = t; }
+    if (!near && nd >= 3.6) c.noticed = false;
+    let want = c.faceT > 0 ? c.faceRy : s.ry + (c.look || 0); if (c.faceT > 0) c.faceT -= dt;
+    else if (near && c.beh?.k !== 'work') { const a = Math.atan2(near.x - x, near.z - z); let d = a - s.ry; d = Math.atan2(Math.sin(d), Math.cos(d)); want = s.ry + Math.max(-1.6, Math.min(1.6, d)); }
     if (jump) c.ry = want; else { let a = want - c.ry; a = Math.atan2(Math.sin(a), Math.cos(a)); c.ry += a * Math.min(1, dt * 6); }
     root.position.set(x, standH(x, z), z); root.rotation.set(0, c.ry, 0);
-    if (s.e !== c.lastE) { c.lastE = s.e; const e = s.e; c.av.setPose(e.k === 'stay' ? e.pose : 'stand'); if (e.k === 'stay' && e.emo && !rain) c.av.emote(e.emo, Math.max(1, e.t1 - t)); else c.av.emote(null, 0); }
+    if (s.e !== c.lastE) { c.lastE = s.e; const e = s.e; c.av.setPose(e.k === 'stay' ? e.pose : 'stand'); c.av.emote(null, 0); c.beh = null; c.look = 0; }
+    if (s.e.k === 'stay') behave(c, s.e, dt, rain, x, z); else c.look = 0;
     /* 下雨：撐傘（釣竿照拿） */
     const e = s.e, wantI = e.k === "stay" && e.item === "rod" ? "rod" : rain ? "umb" : e.k === "stay" ? e.item || null : null;
     if (c.itemK !== wantI) { c.itemK = wantI; c.av.setItem(wantI === "umb" ? umbrellaItem() : wantI ? item(wantI) : null); c.av.holdUmbrella?.(wantI === "umb"); if (wantI === "umb") c.av.emote(null, 0); }
