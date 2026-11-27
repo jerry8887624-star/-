@@ -455,6 +455,31 @@ function buildFarm(S, W) {
 }
 /* ---------- 拴馬樁：木屋東邊的草地，兩匹上好馬鞍的馬（一人一匹） ---------- */
 export const RANCH = mv({ rail: { x: 18.4, z: -9.6 }, homes: [{ x: 17.5, z: -8.3 }, { x: 19.3, z: -8.3 }] }, dIn(18.4, -9));
+/* ---------- 島民的家：六間小房子散在島上，門口有一條小路接到大路 ---------- */
+/* hw/hd：模型的半寬、半深（公尺，還沒乘 s）；door：門在正面的左右位置（模型座標）；ry 是房子正面朝哪裡（模型 +z 是正面） */
+const Q = Math.PI / 2;
+export const VILLAGE = {
+  hai: { key: 'harbour-master-s-hut-226f34', x: 36.5, z: -7.5, ry: 0, s: 0.95, hw: 2, hd: 2, door: -0.2 },
+  mai: { key: 'village-shopfront-d3088e', x: -9.5, z: 21, ry: Q, s: 1, hw: 2, hd: 2, door: -0.95 },
+  tu: { key: 'thatched-cottage-0e63f5', x: -39, z: 1.5, ry: Q, s: 0.85, hw: 3, hd: 2, door: -0.5 },
+  deng: { key: 'lighthouse-keeper-s-cottage-4f6d33', x: -15.5, z: -35, ry: 0, s: 0.72, hw: 3.31, hd: 3.05, door: 0 },
+  lan: { key: 'cube-house-module-a9b8e8', x: 22, z: -28, ry: 0, s: 0.9, hw: 2, hd: 2, door: -1.15 },
+  you: { key: 'mushroom-cottage-1135d1', x: 10.5, z: 24.5, ry: Math.PI, s: 2.3, hw: 0.7, hd: 0.7, door: 0 },
+};
+/* 門口（out：門外幾公尺；out 是負的＝屋子裡面） */
+export function doorOf(h, out = 0.9) { const lx = h.door * h.s, lz = h.hd * h.s + out, c = Math.cos(h.ry), sn = Math.sin(h.ry); return { x: h.x + lx * c + lz * sn, z: h.z - lx * sn + lz * c, ry: h.ry }; }
+function houseBox(h, pad = 0) { const sw = Math.abs(Math.sin(h.ry)) > 0.5, a = (sw ? h.hd : h.hw) * h.s + pad, b = (sw ? h.hw : h.hd) * h.s + pad; return [h.x - a, h.z - b, h.x + a, h.z + b]; }
+const nearHouse = (x, z, m) => Object.values(VILLAGE).some(h => { const [x0, z0, x1, z1] = houseBox(h, m), d = doorOf(h, 1.5); return (x > x0 && x < x1 && z > z0 && z < z1) || Math.hypot(x - d.x, z - d.z) < m + 1; });
+function buildVillage(S, W) {
+  const jobs = []; W.village = {};
+  for (const [id, h] of Object.entries(VILLAGE)) { BOXES.push(houseBox(h, -0.05)); jobs.push(one(S, h.key, h.x, h.z, h.ry, h.s).then(o => { W.village[id] = o; })); }
+  /* 每家門口的小東西 */
+  const at = (id, dx, dz) => { const h = VILLAGE[id], c = Math.cos(h.ry), sn = Math.sin(h.ry); return [h.x + dx * c + dz * sn, h.z - dx * sn + dz * c]; };
+  { const [x, z] = at('hai', 2.9, 1.2); jobs.push(one(S, 'fishing-net-heap-d0ce10', x, z, 0.4, 0.8, { col: 0.55 })); const [x2, z2] = at('hai', -2.7, 1.6); jobs.push(one(S, 'fish-crate-3c3f7b', x2, z2, 0.2, 1.2, { col: 0.3 }), one(S, 'fish-crate-3c3f7b', x2 + 0.1, z2 + 0.55, -0.3, 1.2, { col: 0.3 })); }
+  { const [x, z] = at('mai', 2.9, 1.4); jobs.push(one(S, 'melon-cart-75f0cc', x, z, VILLAGE.mai.ry, 0.9, { col: 0.6 })); }
+  { const [x, z] = at('tu', 0.6, -3.4); jobs.push(one(S, 'laundry-line-run-dcbc64', x, z, VILLAGE.tu.ry, 0.8)); }
+  return Promise.all(jobs);
+}
 function buildRanch(S, W) {
   const R = RANCH, jobs = [];
   jobs.push(one(S, 'horse-tether-rail-b26462', R.rail.x, R.rail.z, 0, 0.9, { col: 0.35 }), one(S, 'saddle-on-a-rack-f034cd', R.rail.x - 2.4, R.rail.z - 0.2, 0.5, 0.75, { col: 0.3 }), one(S, 'hay-bale-079e8c', R.rail.x + 2.3, R.rail.z - 0.1, 0.3, 0.9, { col: 0.35 }), one(S, 'water-trough-df3ced', R.rail.x + 2.1, R.rail.z + 1.2, 1.57, 0.7, { col: 0.3 }));
@@ -496,6 +521,14 @@ async function buildPaths(S, W) { const _t0 = performance.now();
     /* 路口的指示牌：在路的第一段旁邊，朝路口 */
     const [ax, az] = P[0], [bx, bz] = P[Math.min(2, P.length - 1)], ang = Math.atan2(bx - ax, bz - az); signs.push({ name, x: ax + Math.sin(ang) * 2.2 + Math.cos(ang) * 0.9, z: az + Math.cos(ang) * 2.2 - Math.sin(ang) * 0.9, ang });
   }
+  /* 每一家門口：接一條小路到最近的大路（不放指示牌） */
+  for (const [id, h] of Object.entries(VILLAGE)) {
+    const d = doorOf(h, 1.1); let best = null, bd = 1e9;
+    for (const pa of paths) for (let s2 = 0; s2 < pa.pts.length - 1; s2++) { const [ax, az] = pa.pts[s2], [bx, bz] = pa.pts[s2 + 1], ux = bx - ax, uz = bz - az, L2 = ux * ux + uz * uz || 1, k = Math.max(0, Math.min(1, ((d.x - ax) * ux + (d.z - az) * uz) / L2)), px = ax + ux * k, pz = az + uz * k, dd = Math.hypot(px - d.x, pz - d.z); if (dd < bd) { bd = dd; best = [px, pz]; } }
+    if (!best || bd < 1.5) continue; const raw = astar(d.x, d.z, best[0], best[1]); if (!raw) continue; const P = smoothPath(raw); P[0] = [d.x, d.z]; paths.push({ name: id, lane: true, pts: P });
+    let k = 0; for (let s2 = 0; s2 < P.length - 1; s2++) { const [ax, az] = P[s2], [bx, bz] = P[s2 + 1], L = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / (L || 1), uz = (bz - az) / (L || 1);
+      for (let dd = 0.3; dd < L; dd += 0.66) { k++; const side = (k % 2 ? 0.2 : -0.2); stones.push([ax + ux * dd - uz * side, az + uz * dd + ux * side, k * 1.7, 0.8 + (k % 3) * 0.07]); } }
+  }
   W.paths = paths; W.pathMs = Math.round(performance.now() - _t0);
   await scatter(S, 'round-path-stone-4130f3', stones, { y: LAND_Y + 0.004 });
   const post = toon('#6b4a2e'), lampM = new THREE.MeshToonMaterial({ color: '#ffe3a0', emissive: '#ffb040', emissiveIntensity: 0, gradientMap: null });
@@ -516,7 +549,7 @@ export async function buildIsland(S) {
   W.yoga = buildYoga(S); window.__yoga = W.yoga;
   CIRCLES.push([DOGHOUSE.x, DOGHOUSE.z, 0.62]); /* 人不會穿過狗屋（狗狗自己可以走進去） */
   const dogHouseJob = one(S, 'backyard-doghouse-50a492', DOGHOUSE.x, DOGHOUSE.z, DOGHOUSE.ry, 1).then(o => { W.doghouse = o; });
-  const baliJob = buildBali(S, W), beachJob = buildBeach(S, W), chapelJob = buildChapel(S, W), farmJob = buildFarm(S, W), ranchJob = buildRanch(S, W); buildCritters(S, W);
+  const baliJob = buildBali(S, W), beachJob = buildBeach(S, W), chapelJob = buildChapel(S, W), farmJob = buildFarm(S, W), ranchJob = buildRanch(S, W), villageJob = buildVillage(S, W); buildCritters(S, W);
   W.water = makeWater(); S.add(W.water); W.surf = makeSurf(); S.add(W.surf);
   W.sky = makeSky(); S.add(W.sky.g);
   W.hemi = new THREE.HemisphereLight('#dff2ff', '#a89a70', 1); S.add(W.hemi);
@@ -542,7 +575,7 @@ export async function buildIsland(S) {
 
   // 碰撞：小屋（含前廊）、碼頭兩側是海（walkable 會擋）
   BOXES.push([-4.1, -12.2, 4.1, -4.1]);
-  const r = seeded(42), near = (x, z, d) => Object.values(SPOTS).some(s => Math.hypot(s.x - x, s.z - z) < d) || (Math.abs(x) < 9 && z > -13 && z < 9.5) || (x > DOCK.x0 - 3 && Math.abs(z) < 4) || Math.hypot(x - YOGA.x, z - YOGA.z) < 5.5 || inRect(x, z, CHAPEL.terrace, 3) || inRect(x, z, FARM.field, 2.5) || inRect(x, z, { x0: FARM.pasture.x - 5.5, x1: FARM.pasture.x + 5.5, z0: FARM.pasture.z - 4.5, z1: FARM.pasture.z + 4.5 }, 0) || Math.hypot(x - FARM.well.x, z - FARM.well.z) < 2.5 || Math.hypot(x - FARM.stand.x, z - FARM.stand.z) < 2.5 || (Math.abs(x) < 7 && z > 7 && z < BEACH.deck.z1 + 3) || Math.hypot(x - RANCH.rail.x, z - RANCH.rail.z) < 5.5 || onPath(x, z, 2.2); /* 小教堂、農田、牧場、木棧道附近不亂長東西 */ /* 瑜伽木棧旁不長樹，鏡頭不被擋 */
+  const r = seeded(42), near = (x, z, d) => Object.values(SPOTS).some(s => Math.hypot(s.x - x, s.z - z) < d) || (Math.abs(x) < 9 && z > -13 && z < 9.5) || (x > DOCK.x0 - 3 && Math.abs(z) < 4) || Math.hypot(x - YOGA.x, z - YOGA.z) < 5.5 || inRect(x, z, CHAPEL.terrace, 3) || inRect(x, z, FARM.field, 2.5) || inRect(x, z, { x0: FARM.pasture.x - 5.5, x1: FARM.pasture.x + 5.5, z0: FARM.pasture.z - 4.5, z1: FARM.pasture.z + 4.5 }, 0) || Math.hypot(x - FARM.well.x, z - FARM.well.z) < 2.5 || Math.hypot(x - FARM.stand.x, z - FARM.stand.z) < 2.5 || (Math.abs(x) < 7 && z > 7 && z < BEACH.deck.z1 + 3) || Math.hypot(x - RANCH.rail.x, z - RANCH.rail.z) < 5.5 || nearHouse(x, z, 2) || onPath(x, z, 2.2); /* 小教堂、農田、牧場、木棧道附近不亂長東西 */ /* 瑜伽木棧旁不長樹，鏡頭不被擋 */
   const ring = (n, rmin, rmax, avoid, f) => { const out = []; let k = 0; while (out.length < n && k++ < n * 40) { const a = r() * Math.PI * 2, R = shoreR(Math.cos(a), Math.sin(a)), d = R - rmin - r() * (rmax - rmin), x = Math.cos(a) * d, z = Math.sin(a) * d; if (!near(x, z, avoid) && walkable(x, z) && groundH(x, z) > 0.05) out.push(f(x, z, r())); } return out; };
   const inland = (n, avoid, f) => { const out = []; let k = 0; while (out.length < n && k++ < n * 50) { const x = (r() - 0.5) * 44 * K, z = (r() - 0.5) * 44 * K, R = shoreR(x, z); if (Math.hypot(x, z) < R - 12 && !near(x, z, avoid)) out.push(f(x, z, r())); } return out; };
 
@@ -597,7 +630,7 @@ export async function buildIsland(S) {
     ...[[DOCK.x1 - 0.6, 1.0], [30 + DDX, -0.8], shr(-14, 24)].map(([x, z]) => animal(S, 'gull', x, z, { s: 1.2, roam: 1.5, speed: 0.3 })),
     ...[[40 + DDX, 4], [38 + DDX, -4], [44 + DDX, 2], [42 + DDX, -6]].map(([x, z]) => animal(S, 'fish', x, z, { s: 0.7, roam: 4, speed: 0.8, swim: true, y: -0.5 })),
   ];
-  await Promise.all([...jobs, ...zoo, baliJob, beachJob, chapelJob, farmJob, ranchJob, dogHouseJob]);
+  await Promise.all([...jobs, ...zoo, baliJob, beachJob, chapelJob, farmJob, ranchJob, villageJob, dogHouseJob]);
   await buildPaths(S, W); /* 房子、樹都放好了，才算小路 */
   // 狗一開始待在家附近，main.js 會設定 follow
   return W;

@@ -13,6 +13,7 @@ import { Music, sfx, TRACKS, setBackgroundPlay } from './audio.js';
 import { icon, skyIcon } from './icons.js';
 import { Net, auth as savedAuth, saveAuth, serverAvailable, createIsland, pairIsland, peekIsland, peekPair } from './net.js';
 import { checkChat, CHAT_WHY, checkName, NAME_WHY } from './chatfilter.js';
+import { NPCS, initNPCs, tickNPCs, npcList, npcNow, npcKey, npcFace } from './npc.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -448,13 +449,13 @@ function stepChar(c, dx, dz, dt, speed) {
   if (!canStand(c.x, c.z)) { const L0 = Math.hypot(dx, dz); if (L0 > 1e-4) { c.x += dx / L0 * speed * dt; c.z += dz / L0 * speed * dt; c.ry = Math.atan2(dx, dz); c.moving = true; return true; } }
   const L = Math.hypot(dx, dz); if (L < 1e-4) { c.moving = false; return false; }
   const sx = dx / L * speed * dt, sz = dz / L * speed * dt;
-  let moved = false;
-  if (canStand(c.x + sx, c.z + sz)) { c.x += sx; c.z += sz; moved = true; }
+  let moved = false; const ox = c.x, oz = c.z, can = (x, z) => canStand(x, z) && !(scene === 'out' && npcHit(x, z, ox, oz)); /* 居民也當成障礙物：會從旁邊繞過去，不會穿過他 */
+  if (can(c.x + sx, c.z + sz)) { c.x += sx; c.z += sz; moved = true; }
   else { /* 撞到東西：轉一點角度沿著邊滑過去（樹、石頭、家具都不會卡住），先試偏離最少的方向 */
     const st = Math.hypot(sx, sz), a0 = Math.atan2(sx, sz);
-    for (const da of [0.45, -0.45, 0.9, -0.9, 1.3, -1.3]) { const a = a0 + da, tx = Math.sin(a) * st * Math.cos(da * 0.5), tz = Math.cos(a) * st * Math.cos(da * 0.5); if (canStand(c.x + tx, c.z + tz)) { c.x += tx; c.z += tz; moved = true; break; } }
-    if (!moved && canStand(c.x + sx, c.z)) { c.x += sx; moved = Math.abs(sx) > 1e-4; }
-    else if (!moved && canStand(c.x, c.z + sz)) { c.z += sz; moved = Math.abs(sz) > 1e-4; } }
+    for (const da of [0.45, -0.45, 0.9, -0.9, 1.3, -1.3]) { const a = a0 + da, tx = Math.sin(a) * st * Math.cos(da * 0.5), tz = Math.cos(a) * st * Math.cos(da * 0.5); if (can(c.x + tx, c.z + tz)) { c.x += tx; c.z += tz; moved = true; break; } }
+    if (!moved && can(c.x + sx, c.z)) { c.x += sx; moved = Math.abs(sx) > 1e-4; }
+    else if (!moved && can(c.x, c.z + sz)) { c.z += sz; moved = Math.abs(sz) > 1e-4; } }
   const want = Math.atan2(dx, dz); let d = want - c.ry; d = Math.atan2(Math.sin(d), Math.cos(d)); c.ry += d * Math.min(1, dt * 10);
   c.moving = moved; return moved;
 }
@@ -697,6 +698,9 @@ const SP = [
   { id: 'santa', sc: 'out', x: 0, z: 0, r: 1.8, icon: '🎅', name: '聖誕老公公', run: santaGift, pos: () => SEASON.santa?.o.position || { x: 999, z: 999 }, hide: () => !SEASON.santa },
   { id: 'wardrobe', sc: 'in', x: -5.7, z: -1.2, icon: '👗', name: '衣櫃', run: () => openLooks() },
 ];
+/* 島上的居民：走近會出現名字，按「聊天」可以跟他說話 */
+const npcBy = id => npcList().find(c => c.def.id === id);
+NPCS.forEach(d => SP.push({ id: 'npc_' + d.id, sc: 'out', x: 999, z: 999, r: 1.9, icon: d.icon, name: d.name, npc: d.id, run: () => openNpc(d.id), pos: () => { const c = npcBy(d.id); return c?.vis ? c : { x: 999, z: 999 }; }, hide: () => !npcBy(d.id)?.vis }));
 SP.forEach(s => {
   s.r = s.r || 2.2;
   const el = document.createElement('button'); el.type = 'button'; el.className = 'lbl'; el.textContent = `${s.icon} ${s.name}`; el.style.display = 'none';
@@ -1600,7 +1604,7 @@ function openDlg(title, html) { $('#dlg').cancelClose(); delete $('#dlg').datase
 $('#btn-map').onclick = () => {
   sfx('click');
   const cell = s => `<button type="button" class="cell" data-s="${s.id}" style="border:0"><span class="e">${s.icon}</span>${esc(s.name)}</button>`;
-  const minor = s => /^(ball|sakura|lampIn|plantIn|guitarIn)/.test(s.id); /* 開燈、澆花、踢球這類小動作不放進地圖 */
+  const minor = s => s.npc || /^(ball|sakura|lampIn|plantIn|guitarIn)/.test(s.id); /* 居民會走來走去，不放進地圖 */ /* 開燈、澆花、踢球這類小動作不放進地圖 */
   const outL = SP.filter(s => s.sc === 'out' && !spotHidden(s) && s.id !== 'door' && !minor(s)), inL = SP.filter(s => s.sc === 'in' && !spotHidden(s) && s.id !== 'exit' && !minor(s));
   openDlg('🗺️ 小島地圖', `<p class="muted">點一下，畫面一暗就到了。</p><b>🏝️ 屋外</b><div class="grid3">${outL.map(cell).join('')}</div>${MP.role === 'g' ? '' : `<b>🏠 小木屋裡</b><div class="grid3">${inL.map(cell).join('')}</div>`}`);
   $('#dlg-body').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { const s = SP.find(x => x.id === b.dataset.s); $('#dlg').close(); teleportTo(s); });
@@ -1944,7 +1948,7 @@ function shareSave() {
 }
 function snapSent() { MP.sent = {}; for (const k of SHARED) MP.sent[k] = JSON.stringify(st[k] ?? null); MP.sent.love = JSON.stringify(st.love); }
 // 這支手機自己的設定（名字、樣子、教學、音樂…）不能被另一半的存檔蓋掉
-const MINE = ['yogaDay', 'yogaN', 'freeTip', 'useDay', 'lhDay', 'tentDay', 'notesRead', 'qaSeen', 'miniDay', 'capToast', 'sleptDay', 'sweetDay', 'festSeen', 'myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic', 'qch'];
+const MINE = ['npcHi', 'npcMet', 'yogaDay', 'yogaN', 'freeTip', 'useDay', 'lhDay', 'tentDay', 'notesRead', 'qaSeen', 'miniDay', 'capToast', 'sleptDay', 'sweetDay', 'festSeen', 'myName', 'myLook', 'ctrl', 'tut', 'music', 'track', 'low', 'amb', 'run', 'flash', 'where', 'noteSeen', 'awaySeen', 'surpriseSeen', 'annivSeen', 'pushOn', 'visitDays', 'lastDayHere', 'ui', 'bgMusic', 'qch'];
 function applySave(keys, first) {
   const qaBefore = keys.qa || (first && st.qa) ? JSON.parse(JSON.stringify(st.qa || {})) : null;
   for (const [k, v] of Object.entries(keys)) { if (k === 'diary' && !first) continue; if (MINE.includes(k) || k === 'day') continue; if (k === 'qa') { st.qa = { ...(st.qa || {}), ...(v || {}) }; continue; } st[k] = v; }
@@ -2604,6 +2608,37 @@ let nightK = 0, flashTipNight = -1;
 function setFlash(v) { st.flash = !!v; $('#btn-flash').setAttribute('aria-pressed', String(st.flash)); save(); }
 $('#btn-flash').onclick = () => { setFlash(!st.flash); sfx('click'); toast(st.flash ? '🔦 打開手電筒' : '關掉手電筒'); };
 
+// ---------- 島上的居民：聊天、打招呼 ----------
+const _oth = [];
+function npcOthers() { _oth.length = 0; for (const c of allChars()) if (c.av?.root?.visible && (c.sc || 'out') === 'out') _oth.push(c.av.root.position); return _oth; }
+function npcLine(c) {
+  const d = c.def, k = npcKey(c), L = d.lines, h = st.tod, both = duo() && Math.hypot(you().x - me().x, you().z - me().z) < 4;
+  const extra = [];
+  if (h < 10) extra.push('早安！今天也要開開心心的喔。'); else if (h >= 18) extra.push('晚上了，早點休息喔。');
+  if (WX?.st && WX.st.rain > 0.3) extra.push('雨下得好大，小心不要感冒了。');
+  if (both) extra.push(`${nameOf(0)} 跟 ${nameOf(1)}，你們兩個真的好登對。`, '一起散步啊？真好～', '你們兩個每天都黏在一起耶，羨慕。');
+  else if (st.names?.[1 - myIdx()]) extra.push(`${partnerName()} 今天沒跟你一起出來嗎？`);
+  if (daysTogether()) extra.push(`聽說你們在一起 ${daysTogether()} 天了？要一直幸福下去喔。`);
+  const pool = [...(L[k] || []), ...(L.any || []), ...extra]; return pick(pool);
+}
+function openNpc(id) {
+  const c = npcBy(id); if (!c?.vis) return; const d = c.def, p = me(); npcFace(c, p.x, p.z, 8);
+  st.npcMet ||= {}; const first = !st.npcMet[id];
+  if (first) { st.npcMet[id] = 1; addMemo(d.icon, `認識了島上的${d.job}・${d.name}`); save(); }
+  const line = npcLine(c), hiDone = (st.npcHi || {})[id] === st.day;
+  openDlg(`${d.icon} ${d.name}`, `<p class="muted">${esc(d.job)}・${esc(npcNow(c))}</p><p class="npc-say">「${esc(first ? `你好！我是${d.name}，是島上的${d.job}。以後請多多指教！` : line)}」</p><div class="row"><button type="button" class="ghost" value="close">掰掰</button><button type="button" class="primary" id="npc-hi">${hiDone ? '💬 再聊一句' : '👋 打招呼'}</button></div>`);
+  $('#npc-hi').onclick = () => { $('#dlg').close(); sfx('click'); me().av.emote('agree', 1.4); npcFace(c, p.x, p.z, 6); c.av.emote(pick(['agree', 'laugh', 'talk']), 2.2); showSay(c, npcLine(c));
+    st.npcHi ||= {}; if (st.npcHi[id] !== st.day) { st.npcHi[id] = st.day; addLove(1, `跟${d.name}打了招呼`, 'npc_' + id); save(); } };
+}
+/* 走近正在忙的居民，偶爾會自己說一句話 */
+let npcTalkT = 8;
+function tickNpcTalk(dt) {
+  if ((npcTalkT -= dt) > 0 || scene !== 'out' || !started() || act) return; npcTalkT = 6;
+  const p = me(); const near = npcList().filter(c => c.vis && !c.moving && Math.hypot(c.x - p.x, c.z - p.z) < 7 && performance.now() - (c.saidAt || 0) > 45000);
+  if (!near.length || Math.random() < 0.5) return; const c = pick(near); c.saidAt = performance.now(); npcTalkT = 14; showSay(c, npcLine(c));
+}
+const npcHit = (x, z, ox, oz) => { for (const c of npcList()) { if (!c.vis) continue; const d = Math.hypot(x - c.x, z - c.z); if (d < 0.5 && d < Math.hypot(ox - c.x, oz - c.z) - 1e-4) return true; } return false; };
+
 // ---------- 效能：遠處的小東西先不畫（只有大島才需要，手機比較不燙） ----------
 let cullT = 0; const _cv = new THREE.Vector3(), _cs = new THREE.Sphere(), _cb = new THREE.Box3();
 function setLayer(o, l) { o.traverse(m => { if (m.isMesh || m.isInstancedMesh || m.isPoints || m.isLine) m.layers.set(l); }); }
@@ -2628,7 +2663,7 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickPaths(W, isNight()); tickChapel(W, performance.now() / 1000, dt); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickPaths(W, isNight()); tickNPCs(dt, { day: st.day, tod: st.tod, cam, others: npcOthers(), rain: WX?.st && WX.st.rain > 0.3, show: scene === 'out' }); tickNpcTalk(dt); tickChapel(W, performance.now() / 1000, dt); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   { const pp = me().av.root.position, gx = Math.round(pp.x / 3) * 3, gz = Math.round(pp.z / 3) * 3; W.sunL.target.position.set(gx, 0, gz); W.sunL.position.x += gx; W.sunL.position.z += gz; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;
@@ -4215,9 +4250,9 @@ if (window.visualViewport) {
   spawnShells(); showCastles(); st.garden.forEach((_, i) => drawPlant(i)); WX = createWeatherFX(OUT); drawEggs();
   updateCam(0, true);
   buildInterior(st.theme || 'muji').then(I => { IN = I; drawDecor(); drawNotes(); drawPhotos(); drawPuzzle(); });
-  CIRCLES.push([TREE.x, TREE.z, 0.45]); drawTree(); setupSurprise(); drawPlaces();
+  CIRCLES.push([TREE.x, TREE.z, 0.45]); drawTree(); setupSurprise(); drawPlaces(); initNPCs(OUT, W);
   if (visitParam.length) setupVisit();
   else if (pairParam) setupPairSplash();
   window.__booted = true;
-  window.__nest = { DSP: () => DSP, CHAT, build: () => build, buildSet: (x, z) => { build.x = x; build.z = z; buildCheck(); return [build.top, build.ok]; }, canStand: (x, z) => canStand(x, z), bond: { addLove, countPlayDay, festivalCheck, surpriseAt, surpriseNow, rareStart, MINI, RAREFX, setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
+  window.__nest = { npcs: () => npcList(), DSP: () => DSP, CHAT, build: () => build, buildSet: (x, z) => { build.x = x; build.z = z; buildCheck(); return [build.top, build.ok]; }, canStand: (x, z) => canStand(x, z), bond: { addLove, countPlayDay, festivalCheck, surpriseAt, surpriseNow, rareStart, MINI, RAREFX, setupSurprise, surpriseToday, actSurprise, drawTree, annivCheck, dailyCheck, checkAway, SUR, TREE }, get st() { return st; }, IN: () => IN, view, OUT, pantryText, tutorial, weatherAt, seasonOf, WX: () => WX, teleportTo, quest, openShop, cam, MP, chars, allChars, forceSave: () => save(), W: () => W, act: () => act, SP, me, you, scene: () => scene, setTod: t => { st.tod = t; } };
 })();
