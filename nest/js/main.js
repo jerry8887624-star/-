@@ -2,7 +2,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { Avatar, GUITAR, randomLook, heartMesh, HAIRS, HAIR_COLORS, SKINS, OUTFITS, ACCS, EYES, MOUTHS, HEADS, KIND_NAMES, GLASSES, GLASSES_P, HATS, NECKS, EARS, preloadBodies, preloadClips } from './char.js';
 import { groundH, standH, walkable, onDock, DOCK, LAND_Y, shoreR, HILL, YOGA, K, inl, shr } from './terrain.js';
-import { buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickPaths, tickCritters, tickChapel, BEACH, CHAPEL, FARM, RANCH, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
+import { setStarGuide, starLabels, starTarget, buildIsland, buildInterior, applyTheme, cutaway, tickYoga, tickBali, tickPaths, tickCritters, tickChapel, BEACH, CHAPEL, FARM, RANCH, DOGHOUSE, BALI, THEMES, setTimeOfDay, SPOTS, INSPOTS, FURN, ROOM, blocked, CIRCLES, BOXES } from './world.js';
 import { load, one, toon, toonGrad, tickAnimals, playA, progress, mixers, cloneModel, animal, animals, props } from './models.js';
 import * as SkeletonUtils from '../vendor/SkeletonUtils.js';
 import { levelOf, LEVELS, LEVEL_GIFTS, LOVE_CAP, REWARDS, FISH, SHELLS, FLOWERS, DISHES, LETTERS, BOTTLE, TIPS, EDIBLE, RECIPES, QUESTS, QUEST_COIN, QUEST_BONUS, DECOR, MILESTONES, QUESTIONS, QA_CATS, FESTIVALS, XMAS_DECOR } from './data.js';
@@ -1259,26 +1259,31 @@ function turnTo(o, want, dt) { let d = want - o.rotation.y; d = Math.atan2(Math.
 function actSunset() {
   const { x, z } = SPOTS.sunset, ry = -Math.PI / 2 - 0.35, y = standH(x + 0.3, z) + 0.46 - HIP;
   actGo(() => { sitPair(x + 0.3, y, z, ry, 0.62); me().av.lean(1); }, 250);
-  let warp = 0, mt = rand(3, 8), wished = false;
+  let warp = 0, mt = rand(3, 8), wished = false, guide = isNight(); /* 觀星模式：晚上坐下來就把星座連線打開 */
+  setStarGuide(W, guide);
+  /* 觀星：鏡頭轉向現在天上看得最清楚的星座（從兩人背後往上看） */
+  const tg = isNight() ? starTarget(W) : null, el = tg ? Math.min(0.8, tg.el) : 0;
+  const lookAt = () => { if (!tg) return new THREE.Vector3(x - 3, 3.6, z - 1.1); const d = 3; return new THREE.Vector3(x + Math.sin(tg.az) * d * Math.cos(el), 1.6 + Math.sin(el) * d, z + Math.cos(tg.az) * d * Math.cos(el)); };
   const btns = () => setBtns([
     { t: isNight() ? '等流星…' : '等夕陽', main: true, id: 'ss-main', fn: () => { if (!isNight()) { warp = 17.9; msg('靠在一起，等太陽慢慢落到海裡…'); } } },
     { t: '🌠 許願', id: 'ss-wish', dis: !meteor, fn: wish },
-  ]);
+    isNight() && { t: guide ? '✨ 收起星座' : '✨ 星座連線', fn: () => { guide = !guide; setStarGuide(W, guide); sfx('click'); if (guide) msg(pick(['那個像沙漏的是獵戶座，三顆排成一排的是腰帶。', '北斗七星像一支湯匙，跟著它就找得到北方。', '天蠍座的尾巴彎彎的，夏天才看得到。', '仙后座像一個大大的 W。'])); btns(); } },
+  ].filter(Boolean));
   const wish = () => {
     if (!meteor && !(act?.metT > 0)) return;
     openDlg('🌠 對流星許願', `<p class="muted">願望只會寫在你們的回憶本裡。</p><label class="anniv"><span>願望</span><input id="wish-in" maxlength="40" placeholder="例如：明年一起去看雪"></label><button type="button" class="primary" id="wish-ok">許願</button>`);
     $('#wish-ok').onclick = () => { const w = $('#wish-in').value.trim(); $('#dlg').close(); st.wishes++; addMemo('🌠', w ? `對流星許願：「${w}」` : '一起對流星許了願'); addLove(5, '願望一定會實現'); burst('star', midPos(), 10); wished = true; };
   };
   beginAct('sunset', isNight() ? '🌠 看星星' : '🌅 看夕陽', isNight() ? '滿天星星，等等看會不會有流星。' : '燈塔旁的長椅，最適合看夕陽。', {
-    focus: () => new THREE.Vector3(x - 1.5, 2.2, z - 0.6), back: [x + 1.6, z + 0.6], camYaw: ry + Math.PI, camPitch: 0.1, look: 1, /* look：鏡頭對著海和天空，才看得到夕陽和流星 */
+    focus: () => guide && isNight() ? lookAt() : new THREE.Vector3(x - 1.5, 2.2, z - 0.6), back: [x + 1.6, z + 0.6], camYaw: tg ? tg.az + Math.PI : ry + Math.PI, camPitch: isNight() ? -Math.max(0.3, el) : 0.1, look: 1, /* look：鏡頭對著海和天空，才看得到夕陽和流星；觀星時從兩人背後往上看 */
     update(dt) {
       if (warp) { act.tod = (act.tod ?? st.tod) + dt * 1.6; if (act.tod >= warp) { warp = 0; msg('夕陽好美。' + (Math.random() < 0.5 ? `${nameOf(you().i)} 偷偷看了你一眼。` : '天空變成粉紅色了。')); addLove(4, '一起看夕陽'); addMemo('🌅', '在燈塔旁一起看夕陽'); quest('sunset'); btns(); } }
       if (isNight()) { mt -= dt; if (mt <= 0 && !meteor) { spawnMeteor(); mt = surpriseIs('meteor') ? rand(1.5, 3.5) : rand(5, 11); act.metT = 3; msg('流星！快許願！'); sfx('chime'); } }
       if (act.metT > 0) { act.metT -= dt; const b = $('#ss-wish'); if (b) b.disabled = false; } else { const b = $('#ss-wish'); if (b && !b.disabled) b.disabled = true; }
     },
-    end() { if (isNight()) addMemo('✨', wished ? '在燈塔下看星星，還許了願' : '在燈塔下看星星'); },
+    end() { setStarGuide(W, false); if (isNight()) addMemo('✨', wished ? '在燈塔下看星星，還許了願' : '在燈塔下看星星'); },
   });
-  btns();
+  btns(); if (tg && guide) setTimeout(() => act?.id === 'sunset' && msg(`抬頭看，那是${tg.name}。`), 1800);
 }
 
 // ---------- 菜園 ----------
@@ -2643,6 +2648,16 @@ function tickNpcTalk(dt) {
 }
 const npcHit = (x, z, ox, oz) => { for (const c of npcList()) { if (!c.vis) continue; const d = Math.hypot(x - c.x, z - c.z); if (d < 0.5 && d < Math.hypot(ox - c.x, oz - c.z) - 1e-4) return true; } return false; };
 
+// ---------- 觀星：星座名字跟著星星走 ----------
+const starEls = new Map();
+function tickStarLabels() {
+  const L = scene === 'out' && !photo.on ? starLabels(W) : [], seen = new Set();
+  for (const s2 of L) { v3.copy(s2.pos).project(cam); let e = starEls.get(s2.name); if (!e) { e = document.createElement('div'); e.className = 'lbl star-name'; e.textContent = s2.name; $('#labels').appendChild(e); starEls.set(s2.name, e); }
+    seen.add(s2.name); const on = v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1; e.style.display = on ? '' : 'none'; if (!on) continue;
+    e.style.left = ((v3.x + 1) / 2 * innerWidth) + 'px'; e.style.top = ((1 - v3.y) / 2 * innerHeight) + 'px'; e.style.opacity = Math.min(1, s2.k * 1.2).toFixed(2); }
+  for (const [n, e] of starEls) if (!seen.has(n)) e.style.display = 'none';
+}
+
 // ---------- 效能：遠處的小東西先不畫（只有大島才需要，手機比較不燙） ----------
 let cullT = 0; const _cv = new THREE.Vector3(), _cs = new THREE.Sphere(), _cb = new THREE.Box3();
 function setLayer(o, l) { o.traverse(m => { if (m.isMesh || m.isInstancedMesh || m.isPoints || m.isLine) m.layers.set(l); }); }
@@ -2667,7 +2682,7 @@ function frame() {
   const dt = Math.min(0.05, clock.getDelta()); T += dt;
   if (!W) return;
   // 時間：一小時 = 36 秒
-  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickPaths(W, isNight()); tickNPCs(dt, { day: st.day, tod: st.tod, cam, others: npcOthers(), rain: WX?.st && WX.st.rain > 0.3, show: scene === 'out' }); tickNpcTalk(dt); tickChapel(W, performance.now() / 1000, dt); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
+  syncClock(); /* 島上時間＝台灣時間 */ tickFestival(dt); tickBall(dt); tickYoga(W, performance.now() / 1000); tickBali(W, performance.now() / 1000, isNight()); tickPaths(W, isNight()); if (WX?.st) W.starClear = Math.max(0, 1 - Math.max(WX.st.rain, WX.st.snow, WX.st.cloud * 0.55)); tickNPCs(dt, { day: st.day, tod: st.tod, cam, others: npcOthers(), rain: WX?.st && WX.st.rain > 0.3, show: scene === 'out' }); tickNpcTalk(dt); tickStarLabels(); tickChapel(W, performance.now() / 1000, dt); if (scene === 'out') tickCritters(W, performance.now() / 1000, dt, st.tod, WX.st.rain > 0.3 || WX.st.snow > 0.3); tickSanta(dt); if (W && SEASON.on !== xmasSeason()) drawSeason(); tickSurprise(dt); tickSurNight(dt); tickMini(dt); tickRare(dt);
   const k = setTimeOfDay(W, OUT, preview.on ? 17.6 : act?.tod ?? st.tod, cam.position); /* act.tod：看夕陽時的夕陽預覽 */
   { const pp = me().av.root.position, gx = Math.round(pp.x / 3) * 3, gz = Math.round(pp.z / 3) * 3; W.sunL.target.position.set(gx, 0, gz); W.sunL.position.x += gx; W.sunL.position.z += gz; } /* 影子框跟著玩家 */
   W.water.material.uniforms.uTime.value = T; if (W.surf) W.surf.material.uniforms.uTime.value = T;

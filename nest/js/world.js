@@ -6,6 +6,7 @@ const P2 = ([x, z]) => ({ x, z }), dIn = (x, z) => [x * (K - 1), z * (K - 1)], d
 function mv(o, [dx, dz]) { if (Array.isArray(o)) return typeof o[0] === 'number' ? [o[0] + dx, o[1] + dz, ...o.slice(2)] : o.map(v => mv(v, [dx, dz])); if (!o || typeof o !== 'object') return o; const r = {}; for (const [k, v] of Object.entries(o)) r[k] = /^(x|x0|x1|boatX)$/.test(k) && typeof v === 'number' ? v + dx : /^(z|z0|z1|boatZ)$/.test(k) && typeof v === 'number' ? v + dz : typeof v === 'object' ? mv(v, [dx, dz]) : v; return r; }
 const DDX = shr(27, 0)[0] - 27; /* 碼頭往外移的距離 */
 import { M, load, one, scatter, animal, toon, CIRCLES, BOXES, animals, mixers } from './models.js';
+import { GLTFLoader } from '../vendor/GLTFLoader.js';
 
 // 各個活動的位置（main.js 用）
 export const SPOTS = {
@@ -152,7 +153,7 @@ function makeSky() {
       void main(){ float y = vD.y; vec3 c = y > 0.0 ? mix(uMid, uTop, smoothstep(0.0, 0.55, y)) : mix(uMid, uBot, smoothstep(0.0, -0.2, y));
         float s = max(dot(normalize(vD), normalize(uSun)), 0.0); c += uGlow * pow(s, 8.0) * 0.6 + uGlow * pow(s, 200.0) * 1.5;
         gl_FragColor = vec4(c, 1.0); }` });
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), mat); g.add(dome);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), mat); dome.renderOrder = -2; g.add(dome); /* 最先畫，夜空天球疊在它上面 */
   // 星星
   const n = 900, sp = new Float32Array(n * 3), r = seeded(7);
   for (let i = 0; i < n; i++) { const u = r() * 2 - 1, th = r() * Math.PI * 2, y = Math.abs(u) * 0.9 + 0.08, k = Math.sqrt(1 - y * y); sp.set([Math.cos(th) * k * 380, y * 380, Math.sin(th) * k * 380], i * 3); }
@@ -551,7 +552,7 @@ export async function buildIsland(S) {
   const dogHouseJob = one(S, 'backyard-doghouse-50a492', DOGHOUSE.x, DOGHOUSE.z, DOGHOUSE.ry, 1).then(o => { W.doghouse = o; });
   const baliJob = buildBali(S, W), beachJob = buildBeach(S, W), chapelJob = buildChapel(S, W), farmJob = buildFarm(S, W), ranchJob = buildRanch(S, W), villageJob = buildVillage(S, W); buildCritters(S, W);
   W.water = makeWater(); S.add(W.water); W.surf = makeSurf(); S.add(W.surf);
-  W.sky = makeSky(); S.add(W.sky.g);
+  W.sky = makeSky(); S.add(W.sky.g); const starJob = buildStarDome(W);
   W.hemi = new THREE.HemisphereLight('#dff2ff', '#a89a70', 1); S.add(W.hemi);
   W.sunL = new THREE.DirectionalLight('#ffffff', 1.8); W.sunL.position.set(30, 60, 20); S.add(W.sunL); S.add(W.sunL.target);
   /* 真實陰影：太陽的影子框跟著玩家走（main.js 每格更新位置） */
@@ -630,11 +631,66 @@ export async function buildIsland(S) {
     ...[[DOCK.x1 - 0.6, 1.0], [30 + DDX, -0.8], shr(-14, 24)].map(([x, z]) => animal(S, 'gull', x, z, { s: 1.2, roam: 1.5, speed: 0.3 })),
     ...[[40 + DDX, 4], [38 + DDX, -4], [44 + DDX, 2], [42 + DDX, -6]].map(([x, z]) => animal(S, 'fish', x, z, { s: 0.7, roam: 4, speed: 0.8, swim: true, y: -0.5 })),
   ];
-  await Promise.all([...jobs, ...zoo, baliJob, beachJob, chapelJob, farmJob, ranchJob, villageJob, dogHouseJob]);
+  await Promise.all([...jobs, ...zoo, baliJob, beachJob, chapelJob, farmJob, ranchJob, villageJob, dogHouseJob, starJob]);
   await buildPaths(S, W); /* 房子、樹都放好了，才算小路 */
   // 狗一開始待在家附近，main.js 會設定 follow
   return W;
 }
+
+/* ---------- 夜空天球（love-island-star-dome.glb）：從球的裡面往外看；星空跟著島上時鐘轉，觀星時顯示星座連線 ---------- */
+const DOME_R = 3.6; /* 模型半徑 100 → 360 公尺：在天空漸層（400）裡面、太陽月亮（350）外面 */
+async function buildStarDome(W) {
+  const g = await new GLTFLoader().loadAsync('models/love-island-star-dome.glb').catch(e => { console.warn('夜空載入失敗', e); return null; }); if (!g) return;
+  const root = g.scene; root.scale.setScalar(DOME_R);
+  const D = { root, mats: [], lineMats: [], lines: [], anchors: [], guide: 0, guideOn: false, night: 0 };
+  root.traverse(o => {
+    if (o.userData?.label && !o.isMesh && !o.isLine) D.anchors.push({ name: o.userData.label, o });
+    if (!o.isMesh && !o.isLine) return;
+    o.frustumCulled = false; o.renderOrder = -1;
+    const m = o.material; m.fog = false; m.depthWrite = false; m.transparent = true; m.opacity = 0; m.side = THREE.DoubleSide; m.toneMapped = false;
+    if (o.isLine) { D.lines.push(o); o.visible = false; } else if (o.name === 'NightDome' || o.parent?.name === 'NightDome') D.domeMat = m; else D.mats.push(m);
+  });
+  /* 星星原本只有 0.16 公尺寬，拉到天上只剩 1 個像素、在手機上幾乎看不到：每顆星以自己的中心放大一點、亮一點（位置、顏色照模型） */
+  root.traverse(o => { if (!o.isMesh || !/Stars/.test(o.name + (o.parent?.name || ''))) return; const P = o.geometry.attributes.position, Cc = o.geometry.attributes.color, I = o.geometry.index, n = P.count;
+    /* 一顆星可能是幾個三角形共用頂點：先把連在一起的頂點分成一組（一顆星），再以那顆星的中心放大 */
+    const par = new Int32Array(n).map((_, k) => k), f = k => { while (par[k] !== k) { par[k] = par[par[k]]; k = par[k]; } return k; }, un = (a, b) => { a = f(a); b = f(b); if (a !== b) par[a] = b; };
+    const T = I ? I.count : n; for (let t = 0; t + 2 < T; t += 3) { const a = I ? I.getX(t) : t, b = I ? I.getX(t + 1) : t + 1, c = I ? I.getX(t + 2) : t + 2; un(a, b); un(b, c); }
+    const cen = new Map(); for (let k = 0; k < n; k++) { const r = f(k); const q = cen.get(r) || [0, 0, 0, 0]; q[0] += P.getX(k); q[1] += P.getY(k); q[2] += P.getZ(k); q[3]++; cen.set(r, q); }
+    for (let k = 0; k < n; k++) { const q = cen.get(f(k)), cx = q[0] / q[3], cy = q[1] / q[3], cz = q[2] / q[3]; P.setXYZ(k, cx + (P.getX(k) - cx) * 2.4, cy + (P.getY(k) - cy) * 2.4, cz + (P.getZ(k) - cz) * 2.4); if (Cc) Cc.setXYZ(k, Math.min(1, Cc.getX(k) * 1.8), Math.min(1, Cc.getY(k) * 1.8), Math.min(1, Cc.getZ(k) * 1.8)); }
+    P.needsUpdate = true; if (Cc) Cc.needsUpdate = true; });
+  /* 星座連線：WebGL 的線只有 1 個像素寬，手機上幾乎看不到 → 每一段換成一條面向觀眾的細長帶子（寬約 0.9 公尺，拉到天上約 2～3 個像素） */
+  root.updateMatrixWorld(true); const lineMat = new THREE.MeshBasicMaterial({ color: '#d6e8ff', transparent: true, opacity: 0, depthWrite: false, fog: false, side: THREE.DoubleSide, toneMapped: false }); D.lineMats.push(lineMat);
+  const _p = new THREE.Vector3(), _q = new THREE.Vector3(), _w = new THREE.Vector3();
+  for (const L of D.lines) { const P = L.geometry.attributes.position, I = L.geometry.index, pos = [];
+    const seg = I ? I.count : P.count; for (let t = 0; t + 1 < seg; t += 2) { const a = I ? I.getX(t) : t, b = I ? I.getX(t + 1) : t + 1; _p.fromBufferAttribute(P, a); _q.fromBufferAttribute(P, b);
+      L.localToWorld(_p); L.localToWorld(_q); const cw = root.getWorldPosition(new THREE.Vector3()); /* 用世界座標算「朝外」的方向，再轉回線自己的座標 */
+      const dir = _q.clone().sub(_p), rad = _p.clone().add(_q).multiplyScalar(0.5).sub(cw).normalize(), side = dir.cross(rad).normalize().multiplyScalar(0.7 * root.scale.x);
+      for (const V of [_p.clone().add(side), _p.clone().sub(side), _q.clone().add(side), _p.clone().sub(side), _q.clone().sub(side), _q.clone().add(side)]) { L.worldToLocal(V); pos.push(V.x, V.y, V.z); } }
+    const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); const rb = new THREE.Mesh(g2, lineMat); rb.renderOrder = -1; rb.frustumCulled = false; rb.visible = false; L.add(rb); L.visible = true; L.material.visible = false; D.ribbons = (D.ribbons || []).concat(rb); }
+  D.mixer = new THREE.AnimationMixer(root); const clip = g.animations.find(a => a.name === 'StarfieldRotation') || g.animations[0];
+  if (clip) { D.action = D.mixer.clipAction(clip); D.action.play(); D.action.paused = true; D.len = clip.duration; }
+  W.sky.g.add(root); W.sky.stars.visible = false; W.starDome = D; /* 舊的點點星星換成天球 */
+}
+/* 星空的角度：一天轉一圈（遊戲時鐘），再加上季節（每天早 4 分鐘）：12 月中半夜獵戶座在頭頂 */
+function starPhase(t) { const now = new Date(Date.now() + 8 * 3600e3), doy = (now - Date.UTC(now.getUTCFullYear(), 0, 1)) / 864e5; const f = t / 24 + (doy - 349) / 365.25; return f - Math.floor(f); }
+function tickStarDome(W, t, night, dt) {
+  const D = W.starDome; if (!D) return; D.night = night;
+  if (D.action) { D.action.time = starPhase(t) * D.len; D.mixer.update(0); }
+  const vis = night > 0.02; D.root.visible = vis; if (!vis) return;
+  const clear = W.starClear ?? 1; /* 下雨、多雲：星星被雲遮住 */
+  if (D.domeMat) D.domeMat.opacity = night; for (const m of D.mats) m.opacity = night * clear;
+  D.guide += ((D.guideOn ? 1 : 0) - D.guide) * Math.min(1, (dt || 0.016) * 2.5); /* 星座連線慢慢淡入淡出 */
+  const lo = D.guide * night * clear * 0.85; for (const m of D.lineMats) m.opacity = lo;
+  for (const rb of D.ribbons || []) rb.visible = lo > 0.01;
+}
+export function setStarGuide(W, on) { if (W?.starDome) W.starDome.guideOn = !!on; }
+/* 觀星時鏡頭要看哪裡：現在掛在天上、高度最適合抬頭看的那個星座（方位角、仰角） */
+export function starTarget(W) { const D = W?.starDome; if (!D) return null; let best = null; const c = W.sky.g.position;
+  for (const a of D.anchors) { a.o.getWorldPosition(_av); const dx = _av.x - c.x, dy = _av.y - c.y, dz = _av.z - c.z, el = Math.atan2(dy, Math.hypot(dx, dz)); if (el < 0.2 || el > 1.35) continue; const sc = Math.abs(el - 0.6); if (!best || sc < best.sc) best = { name: a.name, az: Math.atan2(dx, dz), el, sc }; }
+  return best; }
+/* 星座名字的位置（螢幕上顯示用）：回傳 [{ name, pos(世界座標) }]，沒開觀星或白天時是空的 */
+const _av = new THREE.Vector3();
+export function starLabels(W) { const D = W?.starDome; if (!D || D.guide * D.night * (W.starClear ?? 1) < 0.15) return []; return D.anchors.map(a => ({ name: a.name, k: D.guide * D.night, pos: a.o.getWorldPosition(_av).clone() })); }
 
 // 每一格：時間（0–24）影響天空、光線、海、燈串
 const _v = new THREE.Vector3();
@@ -650,6 +706,7 @@ export function setTimeOfDay(W, S, t, camPos) {
   sky.stars.material.opacity = k.night * 0.95;
   sky.cm.color.set('#ffffff').lerp(_c1.set('#3a4070'), k.night).lerp(_c2.set('#ffb0a0'), (t > 17 && t < 19.5) ? 0.35 : 0);
   if (camPos) sky.g.position.set(camPos.x, 0, camPos.z);
+  tickStarDome(W, t, k.night, 1 / 60);
   W.sunL.color.copy(k.light); W.sunL.intensity = k.li;
   const sp = _v.y > 0 ? _v : _v.set(-_v.x, -_v.y, _v.z);
   W.sunL.position.set(sp.x * 60, Math.max(10, sp.y * 60), 30); W.hemi.intensity = k.amb * 1.1;
